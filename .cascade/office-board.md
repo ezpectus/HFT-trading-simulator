@@ -11,7 +11,7 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Критичных находок | 3 (S001–S003 — web-ui это мок-демо) |
+| Критичных находок | 4 (S001–S003 — web-ui мок-демо; S054 — фантомные позиции в C++ боте) |
 | Системных находок | 6 (S004–S009) |
 | Низких/инфо | остальные |
 | Чисто | 0 TODO, 0 `import *`, 0 bare `except:`, 0 `except Exception: pass`, 0 eval/exec/pickle/verify=False, 0 f-string SQL, 0 pytest xfail, 0 `NotImplementedError`, 0 `dangerouslySetInnerHTML`, 0 mutable defaults, 0 `== True/None` |
@@ -65,14 +65,14 @@
 | **S039** | `patterns.ts` — HAMMER/SHOOTING_STAR никогда не срабатывали | `upperWick < body*0.5` / `lowerWick < body*0.5` — textbook-свеча (wick = body) не проходила → детектор мёртв на реальных данных. Тест ловил, но был помечен "pre-existing fail" 3 раунда. **FIXED (round 5):** порог `<= body*2` — канонический 2:1 wick:body. | High | [x] Done |
 | **S040** | `initPerformanceMonitoring()` — мёртвая инструментация + FID-устаревание | Написанный web-vitals монитор нигде не вызывался (0 импортов) — реальный код, собирающий нули. Плюс `onFID` не существует в web-vitals v6 (установлен) → импорт падал бы при вызове. **FIXED (round 5):** FID→INP (v6 API), DashboardProfiler инициализирует мониторинг, PanelContainer оборачивает каждую панель в React `<Profiler>` → реальные render-времена по id панели. | High | [x] Done |
 | **S041** | `Account.positions` — list, а не map: `Object.entries(acc.positions)` ломает символы | Backend-модель `Position` — объект `{symbol, exchange, side, quantity, entry_price, ...}`, `positions` — **list**. `Object.entries(list)` отдаёт `[index, obj]` → ключ становится `'0'`, `'1'`… вместо символа. Найдено в `BlackSwanTester.jsx` и `CostBasis.jsx` (оба исправлены round 5/6 — итерация по объектам напрямую). `Object.keys`/`Object.values` на массиве работают инцидентально (count/values), но требуют ревью. | High | [~] Partial — 2 исправлено, ревью остальных `Object.*(positions)` открыто |
-| **S042** | `hft-executor` — мёртвый Rust-крейт (584 строки + Cargo-проект) | Заявлен "FFI callable from C++" — но **ни один C++ файл его не вызывает**, CMakeLists его не линкует, Python не импортирует. C++ бот имеет собственный `OrderExecutor` на websocketpp. Живёт только в CI (`ci.yml` собирает/тестирует его изолированно) и dependabot. Целый сервис, который ни во что не встроен. | High | [ ] Open |
-| **S043** | `SmartOrderRouterV2` — собран, но `route()` никогда не вызывается | `bot_setup.cpp` создаёт роутер, регистрирует **6 адаптеров** (real_binance/okx/bybit + sim_*), конфиг `smart_router_enabled` логируется — а `route()` вызывается **только в тестах**. Все ордера идут через `ctx.executor` в один `default_exchange`. Фича "умная маршрутизация по 6 биржам" — декорация. | High | [ ] Open |
-| **S044** | `src/fix/` — мёртвый FIX-модуль (979 строк) | `fix_message.h` + `fix_encoder.h` + `fix_decoder.h` + `fix_session.h` — конфиг `fix.enabled` парсится и логируется (`bot_setup.cpp:36`), но `FixSession` нигде в src не создаётся. Используется только собственными тестами. Флаг `fix_enabled` — ложная реклама в конфиге. | Medium | [ ] Open |
-| **S045** | `persistence/mapped_persistence.h` — мёртвые 371 строк | Ни одной ссылки вне самого файла — ни src, ни тесты. | Medium | [ ] Open |
-| **S046** | C++ бот открывает локальные позиции на неотправленных ордерах | `bot_loop.cpp`: `pos_mgr.open_position()` вызывается **безусловно** — `process_ai_signals:65`, `execute_v2_order:170`, `run_v1_fallback_loop:225`. Если `executor->is_connected()` false — ордер не отправлен, а позиция открыта локально. Книга расходится с биржей молча; SL/TP потом "закрывает" фантомные позиции. | **Critical** | [ ] Open |
-| **S047** | Rust `submit()` считает "отправленным" то, что лежит в очереди | `orders_sent` инкрементится при push в unbounded channel (`lib.rs:127`) — во время WS-аутажа ордера копятся без лимита и выстреливают пачкой при реконнекте со свежими timestamp. `avg_latency_ns` меряется от `last_order_ts` — при >1 ордере в полёте атрибуция неверна. `is_fill_message` не проверяет order id — любой fill считается. | High | [ ] Open |
-| **S048** | Арбитражные ноги без хеджирования | `execute_arbitrage` (`order_executor.h:177`) шлёт BUY, потом SELL — если sell-нога падает (`ec` или дисконнект между), остаётся голая позиция. Только `spdlog::error` — никакого rollback/retry. | High | [ ] Open |
-| **S049** | v1 fallback генерит синтетический стакан молча | `bot_loop.cpp:201-209` — тот же фейковый 10-уровневый стакан 1bp spacing, что в v2, но **без предупреждения** (warn добавлен только в `prepare_order_book` для v2-пути в round AH). Половинчатый фикс. | Medium | [ ] Open |
+| **S050** | `hft-executor` — мёртвый Rust-крейт (584 строки + Cargo-проект) | Заявлен "FFI callable from C++" — но **ни один C++ файл его не вызывает**, CMakeLists его не линкует, Python не импортирует. C++ бот имеет собственный `OrderExecutor` на websocketpp. Живёт только в CI (`ci.yml` собирает/тестирует его изолированно) и dependabot. Целый сервис, который ни во что не встроен. | High | [ ] Open |
+| **S051** | `SmartOrderRouterV2` — собран, но `route()` никогда не вызывается | `bot_setup.cpp` создаёт роутер, регистрирует **6 адаптеров** (real_binance/okx/bybit + sim_*), конфиг `smart_router_enabled` логируется — а `route()` вызывается **только в тестах**. Все ордера идут через `ctx.executor` в один `default_exchange`. Фича "умная маршрутизация по 6 биржам" — декорация. | High | [ ] Open |
+| **S052** | `src/fix/` — мёртвый FIX-модуль (979 строк) | `fix_message.h` + `fix_encoder.h` + `fix_decoder.h` + `fix_session.h` — конфиг `fix.enabled` парсится и логируется (`bot_setup.cpp:36`), но `FixSession` нигде в src не создаётся. Используется только собственными тестами. Флаг `fix_enabled` — ложная реклама в конфиге. | Medium | [ ] Open |
+| **S053** | `persistence/mapped_persistence.h` — мёртвые 371 строк | Ни одной ссылки вне самого файла — ни src, ни тесты. | Medium | [ ] Open |
+| **S054** | C++ бот открывает локальные позиции на неотправленных ордерах | `bot_loop.cpp`: `pos_mgr.open_position()` вызывается **безусловно** — `process_ai_signals:65`, `execute_v2_order:170`, `run_v1_fallback_loop:225`. Если `executor->is_connected()` false — ордер не отправлен, а позиция открыта локально. Книга расходится с биржей молча; SL/TP потом "закрывает" фантомные позиции. | **Critical** | [ ] Open |
+| **S055** | Rust `submit()` считает "отправленным" то, что лежит в очереди | `orders_sent` инкрементится при push в unbounded channel (`lib.rs:127`) — во время WS-аутажа ордера копятся без лимита и выстреливают пачкой при реконнекте со свежими timestamp. `avg_latency_ns` меряется от `last_order_ts` — при >1 ордере в полёте атрибуция неверна. `is_fill_message` не проверяет order id — любой fill считается. | High | [ ] Open |
+| **S056** | Арбитражные ноги без хеджирования | `execute_arbitrage` (`order_executor.h:177`) шлёт BUY, потом SELL — если sell-нога падает (`ec` или дисконнект между), остаётся голая позиция. Только `spdlog::error` — никакого rollback/retry. | High | [ ] Open |
+| **S057** | v1 fallback генерит синтетический стакан молча | `bot_loop.cpp:201-209` — тот же фейковый 10-уровневый стакан 1bp spacing, что в v2, но **без предупреждения** (warn добавлен только в `prepare_order_book` для v2-пути в round AH). Половинчатый фикс. | Medium | [ ] Open |
 | **S043** | `deque` не поддерживает срезы — `get_order_history`/`get_recent_closed` падали с TypeError | `_order_history: deque(maxlen=10000)` в `exchange.py:60`, но `get_order_history` делал `self._order_history[-limit:]` → `TypeError: sequence index must be integer, not 'slice'`. То же в `arbitrage.py:256` (`_closed_history`). 8 падающих тестов (order history, data export, arbitrage closed). **FIXED:** `islice`-хвост без копирования всего deque / `list(...)`. 88/88 зелёных в 5 тест-файлах. | High | [x] Done |
 | **S042** | 2 pre-existing failing теста ловили РЕАЛЬНЫЕ баги (не битые тесты) | `test_hmc.py::test_gradient_consistent_with_finite_diff` — `grad_log_posterior` не соответствовал `log_posterior`: нет градиента prior (-10,-5,-5), другая рекурсия h (prev-return vs current-return), неверные seed-производные h₋₁=ω/(1−α−β). **FIXED:** аналитический градиент приведён к objective-функции. `test_emd.py::test_imf_has_zero_mean` — `sift` взрывался: maxima/minima только внутренние → `cubic_spline` экстраполировал на индексы 0 и n−1, конверт за 50 итераций разлетался (mean −13.5 на сигнале ±2.5). **FIXED:** endpoint-anchored knots (`[0]+…+[n−1]` с h[0]/h[-1]). Оба теста теперь зелёные — 138/138 в 4 файлах. | High | [x] Done |
 
@@ -126,6 +126,11 @@
 - `model_dump(` — 0
 - `sorted()[-k:]`/`sorted()[:k]` — 0
 - `f"INSERT`/`f"SELECT` — 0
+- C++ `catch (std::exception)` — 10, все логируют (spdlog warn/error/critical), чисто
+- Rust `unwrap()`/`expect()`/`panic!`/`todo!`/`unimplemented!` в `hft-executor/src` — 0 (все 15 в `#[cfg(test)]`)
+- Rust `unsafe` — только FFI boundary (CStr::from_ptr, Box::from_raw) — легитимно
+- `fpga/fpga_orderbook.vhd` — честно помечен "ACADEMIC SKETCH — NOT A PRODUCTION PROTOTYPE", не притворяется
+- `hft-trade-bot/monitor.py` — реальный log tailer, не мок
 
 ---
 
@@ -136,3 +141,6 @@
 3. **S004** — переписать топ-10 тестовых файлов с `assert len(` на проверку значений.
 4. **S005–S007** — механическая чистка: `enumerate`, `autospec=True`, `monotonic()`.
 5. **Infra** — `.git/hooks/pre-commit` — batch-скрипт, git не может его spawn'ить (работает только `scripts/pre-commit-check.py --staged` вручную). Переписать hook как `.sh`.
+6. **S054 (Critical)** — `pos_mgr.open_position()` после `submit_order` безусловно, 3 сайта в `bot_loop.cpp` — фантомные позиции когда WS не подключён.
+7. **S050–S053** — dead code в hft: Rust-крейт hft-executor (584 строки, 0 вызовов), SmartOrderRouterV2+6 адаптеров (route() не вызывается), src/fix/ (979 строк), mapped_persistence.h (371). Удалить или встроить.
+8. **S055–S057** — Rust submit/queue/latency семантика, arb ноги без хеджа, v1 synthetic book без warn.

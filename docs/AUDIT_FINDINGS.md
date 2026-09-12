@@ -541,34 +541,34 @@ Six `console.log` calls in the performance monitoring utility. These are intenti
 
 ---
 
-# ROUND 4 � WIRE-TO-LIVE (2026-09-12)
+# ROUND 4 � WIRE-TO-LIVE (2026-09-12)
 
-Direction (user-approved): \ake features are worse than missing features\ � replace mock UI data with real WebSocket streams wherever the payload exists.
+Direction (user-approved): \ake features are worse than missing features\ � replace mock UI data with real WebSocket streams wherever the payload exists.
 
-## Finding 027 � S035: ~70 math panels dead via nested candle access
+## Finding 027 � S035: ~70 math panels dead via nested candle access
 
 **Files:** \web-ui/src/components/*.jsx\ (71 files)
 **Severity:** Critical
 
-\useExchangeData\ produces a flat candle array \[{exchange, symbol, timestamp, open, high, low, close, volume}]\; the registry passes it through unchanged. ~70 math panels indexed it as \candles[exchange][symbol]\ > always \undefined\ > panels rendered a permanent empty state. Real math, never executed � worse than fake: dead code posing as live.
+\useExchangeData\ produces a flat candle array \[{exchange, symbol, timestamp, open, high, low, close, volume}]\; the registry passes it through unchanged. ~70 math panels indexed it as \candles[exchange][symbol]\ > always \undefined\ > panels rendered a permanent empty state. Real math, never executed � worse than fake: dead code posing as live.
 
 **Fix:** new \web-ui/src/utils/candles.js\ (\selectCandles\/\groupCandles\ handle flat arrays); 61 files auto-migrated, 10 multi-symbol files hand-migrated (BlackLitterman, CopulaModel, EmpiricalDynamicModeling, GraphTheoryNetwork, KellyCriterion, PrincipalComponentAnalysis, RandomMatrixTheory, TensorDecomposition, TransferEntropy, WassersteinBarycenters). Grep confirms zero remaining nested accesses.
 
-## Finding 028 � S036: format.ts lost exports during TS migration
+## Finding 028 � S036: format.ts lost exports during TS migration
 
 **File:** \web-ui/src/utils/format.ts\
 **Severity:** High
 
-\colorForSide\, \gColorForSide\, \ormatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
+\colorForSide\, \gColorForSide\, \ormatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
 
-## Finding 029 � S037: App.test.jsx never ran
+## Finding 029 � S037: App.test.jsx never ran
 
 **File:** \web-ui/src/test/App.test.jsx\
 **Severity:** Medium
 
 Wrong relative paths (\./App\, \./hooks/*\), stale \useUIStore\ mock field names, \useTradingStore\ mock ignoring selector form. The only smoke test for the App shell was dead. **Fixed:** paths + mocks now match current store signatures; test mounts the real App.
 
-## Finding 030 � S001�S003 partial: 13 panels rewired to live streams
+## Finding 030 � S001�S003 partial: 13 panels rewired to live streams
 
 Top mock offenders now consume real data with honest empty states:
 
@@ -587,9 +587,9 @@ Top mock offenders now consume real data with honest empty states:
 
 Registry: ~20 panel entries changed from \props: () => ({})\ to real context props. 12 test files rewritten to assert real wire shapes instead of mock content.
 
-## Finding 031 � S038: pre-existing failing tests (not from this round)
+## Finding 031 � S038: pre-existing failing tests (not from this round)
 
-\ormat.test.js\ expects \ormatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ � contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \uditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \lertWebhook\ (1: label). Left open for a future round.
+\ormat.test.js\ expects \ormatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ � contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \uditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \lertWebhook\ (1: label). Left open for a future round.
 
 ## Round 4 verification
 
@@ -696,3 +696,33 @@ call. Same bug in `arbitrage.py:256` (`_closed_history`). Downstream victims:
 `islice` tail (no full-deque copy) in exchange.py and `list()` wrap in
 arbitrage.py. `market_simulator.py` `[-n:]` sites are plain lists — clean.
 **88/88 green** across the 5 previously-failing test files.
+
+## Round 7 — audit branch: C++/Rust hft layer (first deep pass)
+
+Rotation target: hft-trade-bot (C++20) + hft-executor (Rust) — до этого были только поверхностные grep'ы (catch/unwrap/unsafe в ЧИСТО). Полный проход по data flow.
+
+### New findings S050–S057
+
+**S054 (Critical) — фантомные позиции.** `bot_loop.cpp` вызывает `pos_mgr.open_position()` безусловно после попытки отправки — `process_ai_signals:65`, `execute_v2_order:170`, `run_v1_fallback_loop:225`. При `executor->is_connected() == false` ордер не уходит, позиция открывается локально. Дальше SL/TP честно "закрывает" позиции, которых на бирже никогда не было — расхождение состояний молчит.
+
+**S050 — мёртвый Rust-крейт.** `hft-executor` (584 строки lib.rs + Cargo.toml + тесты + CI jobs + dependabot) — заявлен как "FFI callable from C++", но ни один C++ файл его не линкует и не вызывает. C++ бот использует собственный websocketpp `OrderExecutor`. CI компилирует и тестирует артефакт, который ничто не потребляет.
+
+**S051 — SmartOrderRouterV2 не роутит.** Создаётся в `bot_setup.cpp:157`, регистрирует 6 адаптеров (real+sim), `smart_router_enabled` честно логируется при старте — и `route()` не вызывается ни разу вне тестов. Все ордера идут через `ctx.executor` в единственный `default_exchange`.
+
+**S052 — src/fix/ мёртв.** 979 строк FIX-протокола (message/encoder/decoder/session). Конфиг `fix.enabled` парсится и логируется — сессия никогда не создаётся. Живёт только в собственных тестах.
+
+**S053 — mapped_persistence.h мёртв.** 371 строка, ноль ссылок вне файла.
+
+**S055 — Rust submit() врёт про доставку.** `orders_sent` инкрементится на push в unbounded channel, не на WS send. Аутаж → очередь растёт без борьбы → реконнект → пачка устаревших ордеров улетает разом. `avg_latency_ns` берёт `last_order_ts` (последний отправленный, не тот что филлился). `is_fill_message` не сверяет order id.
+
+**S056 — арбитраж без хеджа.** `execute_arbitrage`: BUY ушёл, SELL упал → голая нога, только error-лог.
+
+**S057 — половинчатый фикс.** v1 fallback loop генерит тот же синтетический 10-уровневый стакан, что v2 — но без warn, который добавили в `prepare_order_book` (round AH).
+
+### ЧИСТО (C++/Rust)
+
+- Все 10 `catch(std::exception)` логируют — молчания нет
+- `unwrap()/expect()/panic!` в Rust src — 0 (все 15 в `#[cfg(test)]`)
+- `unsafe` — только FFI boundary
+- `fpga_orderbook.vhd` — честный дисклеймер "ACADEMIC SKETCH", не притворяется продакшеном
+- `monitor.py` — реальный tail лога
