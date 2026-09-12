@@ -537,3 +537,63 @@ Six `console.log` calls in the performance monitoring utility. These are intenti
 10. **Add `encoding="utf-8"` to `open()` calls** (Finding 025) â€” 7 calls in fix_client, llm_engine, ml, strategies
 11. **Gate `console.log` in performanceMonitor.js** (Finding 026) â€” wrap in `import.meta.env.DEV`
 12. **Organize root-level scripts** (Finding 019) â€” move to `scripts/`
+
+
+---
+
+# ROUND 4 — WIRE-TO-LIVE (2026-09-12)
+
+Direction (user-approved): \ake features are worse than missing features\ — replace mock UI data with real WebSocket streams wherever the payload exists.
+
+## Finding 027 — S035: ~70 math panels dead via nested candle access
+
+**Files:** \web-ui/src/components/*.jsx\ (71 files)
+**Severity:** Critical
+
+\useExchangeData\ produces a flat candle array \[{exchange, symbol, timestamp, open, high, low, close, volume}]\; the registry passes it through unchanged. ~70 math panels indexed it as \candles[exchange][symbol]\ > always \undefined\ > panels rendered a permanent empty state. Real math, never executed — worse than fake: dead code posing as live.
+
+**Fix:** new \web-ui/src/utils/candles.js\ (\selectCandles\/\groupCandles\ handle flat arrays); 61 files auto-migrated, 10 multi-symbol files hand-migrated (BlackLitterman, CopulaModel, EmpiricalDynamicModeling, GraphTheoryNetwork, KellyCriterion, PrincipalComponentAnalysis, RandomMatrixTheory, TensorDecomposition, TransferEntropy, WassersteinBarycenters). Grep confirms zero remaining nested accesses.
+
+## Finding 028 — S036: format.ts lost exports during TS migration
+
+**File:** \web-ui/src/utils/format.ts\
+**Severity:** High
+
+\colorForSide\, \gColorForSide\, \ormatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts — production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
+
+## Finding 029 — S037: App.test.jsx never ran
+
+**File:** \web-ui/src/test/App.test.jsx\
+**Severity:** Medium
+
+Wrong relative paths (\./App\, \./hooks/*\), stale \useUIStore\ mock field names, \useTradingStore\ mock ignoring selector form. The only smoke test for the App shell was dead. **Fixed:** paths + mocks now match current store signatures; test mounts the real App.
+
+## Finding 030 — S001–S003 partial: 13 panels rewired to live streams
+
+Top mock offenders now consume real data with honest empty states:
+
+| Panel | Live source |
+|-------|-------------|
+| FillAnalytics, TCA, SlippageAnalytics | \ills\ (orders WS) |
+| SignalTracker | \signals\ + \prices\ |
+| ArbScanner | \rbitrage_scan\ |
+| Inventory | \ccounts\ + \prices\ |
+| WalkForwardViewer | \acktest_result\ |
+| Microstructure, OrderBook | \orderbooks\ |
+| CrossAssetMatrix | \candles\ (Pearson corr on last 60 closes) |
+| DataQuality | \candles\ (real gap/staleness/OHLC checks) |
+| StrategyCorrelation | \signals\ (directional agreement matrix) |
+| LatencyPanel | WS RTT samples (client-accumulated history) |
+
+Registry: ~20 panel entries changed from \props: () => ({})\ to real context props. 12 test files rewritten to assert real wire shapes instead of mock content.
+
+## Finding 031 — S038: pre-existing failing tests (not from this round)
+
+\ormat.test.js\ expects \ormatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ — contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \uditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \lertWebhook\ (1: label). Left open for a future round.
+
+## Round 4 verification
+
+- \ite build\: green (was broken before S036 fix)
+- \itest run\: 986 passed / 8 failed (all 8 = Finding 031 pre-existing)
+- \pytest tests/unit/test_real_market_data.py\: 22/22 (incl. new malformed-JSON resilience test)
+
