@@ -14,9 +14,9 @@ if errorlevel 1 (
 )
 
 REM Verify Exchange Simulator
-echo [2/5] Verifying Exchange Simulator (port 8765)...
+echo [2/5] Verifying Exchange Simulator (health on port 8775; WS is :8765)...
 timeout /t 3 /nobreak >nul
-curl -sf http://localhost:8765/health >nul 2>&1
+curl -sf http://localhost:8775/health >nul 2>&1
 if errorlevel 1 (
     echo   ^❌ Exchange Simulator failed health check
     docker compose logs --tail=20 exchange-simulator
@@ -25,8 +25,8 @@ if errorlevel 1 (
 echo   ^✅ Exchange Simulator is healthy
 
 REM Verify AI Signal Bot
-echo [3/5] Verifying AI Signal Bot (port 8766)...
-curl -sf http://localhost:8766/health >nul 2>&1
+echo [3/5] Verifying AI Signal Bot (health on port 9090; WS is :8766)...
+curl -sf http://localhost:9090/health >nul 2>&1
 if errorlevel 1 (
     echo   ^❌ AI Signal Bot failed health check
     docker compose logs --tail=20 ai-signal-bot
@@ -45,7 +45,7 @@ if errorlevel 1 (
 
 REM Verify Web UI
 echo [5/5] Verifying Web UI (port 3000)...
-curl -sf http://localhost:3000/ >nul 2>&1
+curl -sf http://localhost:3000/health >nul 2>&1
 if errorlevel 1 (
     echo   ^❌ Web UI failed health check
     docker compose logs --tail=20 web-ui
@@ -57,8 +57,8 @@ echo.
 echo === All services verified ✅ ===
 echo.
 echo Services running:
-echo   Exchange Simulator: http://localhost:8765
-echo   AI Signal Bot:      http://localhost:8766
+echo   Exchange Simulator: ws://localhost:8765 (health :8775)
+echo   AI Signal Bot:      ws://localhost:8766 (health :9090)
 echo   HFT Trade Bot:      http://localhost:9091
 echo   Web UI:             http://localhost:3000
 echo.

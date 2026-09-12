@@ -12,9 +12,9 @@ echo "[1/5] Starting services..."
 docker compose up -d --wait --timeout 60
 
 # Verify Exchange Simulator
-echo "[2/5] Verifying Exchange Simulator (port 8765)..."
+echo "[2/5] Verifying Exchange Simulator (health on port 8775; WS is :8765)..."
 sleep 3
-if curl -sf http://localhost:8765/health >/dev/null 2>&1; then
+if curl -sf http://localhost:8775/health >/dev/null 2>&1; then
     echo "  ✅ Exchange Simulator is healthy"
 else
     echo "  ❌ Exchange Simulator failed health check"
@@ -23,8 +23,8 @@ else
 fi
 
 # Verify AI Signal Bot
-echo "[3/5] Verifying AI Signal Bot (port 8766)..."
-if curl -sf http://localhost:8766/health >/dev/null 2>&1; then
+echo "[3/5] Verifying AI Signal Bot (health on port 9090; WS is :8766)..."
+if curl -sf http://localhost:9090/health >/dev/null 2>&1; then
     echo "  ✅ AI Signal Bot is healthy"
 else
     echo "  ❌ AI Signal Bot failed health check"
@@ -42,7 +42,7 @@ fi
 
 # Verify Web UI
 echo "[5/5] Verifying Web UI (port 3000)..."
-if curl -sf http://localhost:3000/ >/dev/null 2>&1; then
+if curl -sf http://localhost:3000/health >/dev/null 2>&1; then
     echo "  ✅ Web UI is healthy"
 else
     echo "  ❌ Web UI failed health check"
@@ -54,8 +54,8 @@ echo ""
 echo "=== All services verified ✅ ==="
 echo ""
 echo "Services running:"
-echo "  Exchange Simulator: http://localhost:8765"
-echo "  AI Signal Bot:      http://localhost:8766"
+echo "  Exchange Simulator: ws://localhost:8765 (health :8775)"
+echo "  AI Signal Bot:      ws://localhost:8766 (health :9090)"
 echo "  HFT Trade Bot:      http://localhost:9091"
 echo "  Web UI:             http://localhost:3000"
 echo ""
