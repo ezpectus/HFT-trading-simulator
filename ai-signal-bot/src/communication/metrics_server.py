@@ -1,7 +1,8 @@
-"""Prometheus metrics endpoint for AI Signal Bot.
+"""In-memory metrics collector for AI Signal Bot.
 
-Exposes metrics on a separate HTTP server (default :9091/metrics) for
-Prometheus scraping. Uses a lightweight text format — no external deps.
+Fallback sink used when the Prometheus exporter is disabled — keeps
+metrics.* calls valid without a running server. The production scrape
+path is monitoring/metrics.py MetricsExporter (config metrics.* keys).
 
 Metrics exposed:
   ai_signal_bot_signals_sent_total          — counter
@@ -16,7 +17,6 @@ Metrics exposed:
   ai_signal_bot_win_rate                    — gauge (win rate 0-1)
   ai_signal_bot_errors_total                — counter
 """
-import asyncio
 import time
 
 from src.observability.logging import get_logger
@@ -120,68 +120,3 @@ class MetricsCollector:
             "",
         ]
         return "\n".join(lines)
-
-
-class MetricsServer:
-    """HTTP server that serves Prometheus metrics on /metrics endpoint."""
-
-    def __init__(self, collector: MetricsCollector, host: str = "0.0.0.0", port: int = 9091):  # nosec: B104
-        self.collector = collector
-        self.host = host
-        self.port = port
-        self._server: asyncio.AbstractServer | None = None
-
-    async def start(self) -> None:
-        self._server = await asyncio.start_server(
-            self._handle_connection, self.host, self.port
-        )
-        logger.info("Metrics server started on http://%s:%s/metrics", self.host, self.port)
-
-    async def stop(self) -> None:
-        if self._server:
-            self._server.close()
-            await self._server.wait_closed()
-        logger.info("Metrics server stopped")
-
-    async def _handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        try:
-            request_line = await reader.readline()
-            while True:
-                line = await reader.readline()
-                if line in (b"\r\n", b"\n", b""):
-                    break
-
-            path = request_line.decode("ascii", errors="replace").split(" ")[1] if b" " in request_line else "/"
-
-            if path != "/metrics":
-                body = b"Not Found"
-                response = (
-                    f"HTTP/1.1 404 Not Found\r\n"
-                    f"Content-Type: text/plain; charset=utf-8\r\n"
-                    f"Content-Length: {len(body)}\r\n"
-                    f"Connection: close\r\n"
-                    f"\r\n"
-                ).encode() + body
-                writer.write(response)
-                await writer.drain()
-                return
-
-            body = self.collector.render().encode("utf-8")
-            response = (
-                f"HTTP/1.1 200 OK\r\n"
-                f"Content-Type: text/plain; version=0.0.4; charset=utf-8\r\n"
-                f"Content-Length: {len(body)}\r\n"
-                f"Connection: close\r\n"
-                f"\r\n"
-            ).encode() + body
-
-            writer.write(response)
-            await writer.drain()
-        except (ConnectionError, OSError) as e:
-            logger.error("Metrics server error: %s", e)
-        finally:
-            writer.close()
-            try:
-                await writer.wait_closed()
-            except (ConnectionError, OSError) as e:
-                logger.debug("Writer close error: %s", e)

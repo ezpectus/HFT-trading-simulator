@@ -1,4 +1,4 @@
-"""Tests for communication CircuitBreaker and MetricsServer — signal protection and Prometheus metrics."""
+"""Tests for communication CircuitBreaker and MetricsCollector — signal protection and Prometheus metrics."""
 import asyncio
 import time
 from unittest.mock import patch
@@ -10,7 +10,7 @@ from src.communication.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
 )
-from src.communication.metrics_server import MetricsCollector, MetricsServer
+from src.communication.metrics_server import MetricsCollector
 
 
 class TestCircuitBreakerInit:
@@ -215,34 +215,3 @@ class TestMetricsCollector:
         assert "# TYPE" in output
         assert "counter" in output
         assert "gauge" in output
-
-
-class TestMetricsServer:
-    @pytest.mark.asyncio
-    async def test_server_start_stop(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc, host="127.0.0.1", port=19091)
-        await server.start()
-        assert server._server is not None
-        await server.stop()
-
-    @pytest.mark.asyncio
-    async def test_server_responds_with_metrics(self):
-        mc = MetricsCollector()
-        mc.record_signal_sent()
-        server = MetricsServer(mc, host="127.0.0.1", port=19092)
-        await server.start()
-
-        try:
-            reader, writer = await asyncio.open_connection("127.0.0.1", 19092)
-            writer.write(b"GET /metrics HTTP/1.1\r\nHost: localhost\r\n\r\n")
-            await writer.drain()
-
-            response = await reader.read(4096)
-            response_str = response.decode("utf-8")
-            assert "200 OK" in response_str
-            assert "ai_signal_bot_signals_sent_total 1" in response_str
-            writer.close()
-            await writer.wait_closed()
-        finally:
-            await server.stop()

@@ -1,15 +1,10 @@
-"""Tests for MetricsCollector and MetricsServer.
+"""Tests for MetricsCollector.
 
-Tests cover: counter increments, gauge setters, Prometheus text format rendering,
-HTTP server lifecycle, and HTTP response format.
+Tests cover: counter increments, gauge setters, and Prometheus text format rendering.
 """
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
-import pytest_asyncio
 
-from src.communication.metrics_server import MetricsCollector, MetricsServer
+from src.communication.metrics_server import MetricsCollector
 
 
 class TestMetricsCollector:
@@ -145,112 +140,3 @@ class TestMetricsCollector:
         assert "ai_signal_bot_circuit_breaker_trips_total 1" in rendered
         assert "ai_signal_bot_ws_clients_connected 2" in rendered
         assert "ai_signal_bot_circuit_breaker_state 1" in rendered
-
-
-class TestMetricsServer:
-    """Tests for MetricsServer HTTP lifecycle."""
-
-    def test_init_defaults(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc)
-        assert server.host == "0.0.0.0"  # nosec: B104
-        assert server.port == 9091
-        assert server.collector is mc
-
-    def test_init_custom_host_port(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc, host="127.0.0.1", port=9092)
-        assert server.host == "127.0.0.1"
-        assert server.port == 9092
-
-    @pytest.mark.asyncio
-    async def test_start_creates_server(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = MagicMock(spec=asyncio.Server)
-        mock_server.wait_closed = AsyncMock()
-        with patch("asyncio.start_server", new_callable=AsyncMock, return_value=mock_server):
-            await server.start()
-            assert server._server is mock_server
-
-    @pytest.mark.asyncio
-    async def test_stop_closes_server(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = MagicMock(spec=asyncio.Server)
-        mock_server.wait_closed = AsyncMock()
-        server._server = mock_server
-        await server.stop()
-        mock_server.close.assert_called_once()
-        mock_server.wait_closed.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_stop_without_start_is_noop(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc)
-        # Should not raise
-        await server.stop()
-
-    @pytest.mark.asyncio
-    async def test_handle_connection_returns_metrics(self):
-        mc = MetricsCollector()
-        mc.record_signal_sent()
-        server = MetricsServer(mc)
-
-        reader = AsyncMock(spec=asyncio.StreamReader)
-        writer = MagicMock(spec=asyncio.StreamWriter)
-        writer.drain = AsyncMock()
-        writer.wait_closed = AsyncMock()
-        # Simulate HTTP request: "GET /metrics HTTP/1.1\r\n\r\n"
-        reader.readline.side_effect = [
-            b"GET /metrics HTTP/1.1\r\n",
-            b"\r\n",
-        ]
-
-        await server._handle_connection(reader, writer)
-
-        # Verify response was written
-        assert writer.write.called
-        written_data = writer.write.call_args[0][0]
-        assert b"HTTP/1.1 200 OK" in written_data
-        assert b"Content-Type: text/plain" in written_data
-        assert b"ai_signal_bot_signals_sent_total 1" in written_data
-
-    @pytest.mark.asyncio
-    async def test_handle_connection_closes_writer(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc)
-
-        reader = AsyncMock(spec=asyncio.StreamReader)
-        writer = MagicMock(spec=asyncio.StreamWriter)
-        writer.drain = AsyncMock()
-        writer.wait_closed = AsyncMock()
-        reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]
-
-        await server._handle_connection(reader, writer)
-
-        writer.close.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_handle_connection_content_length_matches_body(self):
-        mc = MetricsCollector()
-        server = MetricsServer(mc)
-
-        reader = AsyncMock(spec=asyncio.StreamReader)
-        writer = MagicMock(spec=asyncio.StreamWriter)
-        writer.drain = AsyncMock()
-        writer.wait_closed = AsyncMock()
-        reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]
-
-        await server._handle_connection(reader, writer)
-
-        written_data = writer.write.call_args[0][0]
-        # Parse Content-Length header
-        headers_part = written_data.split(b"\r\n\r\n")[0]
-        content_length = None
-        for line in headers_part.split(b"\r\n"):
-            if line.lower().startswith(b"content-length:"):
-                content_length = int(line.split(b":")[1].strip())
-        assert content_length is not None
-        body = written_data.split(b"\r\n\r\n")[1]
-        assert len(body) == content_length
