@@ -1167,3 +1167,27 @@ Verified: sim 60 tests green (43 ws_server + 17 security), ai-bot 77 green (30 f
 **Бонус:** новый `tests/unit/test_hawkes_model.py` — 6 contract-тестов на `hawkes_log_lik` (stationarity guards, empty→-mu·t, clustered > spread при alpha>0, Poisson-equivalence при alpha=0) — файл тронут S005, gate требовал тест.
 
 **Verified:** 1181+165+150+32+21 тестов green · ruff clean на всех моих файлах (1 I001 в agent's test_ws_message_handler — не моё).
+
+---
+
+## Round 30 — AUDIT sweep: doc drift + dead residue
+
+Board сведён к god-file rows → AUDIT branch. Прошёл непокрытые паттерны rulebook'а + менее-аудированные области (hft headers, scripts/, hooks/utils, infra, docs-vs-reality).
+
+**S103 — doc drift (Medium).** ~67 ссылок на удалённые пакеты в 7 docs-файлах. Худший — `docs/theory/module_guide_en.md`: 145-секционный гайд, 30 рефов на `research/` "52 quant models", `notification/`, `price_feed` — пакеты удалены в S092/S095/S097. `docs/DEPLOYMENT.md` хуже остальных по последствиям: YAML-блок `price_feed:` — пользователь выставит конфиг и он будет молча проигнорирован. `ARCHITECTURE.md` описывает `price_feed_manager.py` как живой модуль.
+
+**S104 — dead residue (Low).** 4 пустых package-хаска (`src/ml/`, `src/research/`, `src/notification/`, `src/networking/`) — ноль .py, только `__pycache__` с 68 stale .pyc файлами удалённых модулей. Не трекнуты, инертны (bytecode-only в `__pycache__` не импортируем), но шум + README их рекламирует. Плюс 2 dead-хука в web-ui (`usePrevious.js`, `useStatusMap.js` — 16 строк, 0 импортов).
+
+**ЧИСТО (проверено, добавлено в лист):**
+- `async def` без `await`: 27 сайтов — все signature-bound (Protocol impl, aiohttp handlers, `start_monitoring`/`start_user_data_stream` task-spawn, `_handle_unsubscribe` sync-dispatch). Не sync-pretending-async — реальной работы в них нет.
+- `getattr` без default: 0. `import *`: 0. `type(x)==`: 0. `str(Path(`: 0.
+- Unbounded caches: sim `_candle_history`/`_funding_history`/`_ob_cache` — все с `_max_*` trims.
+- `random`/`np.random` в src: 8 сайтов — все seeded (`default_rng(42)`, `Random(seed)`, reconnect jitter).
+- `json.loads` без try: 0 из 45.
+- Dead classes в strategies/risk/portfolio: 0. Dead hft headers: 0 (`pch.h` жив через `target_precompile_headers`).
+- `if not x: return []` masking: 0. skip/xfail без reason: 0. `it.skip`/`xit`: 0.
+- helm/terraform/settings.yaml: нет ссылок на удалённые сервисы/модули.
+- `scripts/migrate.py` — реальный инструмент (4 SQL migrations, asyncpg runner).
+- web-ui mock infra — env-gated `VITE_MOCK_MODE`, disclosed — легитимна.
+
+**Verified:** все поиски sanity-checked на known-present строках; hit-context прочитан до классификации.

@@ -120,6 +120,8 @@
 | **S101** | CI lint-джобы красные на master — локальный gate их не видит | `ci.yml` lint-python матрица гоняет `ruff check .` по обоим компонентам, lint-js — `npm run lint` (= `eslint src/`), lint-cpp — `clang-format-18 --dry-run --Werror`. На чистом HEAD: **ruff 29 ошибок** (18 I001 в ai-signal-bot tests + F541/F841), **eslint 303** (268 no-unused-vars + 34 prefer-const — обломки S003-пурджа), **clang-format ~670 нарушений в 66 файлах**. Локальный pre-commit проверяет только staged-файлы → коммиты проходят, а CI гниёт. | High | [x] Done — ruff --fix (28) + мёртвый `scripts/pre-commit.py` удалён (F841+fake --quick); eslint: 257 сайтов codemod'ом (деструктуры/импорты/мёртвые хелперы удалены, args→`_`), ~15 вручную, каскадные сироты вычищены (PtauCov_/atr/calcATR/highs/lows/zMax); clang-format -i на 66 файлах. Все три: 0 ошибок. Vitest 981/981 green. |
 | **S102** | `SimulatorAdapter` — чистый фейк: никогда не подключался к sim | `exchange_factory.py`: `get_ticker` возвращал `_sim_prices.get(sym, 50000.0)` — флэт 50000 на любой символ; `place_order` → `{"order_id":"sim_1","status":"filled"}` мгновенно; `cancel_order` → всегда True; `get_orderbook`/`get_candles` → пустые списки. FALLBACK-режим молча деградировал в фабрикованные цены + гарантированные филлы. | High | [x] Done — R28: переписан как реальный WS-клиент: connect к `simulator_url`, recv-loop кэширует broadcast (prices/candles/orderbooks/accounts), `place_order` шлёт `{"type":"order"}` и ждёт fill/error по FIFO-фьючерсам (timeout 10s), `cancel_order` честно возвращает False (cancel в протоколе sim отсутствует). Нет фида → пустые данные, не флэт-50000. 14 тестов переписаны на FakeWs (queue-fed async iterator + send-spy). |
 | **S098** | `_execute_arbitrage` не проверяет rejection ног | `ws_broadcast.py:306-330`: buy/sell ордера отправляются, статусы проверяются ТОЛЬКО на :342 для fill-broadcast — но opportunity закрывается "AUTO_EXECUTED" и profit логируется/пишется в trade_csv ДО проверки. С багами S081/S082 обе ноги могут быть REJECTED — арб всё равно "исполнен" в логах. Плюс :345-348 — `orjson.dumps`/`json.dumps` результаты выбрасываются (dead serialization). **FIXED:** проверка статусов обеих ног ДО close_opportunity/profit-лога — rejection → close "FAILED" + warning с причинами, return. Dead dumps удалены. | High | [x] Done |
+| **S103** | Доки описывают удалённые пакеты как живые — ~67 ссылок в 7 файлах | `docs/theory/module_guide_en.md` (30 рефов — гайд на 145 секций документирует `research/` "52 quant models", `notification/`, `price_feed` — всё удалено), `docs/theory/project_architecture_en.md` (12 — дерево каталогов с `research/` и `notification/`), `docs/ARCHITECTURE.md` (12 — `price_feed_manager.py` как живой), `docs/DEPLOYMENT.md` (2 — YAML-блок `price_feed:` который пользователь выставит и он молча проигнорируется), `docs/guides/DEVELOPMENT_GUIDE.md` (2 — "research/ 34 quant research modules"), `TESTING.md` (4), `REFACTORING_PLAN_10DAYS.md` (7). Доки — карта системы которой нет. | Medium | [ ] Open |
+| **S104** | Мёртвый осадок: 4 пустых package-хаска + 68 stale .pyc + 2 dead-хука | `src/ml/`, `src/research/`, `src/notification/`, `src/networking/` — 0 .py, только `__pycache__` с 68 байткод-файлами удалённых модулей. Не трекнуты git'ом, но README рекламирует ml/research как "research library". `web-ui/src/hooks/usePrevious.js` + `useStatusMap.js` — 16 строк, 0 импортов. | Low | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -160,6 +162,19 @@
 - `var ` — имена переменных (varH, varCF), не декларации
 - `alert(` — `onAlert`/`removeAlert`, не browser alert
 - `debugger` — 0
+- `async def` без `await` — 27 сайтов, все signature-bound (Protocol impl, aiohttp handlers, task-spawn entry) — ЧИСТО
+- `getattr(x, "a")` без default — 0
+- Unbounded module/instance caches — `_candle_history`/`_funding_history`/`_ob_cache` все capped (`_max_*` trims)
+- `random.`/`np.random` в src — 8 сайтов, все seeded RNG (VaR/CVaR MC, reconnect jitter, Hawkes) — легитимны
+- `len() == 0`/`!= 0` в src — 1 тривиальный guard; в тестах — exact-contract asserts
+- `pytest.mark.skip`/`xfail` без reason — 0; web-ui `it.skip`/`xit`/`xdescribe` — 0
+- `json.loads` без try — 0 из 45 (все в try-блоках)
+- `if not x: return []`/`{}` masking — 0 в src
+- Dead top-level классы в strategies/risk/portfolio — 0 (все referenced)
+- Dead hft headers — 0 (`pch.h` wired через `target_precompile_headers`)
+- helm/terraform — 0 ссылок на удалённые сервисы; settings.yaml — нет секций удалённых модулей
+- `try/except: pass` в тестах — только chaos-тесты (connection death tolerated намеренно)
+- web-ui mock infra (`useMockData`/`mockData`/`MockModeBanner`) — env-gated `VITE_MOCK_MODE`, disclosed, tested — легитимно
 - `assert callable(`/`assert issubclass(` — 0
 - `except Exception` в exchange_simulator — 0
 - `print(` в exchange_simulator — 2 (docstring + options_simulator)

@@ -699,3 +699,9 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 - **S032 → N/A:** 56 remaining -> dict are JSON wire payloads / heterogeneous API returns; internal results use dataclasses.
 - New: tests/unit/test_hawkes_model.py (6 contract tests — gate coverage for S005-touched module).
 - Open: S014/S015/S020 god-file splits (need product decision).
+
+## Round 30 — 2026-04-24 (AUDIT)
+
+- **S103 (Medium, open):** doc drift — ~67 refs to deleted pkgs in 7 docs; worst: theory/module_guide_en.md (30), DEPLOYMENT price_feed YAML config (silently ignored if set).
+- **S104 (Low, open):** dead residue — 4 empty pkg husks (ml/research/notification/networking, 68 stale .pyc) + 2 dead web-ui hooks (usePrevious, useStatusMap).
+- ЧИСТО +14 patterns: async-no-await (27, all signature-bound), getattr-no-default, unbounded caches, seeded RNG, json.loads guards, dead classes/headers, skip-no-reason, infra drift — all clean.
