@@ -819,3 +819,18 @@ Rotation target: exchange internals — order submission, liquidation, advanced 
 - NaN/≤0/oversize quantity correctly rejected; limit orders go PENDING when price doesn't cross
 - Partial-liquidation PnL math correct; insurance-fund deficit cover works; liq prices canonical `entry*(1∓1/lev±mmr)`
 - Default SL/TP (2%/4%) applied on every new position — intended sim behavior, honestly auto-armed
+
+## Round 12 — audit branch: nested exchange_simulator package internals
+
+Rotation target: the inner `exchange_simulator/exchange_simulator/` package (~2300 lines) — checked which modules are actually consumed vs test-only islands.
+
+### New findings S086–S087
+
+**S086 — Six dead modules in the inner package (1240 lines).** Each lives only for its own test file: `liquidation_engine_v2.py` (306 — an "enhanced" engine with cascade liquidations + ADL + insurance-fund tracking; production runs the simpler `exchange_liquidation` mixin instead, and V2 defines its own duplicate `Position` model), `funding_rate.py` (136 — dead duplicate; real funding flows from `market_simulator.get_funding_rates` → `charge_funding` → broadcast), `order_book_realism.py` (307 — spoofing/iceberg/adverse-selection engine; real books come from `market_simulator.generate_order_book`), `market_microstructure.py` (175), `latency_simulation.py` (129), `spread_analytics.py` (187). Tested but dead — the tests create the illusion these subsystems run.
+
+**S087 — `options_chain` WS endpoint exists but is never consumed.** `ws_message_handler.py:402-435` serves a full BS chain with Greeks via `OptionsSimulator` on request; the web-ui `OptionsChain.jsx` computes BS client-side off realized vol instead. A real feed nobody subscribes to — wire it under the "real API" direction.
+
+### ЧИСТО (inner package)
+
+- `arbitrage`, `data_export`, `config_validator`, `options_simulator` — live (wired in `__main__`/`ws_message_handler`)
+- Funding pipeline is live end-to-end: market_simulator → charge_funding → broadcast → UI `fundingRates`

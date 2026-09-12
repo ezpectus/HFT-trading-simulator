@@ -98,6 +98,8 @@
 | **S083** | OCO-ордера полностью мертвы | `submit_order(oco_group_id=...)` принимает параметр, `OCOGroup` модель есть (`models.py:247`), `_oco_groups` dict создан (`exchange.py:71`) — но `add_order`/`on_fill` **никогда не вызываются**. Ордер с oco_group_id обрабатывается как обычный, группа не формируется. README рекламирует "OCO" как фичу. | Medium | [ ] Open |
 | **S084** | `exchange_simulator/exchange_simulator/` — вложенный пакет + sys.path хак | Внешний `__init__.py` мутирует `sys.path` (добавляет обе директории), потом `importlib.import_module` по КОРОТКОМУ имени + `sys.modules["exchange_simulator.X"] = mod` алиасинг. У каждого модуля 2-3 импорт-идентичности (`arbitrage`, `exchange_simulator.arbitrage`, `exchange_simulator.exchange_simulator.arbitrage`). ImportError в любом модуле проглатывается в `logger.debug` — модуль молча отсутствует в namespace. | Medium | [ ] Open |
 | **S085** | SL/TP/ликвидация: REJECTED ордер переписывается в FILLED + ворует чужую trade_history запись | `_close_triggered_position` (`exchange_liquidation.py:95-104`): `submit_order` при `mid_price==0` возвращает REJECTED → код **безусловно** ставит `order.status = FILLED`, потом `self.account.trade_history[-1].reason = reason` — но rejection не добавлял trade → помечается ПОСЛЕДНЯЯ ЧУЖАЯ сделка как "LIQUIDATION"/"STOP_LOSS". Позиция остаётся открытой (повторная попытка каждый тик), история отравлена. | High | [ ] Open |
+| **S086** | Внутренний пакет `exchange_simulator/exchange_simulator/` — 6 мёртвых модулей (1240 строк) | Каждый живёт только ради своего теста: `liquidation_engine_v2.py` (306 — "enhanced" cascade+ADL engine, прод гоняет простой mixin `exchange_liquidation`), `funding_rate.py` (136 — мёртвый дубликат; реальный funding из `market_simulator.get_funding_rates`), `order_book_realism.py` (307 — spoofing/iceberg/adverse-selection engine; реальные стаканы из `market_simulator.generate_order_book`), `market_microstructure.py` (175), `latency_simulation.py` (129), `spread_analytics.py` (187). Тесты тестируют мёртвый код. | High | [ ] Open |
+| **S087** | `options_chain` WS-endpoint есть, но web-ui его не вызывает | Backend реально отдаёт BS-chain с греками (`ws_message_handler.py:402-435`, `OptionsSimulator`), а `OptionsChain.jsx` считает BS на клиенте от realized vol — реальный фид существует, не потребляется. Wire opportunity под "real API" направление. | Medium | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -168,6 +170,9 @@
 - shm_* + ws_client + signal_publisher в communication/ — живые (wired в run.py)
 - exchange_simulator: qty=NaN/≤0/over-limit отклоняются корректно, SL/TP default 2%/4% ставятся, partial-liquidation PnL формула верна, insurance fund покрывает дефицит, ликвидационные цены `entry*(1∓1/lev±mmr)` — канонические
 - лимит-ордера корректно уходят в PENDING когда цена не проходит fill_price
+- `arbitrage` + `data_export` + `config_validator` + `options_simulator` из вложенного пакета — ЖИВЫ (wired в __main__/ws_message_handler)
+- funding pipeline целиком живой: market_simulator → ws_broadcast → UI fundingRates
+- `options_chain` WS handler реален — BS-chain с полными греками от OptionsSimulator
 
 ---
 
