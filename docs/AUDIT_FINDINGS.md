@@ -1207,3 +1207,21 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - `REFACTORING_PLAN_10DAYS.md` — HISTORICAL banner (тоже untracked, local).
 
 **Verified:** residual grep = 0 в live-доках; deleted-file check прогнан по каждому имени в TESTING.md; banners вставлены после title строки, формат файлов не сломан.
+
+---
+
+## Round 31 — S020 split + C++ red-suite root causes
+
+**S020 — Done.** `test_signal_engine_v2.cpp` (1009 lines, 61 tests) разрезан на 4 доменных файла: `test_v2_infra` (10), `test_v2_indicators` (12), `test_v2_engine` (25), `test_v2_pressure_adaptive` (13). Общие хедеры: `test_util.h` (TEST/ASSERT-макросы, счётчики, раннер), `test_fixtures.h` (candle/order-book билдеры). CMake: `foreach(v2test …)` вместо монолитного таргета.
+
+**S105 — Done (2 реальных бага, найдены верификацией сплита).**
+- `LatencyHistogram::record` — sub-1μs сэмплы уходили в early-return bucket[0] ДО min/max CAS-лупов → `stats.min` залипал на 1e18 навсегда. Latency-инструмент HFT-бота терял ровно те сэмплы, ради которых он существует. Fix: min/max tracking поднят выше bucket-выбора.
+- `SPSCQueue<T,N>` — mask-ring (`(head+1) & MASK`) давал N-1 usable слот при заявленном `Capacity`. Два тестовых файла кодировали противоречивые контракты ("usable 3" vs `push(4)==true`). Fix: `STORAGE = Capacity+1` + wrap-reset — теперь `Capacity` = usable, как в rigtorp/boost. `size()` сделан wrap-aware, pow2 static_assert снят.
+
+**Stale-тесты (не баги движка):**
+- cooldown-тесты дёргали stateless `analyze()` — у него нет per-symbol cache, а значит нет cooldown state вообще. Prod-путь — `analyze_incremental()` (v3 вызывает `analyze` как внутренний scoring-примитив). Тесты переведены на production path.
+- downtrend-тест скармливал bid-heavy стакан (`make_order_book` всегда делал bids×1.0 vs asks×0.7) — OBI толкал LONG посреди краха, contrarian RSI добивал → comp=-0.11 при sell_threshold=-0.30. Fix: `ask_scale` параметр, downtrend получает ask-heavy книгу → comp≈-0.70 → SHORT.
+- toxicity-тест assert'ил `pressure_score < 0.5` против raw-pressure семантики — score threshold-normalized и сатурирует в ±1 (raw 0.187 при threshold 0.2 → 0.94). Fix: сравнительный assert toxic-vs-clean (0.94 < 1.0).
+- 3 теста скармливали 60 свечей при warmup = ema_slow(50)+ema_signal(9)+2 = 61 → "Insufficient data". Бамп до 70.
+
+**Verified:** 4 новых бинаря 60/60 green; `test_doctest_cpp_optimizations` 8/8 (SPSC capacity + histogram регрессии покрыты); clang-format прогнан; original монолит воспроизводил те же 7 фейлов до сплита.

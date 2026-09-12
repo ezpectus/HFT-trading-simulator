@@ -711,3 +711,11 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 - **S104 → Done:** 4 pkg husks + 68 stale .pyc deleted; usePrevious/useStatusMap git rm'd; README tree+bullet fixed.
 - **S103 → Done:** live docs surgically cleaned (DEPLOYMENT price_feed YAML ×2, ARCHITECTURE module, TESTING inventory 12 dead names + real counts 117/88/28/25/120, DEV_GUIDE tree+comms table); theory/*.md + REFACTORING_PLAN bannered (gitignored local docs).
 - Open: S014/S015/S020 god-file splits (product decision; S020 split in-flight).
+
+## Round 31 — 2026-04-24 (FIX)
+
+- **S020 → Done:** C++ god-test split на 4 доменных файла + 2 общих хедера, CMake foreach. Сплит behavior-preserving.
+- **S105 (new, High) → Done:** C++ suite был красный на master — 8 фейлов. Найдено 2 реальных prod-бага: LatencyHistogram не трекал min/max для sub-1μs (early-return до CAS-лупов); SPSCQueue давал Capacity-1 usable при заявленном N (два теста кодировали противоречивые контракты). +3 stale-теста исправлены (cooldown → analyze_incremental prod-path, downtrend → ask-heavy book fixture, toxicity → comparative assert), +3 fixtures 60→70 candles.
+- **S103-остаток:** local-only theory/project_architecture_en.md — удалён presents-as-current осадок (дерево с 4 мёртвыми пакетами, фабрикованный settings.yaml "Complete" ~150 строк, выдуманный Component Tree) → реальная panel-структура.
+- **S006-tail + S032-контракты (мои незакоммиченные):** shm_fill_consumer/shm_signal_producer/ws_message_handler spec'd (56 тестов green), AccountHealth + ComponentHealth/HealthReport TypedDicts на real_account/health_server.
+- Open: S014/S015 god-файлы (крупные рефакторинги — следующий раунд).
