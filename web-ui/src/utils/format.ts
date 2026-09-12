@@ -36,3 +36,19 @@ export function formatTime(ts: number): string {
   return d.toLocaleTimeString('en-US', { hour12: false })
 }
 
+/** Tailwind text color for an order/trade side. */
+export function colorForSide(side: string | null | undefined): string {
+  const s = (side || '').toUpperCase()
+  if (s === 'BUY' || s === 'LONG') return 'text-accent-green'
+  if (s === 'SELL' || s === 'SHORT') return 'text-accent-red'
+  return 'text-gray-400'
+}
+
+/** Tailwind background color for an order/trade side. */
+export function bgColorForSide(side: string | null | undefined): string {
+  const s = (side || '').toUpperCase()
+  if (s === 'BUY' || s === 'LONG') return 'bg-accent-green'
+  if (s === 'SELL' || s === 'SHORT') return 'bg-accent-red'
+  return 'bg-gray-600'
+}
+

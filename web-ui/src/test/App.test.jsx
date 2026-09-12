@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 
-vi.mock('./hooks/useExchangeData', () => ({
+vi.mock('../hooks/useExchangeData', () => ({
   useExchangeData: () => ({
     connected: false, candles: [], orderbooks: {}, prices: {},
     fills: [], accounts: {}, arbitrage: [], newsEvent: null,
@@ -11,7 +11,7 @@ vi.mock('./hooks/useExchangeData', () => ({
   }),
 }))
 
-vi.mock('./hooks/useMockData', () => ({
+vi.mock('../hooks/useMockData', () => ({
   useMockExchangeData: () => ({
     connected: true, candles: [], orderbooks: {}, prices: {},
     fills: [], accounts: {}, arbitrage: [], newsEvent: null,
@@ -22,59 +22,66 @@ vi.mock('./hooks/useMockData', () => ({
   IS_MOCK: false,
 }))
 
-vi.mock('./hooks/useDetachablePanels', () => ({
-  useDetachablePanels: () => ({ panels: [], openPanel: vi.fn(), closePanel: vi.fn() }),
+vi.mock('../hooks/useDetachablePanels', () => ({
+  useDetachablePanels: () => ({ detachPanel: vi.fn(), updateDetached: vi.fn(), isDetached: () => false }),
 }))
 
-vi.mock('./hooks/useMediaQuery', () => ({
+vi.mock('../hooks/useMediaQuery', () => ({
   useIsMobile: () => false,
   useIsTablet: () => false,
 }))
 
-vi.mock('./hooks/useSoundAlerts', () => ({
+vi.mock('../hooks/useSoundAlerts', () => ({
   useSoundAlerts: () => ({ playSound: vi.fn() }),
 }))
 
-vi.mock('./hooks/useTheme', () => ({
+vi.mock('../hooks/useTheme', () => ({
   useTheme: () => ({ theme: 'dark', accent: 'blue', toggleTheme: vi.fn(), setAccent: vi.fn() }),
 }))
 
-vi.mock('./hooks/useKeyboardShortcuts', () => ({
+vi.mock('../hooks/useKeyboardShortcuts', () => ({
   useKeyboardShortcuts: () => {},
 }))
 
-vi.mock('./hooks/useNotifications', () => ({
+vi.mock('../hooks/useNotifications', () => ({
   useNotifications: () => {},
 }))
 
-vi.mock('./stores/useUIStore', () => ({
+vi.mock('../stores/useUIStore', () => ({
   useUIStore: () => ({
     activeTab: 'trading', setActiveTab: vi.fn(),
-    sidebarOpen: true, toggleSidebar: vi.fn(),
-    selectedSymbol: 'BTCUSDT', setSelectedSymbol: vi.fn(),
+    sidebarCollapsed: false, setSidebarCollapsed: vi.fn(), toggleSidebar: vi.fn(),
+    selectedSymbol: 'BTC/USDT', setSelectedSymbol: vi.fn(),
     selectedExchange: 'binance', setSelectedExchange: vi.fn(),
-    selectedTimeframe: '1m', setSelectedTimeframe: vi.fn(),
-    simulationSpeed: 1, setSimulationSpeed: vi.fn(),
+    timeframe: { label: '5m', factor: 1, seconds: 300 }, setTimeframe: vi.fn(),
+    simSpeed: 1, setSimSpeed: vi.fn(),
+    mobilePanel: 'chart', setMobilePanel: vi.fn(),
+    soundOn: true, setSoundOn: vi.fn(),
+    EXCHANGES: ['binance', 'bybit', 'okx'],
+    SYMBOLS: ['BTC/USDT', 'ETH/USDT'],
   }),
 }))
 
-vi.mock('./stores/useTradingStore', () => ({
-  useTradingStore: () => ({
+vi.mock('../stores/useTradingStore', () => {
+  const state = {
     orders: [], positions: [],
-  }),
-}))
+    candles: [], prices: {}, orderbooks: {}, fills: [], accounts: {}, arbitrage: null,
+    setExchangeData: vi.fn(), setSignalData: vi.fn(), setDerivedData: vi.fn(),
+  }
+  return { useTradingStore: (sel) => (typeof sel === 'function' ? sel(state) : state) }
+})
 
-vi.mock('./stores/useToastStore', () => ({
+vi.mock('../stores/useToastStore', () => ({
   useToastStore: () => ({
     toasts: [], addToast: vi.fn(), removeToast: vi.fn(),
   }),
 }))
 
-vi.mock('./panels/PanelContainer', () => ({
+vi.mock('../panels/PanelContainer', () => ({
   default: () => <div data-testid="panel-container" />,
 }))
 
-vi.mock('./panels/registry', () => ({
+vi.mock('../panels/registry', () => ({
   CATEGORIES: [],
   PANELS: [],
   DEFAULT_VISIBLE: [],
@@ -85,7 +92,7 @@ vi.mock('./panels/registry', () => ({
 
 describe('App', () => {
   it('renders without crashing', async () => {
-    const App = (await import('./App')).default
+    const App = (await import('../App')).default
     const { container } = render(<App />)
     expect(container).toBeTruthy()
   })
