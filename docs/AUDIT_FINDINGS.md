@@ -1292,8 +1292,8 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - **Verified:** pytest 74 green incl. 8 new audit-broadcast tests · vitest 44 green (competition 4, audit_logs 5, store/sync 6) · ruff/eslint clean · `enabled:false` smoke-verified.
 - **Open:** S109 (dead persistence layer — needs delete-vs-keep product decision).
 
-## Round 35 — 2026-09-12 — WS protocol completeness
+## Round 35b — 2026-09-12 — WS protocol completeness (parallel session)
 
-- **S111 (High) → Done.** Cross-referenced every `{"type": X}` the sim emits vs every `case` in `useExchangeData`: `fills_batch` (engine fills — SL/TP, liquidations, arb executions via `ws_broadcast:288/383`) and `error` (5+ rejection sites in `ws_message_handler`) were silently dropped by `default: break`. User fills arrived; engine fills vanished; rejections invisible. Fixed: `fills_batch` prepends all orders into `fills` (existing fill-toasts now fire for engine fills); `error` → `lastError` → store → `useNotifications` toast. +3 contract tests.
+- **S115 (High) → Done.** Cross-referenced every `{"type": X}` the sim emits vs every `case` in `useExchangeData`: `fills_batch` (engine fills — SL/TP, liquidations, arb executions via `ws_broadcast:288/383`) and `error` (5+ rejection sites in `ws_message_handler`) were silently dropped by `default: break`. User fills arrived; engine fills vanished; rejections invisible. Fixed: `fills_batch` prepends all orders into `fills` (existing fill-toasts now fire for engine fills); `error` → `lastError` → store → `useNotifications` toast. +3 contract tests.
 - Verified clean: `audit_logger.py` (bounded deque, locked, snapshot-callback invocation); seeded `random.Random`; 0 mutable defaults; 0 unreferenced-but-long tasks; ExecutionBot interval cleanup present.
 - **Verified:** vitest 148 files / 1088 green · eslint clean.

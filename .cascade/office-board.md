@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~110 (S001–S108 + переименованные) |
-| Закрыто | 71 → `done-log.md` |
-| Открыто | 2 (оба Partial): S001, S003 |
+| Всего находок | ~117 (S001–S115 + переименованные) |
+| Закрыто | 79 → `done-log.md` |
+| Открыто | 1 (S109 — Medium, dead persistence layer) |
 
-**Главный вывод:** после 31 раунда системный мусор вычищен — мёртвые острова (research/, ml/, src/fix/, hft-executor, price_feed_*), фантомные баги (S062, S081, S085), фейковые CI-гейты и врущие доки закрыты. Остаток: допиливание web-ui мок-панелей (S001/S003).
+**Главный вывод:** после 35 раундов открыт только S109 (нужно product-решение). R35 нашёл критичное: WS-сервер симулятора был crash-on-startup с f807082 (`await Event`), AuditLogViewer и турнир стратегий были фейками при живых бэкенд-API — всё wired на реальные источники.
 
 ---
 
@@ -23,12 +23,16 @@
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
-| **S001** | web-ui почти не подключён к бэкенду | `web-ui/src` — 460 файлов, ~290 компонентов. Данные идут по WebSocket (`useExchangeData`/`useSignalData` → Zustand → `usePanelContext` → registry), REST почти нет (`fetch(` — 1 вызов). Большинство панелей получают реальные ctx-props — проблема в листовых компонентах с `MOCK_*`. Registry: ~20 записей получили реальные props (fills, orderbooks, accounts, signals, arbitrage, backtestResult). Прогресс по раундам — см. done-log. | **Critical** | [~] Partial |
-| **S003** | `MOCK_*` inline-данные — 378 вхождений в 50 компонентах | Переведено на live ~27 компонентов (R4: 13 топ — FillAnalytics, SignalTracker, ArbScanner, Inventory, WalkForwardViewer, TCA, SlippageAnalytics, Microstructure, CrossAssetMatrix, DataQuality, StrategyCorrelation, LatencyPanel, OrderBook; R6: +6; R22b/23: +8 вкл. LiquidityMap3D на реальный стакан и 7 no-feed панелей → NoDataFeed; R24: +16 финал push). Остаток ~17 компонентов. | **Critical** | [~] Partial |
 | **S014** | God-файлы Python (верхушка) | R31: `strategies.py` 515→4 модуля + shim (96 тестов green); `real_market_data.py` 551→3 модуля + shim (1381 green); `backtester.py` 23KB→14.8KB (results/metrics/report вынесены); rl_trader/fix_client удалены. Финал R32: `signal_publisher.py` 496→307 — backtest-запросы (~220 строк: parse/clamp, client-candles, synthetic GBM gen, risk-config, strategy build, run/compare — все self-free) → `communication/backtest_requests.py`; паблишер = только WS-lifecycle/auth/broadcast. `engine.py` 440→266 — `SecretStr`+3 датакласса → `llm_types.py`, `_parse_response`+3 rule-based фолбэка → `rule_based.py`. 24+18 новых контракт-тестов green. | Low | [x] Done |
 | **S015** | God-компоненты web-ui | R31: `PerformanceDashboard.jsx` 522→166 (performanceReport.js + PerfAreaChart.jsx + ExchangeBreakdown/StreakPanel/RiskMetricsPanel — exSortMode-стейт уехал внутрь секции); `BacktestRunner.jsx` 785→519 (backtest/ подкомпоненты + useSavedBacktests/useBacktestChart); `App.jsx` →394 (4 хука). Финал R32: `CopulaModel.jsx` 498→311 — копула-математика (15 ф-ций) → `utils/copulaMath.js`; `EmpiricalDynamicModeling.jsx` 455→265 — EDM-математика → `utils/edmMath.js`. 27 контракт-тестов на math-либы — всплыл баг S105. | Low | [x] Done |
 | **S107** | Метрики ai-signal-bot писались в пустоту + мёртвый exporter | `signal_publisher` кормил `MetricsCollector`, но `MetricsServer` (единственный вызывающий `.render()`) нигде не стартовал в prod — счётчики умирали в памяти. Параллельно `MetricsExporter` (prometheus_client, :9090 — порт helm) стартовал в run.py, но из ~15 alert-методов был подключён только `record_ws_reconnect`: `signals_sent_total`/`signals_blocked_total`/`circuit_breaker_state`/`ws_clients_connected` вечно нули — Prometheus/Grafana видел замершего бота при живых сигналах. Два стека с идентичными именами серий. R33 fix: `record_backtest` добавлен в exporter; `start_server` → `bool`; run.py подменяет `signal_publisher.metrics` на exporter когда сервер реально поднялся. 80 тестов green. | **High** | [x] Done |
 | **S108** | Dev-скрипты падают на cp1251 | `scripts/ci-equivalence.py` и `scripts/health-check.py` падают с `UnicodeEncodeError` на Windows-консоли без `PYTHONIOENCODING=utf-8` — box-drawing/emoji в `print()` (✅❌─═). R33 fix: `sys.stdout.reconfigure(utf-8, errors=replace)` в main() обоих; `health-check` теперь отрабатывает (score 52/100). | Low | [x] Done |
+| **S109** | Dead persistence layer | db-модуль/migrations/compose/helm/terraform provisioned, 0 кодовых читателей. Требует product-решения delete-vs-keep — отложено. | Medium | [ ] Open |
+| **S111** | CompetitionFramework — фейковый турнир | "Run Tournament" роллил кубики: `elo: 1000+rand(-100,100)`, `sharpe: rand(-0.5,2.5)` по 6 стратегиям, 4 из которых не существуют на бэкенде; результаты сохранялись в localStorage как настоящие. R35 fix: переписан на реальный `run_backtest` WS API — per-strategy запросы с `candles_data` (реальные свечи до 1000), корреляция ответов по echo `strategy`, ELO поверх реальных Sharpe, `data_source` disclosure, таймаут 60с, NoDataFeed когда signal-канал down. +4 контракт-теста. | **High** | [x] Done |
+| **S112** | AuditLogViewer навечно пустой | `registry.js` передавал `auditLogs: []` константой при живом `AuditLogger` с `register_callback` — ни один prod-код не регистрировал callback, по WS аудит не шёл. R35 fix end-to-end: `start()` регистрирует `_on_audit_event` после успешного bind → bounded deque(maxlen=500) → `_broadcast_audit_events` в тике broadcast-loop шлёт `{type:'audit_logs',logs:[to_dict]}` → `useExchangeData` кейс (bounded 200) → store → ctx → панель. Callback unregister в finally при shutdown. +8 бэкенд-тестов, +5 фронт-тестов. | **High** | [x] Done |
+| **S113** | WS-сервер симулятора не стартовал вообще | `await self._shutdown_event` (2 сайта: start():~191, _run_metrics_server:~237) — `asyncio.Event` не awaitable → TypeError сразу после bind порта. Заменил рабочий `await asyncio.Future()` в f807082 "Reliability Plan" — crash-on-startup, ни один тест не вызывал `start()`. R35 fix: `.wait()` + регистрация audit-callback после bind + metrics_task внутрь `async with` (иначе сирота при serve-фейле) + unregister в finally + идемпотентный `register_callback`. Регрессионный тест `test_start_registers_and_shutdown_unregisters` воспроизводит крах. | **Critical** | [x] Done |
+| **S114** | `audit:` секция config.yaml мёртвая | 5 ключей (`enabled/max_memory_entries/log_file_path/enable_file_logging/enable_callbacks`) никто не читал — `get_audit_logger()` хардкодил дефолты. R35 fix: `AuditLogger(enabled=)` + `__main__.main()` зовёт `set_audit_logger(AuditLogger(**cfg))` до `build_exchanges` (биржи биндятся к singleton в `__init__`). `enabled:false` → `log()` no-op, проверено. | Medium | [x] Done |
+| **S115** | WS-протокол: fills_batch + error молча дропались | `useExchangeData` `default: break` съедал `fills_batch` (движковые филлы — SL/TP, ликвидации, арб-исполнения из `ws_broadcast`) и `error` (5+ rejection-сайтов) — юзерские филлы приходили, движковые пропадали, отказы невидимы. R35b fix (parallel): `fills_batch` → prepend в `fills` (fill-toasts теперь для движковых тоже); `error` → `lastError` → store → `useNotifications` toast. +3 контракт-теста. | **High** | [x] Done |
 
 ---
 
@@ -142,7 +146,6 @@
 
 ## ПРИОРИТЕТЫ
 
-1. **S003 (Critical)** — остаток ~17 mock-компонентов → live ctx-props или NoDataFeed. Для данных, которых нет в потоке — backend-расширения, не выдумывать.
-2. **S001 (Critical)** — финальный sweep: убедиться что каждая панель либо на ctx-props, либо NoDataFeed, либо честный demo-маркер.
+1. ~~S001/S003~~ — обе Critical закрыты R34: 0 MOCK_* в компонентах, все панели либо ctx-wired либо disclosed. Беклог пуст.
 3. ~~S014/S015 — god-файлы: все 12 разобраны (R31–R32).~~ Закрыто.
 5. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.

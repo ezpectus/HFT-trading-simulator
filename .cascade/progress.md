@@ -740,3 +740,24 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 - **AUDIT extraction-output (ЧИСТО):** новые хуки (useChartCandles/useTradingStoreSync/useDetachedPanelSync/useAppShortcuts) — честные, dep-массивы полные; backtest_requests/llm_types/rule_based/market_data_* — чистые; helm — один чарт, sidecar задокументирован; config.yaml sim'а — все ключи читаются; web-ui fetch — 1 легитимный outbound webhook; 64 empty-return сайта — все честные; TODO/FIXME — 0.
 - **Verified:** pytest 80 green (metrics+publisher), ruff clean, оба скрипта отрабатывают.
 - **Open:** S001, S003 (MOCK_* панели остаток ~17).
+
+## 2026-09-12 — R33
+- S001/S003 closed → done-log (0 open crit). New: **S109** dead persistence layer (db module/migrations/compose/helm/terraform all provision, 0 code readers). Infra sweep clean otherwise.
+
+## 2026-09-12 — R34
+- **S110 → Done:** 2 starved panels behind `props: () => ({})` — NewsFeed (newsEvent was live in ctx) + BacktestComparison (localStorage saved-backtests existed, never read). Wired both + cross-panel sync event. +5 tests. vitest 1080 green.
+- **Open:** S109 (dead persistence layer — needs delete-vs-keep decision).
+
+## 2026-09-12 — R35
+
+- **S113 (Critical) → Done:** `await self._shutdown_event` — `asyncio.Event` не awaitable → `TypeError` сразу после bind порта. Введено в f807082 "Reliability Plan" вместо рабочего `await asyncio.Future()` — **WS-сервер симулятора был crash-on-startup**, `__main__.py:146` зовёт именно `server.start()`. Fix: `.wait()` в обоих сайтах; заодно `metrics_task` уехал внутрь `async with` (сирота при serve-фейле) + audit-callback регистрируется после bind + unregister в `finally` + идемпотентный `register_callback`. Регрессионный тест воспроизводит крах.
+- **S112 (High) → Done:** `AuditLogViewer` получал `auditLogs: []` константой при живом `AuditLogger` с `register_callback` — ни один prod-код callback не регистрировал, аудит по WS не шёл. Wired end-to-end: callback → `deque(maxlen=500)` → `_broadcast_audit_events` в broadcast-тике → `audit_logs` кейс в useExchangeData (bounded 200) → Zustand → ctx → панель. +8 backend +5 frontend тестов.
+- **S111 (High) → Done:** `CompetitionFramework` "Run Tournament" — чистые кубики (`sharpe: rand(-0.5,2.5)`, `elo: 1000±100`) по 6 стратегиям, 4 несуществующих; localStorage хранил их как настоящие. Переписан на реальный `run_backtest` WS: per-strategy запросы с `candles_data` (реальные свечи ≤1000), корреляция по echo `strategy`, ELO над реальными Sharpe, `data_source` disclosure, 60с таймаут. Стратегии сведены к 4 реальным (`build_strategies`). +4 контракт-теста.
+- **S114 (Medium) → Done:** `audit:` секция config.yaml — 5 ключей, 0 читателей; `get_audit_logger()` хардкодил дефолты. Fix: `AuditLogger(enabled=)` гейтит `log()`; `main()` зовёт `set_audit_logger(AuditLogger(**cfg))` до `build_exchanges`.
+- **ЧИСТО:** 27 `Math.random` в web-ui — все алгоритмические (Xavier/Ogata/Box-Muller/ID); `MOCK_*` в компонентах — 0; `props:()=>({})` перепроверены — CompetitionFramework был последним фейком; fetch — 1 легитимный webhook.
+- **Verified:** pytest 74 green (ws+audit, incl. 8 новых) · vitest 38+6 green · ruff/eslint clean.
+- **Open:** S109 (product-решение).
+
+## 2026-09-12 — R35
+- **S111 → Done:** protocol gap — `fills_batch`+`error` dropped by UI default-case. Wired both (engine fills now reach panels; rejections toast). +3 tests, 1088 green.
+- **Open:** S109 only.
