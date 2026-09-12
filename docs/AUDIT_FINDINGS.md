@@ -726,3 +726,33 @@ Rotation target: hft-trade-bot (C++20) + hft-executor (Rust) — до этого
 - `unsafe` — только FFI boundary
 - `fpga_orderbook.vhd` — честный дисклеймер "ACADEMIC SKETCH", не притворяется продакшеном
 - `monitor.py` — реальный tail лога
+
+## Round 8 — audit branch: infra (Docker / compose / nginx / CI)
+
+Rotation target: infra. Verified every healthcheck/scrape/deploy path against code.
+
+### New findings S066–S073
+
+**S066 — nightly-backtest is deterministic theater.** Generates 525,600 candles of `random.gauss` noise with `random.seed(42)` — identical data every single night. The "regression check" prints `::warning::` and never exits non-zero → `if: failure()` issue-creation step is unreachable. A nightly regression gate on data that cannot regress, with a check that cannot fail.
+
+**S067 — deploy health check hits the wrong port.** `deploy.yml` checks `DEPLOY_HOST:9090/health`, but prod compose maps ai-signal-bot as `9092:9090`. Every tag deploy fails its own health gate. Also: `VITE_WS_*` defaults `ws://localhost:*` are baked into the bundle at build time — without `.env.prod` overrides the prod UI connects to the viewer's own machine.
+
+**S068 — Grafana prod provisions zero dashboards.** Dashboards mounted to `/etc/grafana/dashboards`, but the provider config (`dashboards.yml`, inside that same dir) is only scanned under `/etc/grafana/provisioning/`. Home dashboard path points at an unprovisioned JSON → 404 home. Dev works (mounts into provisioning).
+
+**S069 — hft-trade-bot `/metrics` is JSON, not Prometheus.** `health_server.h:134` returns `format_json()`; prometheus.yml scrapes it as exposition format → parse error every 15s forever. Dead target.
+
+**S070 — CI gates that cannot fail.** test-js/test-windows: `set +e` + grep `Tests N failed` — a vitest crash before summary print = green. security-bandit: `|| true` + `::warning`, counts ALL results regardless of severity. test-count: floors on test-FILE count — vanity metric.
+
+**S071 — .pre-commit-config.yaml is dead config.** Framework config (ruff/eslint/pre-commit-hooks) exists but `pre-commit install` is never invoked; installed hooks are custom batch scripts that git can't spawn. Only manual `scripts/pre-commit-check.py --staged` actually runs.
+
+**S072 — nginx cargo-cult headers.** HSTS on plain HTTP (ignored by browsers), deprecated X-XSS-Protection, no TLS termination at all.
+
+**S073 — dev compose `latest` tags** for prometheus/grafana (prod pins versions).
+
+### ЧИСТО (infra)
+
+- `.env.prod` gitignored; all compose secrets are `${VAR:?}` required — no hardcoded passwords
+- prod: postgres/redis via `expose`, not `ports`
+- All 4 prod Dockerfiles: multi-stage, non-root, pinned bases
+- All compose healthcheck endpoints verified against real code (/health exists on 8775/9090/9091/3000)
+- `release.yml`/`deploy.yml` — legit, secrets via secrets.*
