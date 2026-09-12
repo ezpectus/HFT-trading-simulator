@@ -38,12 +38,6 @@ _nested_modules = [
     "arbitrage",
     "config_validator",
     "data_export",
-    "spread_analytics",
-    "order_book_realism",
-    "market_microstructure",
-    "liquidation_engine_v2",
-    "latency_simulation",
-    "funding_rate",
     "options_simulator",
 ]
 
