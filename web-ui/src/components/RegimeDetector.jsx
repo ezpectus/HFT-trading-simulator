@@ -1,33 +1,13 @@
 import { memo, useMemo } from 'react'
 import { Radio, Activity, Waves, TrendingUp, TrendingDown } from 'lucide-react'
 import { Bar, Label } from '../utils/ui-helpers'
+import { selectCandles } from '../utils/candles'
 
-const MOCK_REGIMES = [
-  { name: 'Trending Up', probability: 0.65, icon: 'up', color: 'text-accent-green', bg: 'bg-accent-green' },
-  { name: 'High Volatility', probability: 0.42, icon: 'waves', color: 'text-accent-yellow', bg: 'bg-accent-yellow' },
-  { name: 'Mean Reverting', probability: 0.28, icon: 'activity', color: 'text-accent-blue', bg: 'bg-accent-blue' },
-  { name: 'Trending Down', probability: 0.15, icon: 'down', color: 'text-accent-red', bg: 'bg-accent-red' },
-  { name: 'Ranging', probability: 0.22, icon: 'activity', color: 'text-gray-400', bg: 'bg-gray-500' },
-  { name: 'Crisis', probability: 0.05, icon: 'waves', color: 'text-accent-red', bg: 'bg-accent-red' },
-]
-
-const MOCK_HISTORY = [
-  { period: 'W-1', regime: 'Trending Up', duration: 4 },
-  { period: 'W-2', regime: 'High Volatility', duration: 3 },
-  { period: 'W-3', regime: 'Mean Reverting', duration: 5 },
-  { period: 'W-4', regime: 'Trending Up', duration: 7 },
-  { period: 'W-5', regime: 'Ranging', duration: 3 },
-  { period: 'W-6', regime: 'Trending Up', duration: 5 },
-]
-
-const MOCK_INDICATORS = [
-  { name: 'Hurst Exponent', value: 0.62, signal: 'Trending', color: 'text-accent-green' },
-  { name: 'Volatility Regime', value: 1.85, signal: 'Elevated', color: 'text-accent-yellow' },
-  { name: 'ADF Statistic', value: -2.1, signal: 'Non-stationary', color: 'text-accent-orange' },
-  { name: 'Skewness', value: 0.32, signal: 'Right-skewed', color: 'text-accent-blue' },
-  { name: 'Kurtosis', value: 4.2, signal: 'Fat tails', color: 'text-accent-yellow' },
-  { name: 'Autocorrelation', value: 0.18, signal: 'Momentum', color: 'text-accent-green' },
-]
+const REGIME_META = {
+  TRENDING: { icon: 'up', color: 'text-accent-green', bg: 'bg-accent-green' },
+  RANGING: { icon: 'activity', color: 'text-accent-blue', bg: 'bg-accent-blue' },
+  MIXED: { icon: 'waves', color: 'text-accent-yellow', bg: 'bg-accent-yellow' },
+}
 
 function regimeIcon(icon) {
   if (icon === 'up') return <TrendingUp size={12} className="text-accent-green" />
@@ -36,10 +16,61 @@ function regimeIcon(icon) {
   return <Activity size={12} className="text-gray-400" />
 }
 
-const RegimeDetector = memo(function RegimeDetector({ symbol }) {
-  const currentRegime = useMemo(() => {
-    return MOCK_REGIMES.reduce((max, r) => r.probability > max.probability ? r : max, MOCK_REGIMES[0])
-  }, [])
+/** Real statistics from the candle stream (last 60 bars). */
+function computeIndicators(cds) {
+  if (!cds || cds.length < 20) return null
+  const closes = cds.slice(-60).map(c => c.close)
+  const rets = []
+  for (let i = 1; i < closes.length; i++) rets.push(Math.log(closes[i] / closes[i - 1]))
+  const n = rets.length
+  if (n < 10) return null
+
+  const mean = rets.reduce((a, v) => a + v, 0) / n
+  const m2 = rets.reduce((a, v) => a + (v - mean) ** 2, 0) / n
+  const vol = Math.sqrt(m2) * 100 // per-bar vol %
+  const m3 = rets.reduce((a, v) => a + (v - mean) ** 3, 0) / n
+  const m4 = rets.reduce((a, v) => a + (v - mean) ** 4, 0) / n
+  const skew = m2 > 0 ? m3 / m2 ** 1.5 : 0
+  const kurt = m2 > 0 ? m4 / m2 ** 2 : 0
+
+  // Lag-1 autocorrelation of returns
+  let num = 0
+  for (let i = 1; i < n; i++) num += (rets[i] - mean) * (rets[i - 1] - mean)
+  const ac1 = m2 > 0 ? num / ((n - 1) * m2) : 0
+
+  // Trend: linear regression slope of closes, normalized
+  const m = closes.length
+  const sx = (m * (m - 1)) / 2, sxx = (m * (m - 1) * (2 * m - 1)) / 6
+  const sy = closes.reduce((a, v) => a + v, 0), sxy = closes.reduce((a, v, i) => a + v * i, 0)
+  const slope = (m * sxy - sx * sy) / (m * sxx - sx * sx || 1)
+  const meanClose = sy / m
+  const slopePct = meanClose > 0 ? (slope * m / meanClose) * 100 : 0
+
+  return { vol, skew, kurt, ac1, slopePct, n }
+}
+
+/**
+ * Regime Detector — live market_regime broadcast (TRENDING/RANGING/MIXED,
+ * FFT spectral classifier) plus real return statistics from candles.
+ */
+const RegimeDetector = memo(function RegimeDetector({ symbol, exchange, candles, regime }) {
+  const ind = useMemo(
+    () => computeIndicators(selectCandles(candles, exchange, symbol)),
+    [candles, exchange, symbol]
+  )
+
+  const meta = REGIME_META[regime?.regime] ?? null
+  // Confidence proxy from broadcast scores (trend_score & cycle_strength are 0..1)
+  const conf = regime ? Math.max(Math.abs(regime.trend_score ?? 0), Math.abs(regime.cycle_strength ?? 0)) : null
+
+  const indCards = ind ? [
+    { name: 'Realized Vol', value: `${ind.vol.toFixed(2)}%`, signal: ind.vol > 1.5 ? 'Elevated' : ind.vol > 0.5 ? 'Normal' : 'Quiet', color: ind.vol > 1.5 ? 'text-accent-yellow' : 'text-accent-green' },
+    { name: 'Trend Slope', value: `${ind.slopePct.toFixed(2)}%`, signal: ind.slopePct > 0.5 ? 'Rising' : ind.slopePct < -0.5 ? 'Falling' : 'Flat', color: ind.slopePct > 0.5 ? 'text-accent-green' : ind.slopePct < -0.5 ? 'text-accent-red' : 'text-gray-400' },
+    { name: 'Skewness', value: ind.skew.toFixed(2), signal: ind.skew > 0.3 ? 'Right-skewed' : ind.skew < -0.3 ? 'Left-skewed' : 'Symmetric', color: 'text-accent-blue' },
+    { name: 'Kurtosis', value: ind.kurt.toFixed(1), signal: ind.kurt > 4 ? 'Fat tails' : 'Thin tails', color: ind.kurt > 4 ? 'text-accent-yellow' : 'text-gray-400' },
+    { name: 'Autocorr(1)', value: ind.ac1.toFixed(2), signal: Math.abs(ind.ac1) > 0.15 ? (ind.ac1 > 0 ? 'Momentum' : 'Mean-rev') : 'Weak', color: Math.abs(ind.ac1) > 0.15 ? 'text-accent-green' : 'text-gray-400' },
+    { name: 'Sample', value: `${ind.n} bars`, signal: 'returns', color: 'text-gray-500' },
+  ] : null
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -48,66 +79,62 @@ const RegimeDetector = memo(function RegimeDetector({ symbol }) {
           <Radio size={14} className="text-accent-purple" />
           <span className="text-sm font-medium">Regime Detector</span>
         </div>
-        <span className="text-[10px] text-gray-600">{symbol ?? 'BTC/USDT'}</span>
+        <span className="text-[10px] text-gray-600">{symbol ?? '—'}</span>
       </div>
 
-      {/* Current regime */}
+      {/* Current regime — from signal bot broadcast */}
       <div className="p-2 bg-bg-700 border border-bg-600 rounded">
-        <Label className="mb-1">Current Regime</Label>
-        <div className="flex items-center gap-2">
-          {regimeIcon(currentRegime.icon)}
-          <span className={`text-sm font-medium ${currentRegime.color}`}>{currentRegime.name}</span>
-          <span className="text-sm font-mono text-gray-400 ml-auto">{(currentRegime.probability * 100).toFixed(0)}%</span>
-        </div>
+        <Label className="mb-1">Current Regime (FFT classifier)</Label>
+        {regime && meta ? (
+          <div className="flex items-center gap-2">
+            {regimeIcon(meta.icon)}
+            <span className={`text-sm font-medium ${meta.color}`}>{regime.regime}</span>
+            <span className="text-sm font-mono text-gray-400 ml-auto">
+              trend {regime.trend_score?.toFixed(2)} · cycle {regime.cycle_strength?.toFixed(2)}
+            </span>
+          </div>
+        ) : (
+          <div className="text-gray-500 text-[10px]">No regime broadcast yet — waiting for signal bot market_regime messages</div>
+        )}
       </div>
 
-      {/* Regime probabilities */}
-      <div>
-        <Label className="mb-1">Regime Probabilities</Label>
-        <div className="space-y-0.5">
-          {MOCK_REGIMES.map(regime => (
-            <div key={regime.name} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
-              {regimeIcon(regime.icon)}
-              <span className="text-[10px] text-gray-300 w-28 truncate">{regime.name}</span>
-              <Bar value={regime.probability * 100} max={100} color={regime.bg} />
-              <span className={`text-[9px] font-mono w-10 text-right ${regime.color}`}>
-                {(regime.probability * 100).toFixed(0)}%
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Regime indicators */}
-      <div>
-        <Label className="mb-1">Statistical Indicators</Label>
-        <div className="grid grid-cols-2 gap-1">
-          {MOCK_INDICATORS.map(ind => (
-            <div key={ind.name} className="p-1.5 bg-bg-700 border border-bg-600">
-              <div className="text-[9px] text-gray-600 truncate">{ind.name}</div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-[11px] font-mono text-gray-300">{ind.value.toFixed(2)}</span>
-                <span className={`text-[9px] ${ind.color}`}>{ind.signal}</span>
+      {/* Broadcast scores */}
+      {regime && (
+        <div>
+          <Label className="mb-1">Classifier Scores</Label>
+          <div className="space-y-0.5">
+            {[
+              { name: 'Trend Score', v: Math.abs(regime.trend_score ?? 0), color: 'bg-accent-green' },
+              { name: 'Cycle Strength', v: Math.abs(regime.cycle_strength ?? 0), color: 'bg-accent-blue' },
+            ].map(s => (
+              <div key={s.name} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
+                <span className="text-[10px] text-gray-300 w-28 truncate">{s.name}</span>
+                <Bar value={s.v * 100} max={100} color={s.color} />
+                <span className="text-[9px] font-mono w-10 text-right text-gray-400">{(s.v * 100).toFixed(0)}%</span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Regime history */}
+      {/* Real statistical indicators */}
       <div>
-        <Label className="mb-1">Recent Regime History</Label>
-        <div className="flex items-center gap-1">
-          {MOCK_HISTORY.map((h, i) => (
-            <div key={i} className="flex-1 text-center">
-              <div className="text-[8px] text-gray-600 mb-0.5">{h.period}</div>
-              <div className="text-[8px] text-gray-400 truncate px-0.5 py-1 bg-bg-700 rounded" title={h.regime}>
-                {h.regime.split(' ')[0]}
+        <Label className="mb-1">Statistical Indicators (from candles)</Label>
+        {indCards ? (
+          <div className="grid grid-cols-2 gap-1">
+            {indCards.map(i => (
+              <div key={i.name} className="p-1.5 bg-bg-700 border border-bg-600">
+                <div className="text-[9px] text-gray-600 truncate">{i.name}</div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[11px] font-mono text-gray-300">{i.value}</span>
+                  <span className={`text-[9px] ${i.color}`}>{i.signal}</span>
+                </div>
               </div>
-              <div className="text-[7px] text-gray-600 mt-0.5">{h.duration}d</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-gray-500 text-[10px] p-2">Need ≥20 candles — collecting stream data</div>
+        )}
       </div>
     </div>
   )
