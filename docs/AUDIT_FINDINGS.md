@@ -1133,3 +1133,19 @@ Verified: `ruff check .` 0 · `eslint src/` 0 · `clang-format --dry-run --Werro
 **S011 — N/A:** 4 `global` — singleton `get_or_create` паттерн, используется консистентно, утечек изоляции в тестах нет.
 
 **Verified:** 104 targeted тестов green · ruff clean на тронутых.
+
+---
+
+## Round 28 — S102: SimulatorAdapter was a pure fake (now wired to real sim WS)
+
+**S102 — the worst kind of fake: an adapter that never connected.** `SimulatorAdapter` had a `simulator_url` field but no socket code at all: `get_ticker` returned `_sim_prices.get(symbol, 50000.0)` — flat 50000 for any symbol; `place_order` instantly returned `{"order_id": "sim_1", "status": "filled"}` at `price or 50000`; `cancel_order` always `True`; `get_orderbook`/`get_candles`/`get_positions` returned empty. `ExchangeMode.FALLBACK` silently degraded real trading into fabricated prices with guaranteed fills. The old unit tests *asserted the fake contract* (`status == "filled"`).
+
+**Fix — wired to the real API:** the adapter is now a WS client to the simulator at `simulator_url`: connect + recv-loop caching the `candles` broadcast (prices/candles/orderbooks/accounts), `place_order` sends `{"type":"order"}` and resolves on the fill/error reply via FIFO futures (10s timeout), `cancel_order` returns **False** (the sim protocol has no cancel message — reported honestly), `get_balance`/`get_positions` read the account broadcast, `get_health` reports connection state + last-message age. No feed → honest empty data, not flat-50000.
+
+**S006 — +5 test files spec'd (~70 sites):** `test_websocket_server` (30: `spec=ServerConnection` for ws clients — auto-AsyncMock children for coroutine `send`; spec-by-names for `MarketSimulator`/`SimulatedExchange` since instance attrs aren't in `dir(Class)`; real `OrderBookLevel`/`Account` dataclasses instead of mocks), `test_security` (19: same surfaces + fill spec'd on the full Order field contract), `test_walk_forward` (10 engines → `spec=BacktestEngine`), `test_bot_helpers` (8: `_CFG_SURFACE`/`_BOT_SURFACE`/`_SIGNAL_SURFACE`). `test_real_market_data` excluded — its AsyncMocks are callback spies assigned to `feed.on_ticker`, not faked objects. Spec immediately caught real surface (`_order_history` private-attr access in ws_prometheus) — that's the point.
+
+**S032 — Partial:** TypedDict contracts on the top offender — `TickerData`/`OrderbookData`/`AdapterHealth` in `exchange_factory.py`; Protocol + both adapters annotated (12 of 145 sites).
+
+**Bonus:** `helpers.retry_with_backoff` — `coro_fn`/`**kwargs` now `ParamSpec`-typed (preserves wrapped signature).
+
+Verified: sim 60 tests green (43 ws_server + 17 security), ai-bot 77 green (30 factory + 23 walk_forward + 12 bot_helpers + others), ruff clean on touched files.

@@ -687,3 +687,5 @@ R27: S008 Done (type:ignore=0: var.py ModuleType|None, helpers assert). S006 т�
 - **S024 → N/A:** all 5 root dev scripts gitignored — user's local tools.
 - **S011 → N/A:** singletons are the intended pattern, consistently used.
 - Open: S001/S004/S005/S006 partials; S014/S015/S020 god-file splits (need product decision on decomposition).
+
+R28: S102 Done (SimulatorAdapter был фейком — никогда не подключался к sim, флэт-50000 цены, мгновенные filled, cancel=True; теперь реальный WS-клиент с кэшем broadcast + order/fill futures; cancel честно False). S006: +5 файлов spec'd (~133/156). S032 partial: TypedDict-контракты на exchange_factory. helpers.retry → ParamSpec. Verified: sim 60 + ai-bot 77 green, ruff clean.
