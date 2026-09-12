@@ -18,7 +18,7 @@ const IS_MOCK = import.meta.env.VITE_MOCK_MODE === 'true' ||
  * Mock exchange data hook — replaces useExchangeData when in mock mode.
  * Simulates a live market feed with periodic updates.
  */
-export function useMockExchangeData() {
+export function useMockExchangeData({ enabled = IS_MOCK } = {}) {
   const [candles, setCandles] = useState([])
   const [prices, setPrices] = useState({})
   const [accounts, setAccounts] = useState({})
@@ -37,6 +37,7 @@ export function useMockExchangeData() {
 
   // Initialize with snapshot
   useEffect(() => {
+    if (!enabled) return  // real mode — never start mock timers
     const snapshot = generateInitialSnapshot()
     for (const c of snapshot.candles) {
       candleMap.current.set(`${c.exchange}|${c.symbol}|${c.timestamp}`, c)
@@ -147,12 +148,13 @@ export function useMockExchangeData() {
 /**
  * Mock signal data hook — replaces useSignalData when in mock mode.
  */
-export function useMockSignalData() {
+export function useMockSignalData({ enabled = IS_MOCK } = {}) {
   const [signals, setSignals] = useState([])
   const [regime, setRegime] = useState(null)
   const intervalRef = useRef(null)
 
   useEffect(() => {
+    if (!enabled) return  // real mode — never start mock timers
     // Generate initial signals
     const initialSignals = []
     for (let i = 0; i < 10; i++) {

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useWebSocket } from './useWebSocket'
+import { IS_MOCK } from './useMockData'
 
 const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
 const WS_SIGNALS = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
@@ -142,6 +143,7 @@ export function useExchangeData() {
     onMessage: handleExchangeMessage,
     syncOnReconnect: true,
     getLastTimestamp: () => lastTimestampRef.current,
+    autoConnect: !IS_MOCK,  // mock mode — never open the real socket
   })
 
   const submitOrder = useCallback((order) => {
@@ -264,6 +266,7 @@ export function useSignalData(options = {}) {
 
   const { connected, send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect } = useWebSocket(WS_SIGNALS, {
     onMessage: handleSignalMessage,
+    autoConnect: !IS_MOCK,  // mock mode — never open the real socket
   })
 
   return { signals, regime, backtestResult, circuitBreaker, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }

@@ -14,6 +14,9 @@ const DEFAULT_RULES = [
 
 function StrategyBacktest() {
   const candles = useTradingStore((s) => s.candles)
+  const sendSignalMessage = useTradingStore((s) => s.sendSignalMessage)
+  const serverResult = useTradingStore((s) => s.backtestResult)
+  const signalConnected = useTradingStore((s) => s.signalConnected)
   const selectedExchange = useUIStore((s) => s.selectedExchange)
   const selectedSymbol = useUIStore((s) => s.selectedSymbol)
 
@@ -29,6 +32,8 @@ function StrategyBacktest() {
   const [result, setResult] = useState(null)
   const [running, setRunning] = useState(false)
   const [showTrades, setShowTrades] = useState(false)
+  const [serverStrategy, setServerStrategy] = useState('all')
+  const [serverRunning, setServerRunning] = useState(false)
 
   // Load saved strategies
   useEffect(() => {
@@ -74,6 +79,28 @@ function StrategyBacktest() {
       setRunning(false)
     }, 50)
   }, [backtestCandles, rules, config])
+
+  // Server engine: the real Python Backtester over the signals WS, fed the
+  // same live sim candles. strategy = named server-side strategies only —
+  // the custom rule-builder below stays client-side (server can't run it).
+  const handleServerRun = useCallback(() => {
+    if (!sendSignalMessage || !signalConnected || backtestCandles.length < 30) return
+    setServerRunning(true)
+    sendSignalMessage({
+      type: 'run_backtest',
+      strategy: serverStrategy,
+      symbol: selectedSymbol,
+      balance: config.initialBalance,
+      candles_data: backtestCandles.map(c => ({
+        timestamp: c.time, open: c.open, high: c.high,
+        low: c.low, close: c.close, volume: c.volume,
+      })),
+    })
+  }, [sendSignalMessage, signalConnected, backtestCandles, serverStrategy, selectedSymbol, config.initialBalance])
+
+  useEffect(() => {
+    if (serverResult?.type === 'backtest_result') setServerRunning(false)
+  }, [serverResult])
 
   const handleExportCSV = () => {
     if (!result?.trades?.length) return
@@ -168,10 +195,77 @@ function StrategyBacktest() {
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase">
         <BarChart3 size={12} className="text-accent-blue" />
         Strategy Backtest Engine
+        <span className="text-[8px] normal-case px-1  bg-bg-600 text-gray-500" title="Custom rules run in the browser on live sim candles. Named strategies run on the server Python Backtester via the signals WebSocket.">2 engines</span>
         <span className="text-gray-700 normal-case ml-1">
           ({backtestCandles.length} candles available)
         </span>
       </div>
+
+      {/* Server engine — real Python Backtester over the signals WS */}
+      <div className="bg-bg-800 border border-bg-600  p-1.5 space-y-1">
+        <div className="text-[9px] text-gray-500 uppercase">Server engine — named strategies on live candles</div>
+        <div className="flex gap-1">
+          <select
+            value={serverStrategy}
+            onChange={e => setServerStrategy(e.target.value)}
+            className="flex-1 bg-bg-700 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none"
+          >
+            <option value="all">All (compare)</option>
+            <option value="trend">Trend Following</option>
+            <option value="mean_reversion">Mean Reversion</option>
+            <option value="fft">FFT Cycle</option>
+            <option value="ensemble">Ensemble</option>
+          </select>
+          <button
+            onClick={handleServerRun}
+            disabled={serverRunning || !signalConnected || backtestCandles.length < 30}
+            className="flex items-center gap-1 px-2 py-0.5 text-[9px]  bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 disabled:opacity-50 transition-colors"
+            title={signalConnected ? 'Run server Backtester on the candles shown below' : 'Signal WebSocket not connected'}
+          >
+            {serverRunning ? <Loader2 size={10} className="animate-spin" /> : <Play size={10} />}
+            {serverRunning ? 'Running…' : 'Run on server'}
+          </button>
+        </div>
+        {!signalConnected && (
+          <div className="text-[8px] text-gray-600">Signal WS disconnected — server engine unavailable.</div>
+        )}
+        {serverResult?.type === 'backtest_result' && serverResult.results && (
+          <div className="space-y-0.5">
+            <div className="text-[8px] text-gray-600">
+              {serverResult.candles} candles · data: {serverResult.data_source === 'client' ? 'live sim feed' : 'server-synthetic GBM'}
+              {serverResult.error && <span className="text-accent-red"> · {serverResult.error}</span>}
+            </div>
+            <table className="w-full text-[8px] font-mono">
+              <thead>
+                <tr className="text-gray-600 border-b border-bg-600">
+                  <th className="text-left py-0.5">Strategy</th>
+                  <th className="text-right">Return</th>
+                  <th className="text-right">Trades</th>
+                  <th className="text-right">Win%</th>
+                  <th className="text-right">Sharpe</th>
+                  <th className="text-right">MaxDD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(serverResult.results).map(([name, r]) => (
+                  <tr key={name} className="border-b border-bg-600/30">
+                    <td className="py-0.5 text-gray-300">{name}</td>
+                    <td className={`text-right ${r.total_return_pct >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
+                      {r.total_return_pct >= 0 ? '+' : ''}{r.total_return_pct}%
+                    </td>
+                    <td className="text-right text-gray-400">{r.total_trades}</td>
+                    <td className="text-right text-gray-400">{r.win_rate}%</td>
+                    <td className="text-right text-gray-400">{r.sharpe_ratio}</td>
+                    <td className="text-right text-accent-red">{r.max_drawdown_pct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="text-[9px] text-gray-500 uppercase">Client engine — custom rules on live candles</div>
 
       {/* Config */}
       <div className="grid grid-cols-3 gap-1">
