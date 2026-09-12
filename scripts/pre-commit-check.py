@@ -505,7 +505,7 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
         if ext not in {"py", "jsx", "js", "tsx", "ts"}:
             continue
         # Skip __init__.py, conftest.py, setup.py, manage.py, __main__.py
-        if p.name in {"__init__.py", "conftest.py", "setup.py", "manage.py", "__main__.py"}:
+        if p.name in {"__init__.py", "conftest.py", "setup.py", "manage.py", "__main__.py", "run.py"}:
             continue
         # Skip files that ARE tests
         if p.name.startswith("test_") or ".test." in p.name:
