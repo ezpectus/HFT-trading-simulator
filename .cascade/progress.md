@@ -929,3 +929,4 @@ Post-fix adversarial verify:
 - S126: keep-решение на месте — VERIFIED.
 - Old tail: S072 (nginx headers), S073 (compose pins), S077 (price_feed удалены), S083 (OCO на fill-путях), S084 (nested pkg), S089 (candles_data), S099 (ConnectionClosed+kelly caps), S108 (ci-equivalence прогнан — PASS), S118 (.pyc purge держится, 3 инертных residue) — все VERIFIED.
 - WRONG/ROTTED: 0.
+- Batch 2 (ancient era): S002 (Math.random = legit sampling), S005 (range(len = 0), S006 (spec'd mocks), S007 (39 monotonic), S008 (1 legit pragma), S013 (JSONDecodeError пережил рефактор в market_data_feed), S004. Все VERIFIED — ни одного WRONG/ROTTED. Дрейф: real_market_data.py стал shim, обработчики переехали — claim держится.
