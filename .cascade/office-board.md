@@ -100,6 +100,7 @@
 | **S085** | SL/TP/ликвидация: REJECTED ордер переписывается в FILLED + ворует чужую trade_history запись | `_close_triggered_position` (`exchange_liquidation.py:95-104`): `submit_order` при `mid_price==0` возвращает REJECTED → код **безусловно** ставит `order.status = FILLED`, потом `self.account.trade_history[-1].reason = reason` — но rejection не добавлял trade → помечается ПОСЛЕДНЯЯ ЧУЖАЯ сделка как "LIQUIDATION"/"STOP_LOSS". Позиция остаётся открытой (повторная попытка каждый тик), история отравлена. | High | [ ] Open |
 | **S086** | Внутренний пакет `exchange_simulator/exchange_simulator/` — 6 мёртвых модулей (1240 строк) | Каждый живёт только ради своего теста: `liquidation_engine_v2.py` (306 — "enhanced" cascade+ADL engine, прод гоняет простой mixin `exchange_liquidation`), `funding_rate.py` (136 — мёртвый дубликат; реальный funding из `market_simulator.get_funding_rates`), `order_book_realism.py` (307 — spoofing/iceberg/adverse-selection engine; реальные стаканы из `market_simulator.generate_order_book`), `market_microstructure.py` (175), `latency_simulation.py` (129), `spread_analytics.py` (187). Тесты тестируют мёртвый код. | High | [ ] Open |
 | **S087** | `options_chain` WS-endpoint есть, но web-ui его не вызывает | Backend реально отдаёт BS-chain с греками (`ws_message_handler.py:402-435`, `OptionsSimulator`), а `OptionsChain.jsx` считает BS на клиенте от realized vol — реальный фид существует, не потребляется. Wire opportunity под "real API" направление. | Medium | [ ] Open |
+| **S088** | hft-trade-bot: ~3300 строк мёртвых header'ов | Живут только в doctest'ах, 0 ссылок из core/: `position_manager_v2.h` (347 — прод использует `position_manager.h`), `order_manager.h` (378), `latency_tracker.h` (252), `order_type_selector.h` (38), `portfolio_risk.h` (261), `pre_trade_risk.h` (220 — прод использует `risk_manager.h`), 4 стратегии `*_v2.h` (market_making 176, mean_reversion 300, momentum_breakout 203, statistical_arb 251), `shm_heartbeat.h` (271 — heartbeat-сторона SHM никогда не пишется; Python-аналог только в мёртвом fix_client.py), `metrics_collector.*` (347), `tracer.*` (290). Второй слой мёртвого C++ поверх S058–S061. | High | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -173,6 +174,8 @@
 - `arbitrage` + `data_export` + `config_validator` + `options_simulator` из вложенного пакета — ЖИВЫ (wired в __main__/ws_message_handler)
 - funding pipeline целиком живой: market_simulator → ws_broadcast → UI fundingRates
 - `options_chain` WS handler реален — BS-chain с полными греками от OptionsSimulator
+- `signal_engine_v3.h` OnlineHMM — НАСТОЯЩИЙ math: log-space forward recursion, log-sum-exp, Gaussian emissions, online adaptation; opt-in через config (engine_v2 fallback)
+- hft живое: `adaptive_selector`, `risk_mgr`, `kill_switch`, `shm_fill_producer`, `shm_market_data`, `shm_signal_consumer`, `signal_receiver`, `SystemMonitor` — всё wired в core/
 
 ---
 

@@ -834,3 +834,16 @@ Rotation target: the inner `exchange_simulator/exchange_simulator/` package (~23
 
 - `arbitrage`, `data_export`, `config_validator`, `options_simulator` — live (wired in `__main__`/`ws_message_handler`)
 - Funding pipeline is live end-to-end: market_simulator → charge_funding → broadcast → UI `fundingRates`
+
+## Round 13 — audit branch: hft-trade-bot remaining headers (engines/risk/ipc/metrics)
+
+Rotation target: every header in hft-trade-bot not yet audited — verified each against core/ wiring.
+
+### New finding S088
+
+**S088 — ~3300 more dead lines: hft header archipelago.** Alive only via doctest files, zero references from core/: `position_manager_v2.h` (347 — prod uses `position_manager.h`), `order_manager.h` (378), `latency_tracker.h` (252), `order_type_selector.h` (38), `portfolio_risk.h` (261), `pre_trade_risk.h` (220 — prod uses `risk_manager.h`), four `*_v2.h` strategy headers (market_making 176, mean_reversion 300, momentum_breakout 203, statistical_arb 251), `shm_heartbeat.h` (271 — the SHM heartbeat is never written; its Python counterpart lives only inside dead fix_client.py), `metrics_collector.*` (347), `tracer.*` (290). A second dead layer on top of S058–S061 — combined dead C++ ≈ 5700 lines.
+
+### ЧИСТО (hft wiring)
+
+- `signal_engine_v3.h` OnlineHMM is REAL math — log-space forward recursion with log-sum-exp, Gaussian emissions, online parameter adaptation; opt-in via `signal_engine_v3_enabled`, v2 fallback
+- Live in core/: adaptive_selector, risk_mgr, kill_switch (SHM trigger + cancel/close/notify callbacks), shm_fill_producer, shm_market_data, shm_signal_consumer, signal_receiver, SystemMonitor
