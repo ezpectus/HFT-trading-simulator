@@ -1327,3 +1327,14 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
   5. Convention drift: panel theta was per-year while sim `OptionQuote.theta` is documented per-day and `OptionsChain` shows sim values — same "Theta" label, 365× apart. Fixed: ÷365 + label "Theta (per day)".
 - **Verified clean:** deprecated `options_pricing.py` BS formulas numerically exact (call 10.4506 / put 5.5735 / delta 0.6368 / gamma 0.0188 vs textbook); live `OptionsSimulator` textbook-correct (per-day theta, Newton-Raphson IV with vega guard, intrinsic/zero-input guards). Repo-wide sweep: no other non-existent `Math.*` builtins, no other `const X = X(...)` TDZ shadows.
 - **Verified:** +8 contract tests pinning BS values + per-day convention · vitest 150 files / 1096 green · eslint clean.
+
+## Round 39 — 2026-09-12 — dead config surface (S120)
+
+- **S120 (Medium) → Done.** `settings.yaml` exposed 9 keys nothing read — config that *looks* tunable but is inert:
+  - `indicators.macd_fast/slow/signal` — `macd()` itself has **zero callers**; validator even enforced `macd_fast < macd_slow` on dead keys → deleted (keys + properties + validator checks + test fixtures).
+  - `trading.timeframe` — candles arrive via WS push; no bot-side consumer; `ws_client.subscribe` takes no timeframe → deleted.
+  - `risk.stop_loss_pct`/`take_profit_pct` — signals carry strategy-ATR-derived SL/TP and `run.py:316` sizes off `signal.stop_loss` directly; no global-override point exists → deleted (keys + properties + 3 validator rules).
+  - Wired instead of deleted: `indicators.rsi_period` → `MeanReversionStrategy(rsi_period=)` (param existed, never passed); `indicators.atr_period` → new param on `FFTCycleStrategy` + `MeanReversionStrategy` (both hardcoded `atr(candles, 14)`); `rsi_period`/`adx_period` → `generate_llm_explanation` (was `rsi(closes)`/`adx(candles)` bare defaults).
+  - Parallel user work (same finding class, bundled): `network.ws_connect_timeout`/`ws_recv_timeout`/`rest_timeout` wired through `run.py` → `ExchangeClient` → `ExchangeFactory` → `RealAccountManager`; `metrics.enabled/port/host` wired to `MetricsExporter` startup; `strategies.{sentiment,market_making,ml_ensemble}` tunables wired through `build_strategies` into their Config dataclasses.
+- Verified clean: every remaining yaml key has a `config.*` property and ≥1 non-test consumer; `signal_engine_v2.sl_atr_mult` doc block is the HFT bot's schema, not this file's.
+- **Verified:** +1 flow test (`test_indicator_periods_reach_strategies`); user added tunable + network/metrics tests; pytest 1456 green · ruff clean.

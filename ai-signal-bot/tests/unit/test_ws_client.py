@@ -34,6 +34,45 @@ class TestExchangeClientInit:
         assert client.accounts == {}
 
 
+class TestTimeoutConfig:
+    """Regression S117: network.* timeouts must reach the websockets client."""
+
+    @pytest.mark.asyncio
+    async def test_connect_passes_open_timeout(self):
+        c = ExchangeClient(url="ws://localhost:1", connect_timeout=4, recv_timeout=12)
+        assert c._connect_timeout == 4
+        assert c._recv_timeout == 12
+        with patch("src.communication.ws_client.websockets.connect", new_callable=AsyncMock) as mock_connect:
+            mock_connect.return_value.send = AsyncMock()
+            await c.connect()
+        assert mock_connect.call_args.kwargs["open_timeout"] == 4
+
+    @pytest.mark.asyncio
+    async def test_recv_watchdog_reconnects_on_idle_socket(self):
+        """A silent dead connection must hit recv_timeout, drop state, and retry connect."""
+        c = ExchangeClient(url="ws://localhost:1", connect_timeout=1, recv_timeout=0.05)
+        dead_ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
+
+        async def _hang():
+            await asyncio.sleep(60)
+
+        dead_ws.recv = _hang  # a real coroutine fn — AsyncMock side_effect returns instantly
+        c._ws = dead_ws
+        c._connected = True
+        # Break the infinite listen loop deterministically at the reconnect step —
+        # task.cancel() during wait_for would be eaten by the TimeoutError handler.
+        c.connect = AsyncMock(side_effect=asyncio.CancelledError)
+
+        try:
+            await c.listen()
+        except asyncio.CancelledError:
+            pass
+
+        assert c._connected is False
+        assert c._ws is None
+        c.connect.assert_awaited()
+
+
 class TestProcessMessage:
     def test_welcome_message(self, client):
         data = {"type": "welcome", "protocol_version": 2, "trading_active": False}

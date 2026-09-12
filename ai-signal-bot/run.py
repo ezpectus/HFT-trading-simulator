@@ -76,7 +76,11 @@ class AISignalBot:
         self.logger = logging.getLogger("ai_signal_bot.core")
 
         # Components
-        self.exchange = ExchangeClient(config.ws_url)
+        self.exchange = ExchangeClient(
+            config.ws_url,
+            connect_timeout=config.ws_connect_timeout,
+            recv_timeout=config.ws_recv_timeout,
+        )
         # Bind host overridable via env (0.0.0.0 required inside containers;
         # use 127.0.0.1 for direct host runs)
         bind_host = os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0")
@@ -162,7 +166,7 @@ class AISignalBot:
         # Start metrics server if enabled
         metrics_server = None
         prom_server = None
-        if enable_metrics:
+        if enable_metrics or self.config.metrics_enabled:
             from src.monitoring.health_server import HealthServer
             metrics_server = HealthServer(port=8080, host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"))
             metrics_server.register_check("liveness", self.health_checker.check_liveness)
@@ -172,8 +176,9 @@ class AISignalBot:
             try:
                 from src.monitoring.metrics import MetricsExporter
                 prom_server = MetricsExporter()
-                if await prom_server.start_server(host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"), port=9090):
-                    self.logger.info("Prometheus metrics server running on port 9090")
+                metrics_host = os.environ.get("AI_BOT_BIND_HOST") or self.config.metrics_host
+                if await prom_server.start_server(host=metrics_host, port=self.config.metrics_port):
+                    self.logger.info("Prometheus metrics server running on port %s", self.config.metrics_port)
                     self.exchange.set_reconnect_handler(prom_server.record_ws_reconnect)
                     self.signal_publisher.metrics = prom_server
                 else:
@@ -355,6 +360,7 @@ class AISignalBot:
             mode=ExchangeMode.REAL,
             exchange=self.config.default_exchange,
             symbols=self.config.symbols,
+            rest_timeout=self.config.rest_timeout,
         )
         try:
             adapter = await factory.create()

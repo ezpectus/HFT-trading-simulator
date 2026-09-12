@@ -19,8 +19,9 @@ class FFTCycleStrategy:
     In MIXED regime: Use cycle strength as confidence modifier
     """
 
-    def __init__(self, min_data: int = 64):
+    def __init__(self, min_data: int = 64, atr_period: int = 14):
         self.min_data = min_data
+        self.atr_period = atr_period
         self.name = "fft_cycle"
 
     def analyze(self, symbol: str, candles: list[dict]) -> Signal:
@@ -42,7 +43,7 @@ class FFTCycleStrategy:
         smoothed = fft_data["smoothed_price"]
         top_cycle = fft_data["top_cycle_period"]
 
-        atr_vals = atr(candles, 14)
+        atr_vals = atr(candles, self.atr_period)
         current_atr = atr_vals[-1] if atr_vals and not math.isnan(atr_vals[-1]) else current_price * 0.01
 
         if len(smoothed) >= 3:

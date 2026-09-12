@@ -275,6 +275,34 @@ class TestRealExchangeAdapter:
         adapter = RealExchangeAdapter(exchange="okx")
         assert adapter.name == "okx"
 
+    @pytest.mark.asyncio
+    async def test_rest_timeout_plumbs_to_account_manager(self):
+        """Regression S117: network.rest_timeout must reach ccxt via the adapter chain."""
+        adapter = RealExchangeAdapter(exchange="binance", rest_timeout=7.5)
+        assert adapter._rest_timeout == 7.5
+
+        captured = {}
+
+        class _FakeAccount:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+            async def initialize(self):
+                pass
+
+        class _FakeMD:
+            def __init__(self, **kwargs):
+                pass
+
+            async def initialize(self):
+                pass
+
+        with patch("src.data_collection.real_account.RealAccountManager", _FakeAccount), \
+             patch("src.data_collection.real_market_data.RealMarketDataManager", _FakeMD):
+            await adapter.initialize()
+
+        assert captured["rest_timeout"] == 7.5
+
 
 class TestExchangeFactorySimulator:
     @pytest.mark.asyncio

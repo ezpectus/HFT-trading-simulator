@@ -99,11 +99,12 @@ class RealAccountManager:
 
     def __init__(self, exchange: str = "binance",
                  api_key: str = "", api_secret: str = "",
-                 testnet: bool = False):
+                 testnet: bool = False, rest_timeout: float = 10.0):
         self.exchange_name = exchange
         self.api_key = api_key
         self.api_secret = api_secret
         self.testnet = testnet
+        self._rest_timeout = rest_timeout
         self._exchange: Any | None = None  # ccxt.Exchange — ccxt has no type stubs
         self._ws_session: Any | None = None  # aiohttp.ClientSession — duck-typed
         self._user_data_stream_key: str | None = None
@@ -125,6 +126,8 @@ class RealAccountManager:
             "apiKey": self.api_key,
             "secret": self.api_secret,
             "enableRateLimit": True,
+            # ccxt timeout is milliseconds; config rest_timeout is seconds
+            "timeout": int(self._rest_timeout * 1000),
         })
 
         if self.testnet:

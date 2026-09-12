@@ -19,8 +19,10 @@ class MeanReversionStrategy:
         rsi_overbought: float = 70,
         bb_period: int = 20,
         bb_std: float = 2.0,
+        atr_period: int = 14,
     ):
         self.rsi_period = rsi_period
+        self.atr_period = atr_period
         self.rsi_oversold = rsi_oversold
         self.rsi_overbought = rsi_overbought
         self.bb_period = bb_period
@@ -48,7 +50,7 @@ class MeanReversionStrategy:
         else:
             rsi_vals = rsi(candles, self.rsi_period)
             mid, upper, lower = bollinger_bands(candles, self.bb_period, self.bb_std)
-            atr_vals = atr(candles, 14)
+            atr_vals = atr(candles, self.atr_period)
             self._cache[cache_key] = {"rsi_vals": rsi_vals, "mid": mid, "upper": upper, "lower": lower, "atr_vals": atr_vals}
             if len(self._cache) > 200:
                 self._cache.pop(next(iter(self._cache)))

@@ -253,7 +253,8 @@ class RealExchangeAdapter:
     """Exchange adapter wrapping real exchange connections."""
 
     def __init__(self, exchange: str = "binance", api_key: str = "", api_secret: str = "",
-                 testnet: bool = False, symbols: list[str] | None = None):
+                 testnet: bool = False, symbols: list[str] | None = None,
+                 rest_timeout: float = 10.0):
         self.exchange_name = exchange
         self._market_data = None
         self._account = None
@@ -262,6 +263,7 @@ class RealExchangeAdapter:
         self._api_secret = api_secret
         self._testnet = testnet
         self._symbols = symbols or []
+        self._rest_timeout = rest_timeout
 
     async def initialize(self) -> None:
         from src.data_collection.real_account import RealAccountManager
@@ -273,7 +275,8 @@ class RealExchangeAdapter:
         )
         self._account = RealAccountManager(
             exchange=self.exchange_name, api_key=self._api_key,
-            api_secret=self._api_secret, testnet=self._testnet
+            api_secret=self._api_secret, testnet=self._testnet,
+            rest_timeout=self._rest_timeout,
         )
         await self._market_data.initialize()
         await self._account.initialize()
@@ -337,7 +340,8 @@ class ExchangeFactory:
                  api_key: str = "", api_secret: str = "",
                  testnet: bool = False,
                  simulator_url: str | None = None,
-                 symbols: list[str] | None = None):
+                 symbols: list[str] | None = None,
+                 rest_timeout: float = 10.0):
         self.mode = mode
         self.exchange = exchange
         self.api_key = api_key or os.environ.get("EXCHANGE_API_KEY", "")
@@ -345,6 +349,7 @@ class ExchangeFactory:
         self.testnet = testnet
         self.simulator_url = simulator_url or os.environ.get("WS_URL", "ws://localhost:8765")
         self.symbols = symbols or []
+        self.rest_timeout = rest_timeout
         self._adapter: ExchangeAdapter | None = None
         self._simulator_adapter: SimulatorAdapter | None = None
 
@@ -359,7 +364,7 @@ class ExchangeFactory:
             self._adapter = RealExchangeAdapter(
                 exchange=self.exchange, api_key=self.api_key,
                 api_secret=self.api_secret, testnet=self.testnet,
-                symbols=self.symbols,
+                symbols=self.symbols, rest_timeout=self.rest_timeout,
             )
             await self._adapter.initialize()
             return self._adapter
@@ -370,7 +375,7 @@ class ExchangeFactory:
                 self._adapter = RealExchangeAdapter(
                     exchange=self.exchange, api_key=self.api_key,
                     api_secret=self.api_secret, testnet=self.testnet,
-                    symbols=self.symbols,
+                    symbols=self.symbols, rest_timeout=self.rest_timeout,
                 )
                 await self._adapter.initialize()
                 # Verify health

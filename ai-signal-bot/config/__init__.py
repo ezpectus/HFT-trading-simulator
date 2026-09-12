@@ -52,7 +52,7 @@ class SignalBotConfig:
 
         risk = self.raw.get("risk", {})
         for key in ("max_risk_per_trade_pct", "max_daily_drawdown_pct", "min_confidence",
-                     "min_rr_ratio", "stop_loss_pct", "take_profit_pct", "max_position_size_pct"):
+                     "min_rr_ratio", "max_position_size_pct"):
             val = risk.get(key)
             if val is not None and not isinstance(val, int | float):
                 errors.append(f"risk.{key} must be a number, got {type(val).__name__}")
@@ -91,10 +91,6 @@ class SignalBotConfig:
             errors.append("risk.min_confidence must be in [0, 100]")
         if risk.get("min_rr_ratio", 0) <= 0:
             errors.append("risk.min_rr_ratio must be > 0")
-        if risk.get("stop_loss_pct", 0) <= 0:
-            errors.append("risk.stop_loss_pct must be > 0")
-        if risk.get("take_profit_pct", 0) <= 0:
-            errors.append("risk.take_profit_pct must be > 0")
         if risk.get("max_position_size_pct", 0) <= 0:
             errors.append("risk.max_position_size_pct must be > 0")
 
@@ -121,20 +117,16 @@ class SignalBotConfig:
 
         # Indicators
         indicators = self.raw.get("indicators", {})
-        for key in ("rsi_period", "macd_fast", "macd_slow", "macd_signal", "atr_period", "adx_period"):
+        for key in ("rsi_period", "atr_period", "adx_period"):
             val = indicators.get(key, 0)
             if val < 1:
                 errors.append(f"indicators.{key} must be >= 1")
-        if indicators.get("macd_fast", 0) >= indicators.get("macd_slow", 999):
-            errors.append("indicators.macd_fast must be < macd_slow")
 
         # Warnings for suspicious values
         if risk.get("max_risk_per_trade_pct", 0) > 10:
             warnings.append("risk.max_risk_per_trade_pct > 10% — high risk per trade")
         if risk.get("max_daily_drawdown_pct", 0) > 20:
             warnings.append("risk.max_daily_drawdown_pct > 20% — high daily drawdown limit")
-        if risk.get("stop_loss_pct", 0) > 10:
-            warnings.append("risk.stop_loss_pct > 10% — wide stop loss")
         if trading.get("max_open_positions", 0) > 10:
             warnings.append("trading.max_open_positions > 10 — many concurrent positions")
 
@@ -144,10 +136,6 @@ class SignalBotConfig:
     @property
     def symbols(self) -> list[str]:
         return self.raw["trading"]["symbols"]
-
-    @property
-    def timeframe(self) -> str:
-        return self.raw["trading"]["timeframe"]
 
     @property
     def signal_interval(self) -> int:
@@ -183,10 +171,6 @@ class SignalBotConfig:
     def rest_timeout(self) -> int:
         return self.raw.get("network", {}).get("rest_timeout", 15)
 
-    @property
-    def socket_buffer_size(self) -> int:
-        return self.raw.get("network", {}).get("socket_buffer_size", 1048576)
-
     # --- risk ---
     @property
     def max_risk_pct(self) -> float:
@@ -203,14 +187,6 @@ class SignalBotConfig:
     @property
     def min_rr_ratio(self) -> float:
         return float(self.raw["risk"]["min_rr_ratio"])
-
-    @property
-    def stop_loss_pct(self) -> float:
-        return float(self.raw["risk"]["stop_loss_pct"])
-
-    @property
-    def take_profit_pct(self) -> float:
-        return float(self.raw["risk"]["take_profit_pct"])
 
     @property
     def max_position_size_pct(self) -> float:
@@ -286,12 +262,44 @@ class SignalBotConfig:
         return self.raw.get("strategies", {}).get("market_making", {}).get("enabled", False)
 
     @property
+    def mm_gamma(self) -> float:
+        return float(self.raw.get("strategies", {}).get("market_making", {}).get("gamma", 0.1))
+
+    @property
+    def mm_sigma(self) -> float:
+        return float(self.raw.get("strategies", {}).get("market_making", {}).get("sigma", 0.3))
+
+    @property
+    def mm_max_inventory(self) -> float:
+        return float(self.raw.get("strategies", {}).get("market_making", {}).get("max_inventory", 5.0))
+
+    @property
+    def mm_min_spread(self) -> float:
+        return float(self.raw.get("strategies", {}).get("market_making", {}).get("min_spread", 0.0001))
+
+    @property
     def sentiment_enabled(self) -> bool:
         return self.raw.get("strategies", {}).get("sentiment", {}).get("enabled", False)
 
     @property
+    def sentiment_fade_threshold(self) -> float:
+        return float(self.raw.get("strategies", {}).get("sentiment", {}).get("fade_threshold", 0.7))
+
+    @property
+    def sentiment_decay_rate(self) -> float:
+        return float(self.raw.get("strategies", {}).get("sentiment", {}).get("decay_rate", 0.95))
+
+    @property
     def ml_ensemble_enabled(self) -> bool:
         return self.raw.get("strategies", {}).get("ml_ensemble", {}).get("enabled", False)
+
+    @property
+    def ml_lookback(self) -> int:
+        return int(self.raw.get("strategies", {}).get("ml_ensemble", {}).get("lookback", 200))
+
+    @property
+    def ml_prediction_horizon(self) -> int:
+        return int(self.raw.get("strategies", {}).get("ml_ensemble", {}).get("prediction_horizon", 5))
 
     @property
     def ensemble_mode(self) -> str:
@@ -305,18 +313,6 @@ class SignalBotConfig:
     @property
     def rsi_period(self) -> int:
         return self.raw["indicators"]["rsi_period"]
-
-    @property
-    def macd_fast(self) -> int:
-        return self.raw["indicators"]["macd_fast"]
-
-    @property
-    def macd_slow(self) -> int:
-        return self.raw["indicators"]["macd_slow"]
-
-    @property
-    def macd_signal(self) -> int:
-        return self.raw["indicators"]["macd_signal"]
 
     @property
     def atr_period(self) -> int:
@@ -347,6 +343,19 @@ class SignalBotConfig:
     @property
     def signals_csv(self) -> str:
         return self.raw.get("logging", {}).get("signals_csv", "logs/signals.csv")
+
+    # --- metrics ---
+    @property
+    def metrics_enabled(self) -> bool:
+        return bool(self.raw.get("metrics", {}).get("enabled", False))
+
+    @property
+    def metrics_port(self) -> int:
+        return int(self.raw.get("metrics", {}).get("port", 9090))
+
+    @property
+    def metrics_host(self) -> str:
+        return str(self.raw.get("metrics", {}).get("host", "0.0.0.0"))
 
     def __getattr__(self, name: str):
         """Dynamic config accessor — reduces boilerplate for new config keys.

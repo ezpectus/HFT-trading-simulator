@@ -45,16 +45,23 @@ def build_strategies(config: SignalBotConfig) -> list:
             adx_threshold=config.trend_adx_threshold))
     if config.meanrev_enabled:
         strategies.append(MeanReversionStrategy(
+            rsi_period=config.rsi_period, atr_period=config.atr_period,
             rsi_oversold=config.meanrev_rsi_oversold, rsi_overbought=config.meanrev_rsi_overbought,
             bb_period=config.meanrev_bb_period, bb_std=config.meanrev_bb_std))
     if config.fft_enabled:
-        strategies.append(FFTCycleStrategy(min_data=config.fft_min_data))
+        strategies.append(FFTCycleStrategy(min_data=config.fft_min_data, atr_period=config.atr_period))
     if config.sentiment_enabled:
-        strategies.append(SentimentStrategy(config=SentimentConfig()))
+        strategies.append(SentimentStrategy(config=SentimentConfig(
+            fade_threshold=config.sentiment_fade_threshold,
+            decay_rate=config.sentiment_decay_rate)))
     if config.market_making_enabled:
-        strategies.append(MarketMakingStrategy(config=MarketMakingConfig()))
+        strategies.append(MarketMakingStrategy(config=MarketMakingConfig(
+            gamma=config.mm_gamma, sigma=config.mm_sigma,
+            max_inventory=config.mm_max_inventory, min_spread=config.mm_min_spread)))
     if config.ml_ensemble_enabled:
-        strategies.append(MLEnsembleStrategy(config=MLConfig()))
+        strategies.append(MLEnsembleStrategy(config=MLConfig(
+            lookback=config.ml_lookback,
+            prediction_horizon=config.ml_prediction_horizon)))
     return strategies
 
 
@@ -106,8 +113,10 @@ async def generate_llm_explanation(bot, symbol: str, signal: Signal, candles: li
     """Generate LLM explanation for a signal, with fallback to signal reason."""
     try:
         closes = [c["close"] for c in candles]
-        rsi_val = rsi(closes)[-1] if len(closes) >= 14 else 50.0
-        adx_val = adx(candles)[-1] if len(candles) >= 14 else 25.0
+        rsi_period = getattr(bot.config, "rsi_period", 14)
+        adx_period = getattr(bot.config, "adx_period", 14)
+        rsi_val = rsi(closes, rsi_period)[-1] if len(closes) >= rsi_period else 50.0
+        adx_val = adx(candles, adx_period)[-1] if len(candles) >= adx_period else 25.0
         ema_fast_val = ema(closes, 9)[-1] if len(closes) >= 9 else 0.0
         ema_slow_val = ema(closes, 21)[-1] if len(closes) >= 21 else 0.0
         ema_trend = "bullish" if ema_fast_val > ema_slow_val else "bearish"

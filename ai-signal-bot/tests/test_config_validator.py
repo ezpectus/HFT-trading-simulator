@@ -6,7 +6,6 @@ def _valid_raw():
     return {
         "trading": {
             "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
-            "timeframe": "1m",
             "signal_interval_seconds": 5,
             "max_open_positions": 3,
             "paper_trading": True,
@@ -20,8 +19,6 @@ def _valid_raw():
             "max_daily_drawdown_pct": 10.0,
             "min_confidence": 60.0,
             "min_rr_ratio": 1.5,
-            "stop_loss_pct": 2.0,
-            "take_profit_pct": 4.0,
             "max_position_size_pct": 25.0,
         },
         "strategies": {
@@ -46,9 +43,6 @@ def _valid_raw():
         },
         "indicators": {
             "rsi_period": 14,
-            "macd_fast": 12,
-            "macd_slow": 26,
-            "macd_signal": 9,
             "atr_period": 14,
             "adx_period": 14,
         },
@@ -121,27 +115,12 @@ class TestConfigValidator:
         _, warnings = cfg.validate()
         assert any("ensemble.mode" in w for w in warnings)
 
-    def test_macd_fast_ge_slow(self):
-        raw = _valid_raw()
-        raw["indicators"]["macd_fast"] = 26
-        raw["indicators"]["macd_slow"] = 26
-        cfg = SignalBotConfig(raw=raw)
-        errors, _ = cfg.validate()
-        assert any("macd_fast" in e for e in errors)
-
     def test_missing_websocket_url(self):
         raw = _valid_raw()
         del raw["exchange"]["websocket_url"]
         cfg = SignalBotConfig(raw=raw)
         errors, _ = cfg.validate()
         assert any("websocket_url" in e for e in errors)
-
-    def test_zero_stop_loss(self):
-        raw = _valid_raw()
-        raw["risk"]["stop_loss_pct"] = 0
-        cfg = SignalBotConfig(raw=raw)
-        errors, _ = cfg.validate()
-        assert any("stop_loss_pct" in e for e in errors)
 
     def test_load_with_validate_raises_on_invalid(self):
         raw = _valid_raw()

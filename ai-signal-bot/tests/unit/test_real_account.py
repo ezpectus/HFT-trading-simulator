@@ -291,3 +291,30 @@ class TestRealAccountManagerWithMockExchange:
         mgr._exchange = mock_ex
         result = await mgr.set_leverage("BTC/USDT", 20)
         assert result is False
+
+
+class TestRestTimeoutWiring:
+    """Regression S117: network.rest_timeout (seconds) must reach ccxt `timeout` (ms)."""
+
+    @pytest.mark.asyncio
+    async def test_rest_timeout_passed_to_ccxt_config(self):
+        mgr = RealAccountManager(exchange="binance", rest_timeout=7.5)
+        captured = {}
+
+        class _FakeCcxtExchange:
+            def __init__(self, cfg):
+                captured.update(cfg)
+
+            async def load_markets(self):
+                pass
+
+            async def close(self):
+                pass
+
+        fake_ccxt = MagicMock()
+        fake_ccxt.binance = _FakeCcxtExchange
+        with patch("src.data_collection.real_account.CCXT_AVAILABLE", True), \
+             patch("src.data_collection.real_account.ccxt", fake_ccxt, create=True):
+            await mgr.initialize()
+
+        assert captured["timeout"] == 7500

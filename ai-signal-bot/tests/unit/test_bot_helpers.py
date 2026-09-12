@@ -17,7 +17,10 @@ _CFG_SURFACE = [
     'trend_enabled', 'trend_ema_fast', 'trend_ema_slow', 'trend_adx_threshold',
     'meanrev_enabled', 'meanrev_rsi_oversold', 'meanrev_rsi_overbought',
     'meanrev_bb_period', 'meanrev_bb_std', 'fft_enabled', 'sentiment_enabled',
-    'market_making_enabled', 'ml_ensemble_enabled', 'statarb_enabled', 'symbols',
+    'sentiment_fade_threshold', 'sentiment_decay_rate',
+    'market_making_enabled', 'mm_gamma', 'mm_sigma', 'mm_max_inventory', 'mm_min_spread',
+    'ml_ensemble_enabled', 'ml_lookback', 'ml_prediction_horizon',
+    'statarb_enabled', 'symbols', 'rsi_period', 'atr_period', 'fft_min_data',
 ]
 _BOT_SURFACE = ['stat_arb', 'exchange', 'config', 'signal_publisher', 'llm_engine']
 _SIGNAL_SURFACE = ['direction', 'entry_price', 'reason', 'assert_not_called']
@@ -38,6 +41,9 @@ def mock_config():
     cfg.meanrev_rsi_overbought = 70
     cfg.meanrev_bb_period = 20
     cfg.meanrev_bb_std = 2.0
+    cfg.rsi_period = 14
+    cfg.atr_period = 14
+    cfg.fft_min_data = 100
     cfg.fft_enabled = False
     cfg.sentiment_enabled = False
     cfg.market_making_enabled = False
@@ -69,6 +75,57 @@ def test_build_strategies_multiple_enabled(mock_config) -> None:
     """build_strategies with trend + meanrev should return 2 strategies."""
     strategies = build_strategies(mock_config)
     assert len(strategies) == 2
+
+
+def test_indicator_periods_reach_strategies(mock_config) -> None:
+    """Regression S120: indicators.* YAML values must reach strategy constructors."""
+    mock_config.meanrev_enabled = True
+    mock_config.fft_enabled = True
+    mock_config.rsi_period = 21
+    mock_config.atr_period = 7
+    strategies = build_strategies(mock_config)
+    mr = next(s for s in strategies if s.name == "mean_reversion")
+    fft = next(s for s in strategies if s.name == "fft_cycle")
+    assert mr.rsi_period == 21
+    assert mr.atr_period == 7
+    assert fft.atr_period == 7
+
+
+def test_sentiment_tunables_reach_config(mock_config) -> None:
+    """Regression S117: sentiment YAML values must reach SentimentConfig."""
+    mock_config.sentiment_enabled = True
+    mock_config.sentiment_fade_threshold = 0.42
+    mock_config.sentiment_decay_rate = 0.5
+    strategies = build_strategies(mock_config)
+    sent = next(s for s in strategies if s.name == "sentiment")
+    assert sent.config.fade_threshold == 0.42
+    assert sent.config.decay_rate == 0.5
+
+
+def test_market_making_tunables_reach_config(mock_config) -> None:
+    """Regression S117: market_making YAML values must reach MarketMakingConfig."""
+    mock_config.market_making_enabled = True
+    mock_config.mm_gamma = 0.25
+    mock_config.mm_sigma = 0.05
+    mock_config.mm_max_inventory = 9.0
+    mock_config.mm_min_spread = 0.002
+    strategies = build_strategies(mock_config)
+    mm = next(s for s in strategies if s.name == "market_making")
+    assert mm.config.gamma == 0.25
+    assert mm.config.sigma == 0.05
+    assert mm.config.max_inventory == 9.0
+    assert mm.config.min_spread == 0.002
+
+
+def test_ml_ensemble_tunables_reach_config(mock_config) -> None:
+    """Regression S117: ml_ensemble YAML values must reach MLConfig."""
+    mock_config.ml_ensemble_enabled = True
+    mock_config.ml_lookback = 77
+    mock_config.ml_prediction_horizon = 9
+    strategies = build_strategies(mock_config)
+    ml = next(s for s in strategies if s.name == "ml_ensemble")
+    assert ml.config.lookback == 77
+    assert ml.config.prediction_horizon == 9
 
 
 # ─── build_stat_arb ───
@@ -134,6 +191,8 @@ async def test_llm_explanation_success() -> None:
     """generate_llm_explanation should return LLM response on success."""
     bot = MagicMock(spec=_BOT_SURFACE)
     bot.llm_engine.explain_signal = AsyncMock(return_value="Bullish trend detected")
+    bot.config.rsi_period = 14
+    bot.config.adx_period = 14
     signal = MagicMock(spec=_SIGNAL_SURFACE)
     signal.direction.value = "LONG"
     signal.entry_price = 50000
@@ -148,6 +207,8 @@ async def test_llm_explanation_fallback_on_error() -> None:
     """generate_llm_explanation should fallback to signal.reason on error."""
     bot = MagicMock(spec=_BOT_SURFACE)
     bot.llm_engine.explain_signal = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
+    bot.config.rsi_period = 14
+    bot.config.adx_period = 14
     signal = MagicMock(spec=_SIGNAL_SURFACE)
     signal.direction.value = "LONG"
     signal.entry_price = 50000

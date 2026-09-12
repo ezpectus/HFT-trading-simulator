@@ -35,9 +35,12 @@ class ExchangeClient:
     Sends orders when paper trading is disabled.
     """
 
-    def __init__(self, url: str | None = None, encoding: str = "json", ssl: bool | object = None):
+    def __init__(self, url: str | None = None, encoding: str = "json", ssl: bool | object = None,
+                 connect_timeout: int = 10, recv_timeout: int = 30):
         self.url = url or os.environ.get("WS_URL", "ws://localhost:8765")
         self._ssl = ssl
+        self._connect_timeout = connect_timeout
+        self._recv_timeout = recv_timeout
         self._encoding = encoding if (encoding == "msgpack" and _HAS_MSGPACK) else "json"
         self._ws: websockets.WebSocketClientProtocol | None = None
         self._connected = False
@@ -86,6 +89,7 @@ class ExchangeClient:
             connect_kwargs = dict(
                 ping_interval=10,
                 ping_timeout=10,
+                open_timeout=self._connect_timeout,
                 compression="deflate",
                 max_size=2**20,
             )
@@ -134,7 +138,10 @@ class ExchangeClient:
                         logger.warning("Reconnect handler error: %s", e)
 
             try:
-                async for message in self._ws:
+                while True:
+                    # recv watchdog — a silent dead connection (no data, no close
+                    # frame, dead TCP peer) otherwise hangs the async-for forever.
+                    message = await asyncio.wait_for(self._ws.recv(), timeout=self._recv_timeout)
                     try:
                         if isinstance(message, bytes) and _HAS_MSGPACK:
                             data = msgpack.unpackb(message, raw=False)
