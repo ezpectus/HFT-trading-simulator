@@ -1,0 +1,128 @@
+﻿# OFFICE BOARD — AI SLOP AUDIT
+
+> Аудит: 11 сен 2026. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
+> Предыдущая доска рефакторинга (REF-01..REF-625, все DONE) удалена по запросу пользователя.
+> История работ: `.cascade/progress.md`, `.cascade/bug_log.md`.
+
+---
+
+## СВОДКА
+
+| Метрика | Значение |
+|---------|----------|
+| Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
+| Критичных находок | 3 (S001–S003 — web-ui это мок-демо) |
+| Системных находок | 6 (S004–S009) |
+| Низких/инфо | остальные |
+| Чисто | 0 TODO, 0 `import *`, 0 bare `except:`, 0 `except Exception: pass`, 0 eval/exec/pickle/verify=False, 0 f-string SQL, 0 pytest xfail, 0 `NotImplementedError`, 0 `dangerouslySetInnerHTML`, 0 mutable defaults, 0 `== True/None` |
+
+**Главный вывод:** Python-бэкенд после прошлых аудитов в приличном состоянии. Главная дыра — **web-ui: 460 файлов, ~290 компонентов, API-слой есть но почти не используется** (`fetch` — 1 вызов, `axios` — 0). ~99% панелей рендерят `MOCK_*` константы и `Math.random()`. Это демо-витрина, не подключённый интерфейс. Fake-данные в ~30% компонентов — по шкале аудита это "problem" зона.
+
+---
+
+## НАХОДКИ
+
+| ID | Находка | Детали | Приоритет | Статус |
+|----|---------|--------|-----------|--------|
+| **S001** | web-ui почти не подключён к бэкенду | `web-ui/src` — 460 файлов, ~290 компонентов. API-слой существует (`ApiClient.jsx`, `useWebSocket.ts`, `useExchangeData.js`), но `fetch(` — **1 вызов** (`AlertWebhook.jsx`), `axios` — 0. ~99% панелей не ходят в сеть — рендерят моки. Пользователь думает, что смотрит на живую систему — на самом деле это витрина. **Round 4:** картина уточнена — данные идут по WebSocket (`useExchangeData`/`useSignalData` → Zustand → `usePanelContext` → registry), REST почти нет. Многие панели получают реальные candles/fills/orderbooks/accounts/signals — проблема в **листовых** компонентах с `MOCK_*`. Registry round 4: ~20 записей получили реальные ctx-props (fills, orderbooks, accounts, signals, arbitrage, backtestResult). **Round 5:** DashboardProfiler — реальные Web Vitals + per-panel React `<Profiler>` timings; RegimeDetector — live `market_regime` broadcast + реальная статистика свечей; RealtimeAttribution — реализованный PnL из account trade_history по символу/причине закрытия; CostBasis — реальные positions+fills с SL/TP; SentimentDashboard — реальный `news_event` broadcast + disclosure что Twitter/Reddit нет; FeatureStudio — индикаторы из candles + корреляция с forward returns; PairsArb — пары из candles/price. **Round 6:** +6 панелей — AuditTrail (fills+signals→entries), BlackSwanTester (VaR/ES/skew/kurtosis из candles + шоки реальной книги), FuturesBasis (funding APR + cross-exchange basis), OptionsChain (BS-строки от realized vol, disclosure), TickReplay (реальные fills по времени), VolSurface (realized-vol grid + vol cone вместо фейковой IV). | **Critical** | [~] Partial |
+| **S002** | `Math.random()` как "live" метрики — 88 вхождений в 36 файлах | `LatencyPanel.jsx` — синтетический ряд latency + фейковые network hops. `OrderBook.jsx` — рандомный synthetic-book fallback. То же в `HamiltonianMonteCarlo`, `HiddenMarkovModel`, `IsolationForest`, `KMeansClustering`, `SDE`, `SVM`, `VAE`, `HawkesProcess`, `KellyCriterion`, `MalliavinCalculus`, `MarketDepthReplay`, `NotificationCenter`, `OptimalStopping`, `RiskOfRuin`, `RoughVolatility` и др. `mockData.js` и `useMockData.js` — фабрика рандома. **Round 4:** LatencyPanel переписан на реальную историю WS-RTT (useRef-аккумулятор), OrderBook fallback сделан детерминированным. Легитимный Math.random() (Монте-Карло/симуляции на реальных свечах) сохранён. Остальные random-as-live панели — в следующих раундах. | **Critical** | [~] Partial |
+| **S003** | `MOCK_*` inline-данные — 378 вхождений в 50 компонентах | `TCA.jsx` (12), `CrossAssetMatrix` (11), `DashboardProfiler` (11), `DataQuality` (11), `Microstructure` (11), `OptionsChain` (11), `SlippageAnalytics` (11), `FillAnalytics` (10), `Inventory` (10), `SignalTracker` (10), `StrategyCorrelation` (10), `WalkForwardViewer` (10) и ещё ~40. **Round 4: переведено на live-данные 13 топ-нарушителей** — FillAnalytics (fills), SignalTracker (signals+prices), ArbScanner (arbitrage), Inventory (accounts+prices), WalkForwardViewer (backtestResult), TCA (fills), SlippageAnalytics (fills), Microstructure (orderbooks), CrossAssetMatrix (candles→Pearson), DataQuality (candles→checks), StrategyCorrelation (signals→agreement), LatencyPanel (WS RTT), OrderBook (детерминир. fallback). Пустые состояния вместо фейков. **Round 6:** +6 — AuditTrail, BlackSwanTester, FuturesBasis, OptionsChain, TickReplay, VolSurface. Остаток ~31 компонентов — следующие раунды. | **Critical** | [~] Partial |
+| **S004** | Тесты проверяют размер/тип/не-None, не содержимое — 839 слабых assert'ов | 566 `assert len(` в 106 файлах + 194 `assert isinstance(` в 90 файлах + 79 `assert ... is not None` в 44 файлах. `test_vae.py` (20), `test_portfolio.py` (14), `test_ml_modules.py` (6 is-not-None). `assert len(result) > 0` проходит для любого непустого мусора. Заявленные "2487 тестов" в значительной части — формальность. | High | [ ] Open |
+| **S005** | `range(len(` — 84 вхождения в 38 файлах | `rkhs.py` (7), `emd.py` (7), `plotter.py` (6), `free_energy.py` (6), `hmc.py` (6), `copula.py` (4). Антипаттерн — нужен `enumerate`/`zip`/numpy-векторизация. В численном коде это ещё и медленнее. | Medium | [ ] Open |
+| **S006** | Моки без spec — 156 в 22 тестовых файлах | `patch()` без `autospec=True` — 25 в 9 файлах + `Mock(`/`MagicMock(` — 131 в 13 файлах (`test_signal_publisher` 24, `test_real_account` 23, `test_metrics_server` 16). `autospec` — 0 во всём проекте. Моки принимают любую сигнатуру — тесты проходят при сломанном API. | Medium | [ ] Open |
+| **S007** | `time.time()` — 71 в 23 файлах src | `health_checks.py` (16), `real_market_data.py` (8), `signal_publisher.py` (6), `db.py` (4), `health_server.py` (4). Часть — легитимные timestamps, но для интервалов/timeouts нужен `time.monotonic()` — `time.time()` уезжает при NTP-коррекции. | Medium | [ ] Open |
+| **S008** | `type: ignore` — 9 подавленных ошибок типов | `price_predictor.py` (4), `rl_trader.py` (3), `var.py` (1), `helpers.py` (1). Каждый — скрытая ошибка типов. | Low | [ ] Open |
+| **S009** | Duck typing через `getattr`/`hasattr` — 26 в src | `hasattr(` 15 в 11 файлах (`exchange_factory` 3, `real_account` 3), `getattr(` 11 в 5 файлах (`kelly` 3, `strategies` 3, `marketplace` 2). Часть легитимна (plugin loading в marketplace), часть — вместо `isinstance`/Protocol. | Low | [ ] Open |
+| **S010** | `os.path` вперемешку с `pathlib` — 15 в 6 файлах | `plotter.py` (4), `tracker.py` (4), `fix_client.py` (2), `engine.py` (2), `model_registry.py` (2), `db.py` (1). Неконсистентный стиль путей. | Low | [ ] Open |
+| **S011** | `global` statements — 4 в src | `tracing.py` (2), `shm_ring_buffer.py` (1), `logging.py` (1). Было 29 → осталось 4 в src. Все — singleton-паттерны, приемлемо, но лучше DI. | Info | [ ] Open |
+| **S012** | `print()` в src — 5 | Round 5 ревизия: genetic_strategy.py (2) и automl.py (1) — примеры в docstring'ах, не исполняются; backtester.py (2) — `print_report()` метод, намеренный CLI-вывод отчёта. N/A — не дефект. | Low | [x] N/A |
+| **S013** | `json.loads` без per-message try в `real_market_data.py` | Строки 179, 274, 369 — `msg = json.loads(raw)` внутри `async for raw in ws`. **FIXED:** per-message `try/except json.JSONDecodeError` + `continue` во всех 3 циклах (binance/okx/bybit), как в `ws_client.py:148`. `json.JSONDecodeError` убран из внешних except — reconnect теперь только по сетевым ошибкам. | Medium | [x] Done |
+| **S014** | God-файлы Python (верхушка) | `backtester.py` 23KB, `strategies.py` 22KB, `real_market_data.py` 21KB, `signal_publisher.py` 19.8KB, `engine.py` 18KB, `rl_trader.py` 15.8KB, `fix_client.py` 15.6KB. Не критично, но растёт. | Low | [ ] Open |
+| **S015** | God-компоненты web-ui | `BacktestRunner.jsx` 31KB, `App.jsx` 21.8KB, `PerformanceDashboard.jsx` 21KB, `CopulaModel.jsx` 19.4KB, `EmpiricalDynamicModeling.jsx` 18.4KB. Монолиты внутри компонентов. | Low | [ ] Open |
+| **S016** | `exchange_simulator/metrics.py` — dead code | Используется только в тестах. Из старого аудита (Finding 004) — до сих пор открыт. | Low | [ ] Open |
+| **S017** | f-string в logger calls — ~14 (старый аудит врал про 80+) | Фактически: `attribution.py` (10), `competition.py` (4). `logger.warning(f"`/`error(f"` — 0. Старый AUDIT_FINDINGS завышал в 6 раз. | Low | [ ] Open |
+| **S018** | Hardcoded `localhost:8765` — 4 места | Defaults в коде, config override есть. Из старого аудита (Finding 013). | Low | [ ] Open |
+| **S019** | `.windsurf/` был закоммичен в репо | 2 workflow-файла (`code-review.md`, `module-split.md`) лежали в git. **FIXED:** добавлен в `.gitignore`, убран из индекса (`git rm --cached`). | — | [x] Done |
+| **S020** | `test_signal_engine_v2.cpp` — 43KB god-test | Один тестовый файл на весь signal engine v2. C++ тесты монолитны. | Low | [ ] Open |
+| **S021** | `exchange_simulator/` — вложенная структура + мусор на диске | `exchange_simulator/exchange_simulator/` (пакет внутри пакета), `logs/`, `.pytest_cache`, `.ruff_cache`, `__pycache__` на диске. Кэши gitignored, но структура путает. | Low | [ ] Open |
+| **S022** | `WidgetSDK.jsx` — `console.log` в default config | Round 5 ревизия: это внутри MOCK_CODE_SAMPLE — строки документации, показываемой пользователю, не исполняемый код. N/A. (Сам MOCK_WIDGETS-каталог — часть S003, следующие раунды.) | Low | [x] N/A |
+| **S023** | `**kwargs` passthrough — 8 мест | `helpers.py` (3), `logging.py` (2), `price_predictor.py`, `rl_trader.py`, `tracing.py`. Нетипизированный сквозной прокидывание аргументов. | Info | [ ] Open |
+| **S024** | Root-level dev-скрипты на диске | `error_monitor.py`, `price_monitor.py`, `run_logger.py`, `trade_csv_logger.py`, `run_all_tests.py` — gitignored, живут локально. Не в репо, но мусор в корне workspace. | Info | [ ] Open |
+| **S025** | `.cascade/` раздут до 1.9MB доков | Было: CODE_AUDIT.md (950KB, stale Aug 22), RELIABILITY_PLAN.md (249KB), interview-prep.md (403KB), file_tracker.md (56KB), sprint_template.md + 4 пустые папки. **FIXED:** удалено, осталось 8 рабочих файлов. | — | [x] Done |
+| **S026** | `JSON.parse(JSON.stringify(...))` deep-copy хак | `useSessionRecorder.ts` — клонирование через JSON вместо `structuredClone()`. **FIXED (round 5):** `structuredClone(data.accounts)`. | Low | [x] Done |
+| **S027** | Старый typing `List[`/`Dict[`/`Tuple[` — 1121 в ~150 файлах | `List[` 877 (101 файл), `Dict[` 136 (44), `Tuple[` 108 (64). Смешано с modern `list[`/`dict[`/`tuple[` — неконсистентно. `autoencoder.py` (35), `ms_garch.py` (31), `vae.py` (28). | Medium | [ ] Open |
+| **S028** | `or {}`/`or []` None-masking — 12 в 9 файлах | `or {}` 4 (`model_registry` 2, `exchange_factory` 1, `helpers` 1), `or []` 8 (`exchange_factory` 2, `microstructure_lab` 2, `fix_client` 1, `real_market_data` 1, `pontryagin` 1, `strategies` 1). Маскирует None вместо явной проверки. | Low | [ ] Open |
+| **S029** | `toBeTruthy()` — 15 в 4 тестовых файлах | **FIXED (round 5):** registry → `length > 0`/`toBeDefined`, virtualList → `not.toBeNull()`/content asserts, performance → `not.toBeNull()`/`toBeInTheDocument`, App → `firstChild` check. 0 осталось. | Low | [x] Done |
+| **S030** | `console.*` не все IS_DEV-gated — 26 в 13 файлах | `performanceMonitor.js` (6), `StrategyBuilder.jsx` (3), `AlertWebhook.jsx` (2), `SessionStats.jsx` (2), `useSessionRecorder.ts` (2), `useStrategyMarketplace.ts` (2), `PriceAlerts.jsx` (1), `TopErrorBoundary.jsx` (1), `WidgetSDK.jsx` (1), `useWebSocket.ts` (1), `auditExport.js` (1). Только `performanceMonitor.js` gated. | Low | [ ] Open |
+| **S031** | `0.0.0.0` binds — 9 в 8 файлах | `run.py`, `metrics_server.py`, `signal_publisher.py`, `health_server.py`, `metrics.py` + 3 теста. Bind на все интерфейсы — security risk в проде. | Medium | [ ] Open |
+| **S032** | `-> dict` без контрактов — 145 в 76 файлах | Функции возвращают нетипизированные dict — нет TypedDict/dataclass контрактов. `exchange_factory` (12), `real_account` (5), `health_server` (5), `signal_publisher` (4). | Medium | [ ] Open |
+| **S033** | `time.sleep` в тестах — 7 в 4 файлах | `test_comm_circuit_breaker` (4), `test_e2e_pipeline` (1), `test_validator` (1), `test_ensemble_voter` (1). Реальные задержки — медленные/flaky тесты. | Low | [ ] Open |
+| **S034** | `assert True`/`== True` — 3 в 2 тестовых файлах | **FIXED (round 5):** `assert True` → `assert client.connected` (проверяет состояние, не вакуум); `== True` → `is True` ×2. | Low | [x] Done |
+| **S035** | ~70 math-панелей МЁРТВЫ: `candles[exchange][symbol]` на flat-массиве | `useExchangeData`/`useMockData` отдают **плоский** массив `[{exchange,symbol,...}]`, registry пробрасывает его как есть (`PanelContainer` → `props(ctx)` → `<Component/>`, reshape нигде нет). А ~70 компонентов делают `candles?.[exchange]?.[symbol]` → `undefined` → вечный `return null` ("Need at least N candles"). Найдено в round 4: HawkesProcess, CopulaModel, SVM, HMM, IsolationForest, KMeans, RoughVolatility, GARCHVolatility-панели и др. Математика реальная, но никогда не исполняется — ни в mock, ни в live режиме. Хуже чем фейк: dead code под видом live. **FIXED (round 4):** новый `utils/candles.js` (`selectCandles`/`groupCandles`), 61 файл автоконвертирован, 10 multi-symbol вручную (BlackLitterman, CopulaModel, EmpiricalDynamicModeling, GraphTheoryNetwork, KellyCriterion, PCA, RandomMatrixTheory, TensorDecomposition, TransferEntropy, WassersteinBarycenters). Grep: 0 остаточных `candles[exchange]`/`candles?.[exchange]` в src. | **Critical** | [x] Done |
+| **S036** | `utils/format.ts` терял `colorForSide`/`bgColorForSide`/`formatPct` при TS-миграции | 5 компонентов импортируют `colorForSide` (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) + `utils.test.js` тестирует — а export'ов нет → `vite build` падал с MISSING_EXPORT. Вероятно, потеряно при конвертации format.js→format.ts. **FIXED (round 4):** добавлены все 3 export'а; build зелёный. | High | [x] Done |
+| **S037** | `App.test.jsx` — полностью сломан (не запускался) | Неверные пути (`./App`, `./hooks/*` вместо `../`), устаревший мок `useUIStore` (старые имена полей: `selectedTimeframe`/`simulationSpeed`), мок `useTradingStore` игнорировал selector-аргумент. Тест никогда не проходил — мёртвый тест. **FIXED (round 4):** пути исправлены, моки приведены к реальным сигнатурам store. | Medium | [x] Done |
+| **S038** | 7 pre-existing failing тестов в web-ui | **FIXED (round 5):** format.test `- $500.00`→`-$500.00` (aligned to impl+utils.test); patterns.ts — настоящий баг: `upperWick < body*0.5` делал hammer/star недетектируемыми → `<= body*2`; auditExport — сломанный Blob-mock (arrow fn не конструктор) → убран, happy-dom даёт реальный Blob; performanceMonitor — имя `initPerformanceMonitor`→`initPerformanceMonitoring` + FID→INP (web-vitals v6) + customMetrics объект; alertWebhook — новый webhook стартует enabled, тест искал не тот label. | Medium | [x] Done |
+| **S039** | `patterns.ts` — HAMMER/SHOOTING_STAR никогда не срабатывали | `upperWick < body*0.5` / `lowerWick < body*0.5` — textbook-свеча (wick = body) не проходила → детектор мёртв на реальных данных. Тест ловил, но был помечен "pre-existing fail" 3 раунда. **FIXED (round 5):** порог `<= body*2` — канонический 2:1 wick:body. | High | [x] Done |
+| **S040** | `initPerformanceMonitoring()` — мёртвая инструментация + FID-устаревание | Написанный web-vitals монитор нигде не вызывался (0 импортов) — реальный код, собирающий нули. Плюс `onFID` не существует в web-vitals v6 (установлен) → импорт падал бы при вызове. **FIXED (round 5):** FID→INP (v6 API), DashboardProfiler инициализирует мониторинг, PanelContainer оборачивает каждую панель в React `<Profiler>` → реальные render-времена по id панели. | High | [x] Done |
+| **S041** | `Account.positions` — list, а не map: `Object.entries(acc.positions)` ломает символы | Backend-модель `Position` — объект `{symbol, exchange, side, quantity, entry_price, ...}`, `positions` — **list**. `Object.entries(list)` отдаёт `[index, obj]` → ключ становится `'0'`, `'1'`… вместо символа. Найдено в `BlackSwanTester.jsx` и `CostBasis.jsx` (оба исправлены round 5/6 — итерация по объектам напрямую). `Object.keys`/`Object.values` на массиве работают инцидентально (count/values), но требуют ревью. | High | [~] Partial — 2 исправлено, ревью остальных `Object.*(positions)` открыто |
+
+---
+
+## ЧИСТО (проверено индивидуально, 0 совпадений)
+
+- `TODO` — 0 в ai-signal-bot
+- `import *` — 0
+- bare `except:` — 0 в src
+- `except Exception: pass` / `except Exception: return` — 0 в коде
+- `eval(` — 0 (только `model.eval()` PyTorch)
+- `exec(` — 0
+- `pickle.loads` — 0
+- `verify=False` — 0 (только в docs)
+- `yaml.load` — 0
+- `shell=True` — 2 легитимных (nosec + conditional)
+- f-string SQL — 0
+- `pytest.mark.xfail` — 0, `pytest.mark.skip` — 1 (`skipif` с reason, легитимно)
+- `NotImplementedError` — 0
+- `type(x) ==` — 0
+- `str(Path(`/`Path(str(` — 0
+- `dangerouslySetInnerHTML` — 0
+- `catch {}`/`catch (e) {}` — 0
+- `except (Exception` — 0
+- Mutable default args — 0
+- `== True`/`== False`/`== None`/`is True`/`is False` — 0
+- `datetime.utcnow`/`datetime.now()` — 0
+- `while True` — 5 легитимных
+- `np.random` — 9 легитимных
+- `key={i}`/`key={index}` — 0
+- `sys.exit(`/`exit(` в src — 0
+- `lru_cache`/`@cache` — 0
+- `asyncio.run(` — только entry points
+- `os.environ` — 12 легитимных
+- `exchange_factory.py` 34 `async def` — Protocol, легитимно
+- C++ `catch (...)` — top-level only, легитимно
+- Rust `unwrap` — `unwrap_or_default`/`unwrap_or` + тесты, легитимно
+- Rust `unsafe` — FFI boundary, необходимо
+- C++ `new`/`delete` — только комментарии
+- `innerHTML` — 1 комментарий "no innerHTML injection", чисто
+- `var ` — имена переменных (varH, varCF), не декларации
+- `alert(` — `onAlert`/`removeAlert`, не browser alert
+- `debugger` — 0
+- `assert callable(`/`assert issubclass(` — 0
+- `except Exception` в exchange_simulator — 0
+- `print(` в exchange_simulator — 2 (docstring + options_simulator)
+- `.index(` — 0
+- `status_code in` — 0
+- `mockData`/`useMockData` в components — 0 (используют MOCK_* inline)
+- `model_dump(` — 0
+- `sorted()[-k:]`/`sorted()[:k]` — 0
+- `f"INSERT`/`f"SELECT` — 0
+
+---
+
+## ПРИОРИТЕТЫ
+
+1. **S001–S003 (partial)** — продолжать wire-to-live: осталось ~31 mock-компонент (MarketDepthReplay, RiskOfRuin и др.). Для данных, которых нет в потоке (per-hop latency, strategy PnL time-series, история стакана, реальные опционы), нужны backend-расширения — не выдумывать.
+2. **S041** — ревью остальных `Object.keys/values/entries(acc.positions)` — positions это list.
+3. **S004** — переписать топ-10 тестовых файлов с `assert len(` на проверку значений.
+4. **S005–S007** — механическая чистка: `enumerate`, `autospec=True`, `monotonic()`.
+5. **Infra** — `.git/hooks/pre-commit` — batch-скрипт, git не может его spawn'ить (работает только `scripts/pre-commit-check.py --staged` вручную). Переписать hook как `.sh`.

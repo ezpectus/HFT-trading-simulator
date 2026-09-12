@@ -636,3 +636,33 @@ The web-vitals instrumentation module existed but was never imported/called anyw
 - `vitest run`: **995/995 green** (was 986/8 after round 4)
 - `pytest test_portfolio.py + test_real_market_data.py`: 44/44
 - `vite build`: green
+
+## Round 6 — wire-to-live batch 3 + S041 contract bug
+
+### Panels rewired (S001–S003 continued)
+
+| Panel | Real source |
+|-------|-------------|
+| AuditTrail | `fills` + `signals` → ORDER_FILL / SIGNAL entries, source filter |
+| BlackSwanTester | candle returns → VaR95/99, ES, max drawdown, skew, kurtosis; sigma-scaled shock scenarios vs real gross exposure |
+| FuturesBasis | `fundingRates` → real funding APR (rate × 3 × 365); `prices` → cross-exchange basis rows |
+| OptionsChain | realized vol from candles → Black-Scholes theoretical chain (explicitly disclosed — no options feed exists) |
+| TickReplay | `fills` reversed to chronological order → tick-by-tick replay |
+| VolSurface | realized-vol grid (exchange × window) + vol cone — fabricated IV grid removed |
+
+All six registry entries now pass live ctx props. Their tests were rewritten: old specs asserted deleted MOCK_* strings; new specs assert empty states and computed values from real-shaped fixtures.
+
+### Finding 041 — Account.positions treated as a map (list in reality)
+
+`Account.positions` is a **list** of `Position` objects `{symbol, exchange, side, quantity, entry_price, ...}`. `Object.entries(acc.positions)` yields `[arrayIndex, pos]` pairs — the "symbol" became `'0'`, `'1'`… Silently wrong exposure math in `BlackSwanTester.jsx:57` (fixed) and `CostBasis.jsx` (fixed round 5). `Object.keys`/`Object.values` on the same array work incidentally but need contract review. **High**
+
+### Verification
+
+- `vitest run`: **996/996 green** across 116 files
+- `vite build`: green
+- `pytest test_portfolio.py + test_vae.py`: 64/64
+
+### Also committed
+
+- refactor: `range(len())` → `zip`/`enumerate`/`np.arange` in rkhs, free_energy, emd, hmc, plotter (S005 partial)
+- test: exact-value asserts in test_portfolio, init-bound tests in test_vae (S034 continued)
