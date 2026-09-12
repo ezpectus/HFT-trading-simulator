@@ -951,3 +951,12 @@ Post-fix adversarial verify:
 - **S128 (Low)**: `.env.example` — 7 мёртвых env-флагов (VITE_DEFAULT_*+VITE_ENABLE_*, 0 читателей). Удалены.
 - **S129 (Low)**: 22 registry-entries слали 35 dead props — trimmed (FP-очистка: title/auth/ws-manager = nested-payload keys). Полный vitest **1112 green**.
 - Public assets / prod .env: чисто.
+
+## Round 55 — 2026-09-12 — slop-audit: reverse contract drift → S130 → fixed
+
+Reverse props direction: компоненты деструктурируют то, что registry не шлёт.
+
+- **S130 (Medium)**: BacktestRunner (Run всегда "WS not connected" + connected на чужом сокете), PerformanceDashboard (фейковая плоская equity-кривая), IndicatorBuilder (compute умирал в ?.()).
+- Fix: runner+dashboard wired к правильным ctx-полям; IndicatorBuilder → CandleChart overlay channel через useUIStore.customIndicators (user: wire to chart overlay).
+- FP-фильтрация: _underscore-алиасы и rename-деструктурирование (exchange: selectedExchange) — чисто.
+- +6 тестов (CandleChart overlay 3, useUIStore 2, registry contract 1). 23 vitest green в touched area.
