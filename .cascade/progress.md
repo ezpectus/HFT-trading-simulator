@@ -868,3 +868,15 @@ No WRONG/ROTTED entries — nothing reopened.
 - **S110 (High):** NewsFeed → `ctx.exchange.newsEvent`; BacktestComparison self-pull из SAVED_KEY + `saved-backtests-changed` listeners + двусторонний sync.
 
 Итого verified-стемпов: 17 claims за R48.
+
+## Round 48c — slop-verify batch 3 (7 claims, all VERIFIED)
+
+- **S002 (High):** `Math.random` в компонентах — 27 файлов, как в claim; spot-check: гауссова матрица (CompressedSensing), HMC momentum+accept, Ogata thinning (Hawkes), HMM init, IB clusters, IsolationForest subsample, element IDs — всё алгоритмическое, 0 фабрикации «live» данных.
+- **S041 (Medium):** `Account.positions` — dict `_positions_by_symbol` (exchange.py:65), list-vs-map бага закрыта.
+- **S058 (High):** Rust hft-executor — 0 .rs/Cargo.toml, удалён в 712a1ca; 0 ссылок в .github.
+- **S059 (High):** SmartOrderRouterV2 — 0 в src/CMake; adaptive_order_selector живой (bot_context/bot_loop/config_parser).
+- **S063 (High):** transitively verified через S058 (крейт удалён).
+- **S086 (High):** `exchange_simulator/exchange_simulator/` nested-пакета нет.
+- **S111 (High):** retro-stamp — механизм проверен в R41 (fills_batch:114 + error→lastError).
+
+Итого за R48: 24 claims verified, 0 wrong/rotted.
