@@ -128,10 +128,9 @@ class TestResetDaily:
         assert result.passed
 
     def test_reset_daily_updates_reset_time(self):
-        old_reset = self.validator._daily_reset
-        time.sleep(0.01)
+        self.validator._daily_reset = datetime(2020, 1, 1, tzinfo=UTC)
         self.validator.reset_daily()
-        assert self.validator._daily_reset > old_reset
+        assert self.validator._daily_reset.year > 2020
 
 
 class TestUpdatePnl:

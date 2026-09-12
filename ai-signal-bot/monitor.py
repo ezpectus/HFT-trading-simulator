@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 
 import websockets
 
-WS_URL = "ws://localhost:8766"
+WS_URL = os.environ.get("SIGNAL_WS_URL", "ws://localhost:8766")
 LOG_FILE = os.path.join(os.path.dirname(__file__), "logs", "ai_signal_bot.log")
 SIGNALS_CSV = os.path.join(os.path.dirname(__file__), "logs", "signals.csv")
 

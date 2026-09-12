@@ -172,9 +172,10 @@ class TestCircuitBreakerIntegration:
             cb.on_trade_closed(-100)
         assert cb.is_tripped
 
-        # Wait for cooldown
-        time.sleep(0.15)
-        assert not cb.is_tripped
+        # Fast-forward past cooldown instead of sleeping
+        with patch('src.strategies.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.2):
+            assert not cb.is_tripped
 
         voter = EnsembleVoter(mode="majority", min_votes=2, circuit_breaker=cb)
         signals = [

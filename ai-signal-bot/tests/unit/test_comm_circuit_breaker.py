@@ -1,6 +1,7 @@
 """Tests for communication CircuitBreaker and MetricsServer — signal protection and Prometheus metrics."""
 import asyncio
 import time
+from unittest.mock import patch
 
 import pytest
 
@@ -80,8 +81,9 @@ class TestCircuitBreakerRecovery:
         ))
         await cb.record_failure()
         assert cb.is_open
-        time.sleep(0.06)
-        assert cb.state == BreakerState.HALF_OPEN
+        with patch('src.communication.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.06):
+            assert cb.state == BreakerState.HALF_OPEN
 
     @pytest.mark.asyncio
     async def test_half_open_allows_probe(self):
@@ -89,8 +91,9 @@ class TestCircuitBreakerRecovery:
             failure_threshold=1, cooldown_seconds=0.05, half_open_max_probes=1
         ))
         await cb.record_failure()
-        time.sleep(0.06)
-        assert cb.state == BreakerState.HALF_OPEN
+        with patch('src.communication.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.06):
+            assert cb.state == BreakerState.HALF_OPEN
         assert await cb.allow_signal()
         assert not await cb.allow_signal()
 
@@ -100,8 +103,9 @@ class TestCircuitBreakerRecovery:
             failure_threshold=1, cooldown_seconds=0.05, success_threshold=2
         ))
         await cb.record_failure()
-        time.sleep(0.06)
-        assert cb.state == BreakerState.HALF_OPEN
+        with patch('src.communication.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.06):
+            assert cb.state == BreakerState.HALF_OPEN
         await cb.record_success()
         assert cb.state == BreakerState.HALF_OPEN
         await cb.record_success()
@@ -113,8 +117,9 @@ class TestCircuitBreakerRecovery:
             failure_threshold=1, cooldown_seconds=0.05
         ))
         await cb.record_failure()
-        time.sleep(0.06)
-        assert cb.state == BreakerState.HALF_OPEN
+        with patch('src.communication.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.06):
+            assert cb.state == BreakerState.HALF_OPEN
         await cb.record_failure()
         assert cb.is_open
         assert cb.total_trips == 2

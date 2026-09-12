@@ -3,9 +3,12 @@ import { Link2, Key, Copy, Check, ExternalLink, Terminal, Shield } from 'lucide-
 import { EmptyState } from './LoadingSkeleton'
 import { Label } from '../utils/ui-helpers'
 
+const WS_EXCHANGE_URL = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
+const WS_SIGNALS_URL = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
+
 const DEFAULT_ENDPOINTS = [
-  { id: 'exchange-ws', label: 'Exchange WS', url: 'ws://localhost:8765', type: 'ws', status: 'connected' },
-  { id: 'signal-ws', label: 'Signal Bot WS', url: 'ws://localhost:8766', type: 'ws', status: 'connected' },
+  { id: 'exchange-ws', label: 'Exchange WS', url: WS_EXCHANGE_URL, type: 'ws', status: 'connected' },
+  { id: 'signal-ws', label: 'Signal Bot WS', url: WS_SIGNALS_URL, type: 'ws', status: 'connected' },
   { id: 'rest-candles', label: 'REST Candles', url: 'http://localhost:8080/api/candles', type: 'rest', status: 'unknown' },
   { id: 'rest-accounts', label: 'REST Accounts', url: 'http://localhost:8080/api/accounts', type: 'rest', status: 'unknown' },
   { id: 'rest-signals', label: 'REST Signals', url: 'http://localhost:8080/api/signals', type: 'rest', status: 'unknown' },

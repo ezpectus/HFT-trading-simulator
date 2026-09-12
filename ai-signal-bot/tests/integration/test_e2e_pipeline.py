@@ -9,7 +9,7 @@ Tests the full trading pipeline:
 6. Trade history records the closed trade
 """
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from exchange_simulator.exchange import SimulatedExchange
@@ -149,12 +149,11 @@ class TestEndToEndSignalToClose:
         await cb.record_failure()
         assert cb.is_open
 
-        # Wait for cooldown
-        time.sleep(0.06)
-
-        # Should transition to HALF_OPEN and allow a probe
-        assert cb.state == BreakerState.HALF_OPEN
-        assert await cb.allow_signal()
+        # Fast-forward past cooldown instead of sleeping
+        with patch('src.communication.circuit_breaker.time.monotonic',
+                   return_value=time.monotonic() + 0.06):
+            assert cb.state == BreakerState.HALF_OPEN
+            assert await cb.allow_signal()
 
         # Record success → should close
         await cb.record_success()
