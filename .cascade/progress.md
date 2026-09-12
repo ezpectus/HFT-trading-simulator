@@ -812,3 +812,11 @@ Post-fix-round QA: re-checked recent High/Critical + Medium claims against code.
 - **S121 (Medium) VERIFIED:** 0 `MetricsServer` refs in src/+run.py; ARCHITECTURE.md has 0 phantom strings (Momentum V2/PreTradeRisk/hft_heartbeat/Heston).
 
 No WRONG/ROTTED entries — nothing reopened.
+
+## Round 42 — 2026-09-12 — slop-audit на новой земле: infra/CI/monitoring
+
+Цель: scripts/ + .github/workflows + monitoring/ + package deps (после S109-инфрачистки).
+
+- **S122 (new, Medium, open):** `scripts/docker-smoke-test.{sh,bat}` — 0 refs; CI имеет свой inline smoke с правильными портами (8775/9090/9091/3000 = compose healthchecks), а скрипт curl-ит WS-порты 8765/8766 без HTTP /health → всегда фейлит здоровый стек. Fix-or-delete.
+- **S123 (new, Low, open):** `fix_eslint_unused.py` + `fix_fstring_logs.py` — одноразовые codemod-скрипты из S101, refs только в аудит-логах. Delete-кандидаты.
+- ЧИСТО: prometheus.yml job_names ↔ alerts up{} ↔ targets ↔ реальные порты; все 13 метрик в alerts.yml эмитятся; web-ui deps все импортируются; deploy.sh корректен post-S109 (atomic swap SQLite); ebpf_monitor = documented standalone; нет CI-ссылок на удалённый postgres/redis/terraform.
