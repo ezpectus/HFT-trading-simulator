@@ -218,6 +218,12 @@ class MessageHandlerMixin:
                 price=data.get("price"),
                 stop_loss=data.get("stop_loss"),
                 take_profit=data.get("take_profit"),
+                stop_price=data.get("stop_price"),
+                limit_price=data.get("limit_price"),
+                trail_amount=data.get("trail_amount"),
+                trail_percentage=data.get("trail_percentage", True),
+                iceberg_visible_qty=data.get("iceberg_visible_qty"),
+                oco_group_id=data.get("oco_group_id"),
             )
         except (ValueError, KeyError) as e:
             await websocket.send(json.dumps({

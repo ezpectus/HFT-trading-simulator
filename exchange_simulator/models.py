@@ -126,6 +126,7 @@ class Order:
     fee: float = 0.0
     slippage: float = 0.0
     rejection_reason: str | None = None
+    oco_group_id: str | None = None
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:
@@ -143,6 +144,7 @@ class Order:
             "fee": self.fee,
             "slippage": self.slippage,
             "rejection_reason": self.rejection_reason,
+            "oco_group_id": self.oco_group_id,
             "timestamp": self.timestamp,
         }
 

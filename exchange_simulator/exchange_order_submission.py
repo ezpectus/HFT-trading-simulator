@@ -7,6 +7,7 @@ from exchange_simulator.models import (
     AuditEventType,
     ClosedTrade,
     IcebergOrder,
+    OCOGroup,
     Order,
     OrderStatus,
     OrderType,
@@ -67,6 +68,26 @@ class OrderSubmissionMixin:
         if order is None:
             return self._reject_order(order_id, symbol, side, order_type, quantity, price,
                                       "INVALID_ORDER_PARAMETERS")
+
+        if oco_group_id:
+            order.oco_group_id = oco_group_id
+            group = self._oco_groups.get(oco_group_id)
+            if group is None:
+                group = OCOGroup(id=oco_group_id)
+                self._oco_groups[oco_group_id] = group
+            group.add_order(order)
+            if group.filled_order_id is not None:
+                order.status = OrderStatus.CANCELLED
+                order.rejection_reason = "OCO_GROUP_RESOLVED"
+                self._order_history.append(order)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_CANCELLED,
+                    exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+                    reason="OCO_GROUP_RESOLVED",
+                    metadata={"oco_group_id": oco_group_id,
+                              "filled_order_id": group.filled_order_id},
+                )
+                return order
 
         mid_price = self.get_price(symbol)
         if mid_price == 0:
@@ -278,7 +299,27 @@ class OrderSubmissionMixin:
         order_margin = 0.0 if force_close else self._lock_margin(notional)
         self._update_position(order, stop_loss, take_profit, order_margin)
         self._order_history.append(order)
+        self._resolve_oco(order)
         return order
+
+    def _resolve_oco(self, order: Order) -> None:
+        """Cancel sibling orders in the same OCO group when an order fills."""
+        if not order.oco_group_id:
+            return
+        group = self._oco_groups.get(order.oco_group_id)
+        if group is None or group.filled_order_id is not None:
+            return
+        for cancelled in group.on_fill(order.id):
+            self._pending_stop_limits.pop(cancelled.id, None)
+            self._pending_trailing_stops.pop(cancelled.id, None)
+            self._pending_icebergs.pop(cancelled.id, None)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_CANCELLED,
+                exchange=self.exchange_id, symbol=cancelled.symbol,
+                order_id=cancelled.id, reason="OCO_SIBLING_FILLED",
+                metadata={"oco_group_id": order.oco_group_id,
+                          "filled_order_id": order.id},
+            )
 
     def _lock_margin(self, notional: float) -> float:
         """Lock initial margin for a filled order. Returns the locked amount."""

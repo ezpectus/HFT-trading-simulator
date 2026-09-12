@@ -39,7 +39,10 @@ class AdvancedOrderMixin:
     ) -> None:
         """Check and trigger pending stop-limit orders."""
         to_remove = []
-        for order_id, order in self._pending_stop_limits.items():
+        for order_id, order in list(self._pending_stop_limits.items()):
+            if order.status != OrderStatus.PENDING:
+                to_remove.append(order_id)
+                continue
             current_price = current_prices.get(order.symbol, 0)
             if current_price == 0:
                 continue
@@ -64,7 +67,10 @@ class AdvancedOrderMixin:
     ) -> None:
         """Check and trigger pending trailing stop orders."""
         to_remove = []
-        for order_id, order in self._pending_trailing_stops.items():
+        for order_id, order in list(self._pending_trailing_stops.items()):
+            if order.status != OrderStatus.PENDING:
+                to_remove.append(order_id)
+                continue
             current_price = current_prices.get(order.symbol, 0)
             if current_price == 0:
                 continue
@@ -88,7 +94,10 @@ class AdvancedOrderMixin:
     ) -> None:
         """Check and execute pending iceberg order slices."""
         to_remove = []
-        for order_id, order in self._pending_icebergs.items():
+        for order_id, order in list(self._pending_icebergs.items()):
+            if order.status != OrderStatus.PENDING:
+                to_remove.append(order_id)
+                continue
             current_price = current_prices.get(order.symbol, 0)
             if current_price == 0:
                 continue
@@ -102,6 +111,9 @@ class AdvancedOrderMixin:
                 filled_orders.append(filled_order)
 
                 if order.hidden_quantity <= 0:
+                    order.status = OrderStatus.FILLED
+                    order.filled_quantity = order.quantity
+                    self._resolve_oco(order)
                     to_remove.append(order_id)
 
         for order_id in to_remove:
@@ -200,6 +212,7 @@ class AdvancedOrderMixin:
             new_value=fill_price,
             metadata={"order_type": order.order_type.value, "quantity": order.quantity, "fee": order.fee},
         )
+        self._resolve_oco(order)
 
     def _execute_iceberg_slice(self, order: IcebergOrder, price: float) -> Order:
         """Execute a slice of an iceberg order (Phase 3 helper)."""
