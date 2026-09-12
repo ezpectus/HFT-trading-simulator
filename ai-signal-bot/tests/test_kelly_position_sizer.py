@@ -19,15 +19,15 @@ class TestKellyPositionSizer:
         assert sizer.kelly_fraction == 0.5
 
     def test_calculate_returns_result(self, sizer):
-        result = sizer.calculate(balance=10000, entry=65000, stop_loss=63000)
+        result = sizer.calculate(balance=10000, entry_price=65000, stop_loss=63000)
         assert isinstance(result, KellyResult)
         assert result.quantity > 0
         assert result.risk_amount > 0
 
     def test_zero_loss_returns_zero(self, sizer):
-        result = sizer.calculate(balance=10000, entry=65000, stop_loss=65000)
+        result = sizer.calculate(balance=10000, entry_price=65000, stop_loss=65000)
         assert result.quantity == 0 or result.reason != ""
 
     def test_max_risk_capped(self, sizer):
-        result = sizer.calculate(balance=1000, entry=65000, stop_loss=1000)
+        result = sizer.calculate(balance=1000, entry_price=65000, stop_loss=1000)
         assert result.risk_amount <= 1000 * 0.05 + 1

@@ -36,7 +36,7 @@ class TestInit:
     def test_init_failure(self):
         p = ShmSignalProducer(name="/test_signals", capacity=128)
         with patch("src.communication.shm_signal_producer.ShmRingBuffer",
-                   side_effect=Exception("SHM creation failed")):
+                   side_effect=OSError("SHM creation failed")):
             result = p.init()
             assert result is False
             assert p._buffer is None

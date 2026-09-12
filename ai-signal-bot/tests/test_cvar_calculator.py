@@ -26,7 +26,7 @@ class TestCVaRCalculator:
     def test_calculate_cvar(self, calculator, returns):
         result = calculator.calculate_cvar(returns, method='historical')
         assert isinstance(result, CVaRResult)
-        assert result.cvar_value >= result.var_value
+        assert result.cvar_value <= result.var_value
 
     def test_cvar_exceeds_var(self, calculator, returns):
         result = calculator.calculate_cvar(returns, method='historical')

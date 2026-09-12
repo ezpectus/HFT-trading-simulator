@@ -34,7 +34,7 @@ class CircuitBreaker:
     def check_and_recover(self) -> bool:
         """Check if cooldown has elapsed and auto-recover. Returns True if recovered."""
         if self._tripped:
-            if time.time() - self._trip_time >= self.cooldown_seconds:
+            if time.monotonic() - self._trip_time >= self.cooldown_seconds:
                 self._tripped = False
                 self._consecutive_losses = 0
                 logger.info(
@@ -52,7 +52,7 @@ class CircuitBreaker:
             self._consecutive_losses += 1
             if self._consecutive_losses >= self.max_consecutive_losses and not self._tripped:
                 self._tripped = True
-                self._trip_time = time.time()
+                self._trip_time = time.monotonic()
                 logger.warning(
                     "CircuitBreaker: tripped after %s "
                     "consecutive losses. Cooldown: %ss",

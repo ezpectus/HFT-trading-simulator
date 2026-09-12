@@ -212,7 +212,7 @@ class SignalPublisher:
         async def _send(ws):
             try:
                 await asyncio.wait_for(ws.send(msg), timeout=5.0)
-            except (ConnectionError, OSError, asyncio.TimeoutError):
+            except Exception:
                 disconnected.add(ws)
         await asyncio.gather(*[_send(ws) for ws in clients], return_exceptions=True)
         if disconnected:

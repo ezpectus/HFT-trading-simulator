@@ -58,7 +58,7 @@ class HealthChecker:
         self.db_client = db_client
         self.redis_client = redis_client
         self.exchange = exchange
-        self._start_time = time.time()
+        self._start_time = time.monotonic()
         self._last_signal_time: float = 0.0
         self._last_order_time: float = 0.0
         self._signal_count: int = 0
@@ -66,11 +66,11 @@ class HealthChecker:
         self._error_count: int = 0
 
     def record_signal(self) -> None:
-        self._last_signal_time = time.time()
+        self._last_signal_time = time.monotonic()
         self._signal_count += 1
 
     def record_order(self) -> None:
-        self._last_order_time = time.time()
+        self._last_order_time = time.monotonic()
         self._order_count += 1
 
     def record_error(self) -> None:
@@ -83,8 +83,8 @@ class HealthChecker:
         - If signals were being generated but stopped for >300s → possibly deadlocked
         - If errors exceed 100 in recent history → degraded
         """
-        uptime = time.time() - self._start_time
-        now = time.time()
+        uptime = time.monotonic() - self._start_time
+        now = time.monotonic()
 
         status = "alive"
         details: list[str] = []
@@ -165,8 +165,8 @@ class HealthChecker:
                 "signals_total": self._signal_count,
                 "orders_total": self._order_count,
                 "errors_total": self._error_count,
-                "last_signal_age_s": round(time.time() - self._last_signal_time, 1) if self._last_signal_time else None,
-                "last_order_age_s": round(time.time() - self._last_order_time, 1) if self._last_order_time else None,
+                "last_signal_age_s": round(time.monotonic() - self._last_signal_time, 1) if self._last_signal_time else None,
+                "last_order_age_s": round(time.monotonic() - self._last_order_time, 1) if self._last_order_time else None,
             },
         }
 
@@ -181,7 +181,7 @@ class HealthChecker:
         }
 
     async def _check_ws(self) -> ComponentHealth:
-        start = time.time()
+        start = time.monotonic()
         try:
             if not self.ws_client:
                 return ComponentHealth("websocket", HealthStatus.HEALTHY, 0, "not configured")
@@ -190,7 +190,7 @@ class HealthChecker:
                 asyncio.to_thread(getattr, self.ws_client, "connected"),
                 timeout=2.0,
             )
-            latency = (time.time() - start) * 1000
+            latency = (time.monotonic() - start) * 1000
 
             if connected:
                 return ComponentHealth("websocket", HealthStatus.HEALTHY, latency, "connected")
@@ -202,7 +202,7 @@ class HealthChecker:
             return ComponentHealth("websocket", HealthStatus.UNHEALTHY, 0, str(e))
 
     async def _check_db(self) -> ComponentHealth:
-        start = time.time()
+        start = time.monotonic()
         try:
             if not self.db_client:
                 return ComponentHealth("timescaledb", HealthStatus.HEALTHY, 0, "not configured")
@@ -210,7 +210,7 @@ class HealthChecker:
             health = await asyncio.wait_for(
                 self.db_client.get_health(), timeout=2.0
             )
-            latency = (time.time() - start) * 1000
+            latency = (time.monotonic() - start) * 1000
 
             if health.get("connected"):
                 return ComponentHealth("timescaledb", HealthStatus.HEALTHY, latency, health.get("database", ""))
@@ -220,21 +220,21 @@ class HealthChecker:
             return ComponentHealth("timescaledb", HealthStatus.UNHEALTHY, 0, str(e))
 
     async def _check_redis(self) -> ComponentHealth:
-        start = time.time()
+        start = time.monotonic()
         try:
             if not self.redis_client:
                 return ComponentHealth("redis", HealthStatus.HEALTHY, 0, "not configured")
 
             if hasattr(self.redis_client, "ping"):
                 await asyncio.wait_for(self.redis_client.ping(), timeout=2.0)
-            latency = (time.time() - start) * 1000
+            latency = (time.monotonic() - start) * 1000
             return ComponentHealth("redis", HealthStatus.HEALTHY, latency, "connected")
         except (OSError, ConnectionError, RuntimeError, asyncio.TimeoutError) as e:
-            latency = (time.time() - start) * 1000
+            latency = (time.monotonic() - start) * 1000
             return ComponentHealth("redis", HealthStatus.DEGRADED, latency, str(e))
 
     async def _check_exchange(self) -> ComponentHealth:
-        start = time.time()
+        start = time.monotonic()
         try:
             if not self.exchange:
                 return ComponentHealth("exchange", HealthStatus.HEALTHY, 0, "not configured")
@@ -243,7 +243,7 @@ class HealthChecker:
                 asyncio.to_thread(getattr, self.exchange, "is_trading_active", True),
                 timeout=2.0,
             )
-            latency = (time.time() - start) * 1000
+            latency = (time.monotonic() - start) * 1000
 
             if trading_active:
                 return ComponentHealth("exchange", HealthStatus.HEALTHY, latency, "trading active")

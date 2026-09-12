@@ -38,11 +38,12 @@ class TestFFT:
         result = _fft(signal)
         assert len(result) == 8
 
-    def test_non_power_of_2_padded(self):
+    def test_non_power_of_2_supported(self):
         signal = [complex(i, 0) for i in range(5)]
         result = _fft(signal)
-        # Should pad to 8
-        assert len(result) == 8
+        # numpy FFT handles arbitrary N without padding — N bins out
+        assert len(result) == 5
+        assert result[0] == pytest.approx(complex(sum(range(5)), 0))  # DC = sum
 
     def test_ifft_recovers_original(self):
         signal = [complex(i, 0) for i in range(8)]

@@ -213,7 +213,7 @@ class CrossExchangeArbEngine:
         """Execute both legs of the arbitrage simultaneously."""
         opp.status = ArbStatus.EXECUTING
         self.open_positions.append(opp)
-        start_time = time.time()
+        start_time = time.monotonic()
 
         try:
             buy_client = self.exchanges.get(opp.buy_exchange)
@@ -228,7 +228,7 @@ class CrossExchangeArbEngine:
             buy_result, sell_result = await self._execute_both_legs(
                 buy_client, sell_client, opp
             )
-            opp.execution_time_ms = (time.time() - start_time) * 1000
+            opp.execution_time_ms = (time.monotonic() - start_time) * 1000
 
             if isinstance(buy_result, Exception) or isinstance(sell_result, Exception):
                 opp.error = f"Leg error: buy={buy_result}, sell={sell_result}"

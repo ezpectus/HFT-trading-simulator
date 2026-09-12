@@ -77,7 +77,10 @@ class AISignalBot:
 
         # Components
         self.exchange = ExchangeClient(config.ws_url)
-        self.signal_publisher = SignalPublisher(host="0.0.0.0", port=8766)  # nosec: B104
+        # Bind host overridable via env (0.0.0.0 required inside containers;
+        # use 127.0.0.1 for direct host runs)
+        bind_host = os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0")
+        self.signal_publisher = SignalPublisher(host=bind_host, port=8766)
         self.db = Database(config.db_path)
         self.validator = SignalValidator(
             min_confidence=config.min_confidence,
@@ -161,7 +164,7 @@ class AISignalBot:
         prom_server = None
         if enable_metrics:
             from src.monitoring.health_server import HealthServer
-            metrics_server = HealthServer(port=8080)
+            metrics_server = HealthServer(port=8080, host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"))
             metrics_server.register_check("liveness", self.health_checker.check_liveness)
             metrics_server.register_check("readiness", self.health_checker.check_readiness)
             await metrics_server.start()
@@ -169,7 +172,7 @@ class AISignalBot:
             try:
                 from src.monitoring.metrics import MetricsExporter
                 prom_server = MetricsExporter()
-                await prom_server.start_server(port=9090)
+                await prom_server.start_server(host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"), port=9090)
                 self.logger.info("Prometheus metrics server running on port 9090")
                 self.exchange.set_reconnect_handler(prom_server.record_ws_reconnect)
             except (OSError, RuntimeError, ConnectionError) as e:

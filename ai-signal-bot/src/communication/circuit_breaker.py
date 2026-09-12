@@ -53,7 +53,7 @@ class CircuitBreaker:
     @property
     def state(self) -> BreakerState:
         if self._state == BreakerState.OPEN:
-            if time.time() - self._opened_at >= self.config.cooldown_seconds:
+            if time.monotonic() - self._opened_at >= self.config.cooldown_seconds:
                 self._state = BreakerState.HALF_OPEN
                 self._half_open_probes = 0
                 logger.info("Circuit breaker: OPEN → HALF_OPEN (cooldown expired)")
@@ -118,7 +118,7 @@ class CircuitBreaker:
     def _trip(self) -> None:
         failure_count = self._consecutive_failures
         self._state = BreakerState.OPEN
-        self._opened_at = time.time()
+        self._opened_at = time.monotonic()
         self._total_trips += 1
         self._consecutive_failures = 0
         logger.warning(

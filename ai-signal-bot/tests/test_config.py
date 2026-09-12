@@ -17,19 +17,29 @@ VALID_CONFIG = {
         "name": "simulator",
         "mode": "simulator",
         "websocket_url": "ws://localhost:8765",
+        "default_exchange": "binance",
     },
     "risk": {
         "max_risk_per_trade_pct": 2.0,
         "max_daily_drawdown_pct": 8.0,
         "min_confidence": 65,
         "min_rr_ratio": 1.5,
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 4.0,
+        "max_position_size_pct": 10.0,
     },
     "strategies": {
-        "trend": {"enabled": True},
-        "meanrev": {"enabled": True},
+        "trend_following": {"enabled": True, "ema_fast": 12, "ema_slow": 26, "adx_threshold": 25},
+        "mean_reversion": {"enabled": True, "rsi_oversold": 30, "rsi_overbought": 70, "bb_std": 2.0},
+        "ensemble": {"min_votes": 2, "mode": "majority"},
     },
     "indicators": {
-        "rsi": {"period": 14},
+        "rsi_period": 14,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "atr_period": 14,
+        "adx_period": 14,
     },
 }
 

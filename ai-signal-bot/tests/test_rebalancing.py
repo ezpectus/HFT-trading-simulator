@@ -28,6 +28,6 @@ class TestRebalancing:
         strategy = RebalancingStrategy()
         current = np.array([0.4, 0.3, 0.3])
         target = np.array([0.5, 0.25, 0.25])
-        result = strategy.rebalance(current, target, total_value=10000)
+        result = strategy.execute_rebalance(current, target, portfolio_value=10000)
         assert isinstance(result, RebalanceResult)
         assert len(result.orders) > 0

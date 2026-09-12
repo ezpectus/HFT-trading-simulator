@@ -107,7 +107,7 @@ class TestCalculate:
         sizer = KellyPositionSizer(
             win_rate=0.51, avg_win=100, avg_loss=100,
             kelly_fraction=0.01, max_risk_pct=5.0,
-            min_risk_pct=2.0,
+            min_risk_pct=2.0, max_position_pct=1000.0,
         )
         result = sizer.calculate(balance=10000, entry_price=100, stop_loss=99)
         # Even tiny Kelly should be bumped to min_risk_pct

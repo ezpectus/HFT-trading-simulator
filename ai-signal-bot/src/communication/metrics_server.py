@@ -28,7 +28,7 @@ class MetricsCollector:
     """Lightweight metrics collector with Prometheus text exposition format."""
 
     def __init__(self):
-        self._start_time = time.time()
+        self._start_time = time.monotonic()
         self._signals_sent = 0
         self._signals_blocked = 0
         self._backtests_run = 0
@@ -72,7 +72,7 @@ class MetricsCollector:
 
     def render(self) -> str:
         """Render metrics in Prometheus text exposition format."""
-        uptime = time.time() - self._start_time
+        uptime = time.monotonic() - self._start_time
         lines = [
             "# HELP ai_signal_bot_signals_sent_total Total signals broadcast",
             "# TYPE ai_signal_bot_signals_sent_total counter",

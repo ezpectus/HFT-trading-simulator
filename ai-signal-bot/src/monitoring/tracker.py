@@ -23,11 +23,11 @@ class PerformanceTracker:
     winning_trades: int = 0
     total_pnl: float = 0.0
     total_fees: float = 0.0
-    start_time: float = field(default_factory=time.time)
+    start_time: float = field(default_factory=time.monotonic)
 
     @property
     def uptime_seconds(self) -> float:
-        return time.time() - self.start_time
+        return time.monotonic() - self.start_time
 
     @property
     def win_rate(self) -> float:

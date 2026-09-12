@@ -170,7 +170,7 @@ class RealMarketDataFeed:
                             await self.on_reconnect("binance", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
                             logger.warning("Binance gap-fill failed: %s", e)
-                    self._last_msg_times["binance"] = time.time()
+                    self._last_msg_times["binance"] = time.monotonic()
                     logger.info("Binance WebSocket connected: %s streams", len(streams))
 
                     async for raw in ws:
@@ -181,7 +181,7 @@ class RealMarketDataFeed:
                         except json.JSONDecodeError as e:
                             logger.warning("Binance WS: dropping malformed message: %s", e)
                             continue
-                        self._last_msg_times["binance"] = time.time()
+                        self._last_msg_times["binance"] = time.monotonic()
                         try:
                             self._msg_queue.put_nowait(("binance", msg))
                         except asyncio.QueueFull:
@@ -258,7 +258,7 @@ class RealMarketDataFeed:
                             await self.on_reconnect("okx", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
                             logger.warning("OKX gap-fill failed: %s", e)
-                    self._last_msg_times["okx"] = time.time()
+                    self._last_msg_times["okx"] = time.monotonic()
 
                     # Subscribe to tickers and candles
                     sub_args = []
@@ -358,7 +358,7 @@ class RealMarketDataFeed:
                             await self.on_reconnect("bybit", symbols)
                         except (OSError, RuntimeError, ValueError) as e:
                             logger.warning("Bybit gap-fill failed: %s", e)
-                    self._last_msg_times["bybit"] = time.time()
+                    self._last_msg_times["bybit"] = time.monotonic()
 
                     # Subscribe
                     sub_args = []

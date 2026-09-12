@@ -100,7 +100,7 @@ class AlertSystem:
     async def check_rules(self) -> list[Alert]:
         """Check all rules and fire alerts if needed."""
         alerts = []
-        now = time.time()
+        now = time.monotonic()
 
         for name, rule in self.rules.items():
             if not rule.enabled:

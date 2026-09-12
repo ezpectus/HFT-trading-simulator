@@ -10,7 +10,7 @@ class TestHealthChecks:
         assert HealthStatus.UNHEALTHY.value == "unhealthy"
 
     def test_component_health_dataclass(self):
-        comp = ComponentHealth(name="websocket", status=HealthStatus.HEALTHY, message="OK")
+        comp = ComponentHealth(name="websocket", status=HealthStatus.HEALTHY, details="OK")
         assert comp.name == "websocket"
         assert comp.status == HealthStatus.HEALTHY
 

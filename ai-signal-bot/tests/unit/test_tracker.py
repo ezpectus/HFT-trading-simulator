@@ -33,7 +33,7 @@ class TestPerformanceTrackerInit:
         assert tracker.uptime_seconds >= 0
 
     def test_custom_start_time(self):
-        t = time.time() - 3600  # 1 hour ago
+        t = time.monotonic() - 3600  # 1 hour ago
         tracker = PerformanceTracker(start_time=t)
         assert tracker.uptime_seconds >= 3600
 
@@ -128,7 +128,7 @@ class TestSignalsPerHour:
         assert tracker.signals_per_hour == 0
 
     def test_signals_per_hour_positive(self):
-        tracker = PerformanceTracker(start_time=time.time() - 3600)
+        tracker = PerformanceTracker(start_time=time.monotonic() - 3600)
         tracker.record_signal(validated=True)
         tracker.record_signal(validated=True)
         # 2 signals in ~1 hour

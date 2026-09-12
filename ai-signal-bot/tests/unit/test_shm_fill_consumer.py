@@ -36,7 +36,7 @@ class TestInit:
     def test_init_failure(self):
         c = ShmFillConsumer(name="/test_fills", capacity=128)
         with patch("src.communication.shm_fill_consumer.ShmRingBuffer",
-                   side_effect=Exception("SHM open failed")):
+                   side_effect=OSError("SHM open failed")):
             result = c.init()
             assert result is False
             assert c._buffer is None

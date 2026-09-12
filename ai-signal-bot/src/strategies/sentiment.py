@@ -91,7 +91,7 @@ class SentimentStrategy:
         self.current_sentiment: float = 0.0
         self.sentiment_by_symbol: dict[str, float] = {}
         self.event_count: int = 0
-        self._last_update: float = time.time()
+        self._last_update: float = time.monotonic()
 
     def on_news_event(self, event: NewsEvent) -> None:
         """Process a news event."""
@@ -121,7 +121,7 @@ class SentimentStrategy:
 
     def _decay_sentiment(self) -> None:
         """Decay sentiment over time."""
-        now = time.time()
+        now = time.monotonic()
         dt = now - self._last_update
         if dt > 0:
             decay = self.config.decay_rate ** dt

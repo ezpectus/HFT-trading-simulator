@@ -35,7 +35,7 @@ class HealthServer:
         self._app: web.Application | None = None
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
-        self._start_time = time.time()
+        self._start_time = time.monotonic()
         self._checks: dict[str, Callable] = {}
         self._status: dict[str, dict] = {}
 
@@ -80,7 +80,7 @@ class HealthServer:
 
         return {
             "healthy": all_healthy,
-            "uptime_seconds": time.time() - self._start_time,
+            "uptime_seconds": time.monotonic() - self._start_time,
             "timestamp": time.time(),
             "components": {
                 "exchange": exchange,
@@ -117,7 +117,7 @@ class HealthServer:
 
     async def _handle_live(self, request: web.Request) -> web.Response:
         """Kubernetes liveness probe endpoint."""
-        return web.json_response({"alive": True, "uptime": time.time() - self._start_time})
+        return web.json_response({"alive": True, "uptime": time.monotonic() - self._start_time})
 
     def _create_app(self) -> web.Application:
         app = web.Application(middlewares=[self._auth_middleware] if self._auth_token else [])

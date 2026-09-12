@@ -187,7 +187,7 @@ class TestHealthServer:
         hs = HealthServer()
         result = await hs._check_shm()
         assert result["healthy"] is True
-        assert "No SHM check" in result["message"]
+        assert "shm check" in result["message"].lower()
 
 
 # ─── LLMEngine ───

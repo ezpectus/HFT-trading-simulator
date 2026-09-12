@@ -10,4 +10,4 @@ class TestMetricsExporter:
 
     def test_metrics_dict_initialized(self):
         exporter = MetricsExporter()
-        assert hasattr(exporter, "_metrics") or hasattr(exporter, "metrics")
+        assert hasattr(exporter, "signals_total")  # metric attrs initialized (None if prometheus missing)
