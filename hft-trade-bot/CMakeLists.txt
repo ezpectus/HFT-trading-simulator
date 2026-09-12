@@ -281,22 +281,25 @@ set_target_properties(test_signal_engine PROPERTIES
 )
 add_test(NAME signal_engine_tests COMMAND test_signal_engine)
 
-# ─── V2 Tests ───
-add_executable(test_signal_engine_v2 tests/test_signal_engine_v2.cpp src/strategies/signal_engine_v2.cpp)
-target_include_directories(test_signal_engine_v2 PRIVATE
-    ${CMAKE_SOURCE_DIR}/src
-    ${WEBSOCKETPP_INCLUDE_DIR}
-)
-target_link_libraries(test_signal_engine_v2 PRIVATE
-    fmt::fmt
-    Threads::Threads
-)
-set_target_properties(test_signal_engine_v2 PROPERTIES
-    CXX_STANDARD 20
-    CXX_STANDARD_REQUIRED ON
-    INTERPROCEDURAL_OPTIMIZATION FALSE
-)
-add_test(NAME signal_engine_v2_tests COMMAND test_signal_engine_v2)
+# ─── V2 Tests (split by domain — was one 43KB god-test) ───
+foreach(v2test v2_infra v2_indicators v2_engine v2_pressure_adaptive)
+    add_executable(test_${v2test} tests/test_${v2test}.cpp src/strategies/signal_engine_v2.cpp)
+    target_include_directories(test_${v2test} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/tests
+        ${WEBSOCKETPP_INCLUDE_DIR}
+    )
+    target_link_libraries(test_${v2test} PRIVATE
+        fmt::fmt
+        Threads::Threads
+    )
+    set_target_properties(test_${v2test} PROPERTIES
+        CXX_STANDARD 20
+        CXX_STANDARD_REQUIRED ON
+        INTERPROCEDURAL_OPTIMIZATION FALSE
+    )
+    add_test(NAME ${v2test}_tests COMMAND test_${v2test})
+endforeach()
 
 # ─── V3 Production Tests ───
 

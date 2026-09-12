@@ -82,11 +82,12 @@ class SpinlockGuard {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Lock-free SPSC ring buffer — single-producer single-consumer queue
-// Capacity must be power of 2. No heap allocations.
+// Capacity = usable slots. No heap allocations.
 // ─────────────────────────────────────────────────────────────────────────────
 template <typename T, size_t Capacity> class SPSCQueue {
-    static_assert((Capacity & (Capacity - 1)) == 0, "Capacity must be power of 2");
-    static constexpr size_t MASK = Capacity - 1;
+    // One extra slot distinguishes full from empty → Capacity is *usable* slots.
+    static constexpr size_t STORAGE = Capacity + 1;
+    static constexpr size_t wrap(size_t i) noexcept { return i == STORAGE ? 0 : i; }
 
   public:
     SPSCQueue() : head_(0), tail_(0) {}
@@ -94,7 +95,7 @@ template <typename T, size_t Capacity> class SPSCQueue {
     // Producer: enqueue. Returns false if full.
     [[nodiscard]] bool push(const T& item) noexcept {
         const size_t head = head_.load(std::memory_order_relaxed);
-        const size_t next = (head + 1) & MASK;
+        const size_t next = wrap(head + 1);
         if (next == tail_.load(std::memory_order_acquire)) return false;
         buffer_[head] = item;
         head_.store(next, std::memory_order_release);
@@ -103,7 +104,7 @@ template <typename T, size_t Capacity> class SPSCQueue {
 
     [[nodiscard]] bool push(T&& item) noexcept {
         const size_t head = head_.load(std::memory_order_relaxed);
-        const size_t next = (head + 1) & MASK;
+        const size_t next = wrap(head + 1);
         if (next == tail_.load(std::memory_order_acquire)) return false;
         buffer_[head] = std::move(item);
         head_.store(next, std::memory_order_release);
@@ -115,7 +116,7 @@ template <typename T, size_t Capacity> class SPSCQueue {
         const size_t tail = tail_.load(std::memory_order_relaxed);
         if (tail == head_.load(std::memory_order_acquire)) return false;
         out = std::move(buffer_[tail]);
-        tail_.store((tail + 1) & MASK, std::memory_order_release);
+        tail_.store(wrap(tail + 1), std::memory_order_release);
         return true;
     }
 
@@ -126,7 +127,7 @@ template <typename T, size_t Capacity> class SPSCQueue {
     size_t size() const noexcept {
         const size_t h = head_.load(std::memory_order_relaxed);
         const size_t t = tail_.load(std::memory_order_relaxed);
-        return h - t;
+        return h >= t ? h - t : STORAGE - t + h;
     }
 
     static constexpr size_t capacity() { return Capacity; }
@@ -135,7 +136,7 @@ template <typename T, size_t Capacity> class SPSCQueue {
     // Cache-line pad to prevent false sharing between head and tail
     alignas(64) std::atomic<size_t> head_;
     alignas(64) std::atomic<size_t> tail_;
-    alignas(64) T buffer_[Capacity];
+    alignas(64) T buffer_[STORAGE];
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,6 +198,17 @@ class LatencyHistogram {
     void record(double microseconds) noexcept {
         total_count_.fetch_add(1, std::memory_order_relaxed);
 
+        // Track min/max before bucketing — the sub-1μs early-return below
+        // must not skip this.
+        double current_min = min_.load(std::memory_order_relaxed);
+        while (microseconds < current_min &&
+               !min_.compare_exchange_weak(current_min, microseconds)) {
+        }
+        double current_max = max_.load(std::memory_order_relaxed);
+        while (microseconds > current_max &&
+               !max_.compare_exchange_weak(current_max, microseconds)) {
+        }
+
         // Find bucket
         if (microseconds < 1.0) {
             buckets_[0].fetch_add(1, std::memory_order_relaxed);
@@ -207,16 +219,6 @@ class LatencyHistogram {
         size_t bucket  = static_cast<size_t>(log_val);
         if (bucket >= NUM_BUCKETS) bucket = NUM_BUCKETS - 1;
         buckets_[bucket].fetch_add(1, std::memory_order_relaxed);
-
-        // Track min/max
-        double current_min = min_.load(std::memory_order_relaxed);
-        while (microseconds < current_min &&
-               !min_.compare_exchange_weak(current_min, microseconds)) {
-        }
-        double current_max = max_.load(std::memory_order_relaxed);
-        while (microseconds > current_max &&
-               !max_.compare_exchange_weak(current_max, microseconds)) {
-        }
     }
 
     struct Stats {
