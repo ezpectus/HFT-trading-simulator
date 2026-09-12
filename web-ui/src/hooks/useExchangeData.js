@@ -256,6 +256,11 @@ export function useSignalData(options = {}) {
   const [circuitBreaker, setCircuitBreaker] = useState(null)
   const [portfolioResult, setPortfolioResult] = useState(null)
   const [volSurfaceResult, setVolSurfaceResult] = useState(null)
+  const [cvarResult, setCvarResult] = useState(null)
+  const [stressTestResult, setStressTestResult] = useState(null)
+  const [positionSizeResult, setPositionSizeResult] = useState(null)
+  const [hawkesResult, setHawkesResult] = useState(null)
+  const [fundingArbResult, setFundingArbResult] = useState(null)
   const [authState, setAuthState] = useState(SIGNAL_TOKEN ? 'pending' : 'disabled')
   const onBacktestResultRef = useRef(options.onBacktestResult)
 
@@ -296,6 +301,21 @@ export function useSignalData(options = {}) {
       case 'vol_surface_result':
         setVolSurfaceResult(data)
         break
+      case 'cvar_result':
+        setCvarResult(data)
+        break
+      case 'stress_test_result':
+        setStressTestResult(data)
+        break
+      case 'position_size_result':
+        setPositionSizeResult(data)
+        break
+      case 'hawkes_result':
+        setHawkesResult(data)
+        break
+      case 'funding_arb_result':
+        setFundingArbResult(data)
+        break
       case 'auth_ok':
         setAuthState('ok')
         break
@@ -314,5 +334,5 @@ export function useSignalData(options = {}) {
     autoConnect: !IS_MOCK,  // mock mode — never open the real socket
   })
 
-  return { signals, regime, backtestResult, circuitBreaker, portfolioResult, volSurfaceResult, authState, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
+  return { signals, regime, backtestResult, circuitBreaker, portfolioResult, volSurfaceResult, cvarResult, stressTestResult, positionSizeResult, hawkesResult, fundingArbResult, authState, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
 }

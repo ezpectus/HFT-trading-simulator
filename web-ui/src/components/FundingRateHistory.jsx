@@ -1,7 +1,29 @@
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Percent, Clock } from 'lucide-react'
 
-function FundingRateHistory({ fundingRates, candlesToFunding}) {
+function FundingRateHistory({ fundingRates, candlesToFunding, prices, symbols, sendSignalMessage, fundingArbResult, signalsConnected }) {
+  const [scanPending, setScanPending] = useState(false)
+  const timeoutRef = useRef(null)
+
+  useEffect(() => {
+    if (!scanPending || !fundingArbResult || fundingArbResult.type !== 'funding_arb_result') return
+    clearTimeout(timeoutRef.current)
+    setScanPending(false)
+  }, [fundingArbResult, scanPending])
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), [])
+
+  const scanArb = () => {
+    if (!signalsConnected || scanPending || !fundingRates) return
+    setScanPending(true)
+    timeoutRef.current = setTimeout(() => setScanPending(false), 30000)
+    sendSignalMessage({
+      type: 'funding_arb_scan',
+      funding_rates: fundingRates,
+      prices: prices || {},
+      symbols: (symbols || []).slice(0, 20),
+    })
+  }
   const data = useMemo(() => {
     if (!fundingRates || Object.keys(fundingRates).length === 0) return null
 
@@ -132,6 +154,36 @@ function FundingRateHistory({ fundingRates, candlesToFunding}) {
       <div className="mt-1 pt-1 border-t border-bg-600 text-[8px] text-gray-600">
         Positive = longs pay shorts (bearish skew). Funding every 8h typically.
       </div>
+
+      {/* Funding arbitrage scan — backend funding_arb_detector.py */}
+      {sendSignalMessage && (
+        <div className="mt-1.5 bg-bg-800  px-1.5 py-1">
+          <button
+            onClick={scanArb}
+            disabled={!signalsConnected || scanPending}
+            className="w-full px-1.5 py-1 text-[9px]  bg-cyan-600/20 text-cyan-400 border border-cyan-600/40 hover:bg-cyan-600/30 disabled:opacity-40"
+          >
+            {scanPending ? 'Scanning…' : 'Scan funding arbitrage (backend)'}
+          </button>
+          {fundingArbResult && !scanPending && (
+            <div className="mt-1 space-y-0.5">
+              {fundingArbResult.error ? (
+                <div className="text-[8px] text-accent-red">{fundingArbResult.error}</div>
+              ) : fundingArbResult.opportunities?.length > 0 ? (
+                fundingArbResult.opportunities.map((o, i) => (
+                  <div key={i} className="text-[8px] font-mono text-gray-300">
+                    <span className="text-accent-green">{o.type}</span> {o.symbol} @ {o.exchanges?.join('/')}
+                    {' '}· {o.funding_rate > 0 ? '+' : ''}{(o.funding_rate * 100).toFixed(4)}%/8h
+                    → net {(o.net_expected_return * 100).toFixed(3)}%/day · conf {o.confidence.toFixed(0)}
+                  </div>
+                ))
+              ) : (
+                <div className="text-[8px] text-gray-600">No opportunities above threshold</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

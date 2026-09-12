@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 import { selectCandles } from '../utils/candles'
 
 // ─── Hawkes Process (Self-Exciting Point Process) ───────────────────────────
@@ -130,12 +130,22 @@ const simulateHawkes = (mu, alpha, beta, T, maxEvents = 500) => {
   return events
 }
 
-function HawkesProcess({ candles, symbol, exchange }) {
+function HawkesProcess({ candles, symbol, exchange, sendSignalMessage, hawkesResult, signalsConnected }) {
   const [mu, setMu] = useState(0.1)
   const [alpha, setAlpha] = useState(0.5)
   const [beta, setBeta] = useState(2.0)
   const [autoFit, setAutoFit] = useState(true)
   const [simT, setSimT] = useState(100)
+  const [backendPending, setBackendPending] = useState(false)
+  const [backend, setBackend] = useState(null)
+
+  useEffect(() => {
+    if (!backendPending || !hawkesResult || hawkesResult.type !== 'hawkes_result') return
+    setBackend(hawkesResult)
+    setBackendPending(false)
+  }, [hawkesResult, backendPending])
+
+  useEffect(() => () => clearTimeout(window.__hawkesTimeout), [])
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)
@@ -274,7 +284,39 @@ function HawkesProcess({ candles, symbol, exchange }) {
           <span className="text-gray-400">Sim T:</span>
           <input type="number" value={simT} onChange={e => setSimT(Math.max(10, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
+        {sendSignalMessage && (
+          <button
+            onClick={() => {
+              if (!signalsConnected || backendPending) return
+              setBackend(null)
+              setBackendPending(true)
+              clearTimeout(window.__hawkesTimeout)
+              window.__hawkesTimeout = setTimeout(() => {
+                setBackendPending(p => { if (p) setBackend({ error: 'timeout — no hawkes_result in 30s' }); return false })
+              }, 30000)
+              sendSignalMessage({ type: 'hawkes_fit', events: data.events })
+            }}
+            disabled={!signalsConnected || backendPending}
+            className="px-2 py-0.5 text-xs  bg-cyan-600/20 text-cyan-400 border border-cyan-600/40 hover:bg-cyan-600/30 disabled:opacity-40"
+          >
+            {backendPending ? 'Fitting…' : 'Backend MLE fit'}
+          </button>
+        )}
       </div>
+
+      {backend && (
+        <div className="bg-bg-700  p-2 text-xs">
+          {backend.error ? (
+            <span className="text-rose-400">Backend fit: {backend.error}</span>
+          ) : (
+            <span className="text-gray-300">
+              <strong className="text-cyan-400">ai-signal-bot fit</strong> — μ={backend.params.mu} α={backend.params.alpha} β={backend.params.beta}
+              {' '}n={backend.params.branching_ratio} logLik={backend.params.log_lik} over {backend.n_events} events
+              <span className="text-gray-500"> (hawkes_funcs.py via WS; local JS fit shown above for comparison)</span>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Intensity over time */}
       <div className="bg-bg-700  p-3">

@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 
 // ─── Conditional Value at Risk (CVaR) / Expected Shortfall ──────────────────
 // Computes VaR, CVaR (Expected Shortfall), and performs CVaR-optimal
@@ -138,10 +138,18 @@ const cvarOptimize = (allReturns, alpha = 0.95, maxIter = 200, lr = 0.01) => {
   return { w, zeta, portVaR, portCVaR, portMean, portStd, sharpe }
 }
 
-function ConditionalValueAtRisk({ candles, symbols, exchange }) {
+function ConditionalValueAtRisk({ candles, symbols, exchange, sendSignalMessage, cvarResult, signalsConnected }) {
   const [alpha, setAlpha] = useState(0.95)
   const [lookback, setLookback] = useState(100)
   const [optimize, setOptimize] = useState(true)
+  const [backendPending, setBackendPending] = useState(false)
+  const [backend, setBackend] = useState(null)
+
+  useEffect(() => {
+    if (!backendPending || !cvarResult || cvarResult.type !== 'cvar_result') return
+    setBackend(cvarResult)
+    setBackendPending(false)
+  }, [cvarResult, backendPending])
 
   const data = useMemo(() => {
     if (!candles || !symbols || symbols.length < 2) return null
@@ -209,7 +217,7 @@ function ConditionalValueAtRisk({ candles, symbols, exchange }) {
     return {
       validSymbols, perAsset, eqVaR, eqCVaR,
       optResult, signal, reason, tailRatio,
-      alpha, nAssets,
+      alpha, nAssets, eqReturns,
     }
   }, [candles, exchange, symbols, alpha, lookback, optimize])
 
@@ -242,7 +250,56 @@ function ConditionalValueAtRisk({ candles, symbols, exchange }) {
           <input type="checkbox" checked={optimize} onChange={e => setOptimize(e.target.checked)} />
           <span className="text-gray-400">CVaR optimization (Rockafellar-Uryasev)</span>
         </label>
+        {sendSignalMessage && (
+          <button
+            onClick={() => {
+              if (!signalsConnected || backendPending || !data) return
+              setBackend(null)
+              setBackendPending(true)
+              setTimeout(() => setBackendPending(p => {
+                if (p) setBackend({ error: 'timeout — no cvar_result in 30s' })
+                return false
+              }), 30000)
+              sendSignalMessage({ type: 'cvar_analysis', returns: data.eqReturns, confidence: alpha, method: 'historical' })
+            }}
+            disabled={!signalsConnected || backendPending}
+            className="px-2 py-0.5 text-xs  bg-cyan-600/20 text-cyan-400 border border-cyan-600/40 hover:bg-cyan-600/30 disabled:opacity-40"
+          >
+            {backendPending ? 'Computing…' : 'Backend CVaR (ai-signal-bot)'}
+          </button>
+        )}
       </div>
+
+      {backend && (
+        <div className="bg-bg-700  p-3 text-xs">
+          {backend.error ? (
+            <span className="text-rose-400">Backend CVaR: {backend.error}</span>
+          ) : (
+            <>
+              <div className="text-gray-400 mb-1">
+                Backend result — <span className="text-cyan-400">cvar.py</span> via WS
+                ({backend.method}, α={(backend.confidence_level * 100).toFixed(1)}%, {backend.n_observations} obs)
+              </div>
+              <div className="flex gap-4 flex-wrap font-mono">
+                <span className="text-red-400">VaR {(backend.var * 100).toFixed(3)}%</span>
+                <span className="text-amber-400">CVaR {(backend.cvar * 100).toFixed(3)}%</span>
+                <span className="text-gray-400">maxDD {(backend.tail?.max_drawdown * 100).toFixed(2)}%</span>
+                <span className="text-gray-400">skew {backend.tail?.skewness?.toFixed(3)}</span>
+                <span className="text-gray-400">kurt {backend.tail?.kurtosis?.toFixed(3)}</span>
+                {backend.tail?.tail_index != null && <span className="text-gray-400">tail-idx {backend.tail.tail_index.toFixed(3)}</span>}
+              </div>
+              {backend.scenarios && (
+                <div className="mt-1 text-gray-500">
+                  Stressed CVaR —{' '}
+                  {Object.entries(backend.scenarios).map(([k, s]) => (
+                    <span key={k} className="mr-3">{k}: <span className="text-amber-400">{(s.cvar * 100).toFixed(3)}%</span></span>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Per-asset risk metrics */}
       <div className="bg-bg-700  p-3">

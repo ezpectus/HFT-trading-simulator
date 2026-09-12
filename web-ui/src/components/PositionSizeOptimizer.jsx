@@ -1,13 +1,25 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Calculator, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcATR } from '../utils/indicators'
 
-function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchange }) {
+function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchange, sendSignalMessage, positionSizeResult, signalsConnected }) {
   const [riskPct, setRiskPct] = useState(1)
   const [stopMethod, setStopMethod] = useState('atr')
   const [manualStop, setManualStop] = useState('')
   const [leverage, setLeverage] = useState(1)
+  const [backendPending, setBackendPending] = useState(false)
+  const [backend, setBackend] = useState(null)
+  const timeoutRef = useRef(null)
+
+  useEffect(() => {
+    if (!backendPending || !positionSizeResult || positionSizeResult.type !== 'position_size_result') return
+    clearTimeout(timeoutRef.current)
+    setBackend(positionSizeResult)
+    setBackendPending(false)
+  }, [positionSizeResult, backendPending])
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), [])
 
   const data = useMemo(() => {
     const symCandles = candles
@@ -213,6 +225,42 @@ function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchan
           <span className="text-gray-600">Half-Kelly size</span>
           <span className="font-mono text-gray-400">{kellySize.toFixed(4)} ({(kellySize * currentPrice).toFixed(0)}$)</span>
         </div>
+
+        {/* Backend sizing via ai-signal-bot position_sizing.py */}
+        {sendSignalMessage && (
+          <div className="bg-bg-800  px-2 py-1.5">
+            <button
+              onClick={() => {
+                if (!signalsConnected || backendPending) return
+                setBackend(null)
+                setBackendPending(true)
+                timeoutRef.current = setTimeout(() => {
+                  setBackendPending(p => { if (p) setBackend({ error: 'timeout — no position_size_result in 30s' }); return false })
+                }, 30000)
+                sendSignalMessage({
+                  type: 'position_size',
+                  direction: 'LONG',
+                  price: currentPrice,
+                  volatility: data.lastAtr / currentPrice,
+                  account_value: data.accountEquity,
+                  risk_per_trade: riskPct / 100,
+                  method: 'volatility',
+                })
+              }}
+              disabled={!signalsConnected || backendPending}
+              className="w-full px-1.5 py-1 text-[9px]  bg-cyan-600/20 text-cyan-400 border border-cyan-600/40 hover:bg-cyan-600/30 disabled:opacity-40"
+            >
+              {backendPending ? 'Sizing…' : 'Backend sizing (volatility method)'}
+            </button>
+            {backend && !backend.error && (
+              <div className="mt-1 text-[8px] font-mono text-gray-300">
+                size {backend.position_size.toFixed(4)} · ${backend.position_value.toFixed(2)} · risk ${backend.risk_amount.toFixed(2)}
+                <span className="text-gray-600"> — position_sizing.py</span>
+              </div>
+            )}
+            {backend?.error && <div className="mt-1 text-[8px] text-accent-red">{backend.error}</div>}
+          </div>
+        )}
       </div>
 
       {/* Warnings */}

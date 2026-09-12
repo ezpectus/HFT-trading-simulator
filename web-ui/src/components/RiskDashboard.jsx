@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Shield, TrendingDown, Activity, Info } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
@@ -12,8 +12,38 @@ function _normCDF(x) {
   return 0.5 * (1 + sign * y)
 }
 
-function RiskDashboard({ accounts, candles, exchange }) {
+function RiskDashboard({ accounts, candles, exchange, prices, sendSignalMessage, stressTestResult, signalsConnected }) {
   const [confidence, setConfidence] = useState(95)
+  const [stressPending, setStressPending] = useState(false)
+  const timeoutRef = useRef(null)
+
+  useEffect(() => {
+    if (!stressPending || !stressTestResult || stressTestResult.type !== 'stress_test_result') return
+    clearTimeout(timeoutRef.current)
+    setStressPending(false)
+  }, [stressTestResult, stressPending])
+
+  useEffect(() => () => clearTimeout(timeoutRef.current), [])
+
+  const runStress = () => {
+    if (!signalsConnected || stressPending) return
+    // Open positions → {qty, price} rows for the backend scenarios
+    const positions = []
+    for (const [ex, acc] of Object.entries(accounts || {})) {
+      for (const p of (acc.positions || [])) {
+        const px = prices?.[ex]?.[p.symbol] || p.current_price || p.entry_price || 0
+        const qty = Math.abs(p.quantity || 0)
+        if (qty > 0 && px > 0) positions.push({ symbol: p.symbol, qty, price: px })
+      }
+    }
+    if (positions.length === 0) {
+      setStressPending(false)
+      return
+    }
+    setStressPending(true)
+    timeoutRef.current = setTimeout(() => setStressPending(false), 30000)
+    sendSignalMessage({ type: 'stress_test', positions, portfolio_value: risk.portfolioValue })
+  }
 
   const risk = useMemo(() => {
     // Gather trade PnLs for VaR calculation
@@ -183,6 +213,44 @@ function RiskDashboard({ accounts, candles, exchange }) {
             <span>VaR = max expected loss at {confidence}% confidence. CVaR = avg loss beyond VaR. Beta = sensitivity to BTC.</span>
           </div>
         </>
+      )}
+
+      {/* Backend stress test — stress_test.py via ai-signal-bot WS */}
+      {sendSignalMessage && (
+        <div className="mt-2 bg-bg-600/50  px-2 py-1.5">
+          <button
+            onClick={runStress}
+            disabled={!signalsConnected || stressPending}
+            className="w-full py-1 text-[9px]  bg-cyan-600/20 text-cyan-400 border border-cyan-600/40 hover:bg-cyan-600/30 disabled:opacity-40"
+          >
+            {stressPending ? 'Running scenarios…' : 'Stress test open positions (backend)'}
+          </button>
+          {stressTestResult && !stressPending && (
+            <div className="mt-1 space-y-0.5">
+              {stressTestResult.error ? (
+                <div className="text-[8px] text-accent-red">{stressTestResult.error}</div>
+              ) : (
+                <>
+                  {stressTestResult.results?.map((r, i) => (
+                    <div key={i} className="flex justify-between text-[8px] font-mono">
+                      <span className="text-gray-400">{r.scenario}</span>
+                      <span className={r.passed ? 'text-accent-green' : 'text-accent-red'}>
+                        {(r.pnl_pct * 100).toFixed(1)}% {r.passed ? 'PASS' : 'FAIL'}
+                      </span>
+                    </div>
+                  ))}
+                  {stressTestResult.summary && (
+                    <div className="text-[7px] text-gray-600 pt-0.5 border-t border-bg-600">
+                      worst {(stressTestResult.summary.worst_pnl_percentage * 100).toFixed(1)}% ·
+                      pass {stressTestResult.summary.passed_scenarios}/{stressTestResult.summary.total_scenarios} ·
+                      max margin {formatUsd(stressTestResult.summary.max_margin_requirement)}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
