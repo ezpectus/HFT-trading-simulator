@@ -173,9 +173,21 @@ jobs:
       - name: Check performance regression
         run: |
           python -c "
-          import json
+          import json, sys
           with open('walk_forward_results.json') as f:
               results = json.load(f)
+
+          failed = False
+
+          # Fail if the run itself is broken: >50% of windows errored means
+          # the backtest is broken, not just underperforming.
+          errors = [r for r in results if 'error' in r]
+          if not results:
+              print('::error::No backtest windows produced results')
+              failed = True
+          elif len(errors) > len(results) * 0.5:
+              print(f'::error::{len(errors)}/{len(results)} windows errored — backtest broken')
+              failed = True
 
           # Check if any strategy has consistently negative returns
           strategies = set(r['strategy'] for r in results)
@@ -184,17 +196,21 @@ jobs:
           for s in strategies:
               s_results = [r for r in results if r['strategy'] == s and 'error' not in r]
               if not s_results:
+                  regressions.append(f'{s}: all windows errored')
                   continue
               avg_return = sum(r['total_return_pct'] for r in s_results) / len(s_results)
               if avg_return < -5.0:
                   regressions.append(f'{s}: avg return {avg_return:.2f}%')
 
           if regressions:
-              print('::warning::Performance regression detected:')
+              print('::error::Performance regression detected:')
               for r in regressions:
                   print(f'  {r}')
-          else:
-              print('No performance regressions detected ✅')
+              failed = True
+
+          if failed:
+              sys.exit(1)
+          print('No performance regressions detected')
           "
         working-directory: ai-signal-bot
 

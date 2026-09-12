@@ -232,10 +232,11 @@ services:
       context: ./web-ui
       dockerfile: Dockerfile.prod
       args:
-        # Browser-facing WebSocket endpoints. Defaults to localhost for dev;
-        # override via .env.prod (VITE_WS_EXCHANGE/VITE_WS_SIGNALS) for production.
-        - VITE_WS_EXCHANGE=${VITE_WS_EXCHANGE:-ws://localhost:8765}
-        - VITE_WS_SIGNALS=${VITE_WS_SIGNALS:-ws://localhost:8766}
+        # Browser-facing WebSocket endpoints — baked into the JS bundle at
+        # build time. Required in prod; a localhost default would point every
+        # user's browser at their own machine.
+        - VITE_WS_EXCHANGE=${VITE_WS_EXCHANGE:?VITE_WS_EXCHANGE must be set in .env.prod (e.g. ws://your-host:8765)}
+        - VITE_WS_SIGNALS=${VITE_WS_SIGNALS:?VITE_WS_SIGNALS must be set in .env.prod (e.g. ws://your-host:8766)}
     container_name: trading-web-ui
     depends_on:
       ai-signal-bot:

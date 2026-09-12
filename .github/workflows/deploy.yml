@@ -132,9 +132,9 @@ jobs:
           FAIL=0
           for endpoint in \
             "http://${{ secrets.DEPLOY_HOST }}:8775/health" \
-            "http://${{ secrets.DEPLOY_HOST }}:9090/health" \
+            "http://${{ secrets.DEPLOY_HOST }}:9092/health" \
             "http://${{ secrets.DEPLOY_HOST }}:9091/health" \
-            "http://${{ secrets.DEPLOY_HOST }}:3000/health"; do
+            "http://${{ secrets.DEPLOY_HOST }}:3001/api/health"; do
             echo "Checking $endpoint..."
             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" || echo "FAIL")
             echo "  Status: $status"
