@@ -108,6 +108,7 @@
 | **S093** | `backtesting/order_book_replay.py` — мёртвые 262 строки | `OrderBookBacktester`/`OrderBookReplay`/`ReplayOrderBook` — только реэкспорт в `__init__.py`, 0 вызовов. Остальное в backtesting/ живое (backtester/optimizer/walk_forward/plotter — через run_backtest.py + run.py + nightly). | Medium | [ ] Open |
 | **S094** | Advanced-ордера регистрируются, но НИКОГДА не срабатывают | `check_advanced_orders()` (`exchange_advanced_orders.py:14`) имеет **0 вызовов** — ни ws-loop, ни __main__, ни даже тесты. Stop-limit/trailing-stop/iceberg ордера попадают в `_pending_*` dict'ы как PENDING и висят там вечно — API принимает их, отдаёт PENDING, и они молча никогда не исполняются. Вместе с S083 (OCO): вся рекламируемая advanced-order поверхность декоративна — 4/4 типа не работают end-to-end. | High | [ ] Open |
 | **S095** | `src/research/` — ВСЕ 34 модуля мёртвы (7578 строк) + `technical_analysis/` 20/25 мёртвы | README: "52 quant models in trading logic". Реальность: research/ 34 модуля (affine_arithmetic, koopman, malliavin, pontryagin, rmt…) — **0 не-тестовых вызовов у всех**; technical_analysis/ 25 модулей — проводятся только `indicators`, `fft_analysis`, `hawkes_funcs`, `hawkes_model`; остальные 20 (bayesian_*, copula, garch, kalman, wavelet…) мертвы. ~11.5k строк квант-математики не кормят ничего — торговый цикл использует EMA/RSI/ADX/FFT. ~118 тест-файлов тестируют этот мёртвый код. | High | [ ] Open |
+| **S096** | hft-trade-bot: `market_data/` слой мёртв + ещё ~1000 строк | `candle_aggregator.h` (145), `order_book_manager.h` (281), `trade_handler.h` (212) — живут только в doctest'ах; реальные данные приходят через `shm_market_data`/`signal_receiver` напрямую в bot_loop. Плюс `simd_indicators.h` (227), `symbol_map.h` (129). Довесок к S088 → суммарный мёртвый C++ ~6700 строк. `obi_utils`/`inline_indicators` ЖИВЫ (используются signal_engine_v2.h). | High | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -193,6 +194,12 @@
 - `check_stop_loss_take_profit` вызывается из main-loop/ws_broadcast — живой путь SL/TP
 - `indicators`/`fft_analysis`/`hawkes_funcs`/`hawkes_model` — единственные 4 wired-модуля technical_analysis
 - `_execute_limit_order`/`_execute_trailing`/`_execute_iceberg` реализованы — но недостижимы (S094)
+- Config consistency: 49 символов идентичны в shared_config / exchange config.yaml / ai-bot settings.yaml / hft config.yaml (README "50" — off-by-one, тривиально)
+- Все 5 grafana dashboard JSON валидны
+- `ws_prometheus.py` — настоящий exposition format (контраст с hft JSON /metrics — S069)
+- `exchange_factory` + `real_account` — настоящие ccxt-адаптеры, wired в run.py:342 для live-режима
+- hft `pressure_model`/`low_latency`/`obi_utils`/`inline_indicators`/`types`/`aligned_types`/`signal.h` — живые
+- C++ real-адаптеры Binance/OKX/Bybit конструируются при `is_production && smart_router_enabled` (но route() мёртв — S059)
 
 ---
 

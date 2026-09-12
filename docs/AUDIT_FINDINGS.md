@@ -897,3 +897,19 @@ Rotation target: advanced-order trigger path (stop-limit/trailing/iceberg) + tec
 - `check_stop_loss_take_profit` is called from main-loop + ws_broadcast — the SL/TP path is live
 - indicators/fft/hawkes are the only wired TA modules — the ones actually used are real
 - `_execute_limit_order`/`_execute_trailing`/`_execute_iceberg` are implemented — unreachable, not stubbed
+
+## Round 17 — audit branch: hft exchange adapters + market_data layer + config consistency
+
+Rotation target: hft exchange adapters, market_data/strategy headers, ws_prometheus, audit_logger, cross-component config consistency, grafana JSON validity.
+
+### New finding S096
+
+**S096 — hft market_data layer is dead + ~1000 more header lines.** `candle_aggregator.h` (145), `order_book_manager.h` (281), `trade_handler.h` (212) live only in doctests — real data arrives via `shm_market_data`/`signal_receiver` straight into bot_loop, bypassing the whole market_data/ directory. Plus `simd_indicators.h` (227), `symbol_map.h` (129). Total dead C++ now ≈ 6700 lines (S058–S061 + S088 + S096). NOTE: `obi_utils`/`inline_indicators` are LIVE (used by signal_engine_v2.h).
+
+### ЧИСТО
+
+- Config consistency verified: 49 symbols identical across shared_config / exchange config / ai-bot settings / hft config (README "50" is a trivial off-by-one)
+- All 5 grafana dashboard JSONs parse
+- `ws_prometheus.py` emits real exposition format (contrast: hft /metrics JSON — S069)
+- `exchange_factory` + `real_account` are real ccxt adapters, wired in run.py:342 for live mode
+- C++ real exchange adapters ARE constructed when `is_production && smart_router_enabled` — but route() never called (S059)
