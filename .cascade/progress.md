@@ -761,3 +761,27 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 ## 2026-09-12 — R35
 - **S111 → Done:** protocol gap — `fills_batch`+`error` dropped by UI default-case. Wired both (engine fills now reach panels; rejections toast). +3 tests, 1088 green.
 - **Open:** S109 only.
+
+## 2026-09-12 — R36
+- **S116 (new, Low, open):** signal_publisher auth handshake — unreachable (no token wiring, no UI auth client). Wire-or-delete decision alongside S109.
+- ЧИСТО: guarded JSON.parse, eval-by-design plugin, complete signal handshake.
+
+## 2026-09-12 — R36b
+- **S117 (new, Medium, open):** dead modules `portfolio/` (4) + `pricing/` (1) — 0 live importers, own tests only. Same class as S109.
+- **S118 → Done:** 162 stale .pyc purged (S104 missed scattered residue).
+- ЧИСТО: liquidation math, data_collection liveness, margin checks.
+
+## 2026-09-12 — R37
+- **S109 → Done** (user executed: SQLite db wired + postgres/redis/migrations/helm/terraform all deleted; verified `config.db_path` reads settings.yaml, testnet yaml = fragment not config).
+- Wired `save_equity` (dead method → per-tick snapshot); `close_trade` = schema-ahead-of-writer (bot can't observe sim-side closes). +4 tests.
+- **Open:** S116 (auth), S117 (dead portfolio/pricing).
+
+## Round 38 — 2026-09-12 — options math audit → S119 dead panels
+
+Проверка options-стека после deprecated-shim: `options_pricing.py` BS формулы точные (10.4506/5.5735/0.6368/0.0188), `OptionsSimulator` живой канонический (per-day theta, IV Newton). Но web-ui панели:
+- S119: `Math.erf` TypeError (оба файла) + `Math.pi`→NaN pdf + TDZ `const callPrice=callPrice(K)` (straddle/strangle) + iron-condor знак премии инвертирован + BE на long-страйках + theta yr-vs-day дрейф. Всё fixed; +8 тестов; vitest 150 файлов/1096 green; eslint clean.
+- Sweep: 0 других несуществующих Math.*, 0 других `const X = X(` TDZ.
+
+## Round 39 — 2026-09-12 — dead config keys (S120)
+
+`settings.yaml` имел 9 ключей без читателей. Удалены: `trading.timeframe` (сим сам шлёт свечи), `risk.stop_loss_pct`/`take_profit_pct` (SL/TP стратегиями через ATR, sizing от signal.stop_loss), `indicators.macd_*` (сам macd() нигде не вызывается). Заведены: `rsi_period`→MeanReversion, `atr_period`→FFTCycle+MeanReversion (hardcode 14), `rsi/adx_period`→LLM-контекст. Параллельно user завёл network.* timeouts + metrics.* + strategies.*-тюнабли — тот же класс находки, bundled в коммит. pytest 1456 green, ruff clean.

@@ -202,12 +202,12 @@ The system implements production-grade observability across all components:
 - `arbitrage.py` — Multi-exchange arbitrage detection
 - `config_validator.py` — Config validation with comprehensive error checking
 - `data_export.py` — CSV/Parquet data export
-- `liquidation_engine_v2.py` — Cascade liquidations, partial liquidation, insurance fund, ADL
-- `market_microstructure.py` — Heston stochastic vol, Student-t returns, Merton jumps, Markov regime switching
-- `latency_simulation.py` — Per-exchange latency simulation with jitter, spikes, reconnection backoff
-- `order_book_realism.py` — Realistic L2 order book with spoofing, icebergs, queue positions, adverse selection
-- `funding_rate.py` — Funding rate calculation and history tracking
-- `spread_analytics.py` — Bid-ask spread tracking, percentile statistics, effective slippage measurement
+- `exchange_liquidation.py` — Liquidation cascade, partial liquidation, insurance fund deficit cover
+- `exchange_order_submission.py` — Order validation/submission path (rate limits, trading-stopped, error frames)
+- `exchange_advanced_orders.py` — Stop-limit, trailing-stop, OCO, iceberg order types
+- `options_simulator.py` — Black-Scholes engine with Greeks (per-day theta) + Newton-Raphson IV
+- `options_strategies.py` / `options_pricing.py` — Strategy helpers; `options_pricing` is a deprecated shim
+- `ws_message_handler.py` / `ws_broadcast.py` / `ws_metrics.py` / `ws_prometheus.py` — WS message routing, broadcasts, metrics exposition
 - `__main__.py` — Entry point with timestamped logging via `run_logger.py`
 
 ### 2. AI Signal Bot (`ai-signal-bot/`)
@@ -244,8 +244,7 @@ The system implements production-grade observability across all components:
 
 **Key files:**
 - `src/technical_analysis/indicators.py` — All TA indicators
-- `src/strategies/strategies.py` — Trend following, mean reversion, ensemble
-- `src/strategies/fft_strategy.py` — FFT cycle detection and regime classification
+- `src/strategies/` — Trend following, mean reversion, FFT cycle, sentiment, market making, ML ensemble, statistical arbitrage, ensemble aggregator
 - `src/signal_validation/validator.py` — Risk-based signal filtering
 - `src/communication/ws_client.py` — WebSocket client for exchange
 - `src/communication/signal_publisher.py` — WebSocket server for signals + backtest endpoint
@@ -261,7 +260,6 @@ The system implements production-grade observability across all components:
 - `src/risk/risk_manager.py` — Trailing stop, breakeven, partial TP, max hold time
 - `src/risk/kelly.py` — Kelly Criterion position sizing
 - `src/backtesting/backtester.py` — Backtesting engine with fee/slippage modeling
-- `src/backtesting/order_book_replay.py` — Order book replay for OBI backtesting
 - `src/backtesting/optimizer.py` — Strategy parameter optimization with grid search
 - `src/backtesting/plotter.py` — Matplotlib equity curve plotting
 - `run.py` — Main entry point with timestamped logging
@@ -287,17 +285,14 @@ The HFT bot was upgraded to v2.0.0 with a complete latency optimization overhaul
 |-----------|-------------|
 | Signal Engine V2 | 6-indicator weighted composite: InlineEMA(21/50) 0.25, InlineRSI(14) 0.15, OBI(5/10/20) 0.20, VWAP deviation 0.10, InlineADX(14) 0.10, Pressure 0.20 |
 | Pressure Model | Multi-level OBI, trade flow imbalance, toxicity detection, microprice, queue position, spread regime, price impact prediction |
-| Smart Order Router V2 | IExchange interface (DIP/SOLID), 5 strategies: BestPrice, LowestLatency, LowestFees, BestEffective, DepthAware. Anti-toxic backoff, per-exchange latency tracking |
 | Adaptive Order Selector V2 | Dynamic IOC/FOK/GTD/PostOnly based on confidence, spread, OBI, toxicity. Exchange-specific mappings for Binance, OKX, Bybit |
 | Latency Infrastructure | Spinlock, SPSCQueue (lock-free), ObjectPool (no heap alloc), LatencyHistogram (P50/P95/P99/P99.9), ScopedLatency (RAII), ThreadAffinity, CircuitBreaker, RetryPolicy |
 | Cache-Line Alignment | All hot-path structs `alignas(64)`: AlignedOrderBookLevel, FastSignal, FastOrder, PressureResult, RoutingDecision |
 | Dynamic Leverage | Confidence >= 85 + ADX > 30 -> 5x, >= 75 -> 3x, else 1x |
 | Graceful Shutdown | Cancel all open positions before exit, latency report logging |
 | V1 Fallback | Configurable via `signal_engine_v2_enabled` flag |
-| Momentum Breakout V2 | Multi-timeframe EMA stack (9/21/50/200) with slope detection, volume confirmation (1.5x avg), ATR-based breakout levels, ADX-gated (ADX > 25), confidence scoring |
-| Market Making V2 | Avellaneda-Stoikov model: reservation price, optimal spread, inventory-skewed quotes, EWMA volatility, adverse selection protection (toxicity cancel), max inventory caps |
-| Statistical Arbitrage V2 | Cointegration-based pair trading: Engle-Granger OLS regression, Kalman filter adaptive hedge ratio, z-score entry/exit, stop-loss on spread divergence, multi-pair correlation matrix |
-| Risk Infrastructure | KillSwitch (file/programmatic/daily-loss triggers, SHM notification, order blocking), PreTradeRisk (token bucket rate limiter, blacklist/whitelist, position/exposure/loss limits, margin buffer check), PortfolioRisk (historical & parametric VaR, CVaR, stress scenarios, drawdown tracker, correlation-adjusted exposure) |
+| Signal Engine V3 | OnlineHMM regime engine (log-space forward recursion, Gaussian emissions, online adaptation) — opt-in via config, V2 is default |
+| Risk Infrastructure | KillSwitch (file/programmatic/daily-loss triggers, SHM notification, order blocking) + `risk_manager.h` pre-trade checks and position sizing |
 
 **Compiler flags:** GCC/Clang: `-O3`, `-flto` (LTO), `-msse4.2`, `-ffast-math`, `-finline-functions`. MSVC: `/O2`, `/GL` (LTO), `/utf-8`, `NOMINMAX` (prevents min/max macro pollution).
 
@@ -355,45 +350,33 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `/hft_fills` — SPSC ring buffer (4096 capacity), C++ produces, Python consumes
 - `/hft_market` — Latest-snapshot-wins (10 slots × 64 bytes, seq-guarded), Python writes, C++ reads. Memory layout: `[num_slots: uint64][SnapshotSlot 0]...[SnapshotSlot N-1]` where each `SnapshotSlot` is 64 bytes (seq + data + padding). The 8-byte `num_slots` header is written by the creator.
 - `/hft_kill_switch` — SPSC ring buffer (64 capacity), C++ produces, Python consumes
-- `/hft_heartbeat` — Single-slot seq-guarded (64 bytes), C++ writes, Python reads. Contains timestamp, message count, error count, and status. `is_alive()` checks freshness against configurable timeout. Supports automatic heartbeat thread in C++ via `ShmHeartbeatWriter`.
 
 **Key files:**
 - `src/core/main.cpp` — Main entry point, V2 integration, latency histograms, graceful shutdown
 - `src/core/config.h` / `config.cpp` — YAML config loader with 20+ V2 parameters
 - `src/core/logger.h` — spdlog logger with timestamped filenames and `_latest.log` pointer
 - `src/strategies/signal_engine.h` — V1 HFT signal engine (6 indicators, FFT)
-- `src/strategies/signal_engine_v2.h` — V2 SignalEngineV2, InlineEMA, InlineRSI, InlineADX, InlineVWAP
+- `src/strategies/signal_engine_v2.h` / `signal_engine_v2.cpp` — V2 SignalEngineV2, InlineEMA, InlineRSI, InlineADX, InlineVWAP (+ `signal_engine_v2_params.h`, `signal_engine_v2_finalize.h`)
+- `src/strategies/signal_engine_v3.h` — OnlineHMM regime engine (opt-in)
 - `src/strategies/pressure_model.h` — Multi-level OBI, toxicity, microprice, queue position
-- `src/strategies/momentum_breakout_v2.h` — Multi-timeframe EMA stack, volume confirmation, ADX-gated breakouts
-- `src/strategies/market_making_v2.h` — Avellaneda-Stoikov model, inventory-skewed quotes, adverse selection protection
-- `src/strategies/statistical_arb_v2.h` — Cointegration pair trading, Kalman hedge ratio, z-score signals, correlation matrix
-- `src/strategies/mean_reversion_v2.h` — V2 mean reversion with Kalman filter
-- `src/execution/smart_order_router_v2.h` — IExchange, ExchangeBase, SmartOrderRouterV2
+- `src/strategies/inline_indicators.h` / `obi_utils.h` — Stack-allocated indicator primitives
 - `src/execution/adaptive_order_selector_v2.h` — Dynamic order type selection with exchange mappings
 - `src/execution/order_executor.h` — Order submission and arbitrage execution
-- `src/execution/order_manager.h` — Order lifecycle (PENDING→ACK→PARTIAL→FILLED), timeout tracking with scan range optimization (max_slot_used_)
-- `src/execution/latency_tracker.h` — Per-stage latency histograms, percentile computation, budget enforcement
 - `src/execution/order_type_selector.h` — V1 smart order type selection
 - `src/ipc/shm_protocol.h` — Binary IPC message structs (SignalMsg, FillMsg, MarketSnapshotMsg, KillSwitchMsg) with Python struct equivalents
 - `src/ipc/shm_ring_buffer.h` — SPSC lock-free ring buffer with bulk push/pop (2-memcpy optimization for wrap-around)
-- `src/ipc/shm_heartbeat.h` — Heartbeat IPC: ShmHeartbeatWriter (auto-thread) and ShmHeartbeatReader (is_alive, age_ms)
+- `src/ipc/shm_fill_producer.h` / `shm_signal_consumer.h` — SHM producers/consumers for fills and signals
 - `src/ipc/shm_market_data.h` — Latest-snapshot-wins market data with 8-byte num_slots header, seq-guarded reads
-- `src/communication/signal_receiver.h` — WebSocket client (dual: 8765 + 8766)
+- `src/communication/signal_receiver.h` (+ `_data`/`_handlers`) — WebSocket client (dual: 8765 + 8766)
+- `src/network/ws_client.h` — Native WebSocket client
 - `src/risk/risk_manager.h` — Pre-trade risk checks, position sizing
 - `src/risk/kill_switch.h` — Emergency stop (file trigger, manual, daily loss), SHM notification, order blocking
-- `src/risk/pre_trade_risk.h` — Token bucket rate limiter, blacklist/whitelist, position/exposure/loss limits, margin check
-- `src/risk/portfolio_risk.h` — Historical/parametric VaR, CVaR (Expected Shortfall), stress testing, drawdown tracker, correlation-adjusted exposure
 - `src/position/position_manager.h` — Thread-safe position tracking and SL/TP
+- `src/monitoring/health_server.h` / `system_monitor.h` — Health endpoint + metrics registry
 - `src/utils/low_latency.h` — Spinlock, SPSCQueue, ObjectPool, LatencyHistogram, ScopedLatency, ThreadAffinity, CircuitBreaker, RetryPolicy
-- `src/data/aligned_types.h` — Cache-line aligned structs for hot path
-- `src/market_data/candle_aggregator.h` — Tick-to-candle aggregation (time, volume, tick modes) with OHLCV
-- `src/market_data/trade_handler.h` — Trade tape processing, aggressor detection, rolling VWAP, large trade detection (3σ)
-- `src/market_data/order_book_manager.h` — Real-time order book management and L2 depth tracking
-- `src/execution/order_manager.h` — Order lifecycle (PENDING→ACK→PARTIAL→FILLED), timeout tracking with scan range optimization (max_slot_used_)
-- `tests/test_signal_engine_v2.cpp` — 30+ V2 unit tests
-- `tests/test_signal_engine.cpp` — 25 V1 unit tests
-- `tests/test_doctest_*.cpp` — 27 doctest test files (risk_manager, pressure_model, signal_engine, position_manager, momentum_breakout, market_making, statistical_arb, mean_reversion, smart_order_router, order_manager, latency_tracker, position_manager_v1, portfolio_risk, pre_trade_risk, position_manager_v2, candle_aggregator, trade_handler, order_book_manager, kill_switch, shm_heartbeat, shm_market_data, shm_bulk, adaptive_order_selector, system_monitor, order_type_selector, fix_message, signal_engine_v2)
-- `CMakeLists.txt` — v2.0.0, LTO, O3, simdjson optional, V1 + V2 test targets
+- `src/data/aligned_types.h` / `types.h` / `signal.h` — Cache-line aligned structs for hot path
+- `tests/test_doctest_*.cpp` — doctest suites (risk_manager, pressure_model, signal_engine, signal_engine_v3, position_manager_v1, kill_switch, shm_bulk, shm_market_data, adaptive_order_selector, system_monitor, order_type_selector, hft_config, cpp_optimizations) + `test_integration_*.cpp`
+- `CMakeLists.txt` — v2.0.0, LTO, O3, simdjson optional
 - `config/config.yaml` — Full V2 configuration sections
 
 ### 4. Web UI Dashboard (`web-ui/`)
