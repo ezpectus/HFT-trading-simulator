@@ -1,5 +1,6 @@
 import { memo, useState, useMemo } from 'react'
 import { Calculator, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { erf } from '../utils/copulaMath'
 
 function OptionsPricing() {
   const [params, setParams] = useState({
@@ -21,8 +22,8 @@ function OptionsPricing() {
     const d2 = d1 - sigma * Math.sqrt(T)
     
     // CDF function
-    const cdf = (x) => 0.5 * (1 + Math.erf(x / Math.sqrt(2)))
-    const pdf = (x) => Math.exp(-0.5 * x ** 2) / Math.sqrt(2 * Math.pi)
+    const cdf = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
+    const pdf = (x) => Math.exp(-0.5 * x ** 2) / Math.sqrt(2 * Math.PI)
     
     // Calculate option price
     let price
@@ -38,11 +39,13 @@ function OptionsPricing() {
     const gamma = pdf(d1) / (S * sigma * Math.sqrt(T))
     const vega = S * pdf(d1) * Math.sqrt(T) / 100
     
+    // Per-day theta — matches exchange_simulator OptionsSimulator (OptionQuote.theta
+    // is documented per-day); OptionsChain shows sim values in the same units.
     let theta
     if (optionType === 'call') {
-      theta = -(S * pdf(d1) * sigma) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * cdf(d2)
+      theta = (-(S * pdf(d1) * sigma) / (2 * Math.sqrt(T)) - r * K * Math.exp(-r * T) * cdf(d2)) / 365
     } else {
-      theta = -(S * pdf(d1) * sigma) / (2 * Math.sqrt(T)) + r * K * Math.exp(-r * T) * cdf(-d2)
+      theta = (-(S * pdf(d1) * sigma) / (2 * Math.sqrt(T)) + r * K * Math.exp(-r * T) * cdf(-d2)) / 365
     }
     
     let rho
@@ -153,7 +156,7 @@ function OptionsPricing() {
             <div className="font-mono text-gray-200">{results.gamma.toFixed(4)}</div>
           </div>
           <div>
-            <div className="text-gray-500 text-[10px]">Theta</div>
+            <div className="text-gray-500 text-[10px]">Theta (per day)</div>
             <div className="font-mono text-gray-200">{results.theta.toFixed(4)}</div>
           </div>
           <div>

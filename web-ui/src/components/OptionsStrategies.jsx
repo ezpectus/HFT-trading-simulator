@@ -1,5 +1,6 @@
 import { memo, useState, useMemo } from 'react'
 import { Layers, TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react'
+import { erf } from '../utils/copulaMath'
 
 function OptionsStrategies() {
   const [strategy, setStrategy] = useState('straddle')
@@ -29,17 +30,17 @@ function OptionsStrategies() {
     // Black-Scholes pricing helper
     const d1 = (logS, K) => (Math.log(logS / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * Math.sqrt(T))
     const d2 = (d1_val) => d1_val - sigma * Math.sqrt(T)
-    const cdf = (x) => 0.5 * (1 + Math.erf(x / Math.sqrt(2)))
+    const cdf = (x) => 0.5 * (1 + erf(x / Math.sqrt(2)))
     const callPrice = (K) => S * cdf(d1(S, K)) - K * Math.exp(-r * T) * cdf(d2(d1(S, K)))
     const putPrice = (K) => K * Math.exp(-r * T) * cdf(-d2(d1(S, K))) - S * cdf(-d1(S, K))
 
     let maxProfit, maxLoss, breakEvens, payoffAtExpiry
 
     if (strategy === 'straddle') {
-      const callPrice = callPrice(params.K)
-      const putPrice = putPrice(params.K)
+      const callPx = callPrice(params.K)
+      const putPx = putPrice(params.K)
       const position = long ? 1 : -1
-      const totalPremium = position * (callPrice + putPrice)
+      const totalPremium = position * (callPx + putPx)
 
       maxProfit = long ? Infinity : totalPremium
       maxLoss = long ? -totalPremium : Infinity
@@ -52,10 +53,10 @@ function OptionsStrategies() {
         payoffAtExpiry.push({ price, payoff: callPayoff + putPayoff - totalPremium })
       }
     } else if (strategy === 'strangle') {
-      const callPrice = callPrice(params.K_call)
-      const putPrice = putPrice(params.K_put)
+      const callPx = callPrice(params.K_call)
+      const putPx = putPrice(params.K_put)
       const position = long ? 1 : -1
-      const totalPremium = position * (callPrice + putPrice)
+      const totalPremium = position * (callPx + putPx)
 
       maxProfit = long ? Infinity : totalPremium
       maxLoss = long ? -totalPremium : Infinity
@@ -75,12 +76,14 @@ function OptionsStrategies() {
       const putHighPrice = putPrice(params.K_put_high)
       const putLowPrice = putPrice(params.K_put_low)
 
-      const netPremium = (putLowPrice - putHighPrice) + (callHighPrice - callLowPrice)
+      // Iron condor = sell put spread + sell call spread → net credit.
+      // Credit = (short legs) − (long legs); break-evens sit on the SHORT strikes.
+      const netPremium = (putHighPrice - putLowPrice) + (callLowPrice - callHighPrice)
       maxProfit = netPremium
       const putSpreadWidth = params.K_put_high - params.K_put_low
       const callSpreadWidth = params.K_call_high - params.K_call_low
       maxLoss = -Math.max(putSpreadWidth, callSpreadWidth) + netPremium
-      breakEvens = [params.K_put_low - netPremium, params.K_call_high + netPremium]
+      breakEvens = [params.K_put_high - netPremium, params.K_call_low + netPremium]
 
       payoffAtExpiry = []
       const minPrice = Math.min(params.K_put_low, params.K_put_high) * 0.5
