@@ -962,3 +962,16 @@ All eight HFT findings closed. C++ compile verification impossible locally (no M
 - **S061 — `mapped_persistence.h` deleted.** 371 lines, zero references.
 
 **Deleted:** ~3000 lines of dead C++/Rust. **Test state:** Rust 26/26 (pre-deletion); C++ unverifiable locally — flagged for CI.
+
+## Round 21 — FIX branch: dead-code mass deletion + advanced orders wired (S078, S086, S092, S094, S095, +S099)
+
+HFT rows skipped — parallel session is mid-cleanup there. Took the four dead-code islands + the advanced-order wiring.
+
+- **S078**: deleted `fix_client.py` (459), `notifier.py` (384), `socket_transport.py` (164) + 3 tests; empty `networking/`/`notification/` packages removed.
+- **S086**: deleted 6 dead nested sim modules (1240 lines) + 6 test files; `_nested_modules` registry updated.
+- **S092**: deleted entire `src/ml/` (~2848 lines, 10 modules) + 11 test files. `MLEnsembleStrategy` uses `strategies/ml_features.py` — unaffected.
+- **S094 (wired, not deleted)**: `check_advanced_orders()` now called in `ws_broadcast._process_exchange_events` (fills flow into the broadcast batch) and both `__main__` loops; executors lock margin via S082's `_lock_margin`. Runtime-verified: STOP_LIMIT PENDING → FILLED @62238.8 on stop breach, position closed, pending cleared.
+- **S095**: deleted `src/research/` (34 modules, 7578 lines) + 20/25 `technical_analysis` (kept live: indicators, fft_analysis, hawkes_funcs, hawkes_model) + 52 test files.
+- **S099 (new finding)**: 25 ai-signal-bot tests fail on clean master (verified via stash — NOT from deletions): stale-after-refactor tests — config validation rejects its own valid fixture, VaR/CVaR/Kelly value mismatches, SHM mock side-effects not intercepted, signal_publisher never removes disconnected clients. The CI gate (S070) doesn't catch it.
+
+**Total: 155 files, −31,065 lines.** Sim suite: 443 pass (178 dead-module tests removed). ai-bot suite collects clean: 1412 tests, no import errors.
