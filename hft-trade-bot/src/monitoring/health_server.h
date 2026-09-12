@@ -131,7 +131,7 @@ class HealthServer {
                     body        = build_health_json();
                     status_line = health_.is_healthy() ? "200 OK" : "503 Service Unavailable";
                 } else if (is_metrics) {
-                    body        = monitor_ ? monitor_->format_json() : "{}";
+                    body        = monitor_ ? monitor_->format_prometheus() : "";
                     status_line = "200 OK";
                 } else {
                     status_line = "404 Not Found";
@@ -140,7 +140,10 @@ class HealthServer {
 
                 std::string response = "HTTP/1.1 " + status_line +
                                        "\r\n"
-                                       "Content-Type: application/json\r\n"
+                                       "Content-Type: " +
+                                       (is_metrics ? "text/plain; version=0.0.4"
+                                                   : "application/json") +
+                                       "\r\n"
                                        "Content-Length: " +
                                        std::to_string(body.size()) +
                                        "\r\n"

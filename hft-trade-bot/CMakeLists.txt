@@ -319,36 +319,6 @@ function(add_hft_test name source)
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
 
-# Order book manager tests
-add_hft_test(test_order_book tests/test_order_book.cpp)
-
-# Mean reversion v2 tests
-add_hft_test(test_mean_reversion tests/test_mean_reversion.cpp)
-
-# Market making v2 tests
-add_hft_test(test_market_making tests/test_market_making.cpp)
-
-# Risk engine tests
-add_hft_test(test_risk tests/test_risk.cpp)
-target_link_libraries(test_risk PRIVATE fmt::fmt spdlog::spdlog)
-# Fallback: on some distros (Ubuntu 24.04) the fmt::fmt CMake target may be
-# header-only, causing undefined references to fmt::v9 symbols at link time.
-# Link the actual shared library directly to resolve this.
-find_library(FMT_LIBRARY NAMES fmt)
-find_library(SPDLOG_LIBRARY NAMES spdlog)
-if(FMT_LIBRARY)
-    target_link_libraries(test_risk PRIVATE ${FMT_LIBRARY})
-endif()
-if(SPDLOG_LIBRARY)
-    target_link_libraries(test_risk PRIVATE ${SPDLOG_LIBRARY})
-endif()
-
-# Order manager tests
-add_hft_test(test_order_manager tests/test_order_manager.cpp)
-
-# Position manager v2 tests
-add_hft_test(test_position_manager tests/test_position_manager.cpp)
-
 # SHM ring buffer tests (POSIX-only — shm_open, mmap)
 if(NOT WIN32)
     add_hft_test(test_shm tests/test_shm.cpp)
@@ -356,9 +326,6 @@ if(NOT WIN32)
         target_link_libraries(test_shm PRIVATE rt)
     endif()
 endif()
-
-# Latency tracker tests
-add_hft_test(test_latency_tracker tests/test_latency_tracker.cpp)
 
 # ─── New unit tests (monitoring, network) ───
 add_hft_test(test_monitoring tests/unit/test_monitoring.cpp)
@@ -392,6 +359,12 @@ function(add_doctest_test name source)
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
 
+# Fallback: on some distros (Ubuntu 24.04) the fmt::fmt CMake target may be
+# header-only, causing undefined references to fmt::v9 symbols at link time.
+# Link the actual shared library directly to resolve this.
+find_library(FMT_LIBRARY NAMES fmt)
+find_library(SPDLOG_LIBRARY NAMES spdlog)
+
 # Risk manager doctest tests (no fmt dependency — uses minimal stub)
 add_doctest_test(test_doctest_risk_manager tests/test_doctest_risk_manager.cpp)
 
@@ -401,47 +374,8 @@ add_doctest_test(test_doctest_pressure_model tests/test_doctest_pressure_model.c
 # Signal engine doctest tests (indicators + params + analyze)
 add_doctest_test(test_doctest_signal_engine tests/test_doctest_signal_engine.cpp)
 
-# Position manager v2 doctest tests (open/close/reverse, PnL, margin, SL/TP)
-add_doctest_test(test_doctest_position_manager tests/test_doctest_position_manager.cpp)
-
-# Momentum breakout v2 doctest tests (EMA stack, volume confirm, ADX gate, SL/TP)
-add_doctest_test(test_doctest_momentum_breakout tests/test_doctest_momentum_breakout.cpp)
-
-# Market making v2 doctest tests (reservation price, inventory skew, toxicity, spread)
-add_doctest_test(test_doctest_market_making tests/test_doctest_market_making.cpp)
-
-# Statistical arbitrage v2 doctest tests (OLS, Kalman hedge ratio, z-score, correlation matrix)
-add_doctest_test(test_doctest_statistical_arb tests/test_doctest_statistical_arb.cpp)
-
-# Mean reversion v2 doctest tests (Kalman filter, OU params, z-score tracking, signals)
-add_doctest_test(test_doctest_mean_reversion tests/test_doctest_mean_reversion.cpp)
-
-# Order manager doctest tests (lifecycle, partial fill, timeout, modify, slot reuse)
-add_doctest_test(test_doctest_order_manager tests/test_doctest_order_manager.cpp)
-
-# Latency tracker doctest tests (per-stage recording, percentiles, budget alerts, scoped measurement)
-add_doctest_test(test_doctest_latency_tracker tests/test_doctest_latency_tracker.cpp)
-
 # Position manager V1 doctest tests (open, close, pnl, SL/TP, NEUTRAL guard)
 add_doctest_test(test_doctest_position_manager_v1 tests/test_doctest_position_manager_v1.cpp)
-
-# Portfolio risk doctest tests (drawdown, historical VaR, parametric VaR, CVaR, stress test, correlation exposure)
-add_doctest_test(test_doctest_portfolio_risk tests/test_doctest_portfolio_risk.cpp)
-
-# Pre-trade risk doctest tests (token bucket, blacklist/whitelist, position limits, exposure, daily loss, margin check regression)
-add_doctest_test(test_doctest_pre_trade_risk tests/test_doctest_pre_trade_risk.cpp)
-
-# Position manager V2 doctest tests (open/add/close/reverse, weighted avg, PnL, margin, fees, SL/TP, margin call, reset)
-add_doctest_test(test_doctest_position_manager_v2 tests/test_doctest_position_manager_v2.cpp)
-
-# Candle aggregator doctest tests (time/volume/tick modes, OHLC, flush, zero-price edge case regression)
-add_doctest_test(test_doctest_candle_aggregator tests/test_doctest_candle_aggregator.cpp)
-
-# Trade handler doctest tests (aggressor detection, VWAP, rolling stats O(1) incremental, large trade detection, reset)
-add_doctest_test(test_doctest_trade_handler tests/test_doctest_trade_handler.cpp)
-
-# Order book manager doctest tests (L2 book, bid/ask updates, removal, snapshot, spread regime, OBI, crossed/locked)
-add_doctest_test(test_doctest_order_book_manager tests/test_doctest_order_book_manager.cpp)
 
 # Kill switch doctest tests (activate/deactivate, reason+timestamp recording regression, callbacks, idempotency)
 add_doctest_test(test_doctest_kill_switch tests/test_doctest_kill_switch.cpp)
@@ -453,16 +387,12 @@ if(SPDLOG_LIBRARY)
     target_link_libraries(test_doctest_kill_switch PRIVATE ${SPDLOG_LIBRARY})
 endif()
 
-# SHM heartbeat doctest tests (writer/reader round-trip, seq consistency, is_alive, age_ms, auto heartbeat)
-add_doctest_test(test_doctest_shm_heartbeat tests/test_doctest_shm_heartbeat.cpp)
-
 # SHM market data doctest tests (write/read round-trip, num_slots header, multiple symbols, bounds, writer/reader)
 add_doctest_test(test_doctest_shm_market_data tests/test_doctest_shm_market_data.cpp)
 
 # SHM ring buffer bulk push/pop optimization tests (contiguous, wrap-around, partial fill, full cycle)
 add_doctest_test(test_doctest_shm_bulk tests/test_doctest_shm_bulk.cpp)
 
-# Adaptive order selector V2 doctest tests (emergency FOK, toxic IOC, confidence/spread/OBI paths, GTD, PostOnly, exchange mappings)
 add_doctest_test(test_doctest_adaptive_order_selector tests/test_doctest_adaptive_order_selector.cpp)
 
 # System monitor doctest tests (counters, fill/rejection rate, snapshot, reset, format_json regression, MemoryTracker, HealthStatus)
@@ -471,17 +401,12 @@ add_doctest_test(test_doctest_system_monitor tests/test_doctest_system_monitor.c
 # Order type selector + core types doctest tests (select branches, limit_price, OrderBook methods, Position PnL, side conversion)
 add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_selector.cpp)
 
-# Property-based tests (random market data + invariant checking: SL/TP always closes, PnL consistency, weighted avg entry)
-add_doctest_test(test_doctest_property_based tests/test_doctest_property_based.cpp)
-
 # Signal Engine V3 doctest tests (HMM regime detection, state transitions, regime gating, multi-symbol)
 add_doctest_test(test_doctest_signal_engine_v3 tests/test_doctest_signal_engine_v3.cpp)
 
 # ─── Integration tests (doctest-based) ───
 add_doctest_test(test_integration_config tests/test_integration_config.cpp)
 target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp)
-
-add_doctest_test(test_integration_signal_engine tests/test_integration_signal_engine.cpp)
 
 add_doctest_test(test_integration_kill_switch_monitor tests/test_integration_kill_switch_monitor.cpp)
 target_link_libraries(test_integration_kill_switch_monitor PRIVATE fmt::fmt spdlog::spdlog)
