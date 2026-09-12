@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { Layers, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { StatCard } from '../utils/ui-helpers'
@@ -40,12 +40,54 @@ function moneynessColor(strike, currentPrice, isCall) {
 }
 
 /**
- * Options Chain — theoretical Black-Scholes chain priced at REALIZED vol
- * from live candles (30d expiry, r=0). Volume/OI require an options feed
- * and are intentionally not shown.
+ * Options Chain — server-side Black-Scholes chain with greeks from the
+ * exchange simulator (`options_chain` WS request). Falls back to a
+ * client-side BS estimate at realized vol when the endpoint is absent.
+ * Volume/OI require an options feed and are intentionally not shown.
  */
-const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchange, symbol }) {
+const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchange, symbol, optionsChain, requestOptionsChain }) {
   const [selected, setSelected] = useState(null)
+  const requestedSymbolRef = useRef(null)
+
+  // Request the real chain from the simulator; refresh on a slow poll.
+  useEffect(() => {
+    if (!requestOptionsChain || !symbol) return
+    const strikes = STRIKE_STEPS.map(k => currentPrice ? currentPrice * (1 + k / 100) : 0).filter(s => s > 0)
+    if (!strikes.length) return
+    requestOptionsChain(symbol, strikes, [T_DAYS / 365])
+    requestedSymbolRef.current = symbol
+    const t = setInterval(() => requestOptionsChain(symbol, strikes, [T_DAYS / 365]), 5000)
+    return () => clearInterval(t)
+  }, [requestOptionsChain, symbol, currentPrice])
+
+  const serverData = useMemo(() => {
+    if (!optionsChain || optionsChain.symbol !== symbol || !optionsChain.chain?.length) return null
+    const expiry = T_DAYS / 365
+    const rows = []
+    for (const k of STRIKE_STEPS) {
+      const strike = optionsChain.underlying_price * (1 + k / 100)
+      const call = optionsChain.chain.find(q => q.type === 'call' && Math.abs(q.strike - strike) / strike < 0.001)
+      const put = optionsChain.chain.find(q => q.type === 'put' && Math.abs(q.strike - strike) / strike < 0.001)
+      if (call || put) {
+        rows.push({
+          strike,
+          call: call?.price, put: put?.price,
+          callDelta: call?.delta, putDelta: put?.delta,
+          gamma: call?.gamma ?? put?.gamma,
+          callTheta: call?.theta, putTheta: put?.theta,
+        })
+      }
+    }
+    if (!rows.length) return null
+    const atm = rows[Math.floor(rows.length / 2)]
+    return {
+      spot: optionsChain.underlying_price,
+      sigma: optionsChain.volatility,
+      rows, atm,
+      expectedMove: optionsChain.underlying_price * optionsChain.volatility * Math.sqrt(expiry),
+      source: 'server',
+    }
+  }, [optionsChain, symbol])
 
   const data = useMemo(() => {
     const cs = selectCandles(candles, exchange, symbol)
@@ -69,8 +111,10 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
     }).filter(r => r.call != null)
 
     const atm = rows[Math.floor(rows.length / 2)]
-    return { spot, sigma, rows, expectedMove: spot * sigma * Math.sqrt(T), atm }
+    return { spot, sigma, rows, expectedMove: spot * sigma * Math.sqrt(T), atm, source: 'client' }
   }, [candles, currentPrice, exchange, symbol])
+
+  const display = serverData ?? data
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -79,19 +123,19 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
           <Layers size={14} className="text-accent-blue" />
           <span className="text-sm font-medium">Options Chain</span>
         </div>
-        <span className="text-[10px] text-gray-600">{symbol ?? ''} @ ${formatPrice(data?.spot ?? 0, 0)}</span>
+        <span className="text-[10px] text-gray-600">{symbol ?? ''} @ ${formatPrice(display?.spot ?? 0, 0)}</span>
       </div>
 
-      {!data ? (
-        <div className="text-gray-500 text-[10px] p-2">Need candles to estimate realized vol for pricing</div>
+      {!display ? (
+        <div className="text-gray-500 text-[10px] p-2">Waiting for options chain from simulator (falls back to candle-based estimate)</div>
       ) : (
         <>
           {/* Summary */}
           <div className="grid grid-cols-4 gap-1">
-            <StatCard label="Realized σ" value={`${(data.sigma * 100).toFixed(0)}%`} color="text-accent-yellow" size="xs" compact />
-            <StatCard label={`ATM Call ${T_DAYS}d`} value={`$${formatPrice(data.atm.call, 0)}`} color="text-accent-green" size="xs" compact />
-            <StatCard label={`ATM Put ${T_DAYS}d`} value={`$${formatPrice(data.atm.put, 0)}`} color="text-accent-red" size="xs" compact />
-            <StatCard label="Exp. Move" value={`±$${formatPrice(data.expectedMove, 0)}`} color="text-gray-300" size="xs" compact />
+            <StatCard label={display.source === 'server' ? 'Sim σ' : 'Realized σ'} value={`${(display.sigma * 100).toFixed(0)}%`} color="text-accent-yellow" size="xs" compact />
+            <StatCard label={`ATM Call ${T_DAYS}d`} value={`$${formatPrice(display.atm.call, 0)}`} color="text-accent-green" size="xs" compact />
+            <StatCard label={`ATM Put ${T_DAYS}d`} value={`$${formatPrice(display.atm.put, 0)}`} color="text-accent-red" size="xs" compact />
+            <StatCard label="Exp. Move" value={`±$${formatPrice(display.expectedMove, 0)}`} color="text-gray-300" size="xs" compact />
           </div>
 
           {/* Chain table */}
@@ -101,8 +145,8 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
               <span className="flex items-center gap-1 justify-end">Puts (theo)<TrendingDown size={9} className="text-accent-red" /></span>
             </div>
             <div className="max-h-48 overflow-y-auto">
-              {data.rows.map((row) => {
-                const isATM = Math.abs(row.strike - data.spot) / data.spot < 0.01
+              {display.rows.map((row) => {
+                const isATM = Math.abs(row.strike - display.spot) / display.spot < 0.01
                 return (
                   <div
                     key={row.strike}
@@ -111,7 +155,7 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
                   >
                     {/* Call side */}
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-[9px] font-mono w-10 ${moneynessColor(row.strike, data.spot, true)}`}>
+                      <span className={`text-[9px] font-mono w-10 ${moneynessColor(row.strike, display.spot, true)}`}>
                         ${formatPrice(row.strike, 0)}
                       </span>
                       <span className="text-[9px] font-mono text-gray-400 w-8">{row.callDelta.toFixed(2)}Δ</span>
@@ -121,7 +165,7 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
                     <div className="flex items-center gap-1.5 justify-end">
                       <span className="text-[9px] font-mono text-accent-red w-12 text-right">${formatPrice(row.put, 0)}</span>
                       <span className="text-[9px] font-mono text-gray-400 w-8 text-right">{row.putDelta.toFixed(2)}Δ</span>
-                      <span className={`text-[9px] font-mono w-10 text-right ${moneynessColor(row.strike, data.spot, false)}`}>
+                      <span className={`text-[9px] font-mono w-10 text-right ${moneynessColor(row.strike, display.spot, false)}`}>
                         ${formatPrice(row.strike, 0)}
                       </span>
                     </div>
@@ -133,7 +177,7 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
 
           {/* Selected option details */}
           {selected && (() => {
-            const row = data.rows.find(r => r.strike === selected)
+            const row = display.rows.find(r => r.strike === selected)
             return row ? (
               <div className="p-2 bg-bg-700 border border-bg-600 rounded">
                 <div className="text-[10px] text-gray-600 uppercase mb-1">Strike ${formatPrice(selected, 0)} — BS greeks</div>
@@ -158,9 +202,9 @@ const OptionsChain = memo(function OptionsChain({ currentPrice, candles, exchang
           <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">
             <span className="flex items-center gap-1">
               <DollarSign size={9} />
-              Theoretical BS @ realized vol
+              BS @ server vol
             </span>
-            <span>No options feed — vol/OI n/a</span>
+            <span>{display?.source === 'server' ? 'Server chain (sim vol)' : 'Client estimate (realized vol)'}</span>
           </div>
         </>
       )}

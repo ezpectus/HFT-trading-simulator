@@ -23,6 +23,7 @@ export const useTradingStore = create((set) => ({
   weekendMode: false,
   replayPaused: false,
   tradingActive: true,
+  optionsChain: null,
   exchangeConnected: false,
   exchangeLatency: 0,
   exchangeReconnects: 0,
@@ -30,6 +31,7 @@ export const useTradingStore = create((set) => ({
   // Exchange actions (set by hook)
   submitOrder: null,
   closePosition: null,
+  requestOptionsChain: null,
   sendSpeedChange: null,
   sendConfigUpdate: null,
   toggleReplay: null,

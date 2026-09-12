@@ -21,6 +21,7 @@ export function useExchangeData() {
   const [weekendMode, setWeekendMode] = useState(false)
   const [replayPaused, setReplayPaused] = useState(false)
   const [tradingActive, setTradingActive] = useState(true)
+  const [optionsChain, setOptionsChain] = useState(null)
   const lastTimestampRef = useRef(0)
   const candleMap = useRef(new Map())
 
@@ -108,6 +109,10 @@ export function useExchangeData() {
         setArbitrage(data)
         break
       }
+      case 'options_chain': {
+        setOptionsChain(data)
+        break
+      }
       case 'replay_state': {
         setReplayPaused(data.paused || false)
         break
@@ -145,6 +150,13 @@ export function useExchangeData() {
 
   const closePosition = useCallback((exchange, symbol) => {
     return sendExchange({ type: 'close_position', exchange, symbol })
+  }, [sendExchange])
+
+  const requestOptionsChain = useCallback((symbol, strikes, expiries) => {
+    const msg = { type: 'options_chain', symbol }
+    if (strikes) msg.strikes = strikes
+    if (expiries) msg.expiries = expiries
+    return sendExchange(msg)
   }, [sendExchange])
 
   const sendSpeedChange = useCallback((speed) => {
@@ -185,6 +197,7 @@ export function useExchangeData() {
     weekendMode,
     replayPaused,
     tradingActive,
+    optionsChain,
     connected: exchangeConnected,
     latency: exchangeLatency,
     reconnects: exchangeReconnects,
@@ -192,6 +205,7 @@ export function useExchangeData() {
     nextReconnectIn: exchangeNextReconnect,
     submitOrder,
     closePosition,
+    requestOptionsChain,
     sendSpeedChange,
     sendConfigUpdate,
     toggleReplay,

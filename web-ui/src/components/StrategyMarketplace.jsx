@@ -58,6 +58,7 @@ export default memo(function StrategyMarketplace() {
       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase mb-2">
         <Store size={12} className="text-accent-purple" />
         Strategy Marketplace
+        <span className="text-[8px] normal-case px-1  bg-bg-600 text-gray-500" title="Built-in examples + strategies you import/export as JSON files. Stored in this browser's localStorage only — no server marketplace.">local only</span>
         <span className="text-gray-600 ml-auto">{filtered.length}/{allStrategies.length}</span>
       </div>
 

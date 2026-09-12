@@ -35,6 +35,6 @@ describe('OptionsChain', () => {
 
   it('shows empty state without candles', () => {
     render(<OptionsChain currentPrice={44100} candles={[]} exchange="binance" symbol="BTC/USDT" />)
-    expect(screen.getByText(/Need candles to estimate realized vol/)).toBeInTheDocument()
+    expect(screen.getByText(/Waiting for options chain from simulator/)).toBeInTheDocument()
   })
 })

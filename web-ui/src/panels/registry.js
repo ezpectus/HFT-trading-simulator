@@ -806,7 +806,7 @@ export const PANELS = [
   { id: 'strategy-version', name: 'Strategy Version Control', category: 'strategy', component: StrategyVersionControl,
     props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
   { id: 'options-chain', name: 'Options Chain', category: 'orderflow', component: OptionsChain,
-    props: (ctx) => ({ currentPrice: ctx.currentPrice, candles: ctx.exchange.candles, exchange: ctx.selectedExchange, symbol: ctx.selectedSymbol }) },
+    props: (ctx) => ({ currentPrice: ctx.currentPrice, candles: ctx.exchange.candles, exchange: ctx.selectedExchange, symbol: ctx.selectedSymbol, optionsChain: ctx.exchange.optionsChain, requestOptionsChain: ctx.exchange.requestOptionsChain }) },
   { id: 'microstructure', name: 'Microstructure Analysis', category: 'orderflow', component: Microstructure,
     props: (ctx) => ({ symbol: ctx.selectedSymbol, orderbooks: ctx.exchange.orderbooks, candles: ctx.exchange.candles, exchange: ctx.selectedExchange }) },
   { id: 'tick-replay', name: 'Tick Replay', category: 'orderflow', component: TickReplay,
