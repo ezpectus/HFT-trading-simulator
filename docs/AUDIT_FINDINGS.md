@@ -1386,3 +1386,20 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 ## Round 46 — 2026-09-12 — fix S124
 
 - **S124 (Medium) → Done.** `monitoring/tests/test_metrics.py` deleted (spec-loaded `ai-signal-bot/metrics.py` + `exchange_simulator/metrics.py` — removed in S016/e983fdf; `ExchangeSimulatorMetrics`/`AISignalBotMetrics` exist nowhere; live exporters have own tests). `conftest.py` deleted with it (its prometheus-registry fixture served only the metrics tests). `test_alerts.py` repointed to `monitoring/alerts.yml` and its group-name tests updated to the real schema — **10 tests green**. `monitoring/alerts/` empty dir is untracked residue.
+
+## Round 48 — 2026-09-12 — slop-verify deep batch: 8 old-era claims, all VERIFIED
+
+First QA pass over the R26–R35 done-log era (never re-checked until now):
+
+| ID | Pri | Claim | Evidence |
+|----|-----|-------|----------|
+| S081 | Critical | residual position on over-fill | `exchange_order_submission.py:447-477` — `_open_residual_position` opens the leftover at filled_price with own margin + audit event |
+| S082 | High | margin locked on fills | `_lock_margin` :324; debited at :299 / adv :195/:256; released proportionally at :424 + liquidation.py:121 |
+| S094 | High | advanced orders wired | `check_advanced_orders()` in both `__main__.py` loops + `ws_broadcast.py:252` |
+| S098 | High | arb rejection legs checked | `ws_broadcast.py:347-360` — FILLED statuses checked BEFORE close_opportunity; failure path logs both legs' rejection_reason |
+| S102 | High | SimulatorAdapter real WS | `exchange_factory.py:67` — recv-loop broadcast cache, FIFO order futures (10s), honest `cancel_order()→False`; factory wiring :354-409 |
+| S106 | High | copula math fixed | `copulaMath.js:181-195` — Lentz `betaCF`, single `/a` division in `regIncompleteBeta` |
+| S092 | High | src/ml deleted | dir absent, 0 orphan imports |
+| S095 | High | src/research deleted | dir absent, 0 orphan imports |
+
+No WRONG/ROTTED entries.

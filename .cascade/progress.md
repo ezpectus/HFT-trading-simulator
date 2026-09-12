@@ -840,3 +840,18 @@ No WRONG/ROTTED entries — nothing reopened.
 ## Round 47 — 2026-09-12 — slop-audit: compose-variants + utils twins — ЧИСТО
 
 Остаточная земля: `docker-compose.{prod,staging,hub}.yml` — healthchecks/порты/образы согласованы; `ui-helpers.js` = 1-строчный re-export shim на .tsx (миграционный паттерн, не дубликат); `mockData.js` = env-gated mock-инфра; `visualizer*.py` живые. Новых находок нет — ротация покрыла всю поверхность.
+
+## Round 48 — 2026-09-12 — slop-verify deep batch (8 old claims, all VERIFIED)
+
+Первый QA-проход по старым done-log записям (эпоха R26–R35, до этого не проверялись):
+
+- **S081 (Critical) VERIFIED:** `_open_residual_position` в exchange_order_submission.py:447-477 — остаток открывается при `filled_quantity > close_qty`.
+- **S082 (High) VERIFIED:** `_lock_margin` (:324) дебетует notional/lev при fills (:299, adv :195/:256); margin release на close в liquidation.py:121 + submission:424.
+- **S094 (High) VERIFIED:** `check_advanced_orders()` в обоих циклах __main__.py (:168,:226) + ws_broadcast.py:252.
+- **S098 (High) VERIFIED:** `_execute_arbitrage` (ws_broadcast.py:330) — `buy_filled`/`sell_filled` проверены ДО close_opportunity/profit-лога; failure-путь логирует rejection_reason обеих ног.
+- **S102 (High) VERIFIED:** `SimulatorAdapter` = exchange_factory.py:67 — recv-loop кэширует broadcast, `place_order` FIFO-future ждёт fill/error (10s timeout), `cancel_order` честно False (задокументировано). Wired в factory :354-409.
+- **S106 (High) VERIFIED:** `regIncompleteBeta`/`betaCF` в copulaMath.js:181-195 — Lentz continued fraction, одиночное `/a` деление (двойное деление убрано).
+- **S092 (High) VERIFIED:** `src/ml/` отсутствует, 0 orphan-импортов.
+- **S095 (High) VERIFIED:** `src/research/` отсутствует, 0 orphan-импортов.
+
+0 WRONG/ROTTED. Done-log эпохи R26-R35 частично подтверждена — 8 самых критичных claims проверены.
