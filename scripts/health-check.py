@@ -21,7 +21,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 COMPONENTS_PY = ["exchange_simulator", "ai-signal-bot"]
 COMPONENT_JS = "web-ui"
 COMPONENT_CPP = "hft-trade-bot"
-COMPONENT_RUST = "hft-executor"
 
 LARGE_FILE_THRESHOLD = 500  # lines
 
@@ -75,18 +74,6 @@ def count_cpp_files() -> tuple[int, int]:
     return files, lines
 
 
-def count_rust_files() -> tuple[int, int]:
-    files = 0
-    lines = 0
-    rs_root = PROJECT_ROOT / COMPONENT_RUST
-    if not rs_root.exists():
-        return 0, 0
-    for p in rs_root.rglob("*.rs"):
-        if "target" in p.parts:
-            continue
-        files += 1
-        lines += count_lines(p)
-    return files, lines
 
 
 def count_test_files() -> dict[str, int]:
@@ -240,14 +227,12 @@ def main() -> int:
     py_files, py_lines = count_python_files()
     js_files, js_lines = count_js_files()
     cpp_files, cpp_lines = count_cpp_files()
-    rs_files, rs_lines = count_rust_files()
 
     print(f"  Python:   {py_files:>5} files, {py_lines:>8} lines")
     print(f"  JS/TS:    {js_files:>5} files, {js_lines:>8} lines")
     print(f"  C++:      {cpp_files:>5} files, {cpp_lines:>8} lines")
-    print(f"  Rust:     {rs_files:>5} files, {rs_lines:>8} lines")
-    total_files = py_files + js_files + cpp_files + rs_files
-    total_lines = py_lines + js_lines + cpp_lines + rs_lines
+    total_files = py_files + js_files + cpp_files
+    total_lines = py_lines + js_lines + cpp_lines
     print("  ─────────────────────────────")
     print(f"  Total:    {total_files:>5} files, {total_lines:>8} lines")
 

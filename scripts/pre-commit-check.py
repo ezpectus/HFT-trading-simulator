@@ -28,7 +28,6 @@ CI jobs covered (from .github/workflows/ci.yml):
     test-python     → pytest (exchange_simulator + ai-signal-bot)
     test-cpp        → cmake build + ctest (hft-trade-bot)
     test-js         → vitest (web-ui)
-    test-rust       → cargo build + test (hft-executor)
     build-js        → vite build (web-ui)
     audit-deps      → npm audit (web-ui)
     security-bandit → bandit (exchange_simulator + ai-signal-bot)
@@ -423,40 +422,6 @@ def check_cpp_build_and_test(quick: bool = False) -> CheckResult:
     )
 
 
-def check_rust_build_and_test(quick: bool = False) -> CheckResult:
-    """Build and test hft-executor with cargo."""
-    cwd = PROJECT_ROOT / "hft-executor"
-    if not cwd.exists():
-        return CheckResult("cargo: hft-executor", True, 0.0, "hft-executor not found")
-
-    # Build
-    success, stdout, stderr, build_dur = run_command(
-        ["cargo", "build", "--release"],
-        cwd=cwd,
-        timeout=180,
-    )
-    if not success:
-        return CheckResult(
-            "cargo: hft-executor",
-            passed=False,
-            duration_s=build_dur,
-            output=f"cargo build failed:\n{stdout + stderr}",
-        )
-
-    # Test
-    success, stdout, stderr, test_dur = run_command(
-        ["cargo", "test", "--release"],
-        cwd=cwd,
-        timeout=120,
-    )
-    return CheckResult(
-        "cargo: hft-executor",
-        passed=success,
-        duration_s=build_dur + test_dur,
-        output=(stdout + stderr) if not success else "",
-    )
-
-
 def check_vite_build() -> CheckResult:
     """Run vite production build for web-ui."""
     cwd = PROJECT_ROOT / COMPONENT_JS
@@ -829,7 +794,6 @@ def main() -> int:
     py_files = get_staged_files_by_ext(staged_files, {"py"}) if use_staged else None
     js_files = get_staged_files_by_ext(staged_files, {"jsx", "js", "tsx", "ts"}) if use_staged else None
     cpp_files = get_staged_files_by_ext(staged_files, {"h", "cpp", "hpp", "cc"}) if use_staged else None
-    rs_files = get_staged_files_by_ext(staged_files, {"rs"}) if use_staged else None
 
     # Determine which checks to run
     run_lint = not args.tests
@@ -843,12 +807,10 @@ def main() -> int:
         has_py = bool(py_files)
         has_js = bool(js_files)
         has_cpp = bool(cpp_files)
-        has_rs = bool(rs_files)
     else:
         has_py = True
         has_js = True
         has_cpp = True
-        has_rs = True
 
     summary = CheckSummary()
 
@@ -875,8 +837,6 @@ def main() -> int:
             summary.add(check_vitest(quick=args.quick, files=comp_js))
         if has_cpp and (run_build or args.full or args.all):
             summary.add(check_cpp_build_and_test(quick=args.quick))
-        if has_rs and (run_build or args.full or args.all):
-            summary.add(check_rust_build_and_test(quick=args.quick))
 
     # ─── Build checks ───
     if run_build and has_js:

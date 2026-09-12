@@ -220,15 +220,6 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## Rust Tests (21 tests)
-
-**Framework:** `#[test]` (built-in)
-**Location:** `hft-executor/src/lib.rs`
-
-Coverage: Order creation, submit (single/batch), stats, FFI create/submit/destroy, null safety, serialization round-trip, all 5 order types.
-
----
-
 ## Monitoring Tests
 
 **Framework:** pytest
@@ -292,12 +283,6 @@ npm run test:e2e      # Playwright E2E
 npm run test:coverage # With coverage report
 ```
 
-### Rust
-
-```bash
-cd hft-executor && cargo test
-```
-
 ### All Tests (CI)
 
 ```bash
@@ -330,7 +315,6 @@ run-all-tests.bat
 | Python tests | Python 3.11, 3.12 | Install deps → pytest → coverage |
 | C++ tests | Ubuntu, Windows | cmake → build → test_runner |
 | JS tests | Node 20, 22 | npm ci → vitest → playwright |
-| Rust tests | Ubuntu, Windows | cargo test |
 | Linting | Python (ruff), JS (eslint) | ruff check, eslint |
 
 ---

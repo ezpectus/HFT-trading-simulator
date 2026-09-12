@@ -96,10 +96,6 @@ trading-system-lite/
 │   ├── config/
 │   ├── CMakeLists.txt
 │   └── pch.h
-├── hft-executor/           # Rust — FFI executor (experimental)
-│   ├── src/lib.rs
-│   ├── Cargo.toml
-│   └── Cargo.lock
 ├── web-ui/                 # React — trading dashboard
 │   ├── src/
 │   │   ├── components/     # 227 React components
@@ -126,7 +122,6 @@ trading-system-lite/
 | Exchange Simulator | Python 3.12 | asyncio, websockets, numpy | pytest, hypothesis |
 | AI Signal Bot | Python 3.12 | asyncio, numpy, scipy, PyTorch | pytest |
 | HFT Trade Bot | C++20 | Boost, websocketpp, spdlog | doctest |
-| HFT Executor | Rust | tokio, crossbeam | cargo test |
 | Web UI | JavaScript | React 18, Vite, TailwindCSS | Vitest, Playwright |
 
 ---

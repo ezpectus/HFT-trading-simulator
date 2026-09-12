@@ -342,23 +342,6 @@ jobs:
           echo "No high/critical vulnerabilities found"
         working-directory: web-ui
 
-  test-rust:
-    name: Rust Build & Test
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: hft-executor
-      - name: Build
-        run: cargo build --release
-        working-directory: hft-executor
-      - name: Test
-        run: cargo test --release
-        working-directory: hft-executor
-
   docker-smoke:
     name: Docker Compose Smoke Test
     runs-on: ubuntu-latest
@@ -526,7 +509,7 @@ jobs:
     name: All Tests Passed
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, test-rust, test-windows, test-e2e, build-js, build-docker, docker-smoke, audit-deps, security-bandit, security-codeql]
+    needs: [lint-python, lint-cpp, lint-js, test-python, test-cpp, test-cpp-msvc, test-js, test-windows, test-e2e, build-js, build-docker, docker-smoke, audit-deps, security-bandit, security-codeql]
     if: always()
     steps:
       - name: Check all job results
@@ -550,7 +533,7 @@ jobs:
           check_result "test-cpp" "${{ needs.test-cpp.result }}"
           check_result "test-cpp-msvc" "${{ needs.test-cpp-msvc.result }}"
           check_result "test-js" "${{ needs.test-js.result }}"
-          check_result "test-rust" "${{ needs.test-rust.result }}"
+
           check_result "test-windows" "${{ needs.test-windows.result }}"
           check_result "test-e2e" "${{ needs.test-e2e.result }}"
           check_result "build-js" "${{ needs.build-js.result }}"

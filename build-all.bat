@@ -45,7 +45,7 @@ if /i "%MODE%"=="quick" goto :exchange
 goto :skip_exchange
 
 :exchange
-echo [1/6] Python — Exchange Simulator
+echo [1/5] Python — Exchange Simulator
 echo -------------------------------------------
 cd /d "%PROJECT_ROOT%exchange_simulator"
 
@@ -75,7 +75,7 @@ if /i "%MODE%"=="quick" goto :signals
 goto :skip_signals
 
 :signals
-echo [2/6] Python — AI Signal Bot
+echo [2/5] Python — AI Signal Bot
 echo -------------------------------------------
 cd /d "%PROJECT_ROOT%ai-signal-bot"
 
@@ -194,7 +194,7 @@ if /i "%MODE%"=="cpp" goto :cpp
 goto :skip_cpp
 
 :cpp
-echo [3/6] C++ — HFT Trade Bot (CMake)
+echo [3/5] C++ — HFT Trade Bot (CMake)
 echo -------------------------------------------
 cd /d "%PROJECT_ROOT%hft-trade-bot"
 
@@ -244,47 +244,13 @@ echo.
 cd /d "%PROJECT_ROOT%"
 :skip_cpp
 
-REM ── 4. Rust HFT Executor ───────────────────────────────────
-if /i "%MODE%"=="all" goto :rust
-if /i "%MODE%"=="cpp" goto :rust
-goto :skip_rust
-
-:rust
-echo [4/6] Rust — HFT Executor (Cargo)
-echo -------------------------------------------
-cd /d "%PROJECT_ROOT%hft-executor"
-
-where cargo >nul 2>&1
-if errorlevel 1 (
-    echo [SKIP] Rust/Cargo not found — install from https://rustup.rs/
-    goto :skip_rust
-)
-
-cargo build --release 2>&1
-if errorlevel 1 (
-    echo [FAIL] Rust build failed
-    set EXIT_CODE=1
-) else (
-    echo [OK] Rust executor built
-    REM Try cargo test if tests exist
-    cargo test --release 2>&1
-    if errorlevel 1 (
-        echo [WARN] Rust tests failed or no tests found
-    ) else (
-        echo [OK] Rust tests passed
-    )
-)
-echo.
-cd /d "%PROJECT_ROOT%"
-:skip_rust
-
 REM ── 5. Web UI ──────────────────────────────────────────────
 if /i "%MODE%"=="all" goto :js
 if /i "%MODE%"=="js" goto :js
 goto :skip_js
 
 :js
-echo [5/6] JS — Web UI (Vite + ESLint + Vitest)
+echo [4/5] JS — Web UI (Vite + ESLint + Vitest)
 echo -------------------------------------------
 cd /d "%PROJECT_ROOT%web-ui"
 
@@ -333,7 +299,7 @@ if /i "%MODE%"=="docker" goto :docker
 goto :skip_docker
 
 :docker
-echo [6/7] Docker — Prod Image Build (gcc:14)
+echo [5/5] Docker — Prod Image Build (gcc:14)
 echo -------------------------------------------
 where docker >nul 2>&1
 if errorlevel 1 (
