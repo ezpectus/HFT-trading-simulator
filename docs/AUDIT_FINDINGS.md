@@ -937,3 +937,13 @@ All four exchange_simulator findings fixed and runtime-verified. 621 sim tests p
 - **S082**: new `Position.margin` field; `_lock_margin` debits `notional/lev` at fill (skipped for force_close — closing needs no margin). Close releases `pos.margin * close_qty/pos.qty` plus the order-margin share for the closed part; partial liquidation releases proportionally; same-side adds accumulate margin. `Account.equity = balance + Σ(margin + uPnL)`. `balance` is now free collateral — the existing INSUFFICIENT_MARGIN check became real.
 - **S085**: removed unconditional `order.status = FILLED` after force_close submit; `trade_history[-1].reason` retag gated on actual FILLED status. Verified: price=0 → honest REJECTED NO_PRICE_DATA, prior history untouched.
 - **S098**: `_execute_arbitrage` checks both leg statuses before closing the opportunity — rejection closes it as "FAILED" with a warning naming both rejection reasons, no fake profit rows. Dead `orjson.dumps`/`json.dumps` throwaway serialization removed.
+
+## Round 20 — FIX branch: infra + docs (S066, S067, S074, S075, S076)
+
+HFT rows (S058–S065) left untouched — parallel session owns those files (hft-executor already deleted, SOR/FIX wiring being removed there).
+
+- **S066**: nightly regression check is a real gate now — `sys.exit(1)` on avg return < -5%, all-errored strategy, >50% error windows, or empty results; `::warning::`→`::error::` so `if: failure()` issue creation is reachable. Seed kept: deterministic data is correct for a code-regression gate.
+- **S067**: deploy health-checks hit published ports — ai-bot `:9092/health` (was :9090, internal-only), grafana `:3001/api/health` (was :3000/health). Prod compose `VITE_WS_*` now `${VAR:?required}` — fails the build instead of silently baking ws://localhost into the bundle.
+- **S074**: REST_API.md rewritten to the real surface — health/metrics endpoints only, explicit "Not implemented" section routing readers to the WS protocol.
+- **S075**: README architecture honest — no Rust executor column, no FFI hop in the latency budget, no SOR/FIX/mmap-persistence bullets, no Rust tech-stack rows.
+- **S076**: same file — 7 wired strategies (build_strategies: 6+StatArb), "signal loop" not "8-stage pipeline", 49 symbols everywhere, ~290 panels, research/ml marked not-wired, port table split published vs internal, "FIX port conflict" troubleshooting row removed.

@@ -5,7 +5,7 @@
 ![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
-Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python quant models, Rust executor, shared-memory IPC. Zero real money — 100% for learning.
+Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python quant models, shared-memory IPC. Zero real money — 100% for learning.
 
 ---
 
@@ -14,23 +14,23 @@ Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                    HFT TRADING SYSTEM                            │
-├──────────────┬──────────────┬──────────────┬─────────────────────┤
-│  EXCHANGE    │  AI SIGNAL   │  HFT TRADE   │  RUST EXECUTOR      │
-│  SIMULATOR   │  BOT         │  BOT         │                     │
-│  (Python)    │  (Python)    │  (C++20)     │  (Rust)             │
-│              │              │              │                     │
-│  50 symbols  │  8-stage     │  Signal V2/V3│  tokio-tungstenite  │
-│  3 exchanges │  pipeline    │  HMM regime  │  auto-reconnect     │
-│  GBM + jumps │  13 strategies│  SHM IPC    │  FFI for C++        │
-│  Order book  │  52 quant    │  lock-free   │                     │
-│  Options     │  Backtesting │  zero-alloc  │                     │
-└──────┬───────┴──────┬───────┴──────┬───────┴─────────────────────┘
-       │ WS :8765     │ SHM ~30us    │ FFI ~1us
+├──────────────┬──────────────┬────────────────────────────────────┤
+│  EXCHANGE    │  AI SIGNAL   │  HFT TRADE                         │
+│  SIMULATOR   │  BOT         │  BOT                               │
+│  (Python)    │  (Python)    │  (C++20)                           │
+│              │              │                                    │
+│  49 symbols  │  7 strategies│  Signal V2/V3                      │
+│  3 exchanges │  signal loop │  HMM regime                        │
+│  GBM + jumps │  Backtesting │  SHM IPC                           │
+│  Order book  │  Risk mgmt   │  lock-free                         │
+│  Options     │              │  zero-alloc                        │
+└──────┬───────┴──────┬───────┴──────┬─────────────────────────────┘
+       │ WS :8765     │ SHM ~30us    │ WS orders
        │              │              │
        ▼              ▼              ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │                    WEB UI (React 18)                             │
-│  278 panels · PWA · WCAG AA · WebSocket :3000                    │
+│  ~290 panels · PWA · WCAG AA · WebSocket :3000                   │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,13 +40,11 @@ Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python
 |----------|------|-----|
 | **Python** | Signal bot, exchange simulator | ML ecosystem (PyTorch, scikit-learn). 50ms latency acceptable for signal generation. |
 | **C++20** | HFT execution engine | Sub-millisecond loop. Zero-allocation hot path, lock-free queues, cache-line alignment. |
-| **Rust** | Order executor | Memory-safe FFI. No GC pauses. Real WebSocket via tokio-tungstenite. |
 
 ### Latency Budget
 
 ```
-Exchange → [WS 2ms] → Signal Bot → [SHM 30us] → C++ Bot → [FFI 1us] → Rust → [WS 0.5ms] → Exchange
-Fast path: ~3.5ms (signal to order)
+Exchange → [WS 2ms] → Signal Bot → [SHM 30us] → C++ Bot → [WS] → Exchange
 C++ main loop: 1ms (configurable)
 ```
 
@@ -90,38 +88,30 @@ Open **http://localhost:3000**.
 ### Exchange Simulator (Python)
 - GBM price generation with per-symbol volatility
 - Microstructure models: Student-t, Merton jumps, Heston SV, Markov regime switching
-- 50 crypto symbols, 3 exchanges (Binance, Bybit, OKX) with different fees
+- 49 crypto symbols, 3 exchanges (Binance, Bybit, OKX) with different fees
 - Order book with depth, partial fills, slippage, market impact
 - Options pricing (Black-Scholes, Binomial Tree, Greeks)
 - Advanced orders: Stop-Limit, Trailing Stop, OCO, Iceberg
 - Funding rates, liquidation engine, multi-exchange arbitrage detection
 
 ### AI Signal Bot (Python)
-- 8-stage pipeline: Data → Analysis → Strategies → Ensemble → Validation → Execution
-- 13 strategies: Trend, MeanReversion, FFT, StatArb, MarketMaking, Sentiment, MLEnsemble, CrossExchangeArb, FundingArb, Portfolio, EnsembleVoter, Marketplace, CircuitBreaker
-- 52 quant models in trading logic (Kalman, PCA, GARCH, Hawkes, Copula, Wavelet, etc.)
+- Signal loop: data collection → technical analysis → strategies → validation → publish
+- 7 wired strategies: Trend, MeanReversion, FFT, StatArb, MarketMaking, Sentiment, MLEnsemble
 - Backtesting engine with walk-forward validation
 - Risk management: VaR, CVaR, Kelly criterion, stress tests
 - Portfolio optimization: Markowitz, Black-Litterman, risk parity
-- ML: LSTM, Transformer, RL (PPO/DQN), AutoML (code exists, models not trained)
+- Research library (`research/`, `src/ml/`): experimental quant/ML modules —
+  present in the repo but not wired into the live signal loop (see audit S092/S095)
 
 ### HFT Trade Bot (C++20)
 - Signal Engine V2: 6-indicator weighted composite (EMA, RSI, ADX, VWAP, OBI, Pressure)
 - Signal Engine V3: HMM regime detection with online Baum-Welch, Viterbi decoding
-- Smart Order Router: 5 strategies with per-exchange latency tracking
 - Lock-free SPSC queue, cache-line alignment (`alignas(64)`)
 - SHM IPC for zero-copy Python ↔ C++ communication
-- FIX 4.4 protocol implementation
-- Memory-mapped persistence for crash recovery
-
-### Rust Executor
-- Memory-safe order execution via tokio-tungstenite WebSocket
-- Auto-reconnect with exponential backoff
-- Fill confirmation tracking
-- FFI interface for C++ interop
+- Direct WebSocket order execution to the configured exchange
 
 ### Web UI (React 18)
-- 278 panels with React.lazy code splitting, 289 memoized components
+- ~290 panels with React.lazy code splitting
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
@@ -136,11 +126,10 @@ Open **http://localhost:3000**.
 | Exchange Simulator | Python 3.12 | asyncio, websockets, numpy, orjson, msgpack |
 | AI Signal Bot | Python 3.12 | asyncio, numpy, torch, scipy, optuna |
 | HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json |
-| Rust Executor | Rust 1.75 | tokio, serde, cxx, tokio-tungstenite |
 | Web UI | JS (ES2021) | React 18, Vite, TailwindCSS, lightweight-charts |
-| Communication | — | WebSocket, SHM IPC, FIX 4.4 |
+| Communication | — | WebSocket, SHM IPC |
 | Database | — | SQLite (WAL), PostgreSQL (optional), Redis (optional) |
-| CI/CD | — | GitHub Actions (16 jobs: Python, C++, JS, Rust, Docker) |
+| CI/CD | — | GitHub Actions (Python, C++, JS, Docker) |
 | Testing | — | pytest, CTest, Vitest, cargo test |
 
 ---
@@ -178,23 +167,22 @@ hft-trading-system/
 ├── exchange_simulator/          # Python: simulated crypto exchange
 ├── ai-signal-bot/               # Python: AI signal generation (60+ modules)
 │   ├── src/
-│   │   ├── strategies/          # 13 trading strategies
+│   │   ├── strategies/          # 7 wired trading strategies
 │   │   ├── technical_analysis/  # Indicators, FFT, Hawkes, Kalman, etc.
 │   │   ├── backtesting/         # Backtester, optimizer, walk-forward
 │   │   ├── risk/                # VaR, CVaR, Kelly, stress tests
 │   │   ├── portfolio/           # Markowitz, BL, risk parity
-│   │   ├── ml/                  # LSTM, Transformer, RL, AutoML
-│   │   ├── research/            # 52 quant models
-│   │   └── communication/       # WebSocket, SHM, FIX
+│   │   ├── ml/                  # Experimental ML modules (not wired — S092)
+│   │   ├── research/            # Experimental quant library (not wired — S095)
+│   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
-├── hft-executor/                # Rust: order executor
-├── web-ui/                      # React 18: dashboard (289 components, 116 test files)
+├── web-ui/                      # React 18: dashboard (~290 components, 116 test files)
 ├── docs/                        # 13 documentation files + 4 guides + 7 theory docs
 ├── monitoring/                  # Prometheus + Grafana config
 ├── docker-compose.yml           # Development
 ├── docker-compose.prod.yml      # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
-└── shared_config.yaml           # 50 symbol definitions
+└── shared_config.yaml           # 49 symbol definitions
 ```
 
 ---
@@ -208,7 +196,7 @@ hft-trading-system/
 | HFT Trade Bot | `hft-trade-bot/config/config.yaml` |
 | Shared | `shared_config.yaml` |
 
-Key defaults: 50 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 8% daily drawdown limit, 65% min confidence, paper trading mode.
+Key defaults: 49 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 8% daily drawdown limit, 65% min confidence, paper trading mode.
 
 ---
 
@@ -224,15 +212,15 @@ docker-compose -f docker-compose.prod.yml up -d
 |---------|------|-------------|
 | Web UI | 3000 | React dashboard + `/health` endpoint |
 | Grafana | 3001 | Monitoring dashboards |
-| Prometheus | 9099 | Metrics scraping (internal 9090) |
 | Exchange Simulator | 8765 | Market data (WebSocket) |
 | Exchange Simulator | 8775 | Health (`/health`, `/live`, `/ready`) + `/metrics` |
 | AI Signal Bot | 8766 | Signal publisher (WebSocket) |
-| AI Signal Bot | 8080 | Health server (liveness + readiness) |
-| AI Signal Bot | 9090 | Prometheus metrics + `/health` |
+| AI Signal Bot | 9092 | Prometheus metrics + `/health` (container-internal 9090) |
 | HFT Trade Bot | 9091 | Health + metrics |
-| PostgreSQL | 5432 | Trade persistence (optional) |
-| Redis | 6379 | Caching (optional) |
+| AI Signal Bot | 8080 | Health server — internal only, not published in prod |
+| Prometheus | 9090 | Internal only (`expose`); dev compose maps it to 9099 |
+| PostgreSQL | 5432 | Trade persistence (optional, internal) |
+| Redis | 6379 | Caching (optional, internal) |
 
 ---
 
@@ -268,7 +256,6 @@ See [Monitoring Guide](docs/MONITORING_GUIDE.md) for full details.
 | Web UI shows no data | Check WS status indicators, try `VITE_MOCK_MODE=true npm run dev` |
 | C++ build fails | Install Boost, websocketpp, spdlog, fmt, nlohmann-json, yaml-cpp. Need C++20 compiler. |
 | SHM permission denied | Ensure `/dev/shm` writable. Docker: `--shm-size=256m` |
-| FIX port conflict | Default port 8767, check no other process uses it |
 
 ---
 
