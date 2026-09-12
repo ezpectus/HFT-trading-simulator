@@ -188,6 +188,8 @@ class AISignalBot:
                 await asyncio.sleep(self.config.signal_interval)
                 await self._generate_signals()
 
+                self._snapshot_equity()
+
                 if show_dashboard:
                     self._print_dashboard()
 
@@ -379,6 +381,20 @@ class AISignalBot:
             self.logger.error("  Live order error: %s", e)
         finally:
             await factory.close()
+
+    def _snapshot_equity(self) -> None:
+        """Persist an equity-curve point each signal tick (real account state)."""
+        account = self.exchange.accounts.get(self.config.default_exchange, {})
+        if not account:
+            return
+        try:
+            self.db.save_equity(
+                balance=account.get("balance", 0.0),
+                equity=account.get("equity", account.get("balance", 0.0)),
+                open_positions=len(account.get("positions", [])),
+            )
+        except Exception as e:  # persistence must never break the signal loop
+            self.logger.warning("equity snapshot failed: %s", e)
 
     def _print_dashboard(self) -> None:
         """Print performance dashboard."""

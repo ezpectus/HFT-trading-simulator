@@ -1310,3 +1310,9 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - **S118 (Low) → Done.** 162 stale `.pyc` files — bytecode of deleted modules (`fix_client`, `real_exchange_client`, `portfolio_optimizer`, `hawkes`...) and deleted tests inside live `__pycache__` dirs. S104 removed whole husks but missed scattered residue. Purged all `__pycache__` (regenerates).
 - Verified clean: liquidation/SL-TP math correct (priority order, force_close margin bypass, insurance-fund deficit cover); `data_collection` is live (real-order path); `signal_validation`/`monitoring`/`utils` wired via run.py.
 - **Verified:** 41 dead-module tests still green post-purge.
+
+## Round 37 — 2026-09-12 — S109 resolution verification + equity wiring
+
+- **S109 → Done (user-executed, verified).** Resolution = wire-the-module + delete-the-infra: `db.py` rewritten asyncpg→SQLite (WAL, busy_timeout, real schema+indexes); `run.py` imports `Database`, saves signals (:287) + trades (:334); `config.db_path` reads `settings.yaml:151` `database.path`. Deleted: postgres+redis services (compose-prod), `migrate.py`, 4 SQL migrations, helm postgres/redis/secret templates, terraform RDS+ElastiCache, all env wiring. `settings.testnet.yaml` missing `database:` — **not** a bug: it's a reference fragment (only `exchange:` section, env-var style), never a standalone loadable config.
+- **Residual wired:** `save_equity`/`close_trade` were defined-but-uncalled — `_snapshot_equity()` now persists equity_curve points each signal tick from the live account dict (best-effort, warns not raises). `close_trade` remains schema-ahead-of-writer — the bot never observes position closes (exits live inside the sim); wiring it needs position↔trade-id tracking — documented, not fake-wired. +4 contract tests (`test_run_equity`).
+- **Verified:** ruff clean · 26 db tests + 4 new green.
