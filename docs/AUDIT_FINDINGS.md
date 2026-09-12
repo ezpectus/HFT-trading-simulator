@@ -1066,3 +1066,15 @@ Verified: ai-signal-bot **1368 passed, 0 failed** (was 23 failed). Targeted modu
 **S006 partial:** `test_signal_publisher` (24 мока — самый большой файл) → `spec=websockets.WebSocketServerProtocol`/`WebSocketServer`, 22 сайта, 23/23 green. Спеки отлавливают wrong-attr использование (раньше `ws.anything` молча проходил).
 
 **Verification:** vitest 120 files / 960 tests green · vite build green · eslint clean на тронутых файлах (15 pre-existing ошибок в 4 нетронутых тестах: exchange-ui, indicators, panelErrorBoundary, virtualList — кандидаты в борду).
+
+---
+
+## Round 26 — S002 финал, S030 console-gating, coverage-gate tests
+
+**S002 — Done.** Ревизия оставшихся 52 `Math.random` сайтов: всё легитимно — стохастические алгоритмы на реальных candle-инпутах (Ogata thinning в HawkesProcess, EM init в HMM, bootstrap в MonteCarlo, MCMC в HMC/Malliavin) + id-generation. Единственный дефект: `MarketDepthReplay` — `0.8 + Math.random()*0.4` jitter делал реконструированный стакан недетерминированным (та же свеча → другой стакан на каждый рендер). Заменён на детерминированный хэш по (timestamp, level); disclosure "Reconstructs L2 depth from candle OHLC" уже был.
+
+**S030 — Done.** 11 `console.warn` → `if (IS_DEV)` в 7 файлах (localStorage-диагностики, audit-export no-op). `console.error` в TopErrorBoundary/useWebSocket оставлены — реальные error-paths.
+
+**Gate-driven tests (5 новых файлов):** useSessionRecorder (snapshot→stop→metadata: peakEquity/maxDrawdown/totalTrades, import validation, localStorage), useStrategyMarketplace (builtin seeding, schema-version reject, id-replace, export round-trip), MarketDepthReplay (mid-price reconstruction, <10 candles guard), SessionStats (real PnL/win-rate aggregation), StrategyBuilder (save→localStorage).
+
+**Verified:** vitest targeted green (21 новых теста), eslint clean, full suite 122 files green.
