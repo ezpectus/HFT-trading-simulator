@@ -1,4 +1,6 @@
 """Tests for ExchangeFactory — simulator/real/fallback modes, adapter lifecycle."""
+import asyncio
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,6 +13,75 @@ from src.data_collection.exchange_factory import (
 )
 
 
+class FakeWs:
+    """Fake websocket connection — queue-fed async iterator + send spy."""
+
+    def __init__(self):
+        self.queue: asyncio.Queue = asyncio.Queue()
+        self.sent: list[dict] = []
+        self.closed = False
+
+    def push(self, msg: dict) -> None:
+        self.queue.put_nowait(json.dumps(msg))
+
+    async def send(self, data) -> None:
+        self.sent.append(json.loads(data))
+
+    async def close(self) -> None:
+        self.closed = True
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        return await self.queue.get()
+
+
+@pytest.fixture
+def fake_ws():
+    """Patch websockets.connect to return a queue-fed fake connection."""
+    ws = FakeWs()
+
+    async def fake_connect(*args, **kwargs):
+        return ws
+
+    with patch("websockets.connect", side_effect=fake_connect):
+        yield ws
+
+
+def _candles_msg(price=65000.0, exchange="binance", symbol="BTC/USDT"):
+    return {
+        "type": "candles",
+        "seq": 1,
+        "prices": {exchange: {symbol: price}},
+        "candles": [
+            {"timestamp": 1000, "open": price - 10, "high": price + 10,
+             "low": price - 20, "close": price, "volume": 5.0,
+             "symbol": symbol, "exchange": exchange},
+        ],
+        "orderbooks": {
+            f"{exchange}|{symbol}": {
+                "exchange": exchange, "symbol": symbol,
+                "bids": [[price - 1, 0.5]], "asks": [[price + 1, 0.4]],
+            },
+        },
+        "accounts": {
+            exchange: {"exchange": exchange, "balance": 100000.0,
+                       "equity": 101000.0, "currency": "USDT",
+                       "positions": [{"symbol": symbol, "qty": 0.5}]},
+        },
+    }
+
+
+async def _drain(ws: FakeWs, adapter: SimulatorAdapter):
+    """Push a broadcast and let the recv loop consume it."""
+    ws.push(_candles_msg())
+    for _ in range(20):
+        await asyncio.sleep(0.01)
+        if adapter._prices:
+            return
+
+
 class TestExchangeMode:
     def test_values(self):
         assert ExchangeMode.SIMULATOR.value == "simulator"
@@ -19,76 +90,135 @@ class TestExchangeMode:
 
 
 class TestSimulatorAdapter:
+    """SimulatorAdapter is a WS client to the exchange simulator — these
+    tests drive it with a fake connection fed by canned broadcasts."""
+
     @pytest.mark.asyncio
-    async def test_initialize(self):
+    async def test_initialize(self, fake_ws):
         adapter = SimulatorAdapter("ws://localhost:8765")
         await adapter.initialize()
         assert adapter._connected is True
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_close(self):
+    async def test_close(self, fake_ws):
         adapter = SimulatorAdapter()
         await adapter.initialize()
         await adapter.close()
         assert adapter._connected is False
+        assert fake_ws.closed is True
 
     @pytest.mark.asyncio
-    async def test_get_ticker(self):
+    async def test_get_ticker(self, fake_ws):
         adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
         ticker = await adapter.get_ticker("BTC/USDT")
         assert ticker["symbol"] == "BTC/USDT"
-        assert "price" in ticker
-        assert "bid" in ticker
-        assert "ask" in ticker
+        assert ticker["price"] == 65000.0
+        assert ticker["bid"] == 65000.0 - 0.5
+        assert ticker["ask"] == 65000.0 + 0.5
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_get_orderbook(self):
+    async def test_get_ticker_no_feed_yet(self, fake_ws):
         adapter = SimulatorAdapter()
+        await adapter.initialize()
+        ticker = await adapter.get_ticker("BTC/USDT")
+        assert ticker == {"symbol": "BTC/USDT"}  # honest empty, not a 50000 fake
+        await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_get_orderbook(self, fake_ws):
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
         ob = await adapter.get_orderbook("BTC/USDT", depth=10)
         assert ob["symbol"] == "BTC/USDT"
-        assert "bids" in ob
-        assert "asks" in ob
+        assert ob["bids"] == [[64999.0, 0.5]]
+        assert ob["asks"] == [[65001.0, 0.4]]
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_get_candles(self):
+    async def test_get_candles(self, fake_ws):
         adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
         candles = await adapter.get_candles("BTC/USDT", "1m", 100)
-        assert isinstance(candles, list)
+        assert len(candles) == 1
+        assert candles[0]["close"] == 65000.0
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_place_order(self):
+    async def test_place_order_fill(self, fake_ws):
         adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)  # sets _default_exchange
+        fake_ws.push({"type": "fill", "order": {
+            "id": "ord_1", "symbol": "BTC/USDT", "side": "BUY",
+            "status": "FILLED", "filled_price": 65001.0, "filled_quantity": 0.5,
+            "fee": 0.01,
+        }})
         order = await adapter.place_order("BTC/USDT", "BUY", 0.5)
-        assert order["status"] == "filled"
-        assert order["symbol"] == "BTC/USDT"
+        assert order["id"] == "ord_1"
+        assert order["status"] == "FILLED"
+        # verify the wire request
+        assert fake_ws.sent[0]["type"] == "order"
+        assert fake_ws.sent[0]["side"] == "BUY"
+        assert fake_ws.sent[0]["quantity"] == 0.5
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_cancel_order(self):
+    async def test_place_order_rejected(self, fake_ws):
         adapter = SimulatorAdapter()
-        result = await adapter.cancel_order("sim_1", "BTC/USDT")
-        assert result is True
+        await adapter.initialize()
+        fake_ws.push({"type": "error", "message": "Insufficient margin"})
+        order = await adapter.place_order("BTC/USDT", "BUY", 0.5)
+        assert order is None
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_get_balance(self):
+    async def test_place_order_disconnected(self, fake_ws):
         adapter = SimulatorAdapter()
-        balances = await adapter.get_balance()
-        assert len(balances) == 1  # offline stub returns a single USDT balance
-        assert balances[0]["asset"] == "USDT"
-        assert balances[0]["total"] == 100000
+        # no initialize — no connection
+        order = await adapter.place_order("BTC/USDT", "BUY", 0.5)
+        assert order is None
 
     @pytest.mark.asyncio
-    async def test_get_positions(self):
+    async def test_cancel_order_unsupported(self, fake_ws):
         adapter = SimulatorAdapter()
+        # Sim protocol has no cancel message — must not fake success
+        assert await adapter.cancel_order("ord_1", "BTC/USDT") is False
+
+    @pytest.mark.asyncio
+    async def test_get_balance(self, fake_ws):
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
+        balance = await adapter.get_balance()
+        assert balance == [{"asset": "USDT", "free": 100000.0,
+                            "used": 0.0, "total": 101000.0}]
+        await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_get_positions(self, fake_ws):
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
         positions = await adapter.get_positions()
-        assert isinstance(positions, list)
+        assert positions == [{"symbol": "BTC/USDT", "qty": 0.5}]
+        await adapter.close()
 
     @pytest.mark.asyncio
-    async def test_get_health(self):
+    async def test_get_health(self, fake_ws):
         adapter = SimulatorAdapter()
         await adapter.initialize()
         health = await adapter.get_health()
         assert health["connected"] is True
         assert health["exchange"] == "simulator"
+        await adapter.close()
+        health = await adapter.get_health()
+        assert health["connected"] is False
 
 
 class TestRealExchangeAdapter:
@@ -148,7 +278,7 @@ class TestRealExchangeAdapter:
 
 class TestExchangeFactorySimulator:
     @pytest.mark.asyncio
-    async def test_create_simulator(self):
+    async def test_create_simulator(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.SIMULATOR)
         adapter = await factory.create()
         assert isinstance(adapter, SimulatorAdapter)
@@ -156,7 +286,7 @@ class TestExchangeFactorySimulator:
         await factory.close()
 
     @pytest.mark.asyncio
-    async def test_simulator_health(self):
+    async def test_simulator_health(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.SIMULATOR)
         adapter = await factory.create()
         health = await adapter.get_health()
@@ -166,7 +296,7 @@ class TestExchangeFactorySimulator:
 
 class TestExchangeFactoryFallback:
     @pytest.mark.asyncio
-    async def test_fallback_to_simulator_on_failure(self):
+    async def test_fallback_to_simulator_on_failure(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.FALLBACK, exchange="binance")
         # RealExchangeAdapter.initialize will fail because no real API keys
         adapter = await factory.create()
@@ -175,7 +305,7 @@ class TestExchangeFactoryFallback:
         await factory.close()
 
     @pytest.mark.asyncio
-    async def test_switch_to_simulator(self):
+    async def test_switch_to_simulator(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.REAL)
         # Manually set adapter and switch
         factory._adapter = SimulatorAdapter()
@@ -192,13 +322,13 @@ class TestExchangeFactoryClose:
         await factory.close()  # Should not error
 
     @pytest.mark.asyncio
-    async def test_close_with_adapter(self):
+    async def test_close_with_adapter(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.SIMULATOR)
         await factory.create()
         await factory.close()  # Should close adapter
 
     @pytest.mark.asyncio
-    async def test_close_with_simulator_fallback(self):
+    async def test_close_with_simulator_fallback(self, fake_ws):
         factory = ExchangeFactory(mode=ExchangeMode.SIMULATOR)
         await factory.create()
         await factory.get_or_create_simulator()

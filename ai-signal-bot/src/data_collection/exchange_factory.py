@@ -6,10 +6,14 @@ Supports multi-exchange and fallback from real to simulator.
 
 from __future__ import annotations
 
+import asyncio
+import json
 import os
 import time
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, TypedDict
+
+import websockets
 
 from src.observability.logging import get_logger
 
@@ -22,64 +26,227 @@ class ExchangeMode(Enum):
     FALLBACK = "fallback"      # Try real, fall back to simulator
 
 
+class TickerData(TypedDict, total=False):
+    symbol: str
+    price: float
+    bid: float
+    ask: float
+    timestamp: float
+
+
+class OrderbookData(TypedDict, total=False):
+    symbol: str
+    bids: list[list[float]]
+    asks: list[list[float]]
+    timestamp: float
+
+
+class AdapterHealth(TypedDict, total=False):
+    connected: bool
+    exchange: str
+    reason: str
+    last_msg_age_s: float
+
+
 class ExchangeAdapter(Protocol):
     """Protocol for exchange adapters."""
 
     async def initialize(self) -> None: ...
     async def close(self) -> None: ...
-    async def get_ticker(self, symbol: str) -> dict: ...
-    async def get_orderbook(self, symbol: str, depth: int = 10) -> dict: ...
+    async def get_ticker(self, symbol: str) -> TickerData: ...
+    async def get_orderbook(self, symbol: str, depth: int = 10) -> OrderbookData: ...
     async def get_candles(self, symbol: str, timeframe: str = "1m", limit: int = 100) -> list[dict]: ...
     async def place_order(self, symbol: str, side: str, qty: float,
                           order_type: str = "market", price: float | None = None) -> dict | None: ...
     async def cancel_order(self, order_id: str, symbol: str) -> bool: ...
     async def get_balance(self) -> list[dict]: ...
     async def get_positions(self) -> list[dict]: ...
-    async def get_health(self) -> dict: ...
+    async def get_health(self) -> AdapterHealth: ...
 
 
 class SimulatorAdapter:
-    """Exchange adapter wrapping the exchange simulator."""
+    """Exchange adapter over the exchange simulator's WebSocket feed.
+
+    Subscribes to the simulator broadcast ({"type":"candles"} carries
+    prices/candles/orderbooks/accounts) and caches the latest snapshot.
+    Orders go through the same socket and resolve on the fill/error reply.
+
+    Note: the simulator has no cancel endpoint — cancel_order() honestly
+    returns False instead of pretending the order was cancelled.
+    """
+
+    _MAX_CANDLE_CACHE = 500
 
     def __init__(self, simulator_url: str | None = None, sim_prices: dict[str, float] | None = None):
         self.simulator_url = simulator_url or os.environ.get("WS_URL", "ws://localhost:8765")
-        self._connected = False
         self.name = "simulator"
-        self._sim_prices: dict[str, float] = sim_prices or {}
+        self._ws = None
+        self._recv_task: asyncio.Task | None = None
+        self._connected = False
+        self._last_msg_ts = 0.0
+        # Latest broadcast cache, keyed "exchange|symbol"
+        self._prices: dict[str, float] = dict(sim_prices or {})
+        self._candles: dict[str, list[dict]] = {}
+        self._orderbooks: dict[str, dict] = {}
+        self._accounts: dict[str, dict] = {}
+        self._default_exchange: str | None = None
+        # FIFO queue of futures for order responses (fill/error arrive on
+        # the same connection, in order)
+        self._pending_orders: list[asyncio.Future] = []
 
     async def initialize(self) -> None:
+        self._ws = await websockets.connect(self.simulator_url, ping_interval=10)
         self._connected = True
+        self._recv_task = asyncio.create_task(self._recv_loop())
         logger.info("[SimulatorAdapter] Connected to simulator at %s", self.simulator_url)
 
     async def close(self) -> None:
         self._connected = False
+        if self._recv_task:
+            self._recv_task.cancel()
+            try:
+                await self._recv_task
+            except asyncio.CancelledError:
+                pass
+            self._recv_task = None
+        if self._ws is not None:
+            await self._ws.close()
+            self._ws = None
+        for fut in self._pending_orders:
+            if not fut.done():
+                fut.set_result(None)
+        self._pending_orders.clear()
 
-    async def get_ticker(self, symbol: str) -> dict:
-        price = self._sim_prices.get(symbol, 50000.0)
-        return {"symbol": symbol, "price": price, "bid": price - 0.5, "ask": price + 0.5, "timestamp": time.time()}
+    async def _recv_loop(self) -> None:
+        try:
+            async for raw in self._ws:
+                self._last_msg_ts = time.monotonic()
+                try:
+                    msg = json.loads(raw)
+                except (ValueError, TypeError):
+                    continue
+                msg_type = msg.get("type")
+                if msg_type == "candles":
+                    self._update_market_cache(msg)
+                elif msg_type in ("fill", "error") and self._pending_orders:
+                    fut = self._pending_orders.pop(0)
+                    if not fut.done():
+                        fut.set_result(msg)
+        except asyncio.CancelledError:
+            raise
+        except (OSError, websockets.ConnectionClosed) as e:
+            logger.warning("[SimulatorAdapter] Simulator connection lost: %s", e)
+        finally:
+            self._connected = False
+            for fut in self._pending_orders:
+                if not fut.done():
+                    fut.set_result(None)
+            self._pending_orders.clear()
 
-    async def get_orderbook(self, symbol: str, depth: int = 10) -> dict:
-        return {"symbol": symbol, "bids": [], "asks": [], "timestamp": time.time()}
+    def _update_market_cache(self, msg: dict) -> None:
+        for ex_id, by_symbol in (msg.get("prices") or {}).items():
+            if self._default_exchange is None:
+                self._default_exchange = ex_id
+            for sym, price in (by_symbol or {}).items():
+                self._prices[f"{ex_id}|{sym}"] = price
+        for candle in msg.get("candles") or []:
+            key = f"{candle.get('exchange')}|{candle.get('symbol')}"
+            hist = self._candles.setdefault(key, [])
+            if hist and hist[-1].get("timestamp") == candle.get("timestamp"):
+                hist[-1] = candle  # in-place update of the current candle
+            else:
+                hist.append(candle)
+                if len(hist) > self._MAX_CANDLE_CACHE:
+                    del hist[: len(hist) - self._MAX_CANDLE_CACHE]
+        for key, ob in (msg.get("orderbooks") or {}).items():
+            self._orderbooks[key] = ob
+        for ex_id, status in (msg.get("accounts") or {}).items():
+            self._accounts[ex_id] = status
+
+    def _key(self, symbol: str) -> str:
+        """Resolve 'BTC/USDT' to 'exchange|BTC/USDT' (first/default exchange)."""
+        if "|" in symbol:
+            return symbol
+        if self._default_exchange:
+            key = f"{self._default_exchange}|{symbol}"
+            if key in self._prices or key in self._candles or key in self._orderbooks:
+                return key
+        for store in (self._prices, self._candles, self._orderbooks):
+            for key in store:
+                if key.endswith(f"|{symbol}"):
+                    return key
+        return f"{self._default_exchange or ''}|{symbol}"
+
+    async def get_ticker(self, symbol: str) -> TickerData:
+        price = self._prices.get(self._key(symbol))
+        if price is None:
+            return TickerData(symbol=symbol)
+        return TickerData(symbol=symbol, price=price, bid=price - 0.5,
+                          ask=price + 0.5, timestamp=time.time())
+
+    async def get_orderbook(self, symbol: str, depth: int = 10) -> OrderbookData:
+        ob = self._orderbooks.get(self._key(symbol))
+        if not ob:
+            return OrderbookData(symbol=symbol, bids=[], asks=[], timestamp=time.time())
+        return OrderbookData(symbol=symbol,
+                             bids=list(ob.get("bids", []))[:depth],
+                             asks=list(ob.get("asks", []))[:depth],
+                             timestamp=ob.get("timestamp", time.time()))
 
     async def get_candles(self, symbol: str, timeframe: str = "1m", limit: int = 100) -> list[dict]:
-        return []
+        return list(self._candles.get(self._key(symbol), []))[-limit:]
 
     async def place_order(self, symbol: str, side: str, qty: float,
                           order_type: str = "market", price: float | None = None) -> dict | None:
-        return {"order_id": "sim_1", "symbol": symbol, "side": side, "status": "filled",
-                "qty": qty, "price": price or 50000.0}
+        if self._ws is None or not self._connected:
+            return None
+        fut = asyncio.get_running_loop().create_future()
+        self._pending_orders.append(fut)
+        order = {
+            "type": "order",
+            "exchange": self._default_exchange or "binance",
+            "symbol": symbol,
+            "side": side.upper(),
+            "quantity": qty,
+            "order_type": order_type.upper(),
+        }
+        if price is not None:
+            order["price"] = price
+        try:
+            await self._ws.send(json.dumps(order))
+            msg = await asyncio.wait_for(fut, timeout=10.0)
+        except (OSError, websockets.ConnectionClosed, asyncio.TimeoutError) as e:
+            logger.warning("[SimulatorAdapter] Order failed: %s", e)
+            if fut in self._pending_orders:
+                self._pending_orders.remove(fut)
+            return None
+        if msg is None or msg.get("type") != "fill":
+            return None
+        return msg["order"]
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
-        return True
+        # The simulator protocol has no cancel message — report honestly.
+        return False
 
     async def get_balance(self) -> list[dict]:
-        return [{"asset": "USDT", "free": 100000, "used": 0, "total": 100000}]
+        status = self._accounts.get(self._default_exchange or "", {})
+        if not status:
+            return []
+        balance = status.get("balance", 0.0)
+        return [{"asset": status.get("currency", "USDT"), "free": balance,
+                 "used": 0.0, "total": status.get("equity", balance)}]
 
     async def get_positions(self) -> list[dict]:
-        return []
+        status = self._accounts.get(self._default_exchange or "", {})
+        return list(status.get("positions", []))
 
-    async def get_health(self) -> dict:
-        return {"connected": self._connected, "exchange": "simulator"}
+    async def get_health(self) -> AdapterHealth:
+        if not self._connected:
+            return AdapterHealth(connected=False, exchange="simulator",
+                                 reason="Not connected")
+        return AdapterHealth(connected=True, exchange="simulator",
+                             last_msg_age_s=round(time.monotonic() - self._last_msg_ts, 3)
+                             if self._last_msg_ts else -1.0)
 
 
 class RealExchangeAdapter:
@@ -118,12 +285,12 @@ class RealExchangeAdapter:
         if self._account:
             await self._account.close()
 
-    async def get_ticker(self, symbol: str) -> dict:
+    async def get_ticker(self, symbol: str) -> TickerData:
         if not self._market_data:
             return {}
         return await self._market_data.get_ticker(symbol)
 
-    async def get_orderbook(self, symbol: str, depth: int = 10) -> dict:
+    async def get_orderbook(self, symbol: str, depth: int = 10) -> OrderbookData:
         if not self._market_data:
             return {}
         return await self._market_data.get_orderbook(symbol, depth)
@@ -156,9 +323,9 @@ class RealExchangeAdapter:
         positions = await self._account.get_positions()
         return [p.to_dict() for p in positions]
 
-    async def get_health(self) -> dict:
+    async def get_health(self) -> AdapterHealth:
         if not self._account:
-            return {"connected": False, "reason": "Not initialized"}
+            return AdapterHealth(connected=False, reason="Not initialized")
         return await self._account.get_health()
 
 

@@ -4,9 +4,17 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any  # Any: env var defaults may be str|int|float|bool
+from collections.abc import Awaitable, Callable
+from typing import (
+    Any,  # Any: env var defaults may be str|int|float|bool
+    ParamSpec,
+    TypeVar,
+)
 
 from src.observability.logging import get_logger
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 logger = get_logger(__name__)
 
@@ -94,14 +102,14 @@ def truncate_dict(d: dict, max_items: int = 100) -> dict:
 
 
 async def retry_with_backoff(
-    coro_fn,
-    *args,
+    coro_fn: Callable[P, Awaitable[R]],
+    *args: P.args,
     max_retries: int = 3,
     initial_delay: float = 1.0,
     max_delay: float = 30.0,
     exceptions: tuple = (OSError, RuntimeError, ConnectionError, TimeoutError),
-    **kwargs,
-):
+    **kwargs: P.kwargs,
+) -> R:
     """Retry an async callable with exponential backoff.
 
     Args:
