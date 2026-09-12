@@ -48,7 +48,7 @@ describe('Web UI Performance Tests', () => {
         />
       )
       
-      expect(container).toBeTruthy()
+      expect(container.firstChild).not.toBeNull()
     })
 
     it('should support keyboard navigation', () => {
@@ -64,7 +64,7 @@ describe('Web UI Performance Tests', () => {
       )
       
       const listContainer = container.querySelector('[tabIndex="0"]')
-      expect(listContainer).toBeTruthy()
+      expect(listContainer).not.toBeNull()
     })
   })
 
@@ -139,7 +139,7 @@ describe('Web UI Performance Tests', () => {
       )
       
       // Component should not crash with memoization
-      expect(screen.getByText('AI Signal Bot')).toBeTruthy()
+      expect(screen.getByText('AI Signal Bot')).toBeInTheDocument()
     })
   })
 
@@ -158,7 +158,7 @@ describe('Web UI Performance Tests', () => {
       const budgets = getPerformanceBudgets()
       expect(budgets).toBeDefined()
       expect(budgets.LCP).toBeGreaterThan(0)
-      expect(budgets.FID).toBeGreaterThan(0)
+      expect(budgets.INP).toBeGreaterThan(0)
       expect(budgets.CLS).toBeGreaterThan(0)
       expect(budgets.TTFB).toBeGreaterThan(0)
       expect(budgets.FCP).toBeGreaterThan(0)

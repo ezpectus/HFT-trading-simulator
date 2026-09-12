@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Profiler } from 'react'
 import { ChevronDown, ChevronRight, Eye, EyeOff, Settings2, FlaskConical } from 'lucide-react'
 import { CATEGORIES, PANELS, DEFAULT_VISIBLE, ADVANCED_PANEL_IDS, getPanelsByCategory, preloadCategory } from './registry'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import ChunkRetryBoundary from '../components/ChunkRetryBoundary'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { usePanelContext } from '../stores/usePanelContext'
+import { recordPanelRender } from '../utils/performanceMonitor'
 
 const VISIBILITY_KEY = 'trading-sim-panel-visibility'
 const COLLAPSED_KEY = 'trading-sim-panel-collapsed'
@@ -133,7 +134,9 @@ export default function PanelContainer({ context: contextProp }) {
                   return (
                     <PanelErrorBoundary key={panel.id} panelName={panel.name}>
                       <ChunkRetryBoundary panelName={panel.name}>
-                        <Component {...props} />
+                        <Profiler id={panel.id} onRender={recordPanelRender}>
+                          <Component {...props} />
+                        </Profiler>
                       </ChunkRetryBoundary>
                     </PanelErrorBoundary>
                   )
