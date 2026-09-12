@@ -1297,3 +1297,9 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - **S115 (High) → Done.** Cross-referenced every `{"type": X}` the sim emits vs every `case` in `useExchangeData`: `fills_batch` (engine fills — SL/TP, liquidations, arb executions via `ws_broadcast:288/383`) and `error` (5+ rejection sites in `ws_message_handler`) were silently dropped by `default: break`. User fills arrived; engine fills vanished; rejections invisible. Fixed: `fills_batch` prepends all orders into `fills` (existing fill-toasts now fire for engine fills); `error` → `lastError` → store → `useNotifications` toast. +3 contract tests.
 - Verified clean: `audit_logger.py` (bounded deque, locked, snapshot-callback invocation); seeded `random.Random`; 0 mutable defaults; 0 unreferenced-but-long tasks; ExecutionBot interval cleanup present.
 - **Verified:** vitest 148 files / 1088 green · eslint clean.
+
+## Round 36 — 2026-09-12 — signal-WS protocol + dead capability
+
+- **S116 (Low) — Open.** `signal_publisher` implements a full auth handshake (`auth`→`auth_ok`/`auth_failed`+close) that is unreachable: `run.py:83` never passes `auth_token` (default `''` = off), no config key feeds it, and the web-ui has **no auth client at all** — arming it would lock the UI out with an unhandled `auth_failed`. Looks like security, works as neither. Options: wire the token through config + a UI auth message, or delete the handshake as dead code.
+- Signal→UI completeness: bot emits `auth_ok`/`auth_failed`/`signal`/`signal_history`/`market_regime`/`circuit_breaker_status`/`backtest_result`/`comparison_result` — all except the dead auth pair are handled.
+- ЧИСТО: all `JSON.parse(localStorage)` guarded; `new Function` in CustomIndicatorPlugin is eval-by-design (self-XSS only); `useWebSocket` sends `sync_state`+`subscribe` on open; README test claims: none.
