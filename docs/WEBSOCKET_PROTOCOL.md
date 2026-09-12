@@ -492,6 +492,81 @@ Calibrate an implied-vol model to market IV points. `model` is `svi` or `sabr`
 (`beta` optional, default 0.5). `eval_strikes` optionally picks the output grid
 (median maturity). Server responds with `vol_surface_result`.
 
+#### CVaR Analysis
+```json
+{
+  "type": "cvar_analysis",
+  "returns": [0.01, -0.02, 0.005],
+  "confidence": 0.95,
+  "method": "historical",
+  "time_horizon": 1.0
+}
+```
+Tail-risk analysis via `src/risk/cvar.py`. `method` is `historical`,
+`parametric`, or `monte_carlo`. Send `returns[]` or `candles_data[]` (close
+prices → returns computed server-side). Responds with `cvar_result` including
+tail measures (skewness/kurtosis/tail index/max drawdown) and CVaR under
+stressed-shock scenarios.
+
+#### Stress Test
+```json
+{
+  "type": "stress_test",
+  "positions": [ { "symbol": "BTC/USDT", "qty": 0.5, "price": 64000 } ],
+  "portfolio_value": 42000,
+  "scenario": "crisis_2008",
+  "custom_shocks": [0.9]
+}
+```
+Portfolio stress scenarios via `src/risk/stress_test.py`. `scenario` is
+`crisis_2008|covid_crash|ftx_collapse` (omit to run all three); `custom_shocks`
+(per-position price multipliers) appends a custom scenario. Responds with
+`stress_test_result`.
+
+#### Position Size
+```json
+{
+  "type": "position_size",
+  "direction": "LONG",
+  "price": 64000,
+  "volatility": 0.02,
+  "account_value": 10000,
+  "risk_per_trade": 0.01,
+  "method": "volatility"
+}
+```
+Dynamic sizing via `src/risk/position_sizing.py`. `method` is `volatility`,
+`risk_parity`, or `kelly` (`volatility`/`kelly` require `volatility` as a
+fraction, e.g. ATR/price). `direction` is `LONG|SHORT|HOLD` (HOLD → zero size).
+Responds with `position_size_result`.
+
+#### Hawkes Fit
+```json
+{
+  "type": "hawkes_fit",
+  "events": [0.5, 1.2, 1.4, 5.0, 9.3]
+}
+```
+Self-exciting point-process MLE fit via `src/technical_analysis/hawkes_funcs.py`.
+`events` is 5–5000 event times (any consistent origin; normalized server-side).
+Responds with `hawkes_result`: fitted μ/α/β, branching ratio, log-likelihood,
+and the conditional intensity path.
+
+#### Funding Arb Scan
+```json
+{
+  "type": "funding_arb_scan",
+  "funding_rates": { "binance": 0.0005 },
+  "prices": { "binance": { "BTC/USDT": 64000 } },
+  "symbols": ["BTC/USDT"]
+}
+```
+Funding-rate arbitrage detection via `src/strategies/funding_arb_detector.py`.
+`funding_rates` is per-exchange 8h rate fractions. Omit `funding_rates`/`prices`
+to use the bot's live simulator feed (spot ≡ perp by design in the sim — the
+scan reports spot_perp opportunities when funding exceeds the detector
+threshold). Responds with `funding_arb_result`.
+
 ### AI Signal Bot → HFT Bot / Web UI
 
 #### Signal (real-time broadcast)
@@ -607,6 +682,73 @@ sent. On bad input: `{"type": "portfolio_result", "error": "<reason>"}`.
 Returned in response to `vol_surface`. On bad input or failed calibration:
 `{"type": "vol_surface_result", "error": "<reason>"}`.
 
+#### CVaR Result
+```json
+{
+  "type": "cvar_result",
+  "var": -0.018,
+  "cvar": -0.031,
+  "confidence_level": 0.95,
+  "method": "historical",
+  "n_observations": 120,
+  "tail": { "skewness": -0.4, "kurtosis": 2.1, "tail_index": 3.2, "max_drawdown": -0.12 },
+  "scenarios": { "crisis_2008": { "cvar": -0.062, "var": -0.036, "shock_multiplier": 2.0 } }
+}
+```
+On bad input: `{"type": "cvar_result", "error": "<reason>"}`.
+
+#### Stress Test Result
+```json
+{
+  "type": "stress_test_result",
+  "results": [ { "scenario": "2008 Financial Crisis", "value_before": 42000,
+    "value_after": 21000, "pnl": -21000, "pnl_pct": -0.5,
+    "margin_requirement": 10500, "liquidity_impact": 0.02, "passed": false } ],
+  "summary": { "total_scenarios": 3, "passed_scenarios": 0, "pass_rate": 0.0,
+    "worst_pnl_percentage": -0.5, "overall_passed": false }
+}
+```
+On bad input: `{"type": "stress_test_result", "error": "<reason>"}`.
+
+#### Position Size Result
+```json
+{
+  "type": "position_size_result",
+  "position_size": 0.25,
+  "position_value": 16000,
+  "risk_amount": 100,
+  "leverage": 1.0,
+  "method": "volatility"
+}
+```
+On bad input: `{"type": "position_size_result", "error": "<reason>"}`.
+
+#### Hawkes Result
+```json
+{
+  "type": "hawkes_result",
+  "params": { "mu": 0.1, "alpha": 0.5, "beta": 1.0, "branching_ratio": 0.5, "log_lik": -42.1 },
+  "n_events": 24,
+  "horizon": 100.0,
+  "intensity_path": [ { "t": 1.0, "intensity": 0.62 } ]
+}
+```
+On bad input: `{"type": "hawkes_result", "error": "<reason>"}`.
+
+#### Funding Arb Result
+```json
+{
+  "type": "funding_arb_result",
+  "opportunities": [ { "type": "spot_perp", "symbol": "BTC/USDT",
+    "exchanges": ["binance"], "funding_rate": 0.0005,
+    "expected_daily_return": 0.0015, "cost_estimate": 0.001,
+    "net_expected_return": 0.0005, "confidence": 72.0 } ],
+  "scanned_exchanges": 1,
+  "scanned_symbols": 1
+}
+```
+On bad input: `{"type": "funding_arb_result", "error": "<reason>"}`.
+
 #### Auth Result
 ```json
 { "type": "auth_ok", "required": true }
@@ -647,6 +789,11 @@ Answer to an `auth` frame.
 | 8766 | C→S | `compare_backtests` | Request backtest comparison |
 | 8766 | C→S | `optimize_portfolio` | Portfolio optimization (Markowitz/RP/BL + rebalance) |
 | 8766 | C→S | `vol_surface` | SVI/SABR implied-vol calibration |
+| 8766 | C→S | `cvar_analysis` | VaR/CVaR + tail measures + stressed scenarios |
+| 8766 | C→S | `stress_test` | Portfolio stress scenarios (2008/COVID/FTX/custom) |
+| 8766 | C→S | `position_size` | Dynamic sizing (volatility/risk-parity/kelly) |
+| 8766 | C→S | `hawkes_fit` | Hawkes MLE fit + conditional intensity path |
+| 8766 | C→S | `funding_arb_scan` | Funding-rate arbitrage detection |
 | 8766 | S→C | `auth_ok` / `auth_failed` | Auth handshake result |
 | 8766 | S→C | `signal` | Validated trading signal |
 | 8766 | S→C | `signal_history` | Historical signals on connect |
@@ -655,6 +802,11 @@ Answer to an `auth` frame.
 | 8766 | S→C | `comparison_result` | Backtest comparison with significance tests |
 | 8766 | S→C | `portfolio_result` | Optimization weights/metrics/orders (or `error`) |
 | 8766 | S→C | `vol_surface_result` | Calibrated SVI/SABR params + fitted IVs (or `error`) |
+| 8766 | S→C | `cvar_result` | VaR/CVaR + tail + scenario results (or `error`) |
+| 8766 | S→C | `stress_test_result` | Scenario PnL/margin/liquidity + summary (or `error`) |
+| 8766 | S→C | `position_size_result` | Size/value/risk/leverage (or `error`) |
+| 8766 | S→C | `hawkes_result` | Fitted params + intensity path (or `error`) |
+| 8766 | S→C | `funding_arb_result` | Arbitrage opportunities (or `error`) |
 
 ---
 

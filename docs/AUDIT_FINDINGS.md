@@ -1415,3 +1415,14 @@ No WRONG/ROTTED entries.
   Same class as S117 — needs per-domain wire-vs-delete calls.
 - **S126 (Medium) → Open.** web-ui zero-importer residue: `ExchangeSelector.jsx` (no importers, absent from panel registry — cannot mount), `useInterval.js`+`.ts` (both twins dead), `usePerformance.js`, `utils/auditExport.js`, `utils/cn.js` — each survives only via its own test file (~1000 lines incl. tests).
 - **Verified clean:** `exchange_simulator` — zero dead prod modules (all scan hits are pytest-collected tests/entry points); `walk_forward.py` live via `run_backtest.py`+`optimizer.py`+script; `utils/helpers.py` live via `run.py`.
+
+## Round 50 — 2026-09-12 — S125 wired end-to-end, S126 kept
+
+- **S125 → Done.** All 11 dead modules now have production reachability:
+  - `communication/analysis_requests.py` (new, 366 lines): `cvar_analysis` → `risk/cvar.py` (VaR/CVaR/tail/stressed scenarios), `stress_test` → `risk/stress_test.py` (2008/COVID/FTX + custom shocks), `position_size` → `risk/position_sizing.py` (volatility/risk_parity/kelly), `hawkes_fit` → `technical_analysis/hawkes_funcs.py` (MLE grid search + intensity path; `hawkes_model.py` lives via it), `funding_arb_scan` → `strategies/funding_arb_detector.py` (request data or live `publisher.data_source` feed). Dispatch in `signal_publisher.py:184-229`; heavy math via `asyncio.to_thread`.
+  - SHM channel in `run.py` behind `shm.enabled`: `ShmSignalProducer` (signals→`/hft_signals` ring in `_finalize_and_execute`), `ShmMarketDataWriter` (price slots per tick), `ShmFillConsumer` (poll task → `db.save_trade` + `trade_logger`). Bug fix: `push_signal_dict` pushed unix-second timestamps as nanoseconds — now normalizes.
+  - `AlertSystem` in `run.py` behind `alerting.enabled`: rules daily_loss/no_fills/shm_disconnected/db_down; channels from `ALERT_*` env or settings.
+  - `ws_client` handles `sync_state` + stores `funding_rates`/`candles_to_funding`.
+  - UI: HawkesProcess, ConditionalValueAtRisk, PositionSizeOptimizer, FundingRateHistory, RiskDashboard send real requests via `sendSignalMessage`; 5 new result states in `useSignalData`; registry props updated.
+  - Tests: +21 `test_analysis_requests.py` +15 `test_shm_alerting_wiring.py` (incl. real WS round-trips). Full suite: **1519 passed**.
+- **S126 → Done (kept).** 6 zero-importer web-ui files retained per user decision (utility-library intent) — no code change.

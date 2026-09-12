@@ -904,3 +904,9 @@ Repo-wide zero-importer scan (модули без prod-импортеров):
 - **S125 (new, High, open):** ai-bot dead-cluster ~1900 строк — `communication/shm_*` остров (4 файла, 641 строка: hft↔bot SHM-канал, run.py не инстанцирует), `monitoring/alerting.py` (271), `risk/{cvar,position_sizing,stress_test}` (579, читает только __init__-реэкспорт), `strategies/funding_arb_detector.py` (269), `technical_analysis/{hawkes_funcs,hawkes_model}` (204). Все живут через test-only импорты.
 - **S126 (new, Medium, open):** web-ui dead-residue — `ExchangeSelector.jsx` (не в registry), `useInterval.{js,ts}` оба твина, `usePerformance.js`, `auditExport.js`, `cn.js` — все test-only.
 - ЧИСТО: exchange_simulator — 0 мёртвых prod-модулей (все ZERO-хиты = pytest-collected tests + entry points); walk_forward/helpers живы (run_backtest.py, run.py); web-ui остальные файлы импортируются.
+
+## Round 50 — 2026-09-12 — slop-fix: S125 wire-all + S126 keep
+
+- **S125 → Done (wire all).** Backend: `analysis_requests.py` (5 WS endpoints — cvar_analysis, stress_test, position_size, hawkes_fit, funding_arb_scan) + диспетч в signal_publisher; SHM-канал в run.py за `shm.enabled` (producer/market/fill-consumer + fills→db); AlertSystem за `alerting.enabled` (4 ops-правила, env-каналы); ws_client: sync_state + funding_rates; config: shm/alerting секции + 11 properties; багфикс push_signal_dict (секунды→ns). UI: 5 панелей — backend-кнопки (HawkesProcess→hawkes_fit, CVaR→cvar_analysis, PosSize→position_size, FundingHistory→funding_arb_scan, RiskDashboard→stress_test) + 5 result-стейтов в useSignalData + registry props. +30 backend-тестов, полный suite 1519 green.
+- **S126 → Done (keep).** User выбрал keep-all — 6 файлов остаются utility library; закрыто без изменений.
+- Protocol docs: WEBSOCKET_PROTOCOL.md — 5 новых request/response типов + summary table; .env.prod.example — ALERT_* env names.
