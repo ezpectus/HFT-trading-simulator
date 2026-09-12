@@ -27,7 +27,6 @@ const gaussianPdf = (x, mu, sigma2) => {
 
 // K-means for initialization
 const kmeans = (data, k, maxIter = 50) => {
-  const n = data.length
   const min = Math.min(...data), max = Math.max(...data)
   let centroids = Array.from({ length: k }, (_, i) => min + (max - min) * (i + 0.5) / k)
   
@@ -56,12 +55,12 @@ const fitGMM = (data, k, maxIter = 100, tol = 1e-6) => {
   const n = data.length
   const centroids = kmeans(data, k)
   
-  let mus = centroids.slice()
-  let sigmas2 = Array.from({ length: k }, () => {
+  const mus = centroids.slice()
+  const sigmas2 = Array.from({ length: k }, () => {
     const v = data.reduce((s, x) => s + (x - data.reduce((a, b) => a + b, 0) / n) ** 2, 0) / n
     return Math.max(1e-10, v / k)
   })
-  let pis = new Array(k).fill(1 / k)
+  const pis = new Array(k).fill(1 / k)
   
   let prevLogLik = -Infinity
   const logLikHistory = []

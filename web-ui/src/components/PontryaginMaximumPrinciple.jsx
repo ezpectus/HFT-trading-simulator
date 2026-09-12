@@ -91,7 +91,7 @@ function PontryaginMaximumPrinciple({ candles, symbol, exchange }) {
   const [eta, setEta] = useState(0.05)
   const [X0, setX0] = useState(1.0)
   const [T, setT] = useState(1.0)
-  const [lookback, setLookback] = useState(100)
+  const [lookback, _setLookback] = useState(100)
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)

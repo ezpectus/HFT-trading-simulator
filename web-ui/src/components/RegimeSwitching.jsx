@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Shuffle } from 'lucide-react'
 import { calcSMA, calcRSI, calcATR } from '../utils/indicators'
-import { formatPrice } from '../utils/format'
 
 function RegimeSwitching({ candles, symbol, exchange }) {
   const data = useMemo(() => {
@@ -151,7 +150,7 @@ function RegimeSwitching({ candles, symbol, exchange }) {
     )
   }
 
-  const { current, duration, distPct, transitionProbs, mostLikelyNext, segments, sortedNext } = data
+  const { current, duration, distPct, segments, sortedNext } = data
 
   const regimeColors = {
     'Trending Up': 'text-accent-green',

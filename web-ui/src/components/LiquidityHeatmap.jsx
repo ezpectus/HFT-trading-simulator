@@ -4,7 +4,7 @@ import { formatPrice } from '../utils/format'
 
 const MAX_SNAPSHOTS = 20
 
-function LiquidityHeatmap({ orderbookData, currentPrice }) {
+function LiquidityHeatmap({ orderbookData}) {
   const snapshotsRef = useRef([])
   const [, forceUpdate] = useState(0)
 

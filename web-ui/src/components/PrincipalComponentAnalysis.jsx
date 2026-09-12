@@ -132,7 +132,6 @@ const computePCA = (returns) => {
 }
 
 function PrincipalComponentAnalysis({ candles, symbols, exchange }) {
-  const [nComponents, setNComponents] = useState(3)
   const [lookback, setLookback] = useState(50)
 
   const data = useMemo(() => {

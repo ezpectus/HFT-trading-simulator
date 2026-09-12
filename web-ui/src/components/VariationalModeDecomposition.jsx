@@ -64,18 +64,13 @@ const fft = (signal) => {
 // Inverse FFT
 const ifft = (spectrum) => {
   const N = spectrum.length
-  // Conjugate
-  const conj = spectrum.map(c => ({ re: c.re, im: -c.im }))
-  // FFT of conjugate
-  const result = fft(conj.map(c => c.re + c.im * 0)) // This won't work; need complex FFT
   // Simpler: direct IFFT via DFT for moderate sizes
   const time = new Array(N).fill(0)
   for (let n = 0; n < N; n++) {
-    let re = 0, im = 0
+    let re = 0
     for (let k = 0; k < N; k++) {
       const angle = 2 * Math.PI * k * n / N
       re += spectrum[k].re * Math.cos(angle) - spectrum[k].im * Math.sin(angle)
-      im += spectrum[k].re * Math.sin(angle) + spectrum[k].im * Math.cos(angle)
     }
     time[n] = re / N
   }
@@ -84,9 +79,6 @@ const ifft = (spectrum) => {
 
 // VMD algorithm
 const vmd = (signal, K, alpha = 2000, tau = 0, DC = false, tol = 1e-6, maxIter = 100) => {
-  const N = signal.length
-  const T = N
-  const fs = 1 / T
 
   // Mirroring extension
   const f = [...signal.slice().reverse(), ...signal, ...signal.slice().reverse()]
@@ -144,7 +136,7 @@ const vmd = (signal, K, alpha = 2000, tau = 0, DC = false, tol = 1e-6, maxIter =
 
       // Center frequency update
       if (!DC || k > 0) {
-        let numRe = 0, numIm = 0, den = 0
+        let numRe = 0, den = 0
         for (let i = 0; i < NExt; i++) {
           const w = i < NExt / 2 ? i / NExt : (i - NExt) / NExt
           const mag2 = uHat[k][i].re ** 2 + uHat[k][i].im ** 2
@@ -247,7 +239,6 @@ function VariationalModeDecomposition({ candles, symbol, exchange }) {
       result.energies[i] > result.energies[best] ? i : best, 0)
 
     const domSignal = result.modes[dominantMode].signal
-    const domSlope = domSignal.length > 1 ? domSignal[domSignal.length - 1] - domSignal[domSignal.length - 2] : 0
 
     // Trend mode (lowest frequency)
     const trendIdx = result.centerFreqs.indexOf(Math.min(...result.centerFreqs))

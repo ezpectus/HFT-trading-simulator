@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { formatPrice, formatVolume } from '../utils/format'
+import {  formatVolume } from '../utils/format'
 
 function VolumeClockChart({ candles, symbol, exchange }) {
   const [targetVolume, setTargetVolume] = useState(1000)
@@ -77,7 +77,7 @@ function VolumeClockChart({ candles, symbol, exchange }) {
     )
   }
 
-  const { renderedBars, upCount, downCount, lastBar, reversal, avgCandles, barCount } = data
+  const { renderedBars, upCount, downCount, reversal, avgCandles, barCount } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

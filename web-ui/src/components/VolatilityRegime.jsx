@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Zap, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { Zap, TrendingUp, TrendingDown} from 'lucide-react'
 import { calcATR } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
 

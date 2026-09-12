@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useMemo } from 'react'
 import { Layers, TrendingUp, TrendingDown } from 'lucide-react'
 import { calcSMA, calcRSI } from '../utils/indicators'
 import { formatPrice } from '../utils/format'
@@ -11,7 +11,6 @@ const TIMEFRAMES = [
 ]
 
 function MultiTimeframeComparison({ candles, symbol, exchange }) {
-  const [selectedTfs, setSelectedTfs] = useState(['1m', '5m', '15m', '1h'])
 
   const analysis = useMemo(() => {
     const symCandles = candles

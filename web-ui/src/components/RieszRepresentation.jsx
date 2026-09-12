@@ -179,7 +179,6 @@ function RieszRepresentation({ candles, symbol, exchange }) {
 
   // L(f) vs actual
   const allLF = data.lValues.map(v => v.lf)
-  const allY = data.lValues.map(v => v.actual)
   const maxLF = Math.max(...allLF.map(Math.abs), 0.01)
   const sxLF = (i) => P + (i / data.lValues.length) * (W - 2 * P)
   const syLF = (v) => H - P - ((v + maxLF) / (2 * maxLF)) * (H - 2 * P)

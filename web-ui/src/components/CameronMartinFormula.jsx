@@ -49,7 +49,7 @@ function CameronMartinFormula({ candles, symbol, exchange }) {
     // Define shift function h(t)
     let hFunc
     if (shiftMode === 'constant') {
-      hFunc = (t) => mu0 * 2 // constant drift shift
+      hFunc = (_t) => mu0 * 2 // constant drift shift
     } else if (shiftMode === 'linear') {
       hFunc = (t) => mu0 * (1 + t / n) // linearly increasing
     } else if (shiftMode === 'sinusoidal') {

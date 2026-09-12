@@ -117,9 +117,7 @@ function CesaroFejerKernel({ candles, symbol, exchange }) {
 
     // Gibbs phenomenon: check overshoot of partial sum
     const maxPartial = Math.max(...partialSums.map(p => p.value))
-    const minPartial = Math.min(...partialSums.map(p => p.value))
     const maxCesaro = Math.max(...cesaroSums.map(p => p.value))
-    const minCesaro = Math.min(...cesaroSums.map(p => p.value))
     const maxData = Math.max(...cumRets)
     const minData = Math.min(...cumRets)
 

@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Link2, ArrowRightLeft } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function correlation(a, b) {
   const n = Math.min(a.length, b.length)
@@ -76,7 +75,6 @@ function PairTradingSignals({ candles, symbols, exchange }) {
         else if (zScore < -1.0) { signal = 'Lean Long A'; signalColor = 'text-accent-yellow' }
 
         // Mean reversion target
-        const targetZ = 0
         const distanceFromMean = Math.abs(zScore)
 
         pairs.push({

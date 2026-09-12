@@ -69,7 +69,6 @@ function SignalMatrixHeatmap({ candles, signals, fills, symbols, exchange }) {
     // Build matrix: rows = indicators, cols = symbols
     const matrix = []
     const symList = []
-    const symColors = []
 
     for (const sym of symbols) {
       const symCandles = candles
@@ -77,10 +76,6 @@ function SignalMatrixHeatmap({ candles, signals, fills, symbols, exchange }) {
         .slice(-60)
       if (symCandles.length < 20) continue
 
-      const closes = symCandles.map(c => c.close)
-      const highs = symCandles.map(c => c.high)
-      const lows = symCandles.map(c => c.low)
-      const volumes = symCandles.map(c => c.volume || 0)
 
       symList.push(sym)
     }

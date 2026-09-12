@@ -20,7 +20,6 @@ function LiquidationCascade({ candles, accounts, symbol, exchange }) {
     const tiers = [2, 5, 10, 25, 50, 100]
     const cascade = []
 
-    let cumulativeForce = 0
     let currentPrice = price
 
     for (const lev of tiers) {
@@ -51,7 +50,6 @@ function LiquidationCascade({ candles, accounts, symbol, exchange }) {
           priceAfter: newPrice,
         })
 
-        cumulativeForce += priceImpact
         currentPrice = newPrice
       } else {
         cascade.push({
@@ -114,7 +112,7 @@ function LiquidationCascade({ candles, accounts, symbol, exchange }) {
     )
   }
 
-  const { price, triggerPrice, cascade, totalDrop, totalForcedVol, positions, triggeredPositions, currentPrice, maxImpact } = data
+  const { price, cascade, totalDrop, totalForcedVol, positions, triggeredPositions, currentPrice, maxImpact } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

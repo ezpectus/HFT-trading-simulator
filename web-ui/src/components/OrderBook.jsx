@@ -2,7 +2,7 @@ import { useMemo, useState, memo } from 'react'
 import { BookOpen, BarChart3, Flame } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orderbookData }) {
+const OrderBook = memo(function OrderBook({   currentPrice, orderbookData }) {
   const [heatmapMode, setHeatmapMode] = useState(true)
   // Use real order book data from WebSocket if available, otherwise generate synthetic
   const { bids, asks, spreadBps, bidDepth, askDepth, imbalance } = useMemo(() => {

@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Layers, CheckCircle2 } from 'lucide-react'
 import { calcRSI, calcEMA, calcSMA } from '../utils/indicators'
-import { formatPrice } from '../utils/format'
 
 function MultiTimeframeConfluence({ candles, symbol, exchange }) {
   const data = useMemo(() => {
@@ -11,8 +10,6 @@ function MultiTimeframeConfluence({ candles, symbol, exchange }) {
     if (symCandles.length < 30) return null
 
     const closes = symCandles.map(c => c.close)
-    const highs = symCandles.map(c => c.high)
-    const lows = symCandles.map(c => c.low)
 
     // Build multiple timeframes by aggregating
     const timeframes = [
@@ -35,8 +32,6 @@ function MultiTimeframeConfluence({ candles, symbol, exchange }) {
         })
       }
       const tfCloses = aggregated.map(c => c.close)
-      const tfHighs = aggregated.map(c => c.high)
-      const tfLows = aggregated.map(c => c.low)
 
       if (tfCloses.length < 10) return { name: tf.name, label: tf.label, valid: false }
 
@@ -117,7 +112,7 @@ function MultiTimeframeConfluence({ candles, symbol, exchange }) {
     )
   }
 
-  const { validTFs, confluenceScore, consensus, consensusColor, totalBull, totalBear, perfectAlignment, allBull, allBear } = data
+  const { validTFs, confluenceScore, consensus, consensusColor, totalBull, totalBear, perfectAlignment, allBull} = data
 
   return (
     <div className="bg-bg-700  p-2.5">

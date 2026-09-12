@@ -30,7 +30,7 @@ const computeReturns = (prices) => {
 // Solve variational problem a(u,v) = L(v) via finite elements
 // Bilinear form: a(u,v) = integral [eps*u'*v' + b*u'*v + c*u*v] dx
 // Linear functional: L(v) = integral f*v dx
-const solveVariational = (eps, b, c, f, nElements, nPoints) => {
+const solveVariational = (eps, b, c, f, nElements, _nPoints) => {
   const h = 1 / nElements
   const n = nElements + 1 // nodes
 
@@ -96,7 +96,7 @@ const solveVariational = (eps, b, c, f, nElements, nPoints) => {
 }
 
 function LaxMilgram({ candles, symbol, exchange }) {
-  const [lookback, setLookback] = useState(100)
+  const [lookback, _setLookback] = useState(100)
   const [eps, setEps] = useState(0.01)
   const [b, setB] = useState(0)
   const [c, setC] = useState(1)

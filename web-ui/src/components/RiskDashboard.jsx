@@ -2,7 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { Shield, TrendingDown, Activity, Info } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-function normCDF(x) {
+function _normCDF(x) {
   const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741
   const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911
   const sign = x < 0 ? -1 : 1
@@ -12,7 +12,7 @@ function normCDF(x) {
   return 0.5 * (1 + sign * y)
 }
 
-function RiskDashboard({ accounts, candles, symbols, exchange }) {
+function RiskDashboard({ accounts, candles, exchange }) {
   const [confidence, setConfidence] = useState(95)
 
   const risk = useMemo(() => {

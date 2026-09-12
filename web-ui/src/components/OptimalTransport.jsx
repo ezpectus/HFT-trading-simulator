@@ -60,8 +60,8 @@ const sinkhorn = (p, q, C, epsilon = 0.1, maxIter = 100) => {
     }
   }
 
-  let u = new Array(n).fill(1 / n)
-  let v = new Array(m).fill(1 / m)
+  const u = new Array(n).fill(1 / n)
+  const v = new Array(m).fill(1 / m)
 
   for (let iter = 0; iter < maxIter; iter++) {
     // u ← p / (K·v)
@@ -120,7 +120,7 @@ const costMatrix = (edges1, edges2) => {
   return C
 }
 
-const OptimalTransport = memo(function OptimalTransport({ candles, symbol, exchange, symbols }) {
+const OptimalTransport = memo(function OptimalTransport({ candles, symbol, exchange}) {
   const [windowSize, setWindowSize] = useState(30)
   const [epsilon, setEpsilon] = useState(0.1)
   const [nBins, setNBins] = useState(20)

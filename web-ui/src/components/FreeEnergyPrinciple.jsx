@@ -24,35 +24,9 @@ import { selectCandles } from '../utils/candles'
 //   Precision weighting: σ_i controls how much prediction error matters
 //   High precision (low σ) → strong prediction error → fast update
 
-const randomNormal = () => {
-  let u = 0, v = 0
-  while (u === 0) u = Math.random()
-  while (v === 0) v = Math.random()
-  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)
-}
-
-// Gaussian log density
-const logGaussian = (x, mu, sigma2) => {
-  if (sigma2 <= 0) return -Infinity
-  return -0.5 * Math.log(2 * Math.PI * sigma2) - (x - mu) ** 2 / (2 * sigma2)
-}
-
-// Variational free energy for Gaussian model
-const computeFreeEnergy = (observations, beliefs, precisions) => {
-  let F = 0
-  for (let i = 0; i < observations.length; i++) {
-    // Prediction error (precision-weighted)
-    const pe = (observations[i] - beliefs[i]) ** 2 / (2 * precisions[i])
-    // Complexity (log precision)
-    const complexity = 0.5 * Math.log(2 * Math.PI * precisions[i])
-    F += pe + complexity
-  }
-  return F
-}
-
 // Update beliefs via gradient descent on free energy
 const updateBeliefs = (observations, beliefs, precisions, lr = 0.1, maxIter = 50) => {
-  let mu = beliefs.slice()
+  const mu = beliefs.slice()
   const history = []
 
   for (let iter = 0; iter < maxIter; iter++) {
@@ -93,26 +67,11 @@ const expectedFreeEnergy = (predictedStates, predictedObs, preferences, precisio
   return risk + ambiguity
 }
 
-// Generate policies (actions)
-const generatePolicies = (nStates, nActions, horizon) => {
-  const policies = []
-  const generate = (current, depth) => {
-    if (depth === 0) { policies.push(current.slice()); return }
-    for (let a = 0; a < nActions; a++) {
-      current.push(a)
-      generate(current, depth - 1)
-      current.pop()
-    }
-  }
-  generate([], Math.min(horizon, 3)) // limit horizon for tractability
-  return policies
-}
-
 function FreeEnergyPrinciple({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(50)
   const [precision, setPrecision] = useState(0.01)
   const [lr, setLr] = useState(0.1)
-  const [horizon, setHorizon] = useState(3)
+  const [horizon, _setHorizon] = useState(3)
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)
@@ -157,8 +116,8 @@ function FreeEnergyPrinciple({ candles, symbol, exchange }) {
     const bestPolicy = policies[0]
 
     // Signal
-    let signal = bestPolicy.action
-    let reason = `Min expected free energy G=${bestPolicy.G.toFixed(6)} (predicted return: ${(bestPolicy.predictedReturn * 100).toFixed(4)}%)`
+    const signal = bestPolicy.action
+    const reason = `Min expected free energy G=${bestPolicy.G.toFixed(6)} (predicted return: ${(bestPolicy.predictedReturn * 100).toFixed(4)}%)`
 
     // Free energy history for visualization
     const feHistory = history.map(h => h.F)

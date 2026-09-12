@@ -78,7 +78,6 @@ const computeH0Persistence = (points) => {
     // Younger component dies (higher birth time = younger)
     const bi = birthTime[ri], bj = birthTime[rj]
     const dyingRoot = bi >= bj ? ri : rj
-    const survivingRoot = bi >= bj ? rj : ri
     const deathTime = d / 2 // ε at which they merge
     const birthT = birthTime[dyingRoot]
 

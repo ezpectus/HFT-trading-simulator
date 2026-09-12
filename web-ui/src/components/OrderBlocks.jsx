@@ -16,7 +16,6 @@ function OrderBlocks({ candles, symbol, exchange }) {
       const next = symCandles[i + 1]
       const isBull = c.close >= c.open
       const nextBull = next.close >= next.open
-      const bodySize = Math.abs(c.close - c.open)
       const avgBody = symCandles.slice(Math.max(0, i - 10), i).reduce((s, x) => s + Math.abs(x.close - x.open), 0) / Math.min(10, i)
 
       // Bullish OB: last bearish candle before strong bullish move
@@ -109,7 +108,7 @@ function OrderBlocks({ candles, symbol, exchange }) {
     )
   }
 
-  const { visible, activeBull, activeBear, zones, closePath, lastPrice } = data
+  const { visible, activeBull, activeBear, zones, closePath} = data
 
   return (
     <div className="bg-bg-700  p-2.5">

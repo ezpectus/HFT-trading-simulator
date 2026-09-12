@@ -25,7 +25,6 @@ function runMonteCarlo(trades, runs, initialBalance) {
 
   results.sort((a, b) => a - b)
 
-  const finalBalances = results.map(r => r + initialBalance)
   const percentiles = {
     p5: results[Math.floor(runs * 0.05)],
     p25: results[Math.floor(runs * 0.25)],

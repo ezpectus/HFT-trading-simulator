@@ -393,7 +393,7 @@ function HiddenMarkovModel({ candles, symbol, exchange }) {
               {data.stateOrder.map((s, i) => (
                 <tr key={s}>
                   <td className="text-gray-500 pr-2" style={{ color: stateColors[i] }}>{data.stateStats[i].label.slice(0, 6)}</td>
-                  {data.stateOrder.map((s2, j) => (
+                  {data.stateOrder.map((s2, _j) => (
                     <td key={s2} className="px-2 text-gray-300">{(data.A[s][s2]).toFixed(3)}</td>
                   ))}
                 </tr>

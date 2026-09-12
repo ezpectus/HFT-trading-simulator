@@ -152,13 +152,10 @@ function RadonNikodymDerivative({ candles, symbol, exchange }) {
 
   // RN derivative density
   const maxRN = Math.max(...data.grid.map(g => g.rn), 0.1)
-  const minLogRN = Math.min(...data.grid.map(g => g.logRN))
-  const maxLogRN = Math.max(...data.grid.map(g => g.logRN))
   const xMin = data.grid[0].x
   const xMax = data.grid[data.grid.length - 1].x
   const sxG = (x) => P + ((x - xMin) / (xMax - xMin)) * (W - 2 * P)
   const syRN = (v) => H - P - (v / maxRN) * (H - 2 * P)
-  const syLogRN = (v) => H - P - ((v - minLogRN) / (maxLogRN - minLogRN + 0.1)) * (H - 2 * P)
 
   // Log-RN over time
   const maxLogRNTime = Math.max(...data.comparisons.map(c => Math.abs(c.logRN)), 0.1)

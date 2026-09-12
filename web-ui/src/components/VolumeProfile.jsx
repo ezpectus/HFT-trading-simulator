@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-function VolumeProfile({ candles, symbol }) {
+function VolumeProfile({ candles}) {
   const profile = useMemo(() => {
     if (!candles?.length || candles.length < 10) return null
 
@@ -118,7 +118,6 @@ function VolumeProfile({ candles, symbol }) {
         {bins.map((bin, i) => {
           const widthPct = (bin.volume / maxBinVol) * 100
           const isPOC = i === pocIdx
-          const inVA = i >= bins.findIndex(b => b.min === vaLow) && i <= bins.findIndex(b => b.max === vaHigh)
           const buyPct = bin.volume > 0 ? (bin.buyVolume / bin.volume) * 100 : 0
 
           return (

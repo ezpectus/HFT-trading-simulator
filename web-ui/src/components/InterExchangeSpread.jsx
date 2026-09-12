@@ -2,7 +2,7 @@ import { memo, useMemo } from 'react'
 import { ArrowLeftRight, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
-function InterExchangeSpread({ candles, prices, symbols, exchange }) {
+function InterExchangeSpread({ candles, prices, symbols}) {
   const data = useMemo(() => {
     if (!symbols || symbols.length === 0) return null
 

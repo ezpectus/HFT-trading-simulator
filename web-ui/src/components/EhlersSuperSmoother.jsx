@@ -89,9 +89,6 @@ const MAMA = (prices, fastLimit = 0.5, slowLimit = 0.05) => {
     const p1 = prices[i - 1]
     const p2 = prices[i - 2]
     const p3 = prices[i - 3]
-    const p4 = prices[i - 4]
-    const p5 = prices[i - 5]
-    const p6 = prices[i - 6]
 
     smooth[i] = (4 * p + 3 * p1 + 2 * p2 + p3) / 10
     detrender[i] = (0.0962 * smooth[i] + 0.5769 * smooth[i - 2] - 0.5769 * smooth[i - 4] - 0.0962 * smooth[i - 6]) * detrenderMult

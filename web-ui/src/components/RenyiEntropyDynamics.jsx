@@ -168,7 +168,6 @@ function RenyiEntropyDynamics({ candles, symbol, exchange }) {
   const sigColor = data.signal === 'DIVERSE' ? '#0ecb81' : data.signal === 'CONCENTRATED' ? '#f6465d' : '#f0b90b'
 
   // Rényi spectrum H(α)
-  const alphas = data.renyiSpectrum.map(r => r.alpha)
   const maxH = Math.max(...data.renyiSpectrum.map(r => r.entropy), 0.1)
   const sxAlpha = (a) => {
     if (a === Infinity) return W - P

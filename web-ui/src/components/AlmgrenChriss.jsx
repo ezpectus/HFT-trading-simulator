@@ -116,7 +116,7 @@ const almgrenChriss = (X, T, sigma, eta, gamma, lambda, nSteps = 20) => {
   }
 }
 
-function AlmgrenChriss({ candles, symbol, exchange, currentPrice }) {
+function AlmgrenChriss({ candles, symbol, exchange}) {
   const [orderSize, setOrderSize] = useState(100)
   const [timeHorizon, setTimeHorizon] = useState(1) // days
   const [riskAversion, setRiskAversion] = useState(1e-6)

@@ -83,7 +83,6 @@ const bsGreeks = (S, K, T, r, sigma) => {
 // Malliavin Greeks estimation
 const malliavinGreeks = (paths, brownianPaths, S0, K, T, r, sigma, nSteps) => {
   const nPaths = paths.length
-  const dt = T / nSteps
 
   // Payoff: max(S_T - K, 0) for call
   const payoffs = paths.map(p => Math.max(p[p.length - 1] - K, 0))
@@ -118,7 +117,6 @@ const malliavinGreeks = (paths, brownianPaths, S0, K, T, r, sigma, nSteps) => {
   // Malliavin Gamma:
   // More complex weight involving second-order Malliavin derivatives
   let gammaSum = 0
-  const varST = S0 * S0 * Math.exp(2 * r * T) * (Math.exp(sigma * sigma * T) - 1)
   for (let p = 0; p < nPaths; p++) {
     const WT = brownianPaths[p][nSteps - 1]
     const ST = paths[p][nSteps - 1]

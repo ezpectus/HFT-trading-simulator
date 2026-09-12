@@ -221,7 +221,6 @@ function EmpiricalDynamicModeling({ candles, symbol, exchange, symbols }) {
   const [maxE, setMaxE] = useState(8)
   const [maxTau, setMaxTau] = useState(15)
   const [forecastSteps, setForecastSteps] = useState(5)
-  const [ccmTarget, setCcmTarget] = useState(null)
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)

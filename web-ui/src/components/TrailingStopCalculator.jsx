@@ -1,12 +1,12 @@
 import { memo, useMemo, useState } from 'react'
-import { Crosshair, TrendingUp, TrendingDown, Shield } from 'lucide-react'
+import { Crosshair, TrendingUp, TrendingDown} from 'lucide-react'
 import { formatPrice } from '../utils/format'
 import { calcATR, calcEMA } from '../utils/indicators'
 
 function TrailingStopCalculator({ candles, accounts, currentPrice, symbol, exchange }) {
   const [method, setMethod] = useState('atr')
   const [atrMult, setAtrMult] = useState(2)
-  const [chandelierPeriod, setChandelierPeriod] = useState(22)
+  const [chandelierPeriod, _setChandelierPeriod] = useState(22)
   const [side, setSide] = useState('long')
 
   const data = useMemo(() => {
@@ -114,7 +114,7 @@ function TrailingStopCalculator({ candles, accounts, currentPrice, symbol, excha
     )
   }
 
-  const { stopLoss, stopDistance, stopDistancePct, lastAtr, atrRatio, lastEma, highestHigh, lowestLow, hasPosition, posEntry, posQty, posSide, posPnlAtStop, allMethods } = data
+  const { stopLoss, stopDistancePct, lastAtr, atrRatio, hasPosition, posEntry, posSide, posPnlAtStop, allMethods } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

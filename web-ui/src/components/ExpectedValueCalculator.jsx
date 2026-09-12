@@ -8,7 +8,6 @@ function ExpectedValueCalculator({ accounts, fills, signals }) {
 
   const data = useMemo(() => {
     // Gather stats from actual fills
-    const allFills = (fills || []).filter(f => f.status === 'FILLED')
     const closedTrades = []
 
     for (const acc of Object.values(accounts || {})) {
@@ -99,7 +98,7 @@ function ExpectedValueCalculator({ accounts, fills, signals }) {
     )
   }
 
-  const { wr, rr, risk, evPerTrade, evDollar, profitFactor, breakevenWR, kellyPct, losingStreakProb, longStreakProb, totalTrades, winRate, avgWin, avgLoss, actualRR, strategyList } = data
+  const {    evPerTrade, evDollar, profitFactor, breakevenWR, kellyPct, losingStreakProb, totalTrades, winRate, actualRR, strategyList } = data
 
   const evColor = evPerTrade > 0 ? 'text-accent-green' : 'text-accent-red'
 

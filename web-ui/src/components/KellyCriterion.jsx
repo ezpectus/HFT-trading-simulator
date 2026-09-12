@@ -36,13 +36,6 @@ const kellySingle = (winProb, winLossRatio) => {
   return { fStar, growthRate, edge: p * b - q }
 }
 
-const kellyContinuous = (meanReturn, volatility) => {
-  const sigma2 = volatility * volatility
-  const fStar = sigma2 > 0 ? meanReturn / sigma2 : 0
-  const growthRate = fStar > 0 ? meanReturn * fStar / 2 : 0
-  return { fStar, growthRate, sharpe: volatility > 0 ? meanReturn / volatility : 0 }
-}
-
 // Multi-asset Kelly (matrix form)
 const jacobiEig = (A, maxIter = 100, tol = 1e-10) => {
   const n = A.length

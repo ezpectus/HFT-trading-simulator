@@ -13,7 +13,6 @@ function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
     const highs = symCandles.map(c => c.high)
     const lows = symCandles.map(c => c.low)
     const closes = symCandles.map(c => c.close)
-    const volumes = symCandles.map(c => c.volume || 0)
 
     // Detect regime
     const sma20 = calcSMA(closes, 20)
@@ -159,7 +158,7 @@ function RegimeAdaptiveStrategy({ candles, symbol, exchange }) {
     )
   }
 
-  const { regime, regimeColor, strat, lastPrice, lastEma9, lastEma21, lastAtr, suggestedEntry, suggestedStop, suggestedTarget, trendStrength, volRatio, smaSpread, lastRsi } = data
+  const { regime, regimeColor, strat, suggestedEntry, suggestedStop, suggestedTarget, trendStrength, volRatio, smaSpread, lastRsi } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

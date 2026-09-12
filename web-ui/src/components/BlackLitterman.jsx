@@ -165,9 +165,6 @@ function BlackLitterman({ candles, symbols, exchange }) {
     const posteriorReturns = pi.map((p, i) => p + adjustment[i])
 
     // Posterior covariance: Σ_post = Σ + τΣ - τΣPᵀ(PτΣPᵀ + Ω)⁻¹PτΣ
-    const PtauCov_ = matMul(P, tauCov)  // K×S
-    const invPtauCov = matMul(invTerm, PtauCov_)  // K×S
-    const PtInv = matMul(Pt, invPtauCov)  // S×S... wait
     // τΣPᵀ(PτΣPᵀ + Ω)⁻¹PτΣ
     const tauCovPt_ = matMul(tauCov, Pt)  // S×K
     const tauCovPtInv = matMul(tauCovPt_, invTerm)  // S×K
@@ -204,7 +201,6 @@ function BlackLitterman({ candles, symbols, exchange }) {
   }
 
   const W = 600, H = 200, P = 30
-  const colors = ['#06b6d4', '#0ecb81', '#f0b90b', '#f6465d', '#a855f7', '#ec4899', '#14b8a6', '#f97316']
 
   return (
     <div className="p-4 space-y-3">

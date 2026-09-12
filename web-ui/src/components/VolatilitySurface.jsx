@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Box, Info } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function VolatilitySurface({ candles, symbols, exchange }) {
   const surface = useMemo(() => {

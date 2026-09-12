@@ -133,7 +133,7 @@ function SignalFeed({ signals, regime }) {
           items={filteredSignals}
           itemHeight={72}
           maxHeight={400}
-          renderItem={(sig, i) => {
+          renderItem={(sig, _i) => {
             const isLong = sig.direction === 'LONG'
             const isShort = sig.direction === 'SHORT'
             const Icon = isLong ? TrendingUp : isShort ? TrendingDown : Minus

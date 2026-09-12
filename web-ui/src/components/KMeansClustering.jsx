@@ -113,8 +113,8 @@ const kmeansPlusPlus = (data, k) => {
 const kmeans = (data, k, maxIter = 100) => {
   if (data.length < k) return { labels: data.map((_, i) => i % k), centroids: data, wcss: 0 }
 
-  let centroids = kmeansPlusPlus(data, k)
-  let labels = new Array(data.length).fill(0)
+  const centroids = kmeansPlusPlus(data, k)
+  const labels = new Array(data.length).fill(0)
 
   for (let iter = 0; iter < maxIter; iter++) {
     // Assignment step

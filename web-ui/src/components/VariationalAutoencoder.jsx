@@ -114,8 +114,6 @@ class VAE {
     const loss = this.loss(x, xHat, mu, logvar, beta)
 
     // Perturb weights and compute numerical gradient (simplified)
-    const eps = 1e-5
-    const gradW1 = this.W1.map(row => row.map(() => 0))
     // Simplified: use reconstruction error gradient
     const dxHat = xHat.map((v, i) => 2 * (v - x[i]) / x.length)
 
@@ -130,8 +128,6 @@ class VAE {
     }
 
     // KL gradient (simplified)
-    const dmu = mu.map((m, i) => beta * m)
-    const dlogvar = logvar.map((lv, i) => beta * 0.5 * (Math.exp(lv) - 1))
 
     return loss
   }
@@ -151,7 +147,7 @@ function VariationalAutoencoder({ candles, symbol, exchange }) {
   const [latentDim, setLatentDim] = useState(2)
   const [hiddenDim, setHiddenDim] = useState(8)
   const [beta, setBeta] = useState(1)
-  const [lr, setLr] = useState(0.001)
+  const [lr, _setLr] = useState(0.001)
   const [nEpochs, setNEpochs] = useState(50)
   const [lookback, setLookback] = useState(60)
   const [windowSize, setWindowSize] = useState(8)

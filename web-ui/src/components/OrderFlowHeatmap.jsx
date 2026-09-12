@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Grid3x3 } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
@@ -16,7 +15,6 @@ function OrderFlowHeatmap({ candles, fills, symbol, exchange }) {
       const delta = buyVol - sellVol
       const totalVol = c.volume || 0
       const imbalance = totalVol > 0 ? delta / totalVol : 0
-      const cvd = i > 0 ? 0 : delta // relative CVD
       return {
         idx: i,
         timestamp: c.timestamp,

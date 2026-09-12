@@ -164,7 +164,7 @@ const estimateParams = (returns) => {
 
 function StochasticDifferentialEquations({ candles, symbol, exchange }) {
   const [model, setModel] = useState('gbm')
-  const [nSteps, setNSteps] = useState(100)
+  const [nSteps, _setNSteps] = useState(100)
   const [nPaths, setNPaths] = useState(50)
   const [T, setT] = useState(30 / 365)
   const [mu, setMu] = useState(0.1)

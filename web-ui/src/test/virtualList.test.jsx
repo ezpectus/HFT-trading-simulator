@@ -32,7 +32,7 @@ describe('VirtualList', () => {
   })
 
   it('renders first item at top', () => {
-    const { container } = render(
+    render(
       <VirtualList items={items} itemHeight={28} maxHeight={300} renderItem={renderItem} />
     )
     expect(screen.getByText('Item 0')).toBeInTheDocument()
@@ -55,7 +55,7 @@ describe('VirtualList', () => {
 
   it('uses custom keyExtractor when provided', () => {
     const keyExtractor = (item, index) => `custom-${index}`
-    const { container } = render(
+    render(
       <VirtualList
         items={items}
         itemHeight={28}

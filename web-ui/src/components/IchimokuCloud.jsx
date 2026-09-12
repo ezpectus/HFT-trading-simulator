@@ -105,7 +105,7 @@ function IchimokuCloud({ candles, symbol, exchange }) {
     )
   }
 
-  const { price, tenkan, kijun, senkouA, senkouB, signal, signalColor, closePath, tenkanPath, kijunPath, cloudPath, cloudBullish, tkBullish, tkCross, priceAboveCloud, priceBelowCloud } = data
+  const { tenkan, kijun, senkouA, senkouB, signal, signalColor, closePath, tenkanPath, kijunPath, cloudPath, cloudBullish, tkBullish, tkCross, priceAboveCloud, priceBelowCloud } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

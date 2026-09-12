@@ -107,7 +107,6 @@ function KalmanFilterPrice({ candles, symbol, exchange }) {
     if (symCandles.length < 20) return null
 
     const closes = symCandles.map(c => c.close)
-    const timestamps = symCandles.map(c => c.timestamp || 0)
 
     let estimates, velocities, gains, variances, residuals
 
@@ -202,7 +201,7 @@ function KalmanFilterPrice({ candles, symbol, exchange }) {
     )
   }
 
-  const { rawPrices, filteredPrices, residuals, velocities, gains, minP, maxP, pRange, maxResidual, lastPrice, lastEstimate, lastResidual, smoothingEffect, trend, n } = data
+  const { rawPrices, filteredPrices, residuals, velocities, gains, minP, pRange, maxResidual, lastPrice, lastEstimate, lastResidual, smoothingEffect, trend, n } = data
 
   const toX = (i) => (i / Math.max(n - 1, 1)) * 100
   const toY = (v) => 100 - ((v - minP) / pRange) * 85 - 7.5

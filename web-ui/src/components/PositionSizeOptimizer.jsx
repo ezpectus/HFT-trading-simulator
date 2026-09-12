@@ -98,7 +98,7 @@ function PositionSizeOptimizer({ candles, accounts, currentPrice, symbol, exchan
     )
   }
 
-  const { stopLoss, stopDistance, stopDistancePct, riskAmount, positionSize, positionValue, marginRequired, tp1, tp2, tp3, marginPct, isOverleveraged, isStopTooWide, accountEquity, lastAtr, kellySize } = data
+  const { stopLoss, stopDistancePct, riskAmount, positionSize, positionValue, marginRequired, tp1, tp2, tp3, marginPct, isOverleveraged, isStopTooWide, kellySize } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

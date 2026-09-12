@@ -28,7 +28,6 @@ function RenkoChart({ candles, symbol, exchange }) {
     // Build Renko bricks
     const bricks = []
     let lastBrickClose = closes[0]
-    let direction = 0 // 1 = up, -1 = down
 
     for (let i = 1; i < closes.length; i++) {
       const diff = closes[i] - lastBrickClose
@@ -40,13 +39,11 @@ function RenkoChart({ candles, symbol, exchange }) {
           const close = open + size
           bricks.push({ open, close, direction: 1, idx: bricks.length, candleIdx: i })
           lastBrickClose = close
-          direction = 1
         } else {
           const open = lastBrickClose
           const close = open - size
           bricks.push({ open, close, direction: -1, idx: bricks.length, candleIdx: i })
           lastBrickClose = close
-          direction = -1
         }
       }
     }
@@ -102,7 +99,7 @@ function RenkoChart({ candles, symbol, exchange }) {
     )
   }
 
-  const { bricks, size, upCount, downCount, lastBrick, reversal, support, resistance, autoBrick } = data
+  const { bricks, upCount, downCount, lastBrick, reversal, support, resistance, autoBrick } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

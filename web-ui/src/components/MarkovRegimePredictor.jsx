@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Shuffle, TrendingUp, Activity } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 // Regime classification from rolling return statistics:
 // vol = std(returns), mean = avg(returns), skew = E[(r-μ)³/σ³]
@@ -10,7 +9,6 @@ function classifyRegime(returns) {
   if (returns.length < 5) return 'UNKNOWN'
   const vol = Math.sqrt(returns.reduce((s, r) => s + r * r, 0) / returns.length)
   const mean = returns.reduce((s, r) => s + r, 0) / returns.length
-  const skew = returns.length > 10 ? calcSkewness(returns) : 0
 
   if (vol > 0.02 && Math.abs(mean) > 0.001) return 'TRENDING_VOL'
   if (vol > 0.02) return 'VOLATILE'
@@ -119,7 +117,7 @@ function MarkovRegimePredictor({ candles, symbol, exchange }) {
 
     if (regimeSequence.length < 10) return null
 
-    const { regimes, matrix, stationary, totals } = buildTransitionMatrix(regimeSequence)
+    const { regimes, matrix, stationary} = buildTransitionMatrix(regimeSequence)
 
     const currentRegime = regimeSequence[regimeSequence.length - 1]
     const predictions = predictNextRegime(matrix, regimes, currentRegime)

@@ -404,7 +404,6 @@ function EmpiricalModeDecomposition({ candles, symbol, exchange }) {
             {(() => {
               const dom = data.hht[data.dominantIdx]
               const maxAmp = Math.max(0.001, ...dom.amplitude)
-              const maxFreq = Math.max(0.001, ...dom.frequency.filter(f => f > 0 && isFinite(f)))
               return dom.amplitude.map((a, i) => {
                 const freq = dom.frequency[i]
                 const x = sx(i)

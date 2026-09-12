@@ -1,5 +1,5 @@
 import { memo, useState, useMemo } from 'react'
-import { GitCompare, Play, TrendingUp, TrendingDown } from 'lucide-react'
+import { GitCompare, Play} from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
 function WalkForward({ accounts }) {

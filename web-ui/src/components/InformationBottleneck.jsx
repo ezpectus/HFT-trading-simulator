@@ -75,7 +75,7 @@ const informationBottleneck = (X, Y, nClusters, beta, maxIter = 100) => {
   }
 
   // Initialize p(t|x) uniformly
-  let ptx = Array.from({ length: nXStates }, () => {
+  const ptx = Array.from({ length: nXStates }, () => {
     const row = Array.from({ length: nClusters }, () => Math.random() + 0.1)
     const sum = row.reduce((a, b) => a + b, 0)
     return row.map(v => v / sum)

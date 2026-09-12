@@ -59,7 +59,6 @@ function TimeOfDayPerformance({ accounts }) {
               if (s.trades === 0) return null
               const widthPct = (Math.abs(s.pnl) / maxAbsPnl) * 50
               const tradeHeight = (s.trades / maxTrades) * 100
-              const winRate = s.trades > 0 ? (s.wins / s.trades) * 100 : 0
               return (
                 <div key={h} className="flex items-center gap-1.5 group">
                   <span className="text-[8px] text-gray-600 w-6 text-right font-mono">

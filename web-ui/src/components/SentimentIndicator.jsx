@@ -110,7 +110,7 @@ function SentimentIndicator({ candles, signals, symbol, exchange }) {
     )
   }
 
-  const { score, label, color, Icon, priceMomentum, signalBias, volSpike, longCount, shortCount, newsItems } = sentiment
+  const { score, label, color, Icon, priceMomentum, volSpike, longCount, shortCount, newsItems } = sentiment
 
   return (
     <div className="bg-bg-700  p-2.5">

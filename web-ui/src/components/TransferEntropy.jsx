@@ -29,7 +29,7 @@ const quantize = (values, nBins = 5) => {
 }
 
 // Joint probability from tuples
-const jointProb = (tuples, nBins) => {
+const jointProb = (tuples, _nBins) => {
   const counts = new Map()
   for (const t of tuples) {
     const key = t.join(',')
@@ -41,20 +41,6 @@ const jointProb = (tuples, nBins) => {
     probs[key] = count / total
   }
   return probs
-}
-
-// Conditional probability P(A | B)
-const conditionalProb = (tuplesA, tuplesB, nBins) => {
-  const jointCounts = new Map()
-  const bCounts = new Map()
-  for (let i = 0; i < tuplesA.length; i++) {
-    const keyA = tuplesA[i].join(',')
-    const keyB = tuplesB[i].join(',')
-    const jointKey = keyA + '|' + keyB
-    jointCounts.set(jointKey, (jointCounts.get(jointKey) || 0) + 1)
-    bCounts.set(keyB, (bCounts.get(keyB) || 0) + 1)
-  }
-  return { jointCounts, bCounts }
 }
 
 // Compute transfer entropy TE_{X→Y}

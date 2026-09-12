@@ -134,7 +134,6 @@ function SmartMoneyConcepts({ candles, symbol, exchange }) {
 
     // Chart: price with structure markers
     const slice = symCandles.slice(-30)
-    const prices = slice.map(c => c.close)
     const minP = Math.min(...slice.map(c => c.low))
     const maxP = Math.max(...slice.map(c => c.high))
     const range = maxP - minP || 1
@@ -189,7 +188,7 @@ function SmartMoneyConcepts({ candles, symbol, exchange }) {
     )
   }
 
-  const { currentTrend, lastStructure, recentStructures, activeOBs, activeFVGs, candleBars, markers, lastPrice, totalBOS, totalCHoCH } = data
+  const { currentTrend, lastStructure, activeOBs, activeFVGs, candleBars, markers, totalBOS, totalCHoCH } = data
 
   const trendColor = currentTrend === 'bullish' ? 'text-accent-green' : currentTrend === 'bearish' ? 'text-accent-red' : 'text-gray-400'
   const trendBg = currentTrend === 'bullish' ? 'bg-accent-green/10' : currentTrend === 'bearish' ? 'bg-accent-red/10' : 'bg-bg-800'

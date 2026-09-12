@@ -85,8 +85,6 @@ function HahnDecomposition({ candles, symbol, exchange }) {
     for (let i = 0; i + windowSize <= n; i += Math.max(3, Math.floor(windowSize / 4))) {
       const window = returns.slice(i, i + windowSize)
       const wMean = window.reduce((a, b) => a + b, 0) / window.length
-      const posCount = window.filter(r => r > 0).length
-      const negCount = window.filter(r => r < 0).length
       const posSum = window.filter(r => r > 0).reduce((s, r) => s + r, 0)
       const negSum = Math.abs(window.filter(r => r < 0).reduce((s, r) => s + r, 0))
       rollingDecomp.push({
@@ -143,7 +141,6 @@ function HahnDecomposition({ candles, symbol, exchange }) {
 
   // Rolling decomposition
   const maxTV = Math.max(...data.rollingDecomp.map(d => d.totalVar), 0.001)
-  const maxSNR = Math.max(...data.rollingDecomp.map(d => d.snr), 0.1)
   const sxR = (i) => P + (i / data.rollingDecomp.length) * (W - 2 * P)
   const syTV = (v) => H - P - (v / maxTV) * (H - 2 * P)
   const sySNR = (v) => H - P - (Math.min(v, 5) / 5) * (H - 2 * P)

@@ -93,7 +93,7 @@ function WhaleAlerts({ fills, candles, symbol, exchange }) {
     )
   }
 
-  const { whaleFills, whaleBuys, whaleSells, totalWhaleVolume, buyVolume, sellVolume, buySellRatio, netFlow, flowDirection, flowColor, largest, whaleImpactPct, timeline, whaleThreshold } = data
+  const { whaleFills, whaleBuys, whaleSells, buySellRatio, netFlow, flowDirection, flowColor, whaleImpactPct, timeline, whaleThreshold } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

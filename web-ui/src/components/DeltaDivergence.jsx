@@ -34,7 +34,6 @@ function DeltaDivergence({ candles, fills, symbol, exchange }) {
         else { sellVol = vol * 0.6; buyVol = vol * 0.4 }
       }
       const delta = buyVol - sellVol
-      const cumDelta = 0 // will be computed below
       return { time: cTime, close: c.close, open: c.open, high: c.high, low: c.low, buyVol, sellVol, delta }
     })
 
@@ -50,8 +49,6 @@ function DeltaDivergence({ candles, fills, symbol, exchange }) {
     for (let i = 1; i < candleData.length; i++) {
       const prev = candleData[i - 1]
       const curr = candleData[i]
-      const priceChange = curr.close - prev.close
-      const deltaChange = curr.delta - prev.delta
 
       // Regular bullish divergence: price lower low, delta higher low
       // Regular bearish divergence: price higher high, delta lower high

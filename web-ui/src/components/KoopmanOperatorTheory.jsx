@@ -155,7 +155,7 @@ function KoopmanOperatorTheory({ candles, symbol, exchange }) {
 
     // Dominant eigenvalues via power iteration (with deflation)
     const eigenvalues = []
-    let M = K.map(row => row.slice())
+    const M = K.map(row => row.slice())
     for (let i = 0; i < Math.min(5, dim); i++) {
       const { eigenvalue, eigenvector } = powerIteration(M, 200)
       if (Math.abs(eigenvalue) < 1e-8) break
@@ -193,7 +193,6 @@ function KoopmanOperatorTheory({ candles, symbol, exchange }) {
     reconError /= states.length
 
     // Mode amplitudes
-    const modeAmplitudes = eigenvalues.map(e => Math.abs(e.value))
 
     // Signal
     const dominantModulus = eigenvalues[0]?.modulus || 0

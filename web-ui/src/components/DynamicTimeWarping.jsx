@@ -163,7 +163,6 @@ function DynamicTimeWarping({ candles, symbol, exchange }) {
     if (scanAll && bestMatch) {
       const bullishPatterns = ['doubleBottom', 'cupAndHandle', 'vReversal', 'ascendingTriangle', 'flag']
       const bearishPatterns = ['headAndShoulders', 'descendingTriangle']
-      const neutralPatterns = ['channel']
       if (bullishPatterns.includes(bestMatch.name) && bestMatch.similarity > 0.3) {
         signal = 'BUY'
         reason = `${bestMatch.name} detected (similarity=${bestMatch.similarity.toFixed(3)})`

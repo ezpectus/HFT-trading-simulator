@@ -214,7 +214,7 @@ function Autoencoder({ candles, symbol, exchange }) {
     const rawFeatures = extractAEFeatures(cds, 20)
     if (rawFeatures.length < 20) return null
 
-    const { data: stdFeatures, means, stds } = standardize(rawFeatures)
+    const { data: stdFeatures} = standardize(rawFeatures)
     const inputDim = stdFeatures[0].length
 
     const model = trainAutoencoder(stdFeatures, inputDim, hiddenDim, epochs, lr, 0.001)

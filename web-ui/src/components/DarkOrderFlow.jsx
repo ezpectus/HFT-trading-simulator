@@ -23,8 +23,6 @@ function DarkOrderFlow({ candles, symbol, exchange: selectedExchange }) {
         const ratio = (c.volume / avgVol).toFixed(1)
         const isBullish = c.close > c.open
         const bodySize = Math.abs(c.close - c.open)
-        const upperWick = c.high - Math.max(c.open, c.close)
-        const lowerWick = Math.min(c.open, c.close) - c.low
         const totalRange = c.high - c.low || 0.001
 
         // Detect hidden/dark order patterns:

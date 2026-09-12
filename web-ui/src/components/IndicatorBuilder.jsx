@@ -1,5 +1,5 @@
 import { memo, useState, useMemo } from 'react'
-import { Plus, X, LineChart, Settings2 } from 'lucide-react'
+import { Plus, X, LineChart} from 'lucide-react'
 import { calcSMA, calcEMA, calcRSI, calcBollingerBands } from '../utils/indicators'
 
 const INDICATOR_DEFS = [

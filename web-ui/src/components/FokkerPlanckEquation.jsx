@@ -42,7 +42,6 @@ const solveFokkerPlanck = (xGrid, p0, muFn, sigmaFn, dt, nSteps) => {
 
     for (let i = 1; i < n - 1; i++) {
       const x = xGrid[i]
-      const mu = muFn(x)
       const sigma2 = sigmaFn(x) ** 2
 
       // Drift flux: F_drift = μ·p

@@ -1,11 +1,11 @@
 import { memo, useMemo, useState } from 'react'
-import { Skull, Calculator, TrendingDown } from 'lucide-react'
+import { Skull} from 'lucide-react'
 
 function RiskOfRuin({ accounts, fills }) {
   const [winRate, setWinRate] = useState(45)
   const [riskPct, setRiskPct] = useState(2)
   const [rewardRatio, setRewardRatio] = useState(2)
-  const [simulations, setSimulations] = useState(1000)
+  const [simulations, _setSimulations] = useState(1000)
 
   const data = useMemo(() => {
     // Get actual stats from accounts if available

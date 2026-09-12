@@ -29,9 +29,7 @@ function PointAndFigure({ candles, symbol, exchange }) {
 
     // Build P&F columns
     const columns = []
-    let currentDir = 0 // 1 = up (X), -1 = down (O)
     let currentPrice = closes[0]
-    let colStart = currentPrice
 
     // First column
     const firstBox = Math.floor(currentPrice / size) * size
@@ -163,7 +161,7 @@ function PointAndFigure({ candles, symbol, exchange }) {
     )
   }
 
-  const { grid, visible, size, autoBox, reversal, signal, signalColor, lastDir } = data
+  const { grid, autoBox, reversal, signal, signalColor, lastDir } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

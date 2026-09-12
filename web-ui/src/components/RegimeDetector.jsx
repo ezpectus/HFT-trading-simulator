@@ -61,7 +61,6 @@ const RegimeDetector = memo(function RegimeDetector({ symbol, exchange, candles,
 
   const meta = REGIME_META[regime?.regime] ?? null
   // Confidence proxy from broadcast scores (trend_score & cycle_strength are 0..1)
-  const conf = regime ? Math.max(Math.abs(regime.trend_score ?? 0), Math.abs(regime.cycle_strength ?? 0)) : null
 
   const indCards = ind ? [
     { name: 'Realized Vol', value: `${ind.vol.toFixed(2)}%`, signal: ind.vol > 1.5 ? 'Elevated' : ind.vol > 0.5 ? 'Normal' : 'Quiet', color: ind.vol > 1.5 ? 'text-accent-yellow' : 'text-accent-green' },

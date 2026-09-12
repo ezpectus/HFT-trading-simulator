@@ -1,9 +1,9 @@
 import { memo, useMemo, useState } from 'react'
 import { FlaskConical, Settings2, ArrowRight } from 'lucide-react'
-import { formatPrice, formatVolume } from '../utils/format'
+import { formatPrice} from '../utils/format'
 import { calcATR } from '../utils/indicators'
 
-function SlippageSimulator({ candles, orderbooks, accounts, currentPrice, symbol, exchange }) {
+function SlippageSimulator({ candles, orderbooks, currentPrice, symbol, exchange }) {
   const [side, setSide] = useState('BUY')
   const [orderSize, setOrderSize] = useState('1000')
   const [slippageModel, setSlippageModel] = useState('linear')
@@ -136,7 +136,7 @@ function SlippageSimulator({ candles, orderbooks, accounts, currentPrice, symbol
     )
   }
 
-  const { qty, executionPrice, priceImpact, slippagePct, spread, bestBid, bestAsk, topLiquidity, fee, feeRate, grossValue, actualValue, slippageCost, totalRoundTrip, effectivePrice, slippagePctOfTotal, feePctOfTotal, twapSavings, twapSavingsPct, orderVsLiquidity, liquidityZone, liquidityColor } = data
+  const {  executionPrice, priceImpact, slippagePct, spread, fee, feeRate, slippageCost, totalRoundTrip, slippagePctOfTotal, feePctOfTotal, twapSavings, twapSavingsPct, orderVsLiquidity, liquidityZone, liquidityColor } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

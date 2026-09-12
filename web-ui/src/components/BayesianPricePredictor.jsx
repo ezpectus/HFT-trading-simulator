@@ -32,7 +32,7 @@ const logGamma = (z) => {
     -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5
   ]
   let y = z
-  let tmp = z + 5.5 - (z + 0.5) * Math.log(z + 5.5)
+  const tmp = z + 5.5 - (z + 0.5) * Math.log(z + 5.5)
   let ser = 1.000000000190015
   for (let j = 0; j < 6; j++) {
     y += 1

@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Award, TrendingUp, TrendingDown, Activity } from 'lucide-react'
+import { Award, TrendingUp, Activity } from 'lucide-react'
 import { calcAggregateMetrics, buildEquityCurve, calcDrawdown, calcSharpeRatio, calcSortinoRatio } from '../utils/performance'
 
 function RiskAdjustedComparison({ accounts, fills }) {

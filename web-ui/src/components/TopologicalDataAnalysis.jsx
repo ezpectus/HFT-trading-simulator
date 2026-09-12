@@ -100,7 +100,7 @@ const persistenceH0 = (D) => {
 }
 
 // Compute persistence for H₁ (loops) — simplified
-const persistenceH1 = (D, maxDim = 1) => {
+const persistenceH1 = (D, _maxDim = 1) => {
   const n = D.length
   const edges = []
   for (let i = 0; i < n; i++) {

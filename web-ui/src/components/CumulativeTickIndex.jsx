@@ -91,7 +91,7 @@ function CumulativeTickIndex({ candles, fills, symbol, exchange }) {
     )
   }
 
-  const { cumTick, tickPath, zeroY, upTicks, downTicks, tickRatio, breadthThrust, volTickRatio, fillTickRatio, compositeTick, signal, signalColor, buyFills, sellFills } = data
+  const { cumTick, tickPath, zeroY, upTicks, downTicks, tickRatio, breadthThrust, volTickRatio, fillTickRatio, compositeTick, signal, signalColor} = data
 
   return (
     <div className="bg-bg-700  p-2.5">

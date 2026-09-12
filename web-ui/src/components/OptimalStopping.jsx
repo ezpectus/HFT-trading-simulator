@@ -79,7 +79,6 @@ const binomialAmerican = (S0, K, T, r, sigma, nSteps, isCall = true) => {
 
   // Greeks via finite differences
   const price = optionValues[0]
-  const delta = 0, gamma = 0, theta = 0
 
   return {
     price, exerciseBoundaries, exercisePoints, criticalPrices,
@@ -90,7 +89,6 @@ const binomialAmerican = (S0, K, T, r, sigma, nSteps, isCall = true) => {
 // Longstaff-Schwartz Monte Carlo for American options
 const longstaffSchwartz = (S0, K, T, r, sigma, nPaths, nSteps, isCall = true) => {
   const dt = T / nSteps
-  const disc = Math.exp(-r * dt)
 
   // Generate paths via geometric Brownian motion
   const paths = Array.from({ length: nPaths }, () => {
@@ -317,7 +315,6 @@ const OptimalStopping = memo(({ candles, symbol, exchange, currentPrice }) => {
           {boundaryData.map((d, i) => {
             if (i === 0) return null
             const prev = boundaryData[i - 1]
-            const isEx = isCall
             return (
               <line
                 key={i}

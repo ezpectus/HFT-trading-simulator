@@ -183,7 +183,6 @@ function MarkovSwitchingGARCH({ candles, symbol, exchange }) {
     const result = msGarchFilter(returns, params, nRegimes)
 
     // Regime probabilities over time
-    const regimeProbs = result.smoothedProb
 
     // Current state
     const currentRegime = result.currentRegime

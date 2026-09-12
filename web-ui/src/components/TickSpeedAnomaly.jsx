@@ -106,12 +106,12 @@ function TickSpeedAnomaly({ candles, fills, symbol, exchange }) {
     )
   }
 
-  const { anomalies, anomalyEvents, fastTicks, slowTicks, meanGap, meanFillSpeed, fillSpeeds, speedRatio, activity, activityColor, symCandles } = data
+  const { anomalies, anomalyEvents, fastTicks, slowTicks, meanGap, meanFillSpeed, fillSpeeds, speedRatio, activity, activityColor} = data
 
   // SVG sparkline for gap z-scores
   const w = 280, h = 40
+  const zMax = 3
   const recentAnoms = anomalies.slice(-30)
-  const zMin = -3, zMax = 3
   const xStep = w / Math.max(recentAnoms.length - 1, 1)
 
   return (

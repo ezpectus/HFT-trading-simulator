@@ -109,7 +109,7 @@ function VolumeAnomalyDetector({ candles, symbol, exchange }) {
     )
   }
 
-  const { bars, meanY, recentAnomalies, avgVol, lastVol, lastZ, volTrend, spikeCount, droughtCount, bullAnomalies, bearAnomalies } = data
+  const { bars, meanY, recentAnomalies, avgVol, lastVol, lastZ, spikeCount, droughtCount, bullAnomalies, bearAnomalies } = data
 
   const zColor = Math.abs(lastZ) > 2.5 ? 'text-accent-red' : Math.abs(lastZ) > 1.5 ? 'text-accent-yellow' : 'text-gray-400'
 

@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Shield, TrendingUp, TrendingDown, Activity } from 'lucide-react'
-import { formatVolume, formatPrice } from '../utils/format'
+import { Shield, TrendingUp, TrendingDown} from 'lucide-react'
 
 function OrderFlowAbsorption({ candles, fills, orderbooks, symbol, exchange }) {
   const data = useMemo(() => {
@@ -55,8 +54,6 @@ function OrderFlowAbsorption({ candles, fills, orderbooks, symbol, exchange }) {
 
       const isHighVolume = (c.volume || 0) > avgVol * 1.5
       const isSmallBody = bodySize < avgBody * 0.5
-      const isLargeWick = wickSize > bodySize * 2
-      const hasLargeDelta = Math.abs(deltaPct) > 30
 
       // Bullish absorption: high sell volume but price doesn't drop (buyers absorbing)
       const bullishAbsorption = isHighVolume && delta < 0 && isSmallBody && c.close >= c.open * 0.998
@@ -88,8 +85,8 @@ function OrderFlowAbsorption({ candles, fills, orderbooks, symbol, exchange }) {
     if (ob) {
       const bids = (ob.bids || []).slice(0, 10)
       const asks = (ob.asks || []).slice(0, 10)
-      const bidVol = bids.reduce((s, [p, q]) => s + q, 0)
-      const askVol = asks.reduce((s, [p, q]) => s + q, 0)
+      const bidVol = bids.reduce((s, [_p, q]) => s + q, 0)
+      const askVol = asks.reduce((s, [_p, q]) => s + q, 0)
       const total = bidVol + askVol
       obImbalance = {
         bidVol, askVol,

@@ -6,8 +6,8 @@ import { describe, it, expect } from 'vitest'
 import {
   calcEMA, calcRSI, calcSMA, calcBollingerBands, calcOBV,
   calcMACD, calcATR, calcADX, calcCCI, calcStochastic,
-  calcParabolicSAR, calcMFI, calcWilliamsR, calcIchimoku,
-  calcAwesomeOscillator, calcVWAPMACD, toHeikinAshi,
+  _calcParabolicSAR, _calcMFI, _calcWilliamsR, _calcIchimoku,
+  _calcAwesomeOscillator, _calcVWAPMACD, toHeikinAshi,
 } from '../utils/indicators'
 
 describe('calcEMA', () => {

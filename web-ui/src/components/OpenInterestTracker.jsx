@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Eye, Activity } from 'lucide-react'
-import { formatPrice, formatVolume } from '../utils/format'
+import {  formatVolume } from '../utils/format'
 
 function OpenInterestTracker({ candles, fills, symbol, exchange }) {
   const data = useMemo(() => {
@@ -11,7 +11,6 @@ function OpenInterestTracker({ candles, fills, symbol, exchange }) {
 
     // Estimate open interest from fill flow
     // OI increases when new positions open, decreases when they close
-    const symFills = (fills || [])
       .filter(f => f.symbol === symbol && f.exchange === exchange && f.status === 'FILLED')
       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
 
@@ -31,10 +30,8 @@ function OpenInterestTracker({ candles, fills, symbol, exchange }) {
 
     // Price-OI divergence detection
     const recent = oiSeries.slice(-10)
-    const older = oiSeries.slice(-20, -10)
     const recentOITrend = recent[recent.length - 1].oi - recent[0].oi
     const recentPriceTrend = recent[recent.length - 1].close - recent[0].close
-    const olderOITrend = older.length > 0 ? older[older.length - 1].oi - older[0].oi : 0
 
     // Divergence: price up + OI down = weakening (short covering)
     // Price down + OI up = strengthening (new shorts entering)

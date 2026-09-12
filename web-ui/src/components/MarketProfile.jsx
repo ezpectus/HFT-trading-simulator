@@ -66,7 +66,7 @@ function MarketProfile({ candles, symbol, exchange }) {
     const targetTpos = totalTpos * 0.7
     let vaHigh = pocLevel, vaLow = pocLevel
     let accumulated = pocLevel.tpos.length
-    let pocIdx = levels.indexOf(pocLevel)
+    const pocIdx = levels.indexOf(pocLevel)
 
     for (let step = 1; accumulated < targetTpos && step < ROWS; step++) {
       const upIdx = pocIdx + step
@@ -115,7 +115,7 @@ function MarketProfile({ candles, symbol, exchange }) {
     )
   }
 
-  const { levels, pocLevel, vaHigh, vaLow, maxVol, currentPrice, totalTpos } = profile
+  const { levels, pocLevel, vaHigh, vaLow, maxVol, currentPrice} = profile
 
   return (
     <div className="bg-bg-700  p-2.5">

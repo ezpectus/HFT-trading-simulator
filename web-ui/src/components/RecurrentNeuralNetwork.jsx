@@ -114,7 +114,7 @@ const lstmForward = (lstm, sequence, h0 = null, c0 = null) => {
 // BPTT (simplified — gradient computation for output layer + last timestep)
 const lstmTrain = (lstm, sequences, targets, lr = 0.01, epochs = 50) => {
   const { cell, Wy, by, hiddenSize, outputSize } = lstm
-  let losses = []
+  const losses = []
 
   for (let epoch = 0; epoch < epochs; epoch++) {
     let totalLoss = 0
@@ -150,7 +150,7 @@ const lstmTrain = (lstm, sequences, targets, lr = 0.01, epochs = 50) => {
 
       for (let t = cache.length - 1; t >= cache.length - truncSteps; t--) {
         const step = cache[t]
-        const { f, i, g, o, c, h, concat } = step
+        const { f, i, g, o, c, concat } = step
 
         // Gradient from output layer (only at last timestep)
         if (t === cache.length - 1) {
@@ -222,7 +222,7 @@ const lstmTrain = (lstm, sequences, targets, lr = 0.01, epochs = 50) => {
 }
 
 // Prepare sequences from returns
-const prepareSequences = (returns, seqLen = 10, inputSize = 1) => {
+const prepareSequences = (returns, seqLen = 10, _inputSize = 1) => {
   const sequences = []
   const targets = []
   for (let i = 0; i < returns.length - seqLen - 1; i++) {

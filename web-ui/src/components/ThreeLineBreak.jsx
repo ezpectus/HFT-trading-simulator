@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Layers3 } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function ThreeLineBreak({ candles, symbol, exchange }) {
   const data = useMemo(() => {
@@ -13,7 +12,6 @@ function ThreeLineBreak({ candles, symbol, exchange }) {
 
     // Build Three-Line Break blocks
     const blocks = []
-    let prevClose = closes[0]
     blocks.push({ open: closes[0], close: closes[1], dir: closes[1] > closes[0] ? 'up' : 'down', idx: 1 })
 
     for (let i = 2; i < closes.length; i++) {

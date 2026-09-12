@@ -92,7 +92,7 @@ function MITOrderSimulator({ candles, accounts, currentPrice, symbol, exchange, 
     )
   }
 
-  const { lastAtr, recentHigh, recentLow, buyTouch, sellTouch, targetPrice, distance, distancePct, probTouch, stopLoss, takeProfit, risk, reward, rr, balance, orderValue, sufficientBalance } = analysis
+  const { lastAtr, recentHigh, recentLow, buyTouch, sellTouch, targetPrice, distancePct, probTouch, stopLoss, takeProfit, rr, orderValue, sufficientBalance } = analysis
 
   return (
     <div className="bg-bg-700  p-2.5">

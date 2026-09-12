@@ -82,7 +82,6 @@ function FootprintChart({ candles, fills, symbol, exchange }) {
       const prev = footprints[i - 1]
       const curr = footprints[i]
       const priceUp = curr.candle.close > prev.candle.close
-      const deltaUp = curr.delta > prev.delta
       if (priceUp && curr.delta < 0) {
         divergences.push({ idx: i, type: 'bearish', desc: 'Price up, delta negative' })
       } else if (!priceUp && curr.delta > 0) {

@@ -120,7 +120,7 @@ function PerformanceAttribution({ accounts, fills, signals }) {
     )
   }
 
-  const { sideStats, symbolStats, reasonStats, hourStats, dowStats, bestSymbol, worstSymbol, bestReason, worstReason, bestHour, worstHour, totalPnl, totalWinRate, totalTrades, maxHourPnl } = data
+  const { sideStats, symbolStats, reasonStats, hourStats, dowStats, bestSymbol, worstSymbol, totalPnl, totalWinRate, totalTrades, maxHourPnl } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

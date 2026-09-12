@@ -3,7 +3,6 @@
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { useState, useEffect } from 'react'
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 
 function GoodChild() {
@@ -14,7 +13,7 @@ function BadChild() {
   throw new Error('Test error')
 }
 
-function ToggleChild({ shouldThrow }) {
+function _ToggleChild({ shouldThrow }) {
   if (shouldThrow) throw new Error('Toggle error')
   return <div data-testid="child">Working</div>
 }
@@ -54,7 +53,7 @@ describe('PanelErrorBoundary', () => {
 
   it('shows disable button after 3 errors', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { rerender } = render(
+    render(
       <PanelErrorBoundary panelName="Test Panel" key="boundary">
         <BadChild />
       </PanelErrorBoundary>

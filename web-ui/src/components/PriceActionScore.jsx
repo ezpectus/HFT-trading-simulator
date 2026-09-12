@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { CandlestickChart, TrendingUp, TrendingDown, Flame } from 'lucide-react'
-import { calcRSI, calcSMA, calcATR } from '../utils/indicators'
+import { calcRSI, calcSMA } from '../utils/indicators'
 
 function PriceActionScore({ candles, symbol, exchange }) {
   const data = useMemo(() => {
@@ -9,10 +9,7 @@ function PriceActionScore({ candles, symbol, exchange }) {
       .slice(-30)
     if (symCandles.length < 10) return null
 
-    const highs = symCandles.map(c => c.high)
-    const lows = symCandles.map(c => c.low)
     const closes = symCandles.map(c => c.close)
-    const opens = symCandles.map(c => c.open)
 
     const scores = []
 
@@ -112,9 +109,6 @@ function PriceActionScore({ candles, symbol, exchange }) {
     })
 
     // 9. Rejection at key level
-    const atr = calcATR(highs, lows, closes, 14)
-    const validAtr = atr.filter(v => !isNaN(v))
-    const lastAtr = validAtr.length > 0 ? validAtr[validAtr.length - 1] : 0
     const rejectionFromHigh = (last.high - last.close) > body * 2 && last.close < last.open
     const rejectionFromLow = (last.close - last.low) > body * 2 && last.close > last.open
     scores.push({

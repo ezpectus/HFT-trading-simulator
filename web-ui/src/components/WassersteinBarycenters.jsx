@@ -69,16 +69,6 @@ const wassersteinBarycenter = (distributions, weights, nPoints = 100) => {
   return { barycenter, quantiles }
 }
 
-// Euclidean mean (for comparison)
-const euclideanMean = (distributions) => {
-  const n = distributions[0].length
-  const mean = new Array(n).fill(0)
-  for (const dist of distributions) {
-    for (let i = 0; i < n; i++) mean[i] += dist[i]
-  }
-  return mean.map(v => v / distributions.length)
-}
-
 function WassersteinBarycenters({ candles, symbols, exchange }) {
   const [nWindows, setNWindows] = useState(4)
   const [lookback, setLookback] = useState(200)

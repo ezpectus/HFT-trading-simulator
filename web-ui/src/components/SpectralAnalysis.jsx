@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Radio, Activity, Waves } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 // Discrete Fourier Transform (DFT):
 // X_k = Σ_{t=0}^{N-1} x_t · e^{-2πi·k·t/N} = Σ x_t·[cos(2πkt/N) - i·sin(2πkt/N)]
@@ -76,7 +75,7 @@ function welchPSD(signal, segmentSize = 16, overlap = 0.5) {
 // Dominant cycle detection via local maxima (peaks) in PSD:
 // A peak at bin k → period = N / k (samples per cycle)
 // Relative power = |X_k| / Σ |X_j|  (concentration of energy)
-function detectDominantCycles(magnitudes, sampleRate = 1) {
+function detectDominantCycles(magnitudes, _sampleRate = 1) {
   if (magnitudes.length < 3) return []
 
   const peaks = []

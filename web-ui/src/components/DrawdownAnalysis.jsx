@@ -22,8 +22,6 @@ function DrawdownAnalysis({ fills }) {
 
     // Calculate drawdowns
     let maxDD = 0
-    let maxDDStart = 0
-    let maxDDEnd = 0
     let currentDD = 0
     let underwaterTime = 0
     let recoveries = 0
@@ -46,7 +44,6 @@ function DrawdownAnalysis({ fills }) {
 
       if (ddAbs > maxDD) {
         maxDD = ddAbs
-        maxDDStart = i
       }
       if (dd < currentDD) currentDD = dd
     }

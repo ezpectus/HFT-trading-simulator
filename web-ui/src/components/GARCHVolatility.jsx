@@ -17,7 +17,7 @@ function calcLogReturns(closes) {
 // Persistence = α + β (stationarity requires < 1)
 // Half-life of variance shocks: h = ln(0.5) / ln(α + β)
 // Unconditional variance: ω / (1 - α - β)
-function calcGARCH(returns, p = 1, q = 1, maxIter = 100) {
+function calcGARCH(returns, _p = 1, _q = 1, maxIter = 100) {
   if (returns.length < 30) return null
 
   const n = returns.length
@@ -195,7 +195,7 @@ function GARCHVolatility({ candles, symbol, exchange }) {
     )
   }
 
-  const { garch, ewma, parkinson, garchSlice, ewmaSlice, parkSlice, minVol, maxVol, volRange, volRegime, volTrend, n } = data
+  const { garch, ewma, parkinson, garchSlice, ewmaSlice, parkSlice, minVol, volRange, volRegime, volTrend, n } = data
 
   const toY = (v) => 100 - ((v - minVol) / volRange) * 85 - 7.5
   const toX = (i) => (i / Math.max(n - 1, 1)) * 100

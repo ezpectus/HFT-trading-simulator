@@ -31,8 +31,6 @@ const applyGenerator = (x, mu, sigma, f, fPrime, fDoublePrime) => {
 }
 
 // Numerical derivatives
-const numPrime = (f, x, h = 1e-5) => (f(x + h) - f(x - h)) / (2 * h)
-const numDoublePrime = (f, x, h = 1e-4) => (f(x + h) - 2 * f(x) + f(x - h)) / (h * h)
 
 // Expected hitting time via generator (solving A·T = -1)
 const expectedHittingTime = (xGrid, mu, sigma, targetIdx) => {
@@ -104,7 +102,7 @@ function ItoCalculusGenerator({ candles, symbol, exchange }) {
 
     // Test functions
     const testFunctions = {
-      identity: { f: (x) => x, fPrime: (x) => 1, fDoublePrime: () => 0, name: 'f(x) = x' },
+      identity: { f: (x) => x, fPrime: () => 1, fDoublePrime: () => 0, name: 'f(x) = x' },
       square: { f: (x) => x * x, fPrime: (x) => 2 * x, fDoublePrime: () => 2, name: 'f(x) = x\u00B2' },
       exp: { f: (x) => Math.exp(x), fPrime: (x) => Math.exp(x), fDoublePrime: (x) => Math.exp(x), name: 'f(x) = e\u02E3' },
       log: { f: (x) => Math.log(Math.abs(x) + 0.01), fPrime: (x) => 1 / (x + 0.01), fDoublePrime: (x) => -1 / ((x + 0.01) ** 2), name: 'f(x) = ln|x|' },

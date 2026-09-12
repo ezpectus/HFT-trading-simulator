@@ -3,7 +3,6 @@ import { X, Layers, AlertTriangle } from 'lucide-react'
 import { formatPrice, formatUsd, colorForSide } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 
-const EXCHANGE_FEES = { binance: 0.04, bybit: 0.06, okx: 0.05 }
 const LEVERAGE = 10
 
 export default memo(function PositionsPanel({ accounts, onClose, currentPrices }) {

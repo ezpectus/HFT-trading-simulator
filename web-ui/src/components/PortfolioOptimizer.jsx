@@ -1,6 +1,5 @@
 import { memo, useMemo, useState } from 'react'
 import { LineChart, Info } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function PortfolioOptimizer({ candles, symbols, exchange }) {
   const [riskFreeRate, setRiskFreeRate] = useState(2)

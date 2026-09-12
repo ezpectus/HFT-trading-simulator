@@ -171,7 +171,6 @@ function SobolevSpaceRegularization({ candles, symbol, exchange }) {
     const smoothPredictions = xGrid.map(x => result.predict(x))
 
     // Signal
-    const smoothnessRatio = result.residual / (result.h1Semi + 1e-10)
     let signal = 'BALANCED'
     let reason = ''
     if (lambda < 0.01) {

@@ -192,7 +192,7 @@ function RoughVolatility({ candles, symbol, exchange }) {
   const [eta, setEta] = useState(1.5)
   const [rho, setRho] = useState(-0.7)
   const [T, setT] = useState(30 / 365)
-  const [nSteps, setNSteps] = useState(50)
+  const [nSteps, _setNSteps] = useState(50)
   const [nPaths, setNPaths] = useState(50)
   const [autoHurst, setAutoHurst] = useState(true)
 

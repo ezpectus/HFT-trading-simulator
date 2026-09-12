@@ -216,7 +216,6 @@ function RandomMatrixTheory({ candles, symbols, exchange }) {
 
   // Eigenvalue spectrum
   const maxEig = Math.max(...data.eigenvalues, data.lambdaMax + 0.5)
-  const sxEig = (i) => P + (i / Math.max(1, data.N - 1)) * (W - 2 * P)
   const syEig = (v) => H - P - (v / maxEig) * (H - 2 * P)
 
   // MP density

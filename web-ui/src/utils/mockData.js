@@ -155,7 +155,7 @@ export function generateSignal(symbol, exchange, price) {
 /**
  * Generate a random fill.
  */
-export function generateFill(symbol, exchange, price, accounts) {
+export function generateFill(symbol, exchange, price, _accounts) {
   const side = Math.random() > 0.5 ? 'BUY' : 'SELL'
   const qty = Number((0.01 + Math.random() * 0.5).toFixed(4))
   const order = {

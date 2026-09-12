@@ -1,7 +1,7 @@
 import { memo, useMemo } from 'react'
 import { Percent, Clock } from 'lucide-react'
 
-function FundingRateHistory({ fundingRates, candlesToFunding, symbol, exchange }) {
+function FundingRateHistory({ fundingRates, candlesToFunding}) {
   const data = useMemo(() => {
     if (!fundingRates || Object.keys(fundingRates).length === 0) return null
 
@@ -59,7 +59,7 @@ function FundingRateHistory({ fundingRates, candlesToFunding, symbol, exchange }
     )
   }
 
-  const { rates, sorted, avgRate, skew, path, zeroY, maxRate } = data
+  const {  sorted, avgRate, skew, path, zeroY, maxRate } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

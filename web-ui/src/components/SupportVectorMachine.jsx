@@ -92,7 +92,7 @@ const standardize = (features) => {
 const linearSVM = (X, y, C = 1.0, epochs = 200, lr = 0.01) => {
   const n = X.length
   const d = X[0].length
-  let w = new Array(d).fill(0)
+  const w = new Array(d).fill(0)
   let b = 0
 
   for (let epoch = 0; epoch < epochs; epoch++) {
@@ -253,7 +253,7 @@ function SupportVectorMachine({ candles, symbol, exchange }) {
     const { features, labels } = extractSVMFeatures(returns, windowSize)
     if (features.length < 20) return null
 
-    const { standardized, means, stds } = standardize(features)
+    const { standardized} = standardize(features)
 
     // Train/test split (80/20)
     const splitIdx = Math.floor(features.length * 0.8)

@@ -100,9 +100,9 @@ const cpDecompose = (tensor, rank, maxIter = 50) => {
     Array.from({ length: r }, () => Math.random() - 0.5)
   )
 
-  let A = initFactor(I, rank) // assets × rank
-  let B = initFactor(J, rank) // time × rank
-  let C = initFactor(K, rank) // features × rank
+  const A = initFactor(I, rank) // assets × rank
+  const B = initFactor(J, rank) // time × rank
+  const C = initFactor(K, rank) // features × rank
 
   const errors = []
 
@@ -113,7 +113,6 @@ const cpDecompose = (tensor, rank, maxIter = 50) => {
         let num = 0, den = 0
         for (let j = 0; j < J; j++) {
           for (let k = 0; k < K; k++) {
-            let khatriRao = 1
             for (let rr = 0; rr < rank; rr++) {
               // simplified: just use current factors
             }
@@ -172,7 +171,7 @@ const cpDecompose = (tensor, rank, maxIter = 50) => {
   // Normalize factors (extract weights)
   const weights = new Array(rank).fill(0)
   for (let r = 0; r < rank; r++) {
-    let maxA = Math.max(...A.map(row => Math.abs(row[r])), 1e-10)
+    const maxA = Math.max(...A.map(row => Math.abs(row[r])), 1e-10)
     weights[r] = maxA
     for (let i = 0; i < I; i++) A[i][r] /= maxA
   }
@@ -200,7 +199,7 @@ function TensorDecomposition({ candles, symbols, exchange }) {
     const result = buildTensor(bySym, validSymbols, timeframes, lookback)
     if (!result) return null
 
-    const { tensor, nAssets, nTF, nTime, nFeatures, nCols } = result
+    const { tensor, nAssets, nTF, nTime, nFeatures} = result
 
     // CP decomposition
     const cp = cpDecompose(tensor, rank, maxIter)

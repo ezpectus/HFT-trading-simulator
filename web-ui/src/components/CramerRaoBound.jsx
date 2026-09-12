@@ -38,8 +38,6 @@ const fisherGaussianVar = (n, sigma2) => n / (2 * sigma2 * sigma2)
 // Log-likelihood: L = -0.5 Σ [log(2π σ_t²) + r_t²/σ_t²]
 // σ_t² = ω + α·r_{t-1}² + β·σ_{t-1}²
 const fisherGARCH = (returns, omega, alpha, beta) => {
-  const n = returns.length
-  let sigma2 = omega / (1 - alpha - beta + 1e-10)
 
   // Compute log-likelihood and its derivatives numerically
   const eps = 1e-6
@@ -116,7 +114,7 @@ const invert3x3 = (M) => {
 
 function CramerRaoBound({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
-  const [nSamples, setNSamples] = useState(50)
+  const [nSamples, _setNSamples] = useState(50)
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)

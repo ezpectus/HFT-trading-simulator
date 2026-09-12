@@ -76,9 +76,6 @@ const prokhorovDistance = (data1, data2) => {
 }
 
 // Levy-Prokhorov metric (symmetric)
-const levyProkhorov = (data1, data2) => {
-  return prokhorovDistance(data1, data2)
-}
 
 // Wasserstein-1 distance (for comparison)
 const wasserstein1 = (data1, data2) => {

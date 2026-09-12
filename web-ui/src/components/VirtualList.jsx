@@ -1,5 +1,4 @@
 import { memo, useMemo, useState, useRef, useEffect, useCallback } from 'react'
-import { ChevronUp, ChevronDown } from 'lucide-react'
 
 function VirtualList({ 
   items, 
@@ -35,7 +34,7 @@ function VirtualList({
   }, [dynamicHeight, itemHeight])
 
   // Calculate total height and visible items
-  const { visibleItems, totalHeight, startIndex, endIndex } = useMemo(() => {
+  const { visibleItems, totalHeight} = useMemo(() => {
     const total = items.length
     const containerHeight = maxHeight
     

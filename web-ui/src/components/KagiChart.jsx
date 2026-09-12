@@ -61,8 +61,6 @@ function KagiChart({ candles, symbol, exchange }) {
 
     // Build SVG paths
     const segments = []
-    let prevY = toY(visible[0].start)
-    let prevX = 0
 
     visible.forEach((line, i) => {
       const x = ((i + 1) / visible.length) * 100

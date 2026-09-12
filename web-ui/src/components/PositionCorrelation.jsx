@@ -1,6 +1,5 @@
 import { memo, useMemo } from 'react'
 import { Grid3x3, AlertTriangle } from 'lucide-react'
-import { formatPrice } from '../utils/format'
 
 function correlation(a, b) {
   const n = Math.min(a.length, b.length)

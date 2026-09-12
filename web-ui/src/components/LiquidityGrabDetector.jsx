@@ -157,7 +157,7 @@ function LiquidityGrabDetector({ candles, symbol, exchange }) {
     )
   }
 
-  const { recentGrabs, activeHighs, activeLows, nearestHigh, nearestLow, lastPrice, candleBars, liquidityLines, grabMarkers, totalGrabs } = data
+  const { recentGrabs, nearestHigh, nearestLow, lastPrice, candleBars, liquidityLines, grabMarkers, totalGrabs } = data
 
   return (
     <div className="bg-bg-700  p-2.5">

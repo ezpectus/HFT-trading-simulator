@@ -46,7 +46,7 @@ const historicalCVaR = (returns, alpha = 0.95) => {
 }
 
 // Cornish-Fisher VaR (modified VaR with skewness and kurtosis)
-const cornishFisherVaR = (returns, alpha = 0.95) => {
+const cornishFisherVaR = (returns, _alpha = 0.95) => {
   const n = returns.length
   const mean = returns.reduce((a, b) => a + b, 0) / n
   const std = Math.sqrt(returns.reduce((s, r) => s + (r - mean) ** 2, 0) / n)

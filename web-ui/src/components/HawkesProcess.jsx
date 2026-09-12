@@ -32,7 +32,6 @@ const hawkesLogLik = (events, mu, alpha, beta, T) => {
   // Recursive computation: R(i) = Σ_{j<i} exp(-β(t_i - t_j))
   // R(i) = exp(-β(t_i - t_{i-1})) * (1 + R(i-1))
   let R = 0
-  let prevT = 0
   for (let i = 0; i < n; i++) {
     const dt = i > 0 ? events[i] - events[i - 1] : 0
     R = Math.exp(-beta * dt) * (1 + R)

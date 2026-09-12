@@ -23,7 +23,7 @@ const PATTERN_LABELS = {
   THREE_CROWS: 'Three Crows',
 }
 
-function PatternDetector({ candles, symbol }) {
+function PatternDetector({ candles}) {
   const patterns = useMemo(() => detectCandlePatterns(candles), [candles])
 
   const stats = useMemo(() => {

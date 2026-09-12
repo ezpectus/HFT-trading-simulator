@@ -53,9 +53,9 @@ const kalmanFilterBSTS = (y, params) => {
   const H = sigmaIrregular * sigmaIrregular
 
   // Initialize
-  let x = new Array(stateDim).fill(0)
+  const x = new Array(stateDim).fill(0)
   x[0] = y[0] || 0
-  let P = Array.from({ length: stateDim }, (_, i) => Array.from({ length: stateDim }, (_, j) => i === j ? 1e6 : 0))
+  const P = Array.from({ length: stateDim }, (_, i) => Array.from({ length: stateDim }, (_, j) => i === j ? 1e6 : 0))
 
   const filtered = []
   const trend = []
@@ -219,12 +219,7 @@ function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
   const syP = (p) => H - P - ((p - minP) / (maxP - minP + 0.001)) * (H - 2 * P)
 
   // Seasonal component
-  const maxSeasonal = Math.max(...data.seasonalExp.map(Math.abs), 0.01)
-  const syS = (v) => H / 2 - (Math.log(Math.max(0.01, v)) / maxSeasonal) * (H / 2 - P)
-
   // Residuals
-  const maxRes = Math.max(...data.residuals.map(Math.abs), 0.001)
-  const syR = (v) => H / 2 - (v / maxRes) * (H / 2 - P)
 
   return (
     <div className="p-4 space-y-3">

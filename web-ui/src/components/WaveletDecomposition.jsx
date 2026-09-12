@@ -107,7 +107,6 @@ const mraReconstruct = (decomp, originalLength, wavelet = 'haar') => {
 
   // Reconstruct each detail level
   for (let level = 0; level < levels; level++) {
-    let detailComp = new Array(Math.pow(2, levels - level) * approx.length).fill(0)
     // Upsample through inverse DWT
     let currentApprox = new Array(details[level].length).fill(0)
     let currentDetail = details[level].slice()
@@ -154,7 +153,7 @@ const waveletVariance = (decomp) => {
 }
 
 // Denoising: threshold detail coefficients
-const denoise = (decomp, threshold, wavelet = 'haar') => {
+const denoise = (decomp, threshold, _wavelet = 'haar') => {
   const { approx, details, levels } = decomp
   const newDetails = details.map(d =>
     d.map(v => Math.abs(v) < threshold ? 0 : v * (1 - threshold / Math.abs(v)))

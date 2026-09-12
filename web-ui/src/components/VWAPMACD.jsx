@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { calcVWAPMACD } from '../utils/indicators'
-import { formatPrice } from '../utils/format'
 
 function VWAPMACD({ candles, symbol, exchange }) {
   const data = useMemo(() => {

@@ -75,7 +75,7 @@ function MultiAccountView({ accounts, exchanges }) {
     )
   }
 
-  const { perExchange, totalEquity, totalBalance, totalUPnl, totalRPnl, totalPositions, totalFees, totalTrades, allocations, best, worst } = aggregated
+  const { perExchange, totalEquity, totalBalance, totalUPnl, totalRPnl, totalFees, allocations, best, worst } = aggregated
 
   return (
     <div className="bg-bg-700  p-2.5">
