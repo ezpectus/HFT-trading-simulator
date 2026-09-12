@@ -816,7 +816,7 @@ export const PANELS = [
   { id: 'widget-sdk', name: 'Widget SDK', category: 'export', component: WidgetSDK,
     props: (ctx) => ({ addToast: (type, msg) => ctx.addToast({ type, title: msg }) }) },
   { id: 'sentiment-dashboard', name: 'Sentiment Dashboard', category: 'strategy', component: SentimentDashboard,
-    props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
+    props: (ctx) => ({ symbol: ctx.selectedSymbol, newsEvent: ctx.exchange.newsEvent }) },
   { id: 'onchain-analytics', name: 'On-Chain Analytics', category: 'risk', component: OnChainAnalytics,
     props: (ctx) => ({ symbol: ctx.selectedSymbol }) },
   { id: 'futures-basis', name: 'Futures Basis', category: 'risk', component: FuturesBasis,

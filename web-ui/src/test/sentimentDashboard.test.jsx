@@ -2,37 +2,31 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import SentimentDashboard from '../components/SentimentDashboard'
 
+const NEWS = { symbol: 'BTC/USDT', intensity: 0.85, remaining: 12, direction: 'up' }
+
 describe('SentimentDashboard', () => {
-  it('renders overall sentiment score', () => {
-    render(<SentimentDashboard symbol="BTC/USDT" />)
-    expect(screen.getByText('Sentiment Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Overall Sentiment')).toBeInTheDocument()
+  it('renders real active news event with intensity and direction', () => {
+    render(<SentimentDashboard symbol="BTC/USDT" newsEvent={NEWS} />)
+    expect(screen.getByText('Sentiment / News Events')).toBeInTheDocument()
+    expect(screen.getByText('Active News Event')).toBeInTheDocument()
+    expect(screen.getAllByText('BTC/USDT').length).toBeGreaterThan(0)
+    expect(screen.getByText('up')).toBeInTheDocument()
+    expect(screen.getByText(/12\s*ticks/)).toBeInTheDocument()
+    expect(screen.getByText(/85\s*%/)).toBeInTheDocument()
   })
 
-  it('shows source breakdown with scores', () => {
-    render(<SentimentDashboard symbol="BTC/USDT" />)
-    expect(screen.getByText('By Source')).toBeInTheDocument()
-    expect(screen.getByText('Twitter')).toBeInTheDocument()
-    expect(screen.getByText('Reddit')).toBeInTheDocument()
-    expect(screen.getByText('Telegram')).toBeInTheDocument()
+  it('shows down-direction styling', () => {
+    render(<SentimentDashboard symbol="BTC/USDT" newsEvent={{ ...NEWS, direction: 'down' }} />)
+    expect(screen.getByText('down')).toBeInTheDocument()
   })
 
-  it('renders top mentions with sentiment and change', () => {
-    render(<SentimentDashboard symbol="BTC/USDT" />)
-    expect(screen.getByText('Top Mentions')).toBeInTheDocument()
-    expect(screen.getAllByText('BTC').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('ETH').length).toBeGreaterThan(0)
+  it('shows honest empty state with no news event', () => {
+    render(<SentimentDashboard symbol="BTC/USDT" newsEvent={null} />)
+    expect(screen.getByText(/No active news event/)).toBeInTheDocument()
   })
 
-  it('shows recent headlines with sources', () => {
-    render(<SentimentDashboard symbol="BTC/USDT" />)
-    expect(screen.getByText('Recent Headlines')).toBeInTheDocument()
-    expect(screen.getByText('CoinDesk')).toBeInTheDocument()
-    expect(screen.getByText('Bloomberg')).toBeInTheDocument()
-  })
-
-  it('handles null symbol with fallback', () => {
-    render(<SentimentDashboard symbol={null} />)
-    expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+  it('discloses that multi-source sentiment is not connected', () => {
+    render(<SentimentDashboard symbol="BTC/USDT" newsEvent={null} />)
+    expect(screen.getByText(/not connected/)).toBeInTheDocument()
   })
 })

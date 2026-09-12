@@ -17,7 +17,7 @@ const RealtimeAttribution = memo(function RealtimeAttribution({ accounts }) {
     }
     if (!trades.length) return null
 
-    trades.sort((a, b) => (a.close_time || 0) - (b.close_time || 0))
+    trades.sort((a, b) => (a.closed_at || 0) - (b.closed_at || 0))
 
     const bySymbol = new Map()
     const byReason = new Map()
