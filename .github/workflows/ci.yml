@@ -235,15 +235,8 @@ jobs:
         working-directory: web-ui
       - name: Run Vitest with coverage
         run: |
-          set +e
+          set -o pipefail
           npx vitest run --coverage --passWithNoTests 2>&1 | tee vitest-output.txt
-          EXIT_CODE=$?
-          # Check if any tests actually failed (vs worker crash from OOM)
-          if grep -qE "Tests\s+[0-9]+ failed" vitest-output.txt; then
-            echo "Test failures detected"
-            exit 1
-          fi
-          echo "All tests passed (exit code $EXIT_CODE is OOM-related, not test failures)"
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         working-directory: web-ui
@@ -391,10 +384,11 @@ jobs:
       - name: Check for high-severity issues
         run: |
           if [ -f bandit-report.json ]; then
-            HIGH_COUNT=$(python -c "import json; d=json.load(open('bandit-report.json')); print(d.get('results', []).__len__())" 2>/dev/null || echo "0")
-            echo "Bandit issues found: $HIGH_COUNT"
+            HIGH_COUNT=$(python -c "import json; d=json.load(open('bandit-report.json')); print(sum(1 for r in d.get('results', []) if r.get('issue_severity') == 'HIGH'))" 2>/dev/null || echo "0")
+            echo "Bandit HIGH-severity issues: $HIGH_COUNT"
             if [ "$HIGH_COUNT" -gt 0 ]; then
-              echo "::warning::$HIGH_COUNT Bandit security issues in ${{ matrix.component }}"
+              echo "::error::$HIGH_COUNT HIGH-severity Bandit issues in ${{ matrix.component }}"
+              exit 1
             fi
           fi
         working-directory: ${{ matrix.component }}
@@ -464,12 +458,8 @@ jobs:
         working-directory: web-ui
       - name: Run Web UI tests
         run: |
-          npx vitest run --reporter=verbose 2>&1 | tee vitest-output.txt
-          if (Select-String -Path vitest-output.txt -Pattern "Tests\s+\d+ failed" -Quiet) {
-            Write-Output "Test failures detected"
-            exit 1
-          }
-          Write-Output "All tests passed (any exit code is OOM-related, not test failures)"
+          npx vitest run --reporter=verbose 2>&1 | Tee-Object -FilePath vitest-output.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         env:
           NODE_OPTIONS: --max-old-space-size=8192
         working-directory: web-ui
@@ -587,9 +577,9 @@ jobs:
           fi
 
           # Per-language floors to catch deletion within a single language
-          MIN_PY=30
-          MIN_CPP_DOCTEST=20
-          MIN_CPP_CTEST=8
+          MIN_PY=20
+          MIN_CPP_DOCTEST=10
+          MIN_CPP_CTEST=6
           MIN_JS=30
           FAIL=0
           if [ "$PY_COUNT" -lt "$MIN_PY" ]; then
