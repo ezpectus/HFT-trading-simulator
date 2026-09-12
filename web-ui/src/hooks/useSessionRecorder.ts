@@ -97,7 +97,7 @@ export function useSessionRecorder() {
     const data = dataRef.current
     const snapshot: SessionSnapshot = {
       t: Date.now(),
-      accounts: JSON.parse(JSON.stringify(data.accounts)),
+      accounts: structuredClone(data.accounts),
       fills: data.fills.slice(-200),
       signals: data.signals.slice(-50),
       candles: {},
