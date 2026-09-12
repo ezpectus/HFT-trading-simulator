@@ -836,3 +836,7 @@ No WRONG/ROTTED entries — nothing reopened.
 
 - **S124 → Done:** `monitoring/tests/test_metrics.py` + `conftest.py` удалены (тестировали классы, удалённые в S016/e983fdf — живой MetricsExporter имеет свои тесты в ai-signal-bot/tests). `test_alerts.py` repointed: `monitoring/alerts/alerts.yml` → `monitoring/alerts.yml`, group-тесты под реальную схему → **10 passed**.
 - Беклог пуст.
+
+## Round 47 — 2026-09-12 — slop-audit: compose-variants + utils twins — ЧИСТО
+
+Остаточная земля: `docker-compose.{prod,staging,hub}.yml` — healthchecks/порты/образы согласованы; `ui-helpers.js` = 1-строчный re-export shim на .tsx (миграционный паттерн, не дубликат); `mockData.js` = env-gated mock-инфра; `visualizer*.py` живые. Новых находок нет — ротация покрыла всю поверхность.
