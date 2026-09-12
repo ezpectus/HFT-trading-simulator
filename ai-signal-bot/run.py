@@ -172,11 +172,15 @@ class AISignalBot:
             try:
                 from src.monitoring.metrics import MetricsExporter
                 prom_server = MetricsExporter()
-                await prom_server.start_server(host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"), port=9090)
-                self.logger.info("Prometheus metrics server running on port 9090")
-                self.exchange.set_reconnect_handler(prom_server.record_ws_reconnect)
+                if await prom_server.start_server(host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"), port=9090):
+                    self.logger.info("Prometheus metrics server running on port 9090")
+                    self.exchange.set_reconnect_handler(prom_server.record_ws_reconnect)
+                    self.signal_publisher.metrics = prom_server
+                else:
+                    prom_server = None
             except (OSError, RuntimeError, ConnectionError) as e:
                 self.logger.warning("Prometheus metrics server failed to start: %s", e)
+                prom_server = None
 
         # Main signal generation loop
         try:
