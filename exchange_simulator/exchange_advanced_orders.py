@@ -180,7 +180,8 @@ class AdvancedOrderMixin:
         old_balance = self.account.balance
         self.account.balance -= order.fee
         self.account.total_fees += order.fee
-        self._update_position(order, None, None)
+        margin = self._lock_margin(fill_price * order.filled_quantity)
+        self._update_position(order, None, None, margin)
 
         self._audit_logger.log(
             event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
@@ -239,7 +240,8 @@ class AdvancedOrderMixin:
         old_balance = self.account.balance
         self.account.balance -= slice_order.fee
         self.account.total_fees += slice_order.fee
-        self._update_position(slice_order, None, None)
+        margin = self._lock_margin(price * slice_order.filled_quantity)
+        self._update_position(slice_order, None, None, margin)
 
         self._audit_logger.log(
             event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,

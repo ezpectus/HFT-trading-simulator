@@ -1,6 +1,6 @@
 """Tests for health checks."""
 import pytest
-from src.observability.health_checks import HealthStatus, ComponentHealth, HealthCheckManager
+from src.observability.health_checks import HealthStatus, ComponentHealth, HealthChecker
 
 
 class TestHealthChecks:
@@ -14,6 +14,6 @@ class TestHealthChecks:
         assert comp.name == "websocket"
         assert comp.status == HealthStatus.HEALTHY
 
-    def test_health_check_manager_creation(self):
-        manager = HealthCheckManager()
-        assert manager is not None
+    def test_health_checker_creation(self):
+        checker = HealthChecker()
+        assert checker is not None

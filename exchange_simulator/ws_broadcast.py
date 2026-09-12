@@ -226,6 +226,7 @@ class BroadcastMixin:
         """Check SL/TP, update positions, charge funding, broadcast fills."""
         for ex_id, exchange in self.exchanges.items():
             closed_orders = exchange.check_stop_loss_take_profit()
+            closed_orders += exchange.check_advanced_orders()
             exchange.update_positions_pnl()
 
             funding_rates = self.market.get_funding_rates()
@@ -251,7 +252,7 @@ class BroadcastMixin:
                         "exchange": ex_id,
                         "symbol": order.symbol,
                         "side": order.side.value,
-                        "type": "SL/TP",
+                        "type": order.order_type.value,
                         "price": order.filled_price,
                         "quantity": order.filled_quantity,
                         "fee": order.fee,

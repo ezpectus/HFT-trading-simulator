@@ -157,6 +157,7 @@ def run_headless(
             candles = market.next_candle()
             for _ex_id, exchange in exchanges.items():
                 exchange.check_stop_loss_take_profit()
+                exchange.check_advanced_orders()
                 exchange.update_positions_pnl()
 
             if tick % 10 == 0:
@@ -203,6 +204,7 @@ def main():
             market.next_candle()
             for ex in exchanges.values():
                 ex.check_stop_loss_take_profit()
+                ex.check_advanced_orders()
                 ex.update_positions_pnl()
 
         exporter = DataExporter(
