@@ -798,3 +798,17 @@ ARCHITECTURE.md описывал систему больше реальной: 6
 - **S117 → Done (Medium):** `portfolio/` (black_litterman, markowitz, rebalancing, risk_parity) + `pricing/volatility_surface.py` — 0 prod-импортеров, жили только в своих тестах; `PortfolioOptLab` честно показывал NoDataFeed. Wired через WS API по образцу `backtest_requests.py`: новый `communication/portfolio_requests.py` — `optimize_portfolio` (4 метода: max_sharpe/min_variance/risk_parity/black_litterman; клиентские `candles_data` с fallback на синтетику; risk_contributions для RP; views для BL; current_weights+portfolio_value → RebalancingStrategy.orders) и `vol_surface` (SVI/SABR по points[{strike,maturity_days,iv}] + optional spot). Диспетч в `signal_publisher._handle_client_message`. UI: `PortfolioOptLab` переписан — method-picker, multi-asset select, rebalance-toggle с весами из реальных позиций/цен, рендер weights/expected_return/volatility/sharpe/RC/orders + error-panels; `VolSurface` — секция «IV Smile Fit»: `options_chain` → points → SVI-fit (disclosed: sim-чейн несёт flat-σ). registry props для обеих панелей.
 - **Verify:** pytest 29 новых (test_portfolio_requests) + 8 (test_auth_wiring) + 56 comm/metrics/config/integration регрессия; vitest 18 + 70 в touched-зонах; ruff/eslint clean на touched-файлах.
 - Беклог пуст: board Открыто = 0.
+
+## Round 41 — 2026-09-12 — slop-verify batch (7 claims, all VERIFIED)
+
+Post-fix-round QA: re-checked recent High/Critical + Medium claims against code.
+
+- **S113 (Critical) VERIFIED:** `await self._shutdown_event.wait()` at websocket_server.py:192,236 (both sites); regression test `test_start_registers_and_shutdown_unregisters` exists in test_ws_broadcast.py:137.
+- **S119 (High) VERIFIED:** 0 `Math.erf`/`Math.pi` in components; shared `erf` imported from copulaMath in both panels; `callPx` rename present; iron-condor netPremium = short−long (credit) with BEs on short strikes (OptionsStrategies.jsx:79-86).
+- **S111 (High) VERIFIED:** `case 'fills_batch'` useExchangeData.js:114, `case 'error'` → lastError:123 → toast path intact.
+- **S112 (High) VERIFIED:** `register_callback(_on_audit_event)` websocket_server.py:190 + unregister in finally:196; `audit_logs` case useExchangeData.js:157 → registry props:753.
+- **S120 (Medium) VERIFIED:** settings.yaml has 0 hits for macd_*/timeframe/stop_loss_pct/take_profit_pct; `rsi_period`/`atr_period` are real ctor params consumed in mean_reversion.py:17-53.
+- **S109 (Medium) VERIFIED:** 0 postgres/redis/psycopg in compose/helm/terraform; `src/database/db.py` = real sqlite3 WAL layer wired at run.py:88. Residual `redis_client=None` param + `_check_redis` stays — optional injection, /health honestly reports "not configured".
+- **S121 (Medium) VERIFIED:** 0 `MetricsServer` refs in src/+run.py; ARCHITECTURE.md has 0 phantom strings (Momentum V2/PreTradeRisk/hft_heartbeat/Heston).
+
+No WRONG/ROTTED entries — nothing reopened.
