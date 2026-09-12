@@ -35,6 +35,10 @@ from src.communication.backtest_requests import (
 )
 from src.communication.circuit_breaker import CircuitBreaker
 from src.communication.metrics_server import MetricsCollector
+from src.communication.portfolio_requests import (
+    optimize_portfolio_request,
+    vol_surface_request,
+)
 
 if TYPE_CHECKING:
     pass
@@ -168,12 +172,22 @@ class SignalPublisher:
                     if not isinstance(msg_type, str) or not msg_type:
                         logger.warning("Invalid message from %s: missing 'type' field", remote)
                         continue
-                    _VALID_MSG_TYPES = {"subscribe", "run_backtest", "compare_backtests", "auth", "ping"}
+                    _VALID_MSG_TYPES = {
+                        "subscribe", "run_backtest", "compare_backtests",
+                        "optimize_portfolio", "vol_surface", "auth", "ping",
+                    }
                     if msg_type not in _VALID_MSG_TYPES:
                         logger.warning("Unknown message type '%s' from %s", msg_type, remote)
                         continue
                     if msg_type == "subscribe":
                         logger.info("Client subscribed: %s", data.get('client', 'unknown'))
+                    elif msg_type == "auth":
+                        # Post-handshake auth ping — if auth is required the
+                        # client already passed the handshake above; if not,
+                        # this confirms auth is disabled server-side.
+                        await websocket.send(json.dumps(
+                            {"type": "auth_ok", "required": bool(self._auth_token)},
+                            separators=(',', ':')))
                     elif msg_type == "run_backtest":
                         result = await run_backtest_request(data)
                         if "error" not in result:
@@ -181,6 +195,12 @@ class SignalPublisher:
                         await websocket.send(json.dumps(result, separators=(',', ':')))
                     elif msg_type == "compare_backtests":
                         result = compare_backtests_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "optimize_portfolio":
+                        result = await optimize_portfolio_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "vol_surface":
+                        result = await vol_surface_request(data)
                         await websocket.send(json.dumps(result, separators=(',', ':')))
                 except json.JSONDecodeError:
                     logger.warning("Invalid JSON from %s: %s", remote, message[:100])

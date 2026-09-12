@@ -4,6 +4,9 @@ import { IS_MOCK } from './useMockData'
 
 const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
 const WS_SIGNALS = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
+// Shared secret for the signal publisher handshake — matches the bot's
+// api.auth_token / AI_BOT_AUTH_TOKEN. Empty = server-side auth disabled.
+const SIGNAL_TOKEN = import.meta.env.VITE_SIGNAL_TOKEN || ''
 
 /**
  * Main exchange data hook — connects to exchange simulator.
@@ -251,6 +254,9 @@ export function useSignalData(options = {}) {
   const [regime, setRegime] = useState(null)
   const [backtestResult, setBacktestResult] = useState(null)
   const [circuitBreaker, setCircuitBreaker] = useState(null)
+  const [portfolioResult, setPortfolioResult] = useState(null)
+  const [volSurfaceResult, setVolSurfaceResult] = useState(null)
+  const [authState, setAuthState] = useState(SIGNAL_TOKEN ? 'pending' : 'disabled')
   const onBacktestResultRef = useRef(options.onBacktestResult)
 
   useEffect(() => {
@@ -284,6 +290,18 @@ export function useSignalData(options = {}) {
       case 'comparison_result':
         setBacktestResult(data)
         break
+      case 'portfolio_result':
+        setPortfolioResult(data)
+        break
+      case 'vol_surface_result':
+        setVolSurfaceResult(data)
+        break
+      case 'auth_ok':
+        setAuthState('ok')
+        break
+      case 'auth_failed':
+        setAuthState('failed')
+        break
       default:
         break
     }
@@ -291,8 +309,10 @@ export function useSignalData(options = {}) {
 
   const { connected, send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect } = useWebSocket(WS_SIGNALS, {
     onMessage: handleSignalMessage,
+    authToken: SIGNAL_TOKEN || undefined,
+    onOpen: () => { if (SIGNAL_TOKEN) setAuthState('pending') },
     autoConnect: !IS_MOCK,  // mock mode — never open the real socket
   })
 
-  return { signals, regime, backtestResult, circuitBreaker, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
+  return { signals, regime, backtestResult, circuitBreaker, portfolioResult, volSurfaceResult, authState, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
 }

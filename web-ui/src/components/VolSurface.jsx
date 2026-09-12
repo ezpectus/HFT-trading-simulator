@@ -1,7 +1,9 @@
-import { memo, useMemo } from 'react'
-import { Box, Layers, TrendingDown } from 'lucide-react'
+import { memo, useMemo, useState, useEffect, useRef } from 'react'
+import { Box, Layers, TrendingDown, RefreshCw } from 'lucide-react'
 import { StatCard, WarningBanner } from '../utils/ui-helpers'
 import { selectCandles } from '../utils/candles'
+
+const FIT_TIMEOUT_MS = 15000
 
 const WINDOWS = [10, 20, 50, 100]
 
@@ -53,7 +55,63 @@ function volTextColor(iv) {
  * vol cone for the selected pair, computed from live candles. Implied-vol
  * surface requires an options feed; this shows realized vol instead.
  */
-const VolSurface = memo(function VolSurface({ candles, exchange, symbol }) {
+const VolSurface = memo(function VolSurface({ candles, exchange, symbol, sendSignalMessage, volSurfaceResult, signalsConnected, optionsChain, requestOptionsChain }) {
+  // IV-smile calibration via the signal-bot vol_surface endpoint: fetch the
+  // sim's options chain (flat-σ BS quotes — disclosed below), ship the
+  // (strike, T, iv) points for SVI/SABR calibration, render fitted params.
+  const [fitStage, setFitStage] = useState('idle') // idle | chain | fit | done | error
+  const [fitError, setFitError] = useState(null)
+  const fitTimeout = useRef(null)
+
+  useEffect(() => () => clearTimeout(fitTimeout.current), [])
+
+  // options_chain arrived → extract IV points → request calibration
+  useEffect(() => {
+    if (fitStage !== 'chain' || !optionsChain?.chain?.length) return
+    if (optionsChain.symbol !== symbol) return
+    const iv = optionsChain.volatility
+    const points = optionsChain.chain
+      .filter(q => q.type === 'call')
+      .map(q => ({ strike: q.strike, maturity_days: Math.round(q.expiry * 365), iv }))
+      .filter(p => p.maturity_days > 0)
+    if (points.length < 4) {
+      setFitError('options chain too small to calibrate')
+      setFitStage('error')
+      return
+    }
+    setFitStage('fit')
+    sendSignalMessage({
+      type: 'vol_surface', model: 'svi',
+      forward: optionsChain.underlying_price, points,
+    })
+  }, [fitStage, optionsChain, symbol, sendSignalMessage])
+
+  // calibration result
+  useEffect(() => {
+    if (fitStage !== 'fit' || !volSurfaceResult || volSurfaceResult.type !== 'vol_surface_result') return
+    clearTimeout(fitTimeout.current)
+    if (volSurfaceResult.error) {
+      setFitError(volSurfaceResult.error)
+      setFitStage('error')
+    } else {
+      setFitStage('done')
+    }
+  }, [fitStage, volSurfaceResult])
+
+  const runFit = () => {
+    if (!requestOptionsChain || !sendSignalMessage) return
+    setFitError(null)
+    setFitStage('chain')
+    fitTimeout.current = setTimeout(() => {
+      setFitStage(prev => {
+        if (prev === 'done' || prev === 'error') return prev
+        setFitError('timeout waiting for chain/calibration')
+        return 'error'
+      })
+    }, FIT_TIMEOUT_MS)
+    requestOptionsChain(symbol)
+  }
+
   const data = useMemo(() => {
     const exchanges = [...new Set((candles || []).map(c => c.exchange))]
     const rows = []
@@ -181,6 +239,48 @@ const VolSurface = memo(function VolSurface({ candles, exchange, symbol }) {
           <WarningBanner icon={TrendingDown} color={data.skew < -0.5 ? 'text-accent-red' : 'text-accent-yellow'}>
             Realized skew: {data.skew.toFixed(2)} — {data.skew < -0.5 ? 'left tail dominates (crash risk)' : data.skew > 0.5 ? 'right tail dominates' : 'roughly symmetric'}
           </WarningBanner>
+
+          {/* IV smile calibration (backend SVI/SABR) */}
+          <div className="p-2 bg-bg-700 border border-bg-600">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] text-gray-600 uppercase">IV Smile Fit (SVI)</span>
+              <button
+                onClick={runFit}
+                disabled={fitStage === 'chain' || fitStage === 'fit' || !signalsConnected}
+                className="flex items-center gap-1 px-1.5 py-0.5 text-[9px]  bg-accent-purple/20 text-accent-purple hover:bg-accent-purple/30 disabled:opacity-50"
+              >
+                {(fitStage === 'chain' || fitStage === 'fit')
+                  ? <RefreshCw size={9} className="animate-spin" />
+                  : null}
+                {fitStage === 'chain' ? 'Fetching chain…' : fitStage === 'fit' ? 'Calibrating…' : 'Fit smile'}
+              </button>
+            </div>
+            {fitError && <div className="text-[9px] text-accent-red">{fitError}</div>}
+            {fitStage === 'done' && volSurfaceResult && (
+              <div className="space-y-1">
+                <div className="text-[9px] font-mono text-gray-400">
+                  a={volSurfaceResult.params.a} b={volSurfaceResult.params.b} ρ={volSurfaceResult.params.rho} m={volSurfaceResult.params.m} σ={volSurfaceResult.params.sigma}
+                </div>
+                <div className="text-[8px] text-gray-600">
+                  {volSurfaceResult.points} points · {volSurfaceResult.calibrated ? 'converged' : 'not converged'}
+                </div>
+                <div className="grid grid-cols-2 gap-x-2">
+                  {(volSurfaceResult.fitted || []).slice(0, 10).map((f, i) => (
+                    <div key={i} className="flex justify-between text-[8px] font-mono">
+                      <span className="text-gray-500">K={f.strike}</span>
+                      <span className="text-accent-purple">{(f.iv_model * 100).toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[7px] text-gray-700 italic">
+                  Sim chain is BS-generated at flat σ — input smile has no skew; fit validates the calibration plumbing.
+                </div>
+              </div>
+            )}
+            {fitStage === 'idle' && !fitError && (
+              <div className="text-[8px] text-gray-600">Calibrate SVI to the simulator's options chain via the signal bot.</div>
+            )}
+          </div>
         </>
       )}
     </div>
