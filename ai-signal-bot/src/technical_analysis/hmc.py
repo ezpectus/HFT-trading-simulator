@@ -64,39 +64,41 @@ def log_posterior(q: list[float], returns: list[float]) -> float:
 def grad_log_posterior(q: list[float], returns: list[float], eps: float = 1e-6) -> list[float]:
     """Analytical gradient of the GARCH(1,1) log posterior.
 
-    Replaces central-difference numerical gradient (60K evals → direct computation).
-    Falls back to numerical gradient if analytical fails (e.g. edge cases).
+    Consistent with log_posterior: same variance recursion
+    h_t = omega + alpha*r_t^2 + beta*h_{t-1} seeded by the unconditional
+    variance h_{-1} = omega/(1-alpha-beta), plus the exponential prior
+    gradients (-10, -5, -5). eps is unused; kept for API compatibility.
     """
     omega, alpha, beta = q
     if omega <= 0 or alpha <= 0 or beta <= 0 or alpha + beta >= 1:
         return [0.0, 0.0, 0.0]
 
     n = len(returns)
+    grad = [-10.0, -5.0, -5.0]  # d(log_prior)/d(omega, alpha, beta)
+    if n == 0:
+        return grad
+
     r2 = [r * r for r in returns]
-    h = [omega / (1 - alpha - beta)]  # unconditional variance as initial h
-    for t in range(1, n):
-        h.append(omega + alpha * r2[t - 1] + beta * h[t - 1])
+    denom = 1.0 - alpha - beta + 1e-10
 
-    # d(log_lik)/d(omega) — gradient computed via chain rule below
-    # Chain rule: dh/d(omega) = 1 + beta * dh_prev/d(omega)
-    dh_domega = [1.0] * n
-    for t in range(1, n):
-        dh_domega[t] = 1.0 + beta * dh_domega[t - 1]
-    grad_omega = sum((r2[t] - h[t]) * dh_domega[t] / (2 * h[t] ** 2) for t in range(n))
+    # Seed: h_{-1} = omega/denom -> dh/dw = 1/denom, dh/da = dh/db = omega/denom^2
+    h_prev = omega / denom
+    dw, da, db = 1.0 / denom, omega / (denom * denom), omega / (denom * denom)
 
-    # d(log_lik)/d(alpha)
-    dh_dalpha = [r2[0] if n > 0 else 0.0] * n
-    for t in range(1, n):
-        dh_dalpha[t] = r2[t - 1] + beta * dh_dalpha[t - 1]
-    grad_alpha = sum((r2[t] - h[t]) * dh_dalpha[t] / (2 * h[t] ** 2) for t in range(n))
+    for t in range(n):
+        h = omega + alpha * r2[t] + beta * h_prev
+        if h <= 0:
+            return [0.0, 0.0, 0.0]
+        dw = 1.0 + beta * dw
+        da = r2[t] + beta * da
+        db = h_prev + beta * db
+        h_prev = h
+        c = (r2[t] - h) / (2 * h * h)
+        grad[0] += c * dw
+        grad[1] += c * da
+        grad[2] += c * db
 
-    # d(log_lik)/d(beta)
-    dh_dbeta = [h[0] if n > 0 else 0.0] * n
-    for t in range(1, n):
-        dh_dbeta[t] = h[t - 1] + beta * dh_dbeta[t - 1]
-    grad_beta = sum((r2[t] - h[t]) * dh_dbeta[t] / (2 * h[t] ** 2) for t in range(n))
-
-    return [grad_omega, grad_alpha, grad_beta]
+    return grad
 
 
 def leapfrog(

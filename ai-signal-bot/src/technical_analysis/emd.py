@@ -118,10 +118,12 @@ def sift(signal: list[float], max_iter: int = DEFAULT_MAX_ITER, sd_threshold: fl
         if len(maxima) < 2 or len(minima) < 2:
             break
 
-        max_x = [m["index"] for m in maxima]
-        max_y = [m["value"] for m in maxima]
-        min_x = [m["index"] for m in minima]
-        min_y = [m["value"] for m in minima]
+        # Anchor envelope knots at the endpoints — maxima/minima are interior-only,
+        # so without this the cubic spline extrapolates at 0 and n-1 and explodes.
+        max_x = [0] + [m["index"] for m in maxima] + [len(h) - 1]
+        max_y = [h[0]] + [m["value"] for m in maxima] + [h[-1]]
+        min_x = [0] + [m["index"] for m in minima] + [len(h) - 1]
+        min_y = [h[0]] + [m["value"] for m in minima] + [h[-1]]
 
         upper = [cubic_spline(max_x, max_y, i) for i in range(len(h))]
         lower = [cubic_spline(min_x, min_y, i) for i in range(len(h))]
