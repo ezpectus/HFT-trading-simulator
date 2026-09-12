@@ -96,11 +96,10 @@ class LiquidationMixin:
             symbol=pos.symbol, side=close_side, quantity=close_qty,
             order_type=OrderType.MARKET, force_close=True,
         )
-        order.status = OrderStatus.FILLED
 
         if reason == "LIQUIDATION":
             self._handle_insurance_fund_deficit()
-        if self.account.trade_history:
+        if order.status == OrderStatus.FILLED and self.account.trade_history:
             self.account.trade_history[-1].reason = reason
         closed_orders.append(order)
 
@@ -119,7 +118,9 @@ class LiquidationMixin:
         else:
             pnl = (pos.entry_price - current_price) * close_qty
 
-        self.account.balance += pnl
+        released_margin = pos.margin * (close_qty / pos.quantity) if pos.quantity else 0.0
+        pos.margin -= released_margin
+        self.account.balance += released_margin + pnl
         self.account.total_pnl += pnl
         self.account.total_trades += 1
         if pnl > 0:

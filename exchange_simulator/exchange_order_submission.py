@@ -275,9 +275,24 @@ class OrderSubmissionMixin:
         self._log_order_filled(order_id, symbol, side, quantity, fee, fill_price, mid_price)
         self._apply_partial_fill(order, fill_price, mid_price, side, quantity)
         self._charge_fee(order_id, fee)
-        self._update_position(order, stop_loss, take_profit)
+        order_margin = 0.0 if force_close else self._lock_margin(notional)
+        self._update_position(order, stop_loss, take_profit, order_margin)
         self._order_history.append(order)
         return order
+
+    def _lock_margin(self, notional: float) -> float:
+        """Lock initial margin for a filled order. Returns the locked amount."""
+        lev = self.account.leverage if self.account.leverage > 0 else 1
+        margin = notional / lev
+        old_balance = self.account.balance
+        self.account.balance -= margin
+        self._audit_logger.log(
+            event_type=AuditEventType.ACCOUNT_BALANCE_CHANGE,
+            exchange=self.exchange_id, old_value=old_balance,
+            new_value=self.account.balance, reason="MARGIN_LOCKED",
+            metadata={"margin": round(margin, 4), "notional": round(notional, 2)},
+        )
+        return margin
 
     def _check_margin_and_size(self, order, order_id, symbol, side, quantity, price,
                                notional, fee, mid_price, force_close) -> Order | None:
@@ -337,13 +352,14 @@ class OrderSubmissionMixin:
         order: Order,
         stop_loss: float | None,
         take_profit: float | None,
+        order_margin: float = 0.0,
     ) -> None:
         """Update positions based on filled order."""
         existing = self._positions_by_symbol.get(order.symbol)
 
         if existing:
             if existing.side != order.side:
-                self._close_position(existing, order)
+                self._close_position(existing, order, order_margin)
                 return
             else:
                 total_qty = existing.quantity + order.filled_quantity
@@ -353,17 +369,23 @@ class OrderSubmissionMixin:
                 )
                 existing.quantity = total_qty
                 existing.entry_price = avg_price
+                existing.margin += order_margin
                 return
 
-        self._open_new_position(order, stop_loss, take_profit)
+        self._open_new_position(order, stop_loss, take_profit, order_margin)
 
-    def _close_position(self, existing: Position, order: Order) -> None:
+    def _close_position(self, existing: Position, order: Order,
+                        order_margin: float = 0.0) -> None:
         """Close or partially close an existing position."""
         close_qty = min(order.filled_quantity, existing.quantity)
         pnl = self._compute_close_pnl(existing, order, close_qty)
 
+        released_margin = existing.margin * (close_qty / existing.quantity)
+        close_margin_share = order_margin * (close_qty / order.filled_quantity)
+        existing.margin -= released_margin
+
         old_balance = self.account.balance
-        self.account.balance += pnl
+        self.account.balance += released_margin + close_margin_share + pnl
         self.account.total_pnl += pnl
         self.account.total_trades += 1
         if pnl > 0:
@@ -381,8 +403,38 @@ class OrderSubmissionMixin:
         if close_qty >= existing.quantity:
             self.account.positions.remove(existing)
             del self._positions_by_symbol[order.symbol]
+            residual_qty = order.filled_quantity - close_qty
+            if residual_qty > 1e-12:
+                self._open_residual_position(order, residual_qty,
+                                             order_margin - close_margin_share)
         else:
             existing.quantity -= close_qty
+
+    def _open_residual_position(self, order: Order, quantity: float,
+                                margin: float) -> None:
+        """Open a residual position when an opposite order exceeds the position."""
+        if order.side == Side.BUY:
+            stop_loss = order.filled_price * 0.98
+            take_profit = order.filled_price * 1.04
+        else:
+            stop_loss = order.filled_price * 1.02
+            take_profit = order.filled_price * 0.96
+
+        position = Position(
+            symbol=order.symbol, exchange=self.exchange_id,
+            side=order.side, quantity=quantity,
+            entry_price=order.filled_price, stop_loss=stop_loss,
+            take_profit=take_profit, margin=margin,
+        )
+        self.account.positions.append(position)
+        self._positions_by_symbol[order.symbol] = position
+        self._audit_logger.log(
+            event_type=AuditEventType.POSITION_OPENED,
+            exchange=self.exchange_id, symbol=order.symbol,
+            metadata={"side": order.side.value, "quantity": quantity,
+                      "entry_price": order.filled_price, "order_id": order.id,
+                      "residual": True},
+        )
 
     def _compute_close_pnl(self, existing: Position, order: Order, close_qty: float) -> float:
         """Compute PnL for closing a position."""
@@ -410,7 +462,7 @@ class OrderSubmissionMixin:
         )
 
     def _open_new_position(self, order: Order, stop_loss: float | None,
-                           take_profit: float | None) -> None:
+                           take_profit: float | None, margin: float = 0.0) -> None:
         """Open a new position from a filled order."""
         if stop_loss is None:
             if order.side == Side.BUY:
@@ -427,7 +479,7 @@ class OrderSubmissionMixin:
             symbol=order.symbol, exchange=self.exchange_id,
             side=order.side, quantity=order.filled_quantity,
             entry_price=order.filled_price, stop_loss=stop_loss,
-            take_profit=take_profit,
+            take_profit=take_profit, margin=margin,
         )
         self.account.positions.append(position)
         self._positions_by_symbol[order.symbol] = position

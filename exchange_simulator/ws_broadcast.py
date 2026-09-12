@@ -319,6 +319,21 @@ class BroadcastMixin:
             symbol=opp.symbol, side=Side.SELL,
             quantity=exec_qty, order_type=OrderType.MARKET,
         )
+        buy_filled = buy_order.status.value == "FILLED"
+        sell_filled = sell_order.status.value == "FILLED"
+        if not (buy_filled and sell_filled):
+            self.arb_detector.close_opportunity(
+                opp.symbol, opp.buy_exchange, opp.sell_exchange, "FAILED"
+            )
+            logger.warning(
+                f"  ARB EXEC FAILED: {opp.symbol} "
+                f"buy={opp.buy_exchange}:{buy_order.status.value}"
+                f"({buy_order.rejection_reason or '-'}) "
+                f"sell={opp.sell_exchange}:{sell_order.status.value}"
+                f"({sell_order.rejection_reason or '-'})"
+            )
+            return
+
         self.arb_detector.close_opportunity(
             opp.symbol, opp.buy_exchange, opp.sell_exchange, "AUTO_EXECUTED"
         )
@@ -341,11 +356,6 @@ class BroadcastMixin:
         ])
         for fill_order in (buy_order, sell_order):
             if fill_order.status.value == "FILLED":
-                fill_payload = {"type": "fill", "order": fill_order.to_dict()}
-                if _HAS_ORJSON:
-                    orjson.dumps(fill_payload)
-                else:
-                    json.dumps(fill_payload, separators=(',', ':'))
                 await self._broadcast_fills_batch([fill_order.to_dict()])
 
     def _build_orderbook_data(self) -> tuple[dict, dict]:

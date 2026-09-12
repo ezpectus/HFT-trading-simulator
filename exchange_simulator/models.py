@@ -338,6 +338,7 @@ class Position:
     take_profit: float
     opened_at: int = field(default_factory=lambda: int(time.time()))
     unrealized_pnl: float = 0.0
+    margin: float = 0.0
 
     @property
     def is_long(self) -> bool:
@@ -360,6 +361,7 @@ class Position:
             "take_profit": self.take_profit,
             "opened_at": self.opened_at,
             "unrealized_pnl": self.unrealized_pnl,
+            "margin": self.margin,
         }
 
 
@@ -410,7 +412,7 @@ class Account:
 
     @property
     def equity(self) -> float:
-        return self.balance + sum(p.unrealized_pnl for p in self.positions)
+        return self.balance + sum(p.margin + p.unrealized_pnl for p in self.positions)
 
     @property
     def win_rate(self) -> float:
