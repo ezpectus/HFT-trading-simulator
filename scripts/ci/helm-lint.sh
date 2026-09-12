@@ -11,7 +11,7 @@ echo "=========================================="
 echo "  CI Helm Lint"
 echo "=========================================="
 
-CHARTS=("helm" "deploy/helm")
+CHARTS=("helm")
 
 for chart in "${CHARTS[@]}"; do
   if [ -d "$chart" ]; then

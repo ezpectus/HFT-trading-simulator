@@ -3,12 +3,10 @@ REM ============================================================
 REM  HFT Trading System — Full Pipeline Build & Test
 REM  Compiles and tests ALL components:
 REM    1. Python: Exchange Simulator (tests)
-REM    2. Python: AI Signal Bot (tests + new module imports)
+REM    2. Python: AI Signal Bot (tests + live module import checks)
 REM    3. C++:   HFT Trade Bot (CMake build + tests)
-REM    4. Rust:  HFT Executor (cargo build)
-REM    5. JS:    Web UI (lint + tests + build)
-REM    6. Python: New modules import check (ML, risk, research, pricing)
-REM    7. Docker: Prod image build verification (gcc:14, same as CI)
+REM    4. JS:    Web UI (lint + tests + build)
+REM    5. Docker: Prod image build verification (same as CI)
 REM
 REM  Usage: build-all.bat          — build + test everything
 REM         build-all.bat quick    — skip C++ build, just import checks
@@ -89,63 +87,19 @@ if errorlevel 1 (
 )
 echo.
 
-REM ── 2b. New module import checks ──
-echo --- New module import checks ---
-
-echo   [ML] price_predictor...
-python -c "from src.ml.price_predictor import LSTMPredictor, TransformerPredictor, ModelConfig; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [ML] rl_trader...
-python -c "from src.ml.rl_trader import PPOAgent, DQNAgent, RLConfig; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [ML] automl...
-python -c "from src.ml.automl import AutoMLOptimizer, AutoMLConfig; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [ML] model_registry...
-python -c "from src.ml.model_registry import ModelRegistry, ModelStatus; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [ML] feature_store...
-python -c "from src.ml.feature_store import FeatureStore; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [ML] onnx_engine (C++ header check)...
-if exist "%PROJECT_ROOT%hft-trade-bot\src\ml\onnx_engine.h" (
-    echo    [OK]
-) else (
-    echo    [FAIL] onnx_engine.h not found
-    set EXIT_CODE=1
-)
+REM ── 2b. Live module import checks ──
+echo --- Module import checks ---
 
 echo   [Strategies] cross_exchange_arb...
 python -c "from src.strategies.cross_exchange_arb import CrossExchangeArbEngine; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Strategies] portfolio_optimizer...
-python -c "from src.strategies.portfolio_optimizer import PortfolioOptimizer; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
 echo   [Strategies] marketplace...
 python -c "from src.strategies.marketplace import StrategyMarketplace; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
-echo   [Risk] var_stress_test...
-python -c "from src.risk.var_stress_test import RiskAnalyzer, STRESS_SCENARIOS; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
 echo   [Pricing] volatility_surface...
 python -c "from src.pricing.volatility_surface import VolatilitySurface, SVIParams, SABRParams; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Data] market_replay...
-python -c "from src.data_collection.market_replay import MarketReplay; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Data] timescaledb_client...
-python -c "from src.data_collection.timescaledb_client import TimescaleDBClient; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
 echo   [Observability] tracing...
@@ -158,30 +112,6 @@ if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
 echo   [Observability] health_checks...
 python -c "from src.observability.health_checks import HealthChecker; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Networking] dpdk_transport...
-python -c "from src.networking.dpdk_transport import DPDKTransport; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Research] genetic_strategy...
-python -c "from src.research.genetic_strategy import GeneticStrategyDiscovery; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Research] competition...
-python -c "from src.research.competition import StrategyCompetition; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Research] microstructure_lab...
-python -c "from src.research.microstructure_lab import MicrostructureLab; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Research] attribution...
-python -c "from src.research.attribution import BrinsonFachler; print('    [OK]')" 2>&1
-if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
-
-echo   [Research] greeks_hedging...
-python -c "from src.research.greeks_hedging import GreeksHedgingSimulator; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
 echo.
@@ -364,9 +294,8 @@ goto :summary_all
 echo  Exchange Simulator     Tested
 echo  AI Signal Bot          Tested + Imports
 echo  C++ HFT Trade Bot      Built + Tested (Release)
-echo  Rust Executor          Built
 echo  Web UI                 Linted + Tested + Built
-echo  Docker Prod            All images built (gcc:14)
+echo  Docker Prod            All images built
 goto :summary_end
 
 :summary_python
@@ -381,7 +310,6 @@ goto :summary_end
 
 :summary_cpp
 echo  C++ HFT Trade Bot      Built + Tested
-echo  Rust Executor          Built
 goto :summary_end
 
 :summary_js
