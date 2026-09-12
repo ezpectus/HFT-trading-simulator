@@ -118,11 +118,11 @@ class BacktestComparison:
 
         # Pairwise significance tests
         names = list(self.results.keys())
-        for i in range(len(names)):
-            for j in range(i + 1, len(names)):
-                pair = f"{names[i]}_vs_{names[j]}"
+        for i, name_i in enumerate(names):
+            for name_j in names[i + 1:]:
+                pair = f"{name_i}_vs_{name_j}"
                 result.significance_tests[pair] = self._bootstrap_test(
-                    self.results[names[i]], self.results[names[j]]
+                    self.results[name_i], self.results[name_j]
                 )
 
         return result

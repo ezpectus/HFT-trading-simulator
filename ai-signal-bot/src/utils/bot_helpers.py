@@ -65,9 +65,9 @@ def build_stat_arb(config: SignalBotConfig, logger: logging.Logger):
     sa = StatisticalArbitrage(config=StatArbConfig(
         entry_z=config.statarb_zscore_entry, exit_z=config.statarb_zscore_exit,
         recompute_interval=config.statarb_recompute_interval))
-    pairs = [f"{config.symbols[i]}/{config.symbols[j]}"
-             for i in range(len(config.symbols))
-             for j in range(i + 1, len(config.symbols))]
+    pairs = [f"{sa}/{sb}"
+             for i, sa in enumerate(config.symbols)
+             for sb in config.symbols[i + 1:]]
     logger.info("  Statistical arbitrage: pairs=%s", pairs)
     return sa
 
@@ -77,9 +77,8 @@ async def generate_stat_arb_signals(bot, now_ts: int) -> None:
     if not bot.stat_arb:
         return
     symbols = bot.config.symbols
-    for i in range(len(symbols)):
-        for j in range(i + 1, len(symbols)):
-            sym_a, sym_b = symbols[i], symbols[j]
+    for i, sym_a in enumerate(symbols):
+        for sym_b in symbols[i + 1:]:
             candles_a = bot.exchange.candle_history.get(sym_a, [])
             candles_b = bot.exchange.candle_history.get(sym_b, [])
             if len(candles_a) < bot.config.statarb_min_data or len(candles_b) < bot.config.statarb_min_data:

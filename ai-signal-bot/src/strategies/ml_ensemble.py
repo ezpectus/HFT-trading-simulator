@@ -107,8 +107,8 @@ class HMMRegimeDetector:
         # Estimate transition matrix from state sequence
         states = np.array([self._classify(r) for r in arr])
         trans = np.zeros((self.n_states, self.n_states))
-        for i in range(len(states) - 1):
-            trans[states[i], states[i + 1]] += 1
+        for cur, nxt in zip(states, states[1:], strict=False):
+            trans[cur, nxt] += 1
         row_sums = trans.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1
         self.transition_matrix = trans / row_sums
@@ -167,11 +167,11 @@ class MLEnsembleStrategy:
     def _prepare_labels(self, closes: np.ndarray, horizon: int) -> np.ndarray:
         """Create labels: 1 if return > 0 over horizon, 0 otherwise."""
         labels = []
-        for i in range(len(closes) - horizon):
-            if closes[i] < 1e-8:
+        for c_now, c_future in zip(closes, closes[horizon:], strict=False):
+            if c_now < 1e-8:
                 labels.append(0)
                 continue
-            ret = (closes[i + horizon] / closes[i] - 1)
+            ret = (c_future / c_now - 1)
             labels.append(1 if ret > 0 else 0)
         return np.array(labels)
 

@@ -69,9 +69,8 @@ class RebalancingStrategy:
                                  portfolio_value: float) -> list[RebalanceOrder]:
         orders = []
 
-        for i in range(len(current_weights)):
-            current_weight = current_weights[i]
-            target_weight = target_weights[i]
+        for i, (current_weight, target_weight) in enumerate(
+                zip(current_weights, target_weights, strict=True)):
 
             # Skip if weights are close
             if abs(current_weight - target_weight) < 0.01:

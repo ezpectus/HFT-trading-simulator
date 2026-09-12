@@ -79,8 +79,8 @@ def hawkes_log_lik(
 
     log_lik = 0.0
     r = 0.0
-    for i in range(len(events)):
-        dt = events[i] - events[i - 1] if i > 0 else 0.0
+    for i, event in enumerate(events):
+        dt = event - events[i - 1] if i > 0 else 0.0
         r = math.exp(-beta * dt) * r + 1
         log_lik += math.log(max(MIN_LOG_LIK, mu + alpha * r))
 

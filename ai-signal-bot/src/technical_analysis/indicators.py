@@ -119,9 +119,9 @@ def macd(
     ema_slow = ema(c, slow)
 
     macd_line = [NAN] * len(c)
-    for i in range(len(c)):
-        if not math.isnan(ema_fast[i]) and not math.isnan(ema_slow[i]):
-            macd_line[i] = ema_fast[i] - ema_slow[i]
+    for i, (f, s) in enumerate(zip(ema_fast, ema_slow, strict=True)):
+        if not math.isnan(f) and not math.isnan(s):
+            macd_line[i] = f - s
 
     valid_start = next((i for i, v in enumerate(macd_line) if not math.isnan(v)), len(c))
     valid = macd_line[valid_start:]
@@ -131,9 +131,9 @@ def macd(
     signal_line[valid_start:] = sig_valid
 
     histogram = [NAN] * len(c)
-    for i in range(len(c)):
-        if not math.isnan(macd_line[i]) and not math.isnan(signal_line[i]):
-            histogram[i] = macd_line[i] - signal_line[i]
+    for i, (m, s) in enumerate(zip(macd_line, signal_line, strict=True)):
+        if not math.isnan(m) and not math.isnan(s):
+            histogram[i] = m - s
 
     return macd_line, signal_line, histogram
 

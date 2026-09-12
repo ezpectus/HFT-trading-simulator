@@ -207,10 +207,10 @@ class ChartMixin:
             return 0, 0, 0
         ema_f = self._ema_series(values, fast)
         ema_s = self._ema_series(values, slow)
-        macd_line = [ema_f[i] - ema_s[i] for i in range(len(values))]
+        macd_line = [f - s for f, s in zip(ema_f, ema_s, strict=True)]
         sig = self._ema_series(macd_line[slow - 1:], signal)
         sig_full = [0.0] * (slow - 1) + sig
-        hist = [macd_line[i] - sig_full[i] for i in range(len(values))]
+        hist = [m - s for m, s in zip(macd_line, sig_full, strict=True)]
         return macd_line[-1], sig_full[-1], hist[-1]
 
     @staticmethod
@@ -292,10 +292,10 @@ class ChartMixin:
             return
         ema_f = self._ema_series(closes, 12)
         ema_s = self._ema_series(closes, 26)
-        macd_full = [ema_f[i] - ema_s[i] for i in range(len(closes))]
+        macd_full = [f - s for f, s in zip(ema_f, ema_s, strict=True)]
         sig_full = self._ema_series(macd_full[25:], 9) if len(macd_full) > 34 else [0]
         sig_padded = [0.0] * 25 + sig_full
-        hist_full = [macd_full[i] - sig_padded[i] if i < len(sig_padded) else 0 for i in range(len(closes))]
+        hist_full = [m - s if i < len(sig_padded) else 0 for i, (m, s) in enumerate(zip(macd_full, sig_padded, strict=False))]
         visible_macd = macd_full[-self.chart_width:]
         visible_hist = hist_full[-self.chart_width:]
         max_macd = max(abs(v) for v in visible_macd) if visible_macd else 1

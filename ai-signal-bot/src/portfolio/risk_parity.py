@@ -49,12 +49,12 @@ class RiskParityOptimizer:
 
         # Create risk contribution objects
         risk_contributions = []
-        for i in range(len(weights)):
+        for i, (m_risk, contrib) in enumerate(zip(marginal_risk, contributions, strict=True)):
             risk_contributions.append(RiskContribution(
                 asset_index=i,
-                marginal_risk=marginal_risk[i],
-                contribution=contributions[i],
-                percentage=contributions[i] / total_risk if total_risk > 0 else 0
+                marginal_risk=m_risk,
+                contribution=contrib,
+                percentage=contrib / total_risk if total_risk > 0 else 0
             ))
 
         return risk_contributions
