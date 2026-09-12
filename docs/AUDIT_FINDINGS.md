@@ -847,3 +847,21 @@ Rotation target: every header in hft-trade-bot not yet audited — verified each
 
 - `signal_engine_v3.h` OnlineHMM is REAL math — log-space forward recursion with log-sum-exp, Gaussian emissions, online parameter adaptation; opt-in via `signal_engine_v3_enabled`, v2 fallback
 - Live in core/: adaptive_selector, risk_mgr, kill_switch (SHM trigger + cancel/close/notify callbacks), shm_fill_producer, shm_market_data, shm_signal_consumer, signal_receiver, SystemMonitor
+
+## Round 14 — audit branch: web-ui data layer (hooks/services/mock plumbing)
+
+Rotation target: the live-data plumbing itself — useExchangeData/useSignalData, mock layer, utility engines, secondary hooks.
+
+### New findings S089–S091
+
+**S089 — Two backtest engines; the panel runs the client one while the server API sits unused.** `StrategyBacktest.jsx` runs `utils/backtestEngine.js` (421 lines of JS) on client candles. The server accepts `run_backtest`/`compare_backtests` over the signals WS (`signal_publisher.py:187-191,310`) with real strategy objects — never called by this panel. Two implementations, divergent results on identical data; the server path is only consumed via WalkForwardViewer's push channel.
+
+**S090 — `useStrategyMarketplace` is localStorage-only.** The "marketplace" panel is JSON import/export of hardcoded `DEFAULT_STRATEGIES` (`useStrategyMarketplace.ts:110-125`). The server-side `StrategyMarketplace` (marketplace.py, dead per S076) was the intended backend and is never connected. Name advertises a marketplace; implementation is a file exchanger.
+
+**S091 — App.jsx mounts real + mock hooks unconditionally.** Both `useExchangeData()` and `useMockExchangeData()` run always (App.jsx:89-93): in real mode the mock timers tick pointlessly; in mock mode the real WebSocket still connects to :8765/:8766 and spams reconnect logs.
+
+### ЧИСТО (web-ui data layer)
+
+- `useExchangeData` — real and thorough: candle dedup map, orderbook delta application, fills/funding/news/regime/circuit-breaker all consumed from real messages
+- Mock mode honestly gated (`VITE_MOCK_MODE`/localStorage), declared in README
+- `useTradeJournal` (CSV export), `useSessionRecorder` (localStorage) — real local features

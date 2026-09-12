@@ -101,6 +101,9 @@
 | **S086** | Внутренний пакет `exchange_simulator/exchange_simulator/` — 6 мёртвых модулей (1240 строк) | Каждый живёт только ради своего теста: `liquidation_engine_v2.py` (306 — "enhanced" cascade+ADL engine, прод гоняет простой mixin `exchange_liquidation`), `funding_rate.py` (136 — мёртвый дубликат; реальный funding из `market_simulator.get_funding_rates`), `order_book_realism.py` (307 — spoofing/iceberg/adverse-selection engine; реальные стаканы из `market_simulator.generate_order_book`), `market_microstructure.py` (175), `latency_simulation.py` (129), `spread_analytics.py` (187). Тесты тестируют мёртвый код. | High | [ ] Open |
 | **S087** | `options_chain` WS-endpoint есть, но web-ui его не вызывает | Backend реально отдаёт BS-chain с греками (`ws_message_handler.py:402-435`, `OptionsSimulator`), а `OptionsChain.jsx` считает BS на клиенте от realized vol — реальный фид существует, не потребляется. Wire opportunity под "real API" направление. | Medium | [ ] Open |
 | **S088** | hft-trade-bot: ~3300 строк мёртвых header'ов | Живут только в doctest'ах, 0 ссылок из core/: `position_manager_v2.h` (347 — прод использует `position_manager.h`), `order_manager.h` (378), `latency_tracker.h` (252), `order_type_selector.h` (38), `portfolio_risk.h` (261), `pre_trade_risk.h` (220 — прод использует `risk_manager.h`), 4 стратегии `*_v2.h` (market_making 176, mean_reversion 300, momentum_breakout 203, statistical_arb 251), `shm_heartbeat.h` (271 — heartbeat-сторона SHM никогда не пишется; Python-аналог только в мёртвом fix_client.py), `metrics_collector.*` (347), `tracer.*` (290). Второй слой мёртвого C++ поверх S058–S061. | High | [ ] Open |
+| **S089** | Два бэктест-движка: панель гоняет клиентский, серверный API не вызывается | `StrategyBacktest.jsx` использует `utils/backtestEngine.js` (421 строка JS) на клиентских свечах, а сервер реально принимает `run_backtest`/`compare_backtests` по signals WS (`signal_publisher.py:187-191,310`) с настоящими strategy-объектами. Две реализации → разные результаты на одних данных; server path используется только push'ем в WalkForwardViewer. | Medium | [ ] Open |
+| **S090** | `useStrategyMarketplace` — localStorage-only "маркетплейс" | Панель = JSON import/export захардкоженных DEFAULT_STRATEGIES в localStorage (`useStrategyMarketplace.ts:110-125`). Серверный `StrategyMarketplace` (marketplace.py, dead per S076) — задуманный backend, никогда не подключён. Название рекламирует маркетплейс, реализация — файлообменник. | Medium | [ ] Open |
+| **S091** | App.jsx монтирует real + mock hooks безусловно | `App.jsx:89-93` — `useExchangeData()` и `useMockExchangeData()` оба вызываются всегда: в real-режиме mock-таймеры тикают впустую, в mock-режиме реальный WS коннектится к :8765/:8766 и сыплет reconnect-логи. | Low | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -176,6 +179,9 @@
 - `options_chain` WS handler реален — BS-chain с полными греками от OptionsSimulator
 - `signal_engine_v3.h` OnlineHMM — НАСТОЯЩИЙ math: log-space forward recursion, log-sum-exp, Gaussian emissions, online adaptation; opt-in через config (engine_v2 fallback)
 - hft живое: `adaptive_selector`, `risk_mgr`, `kill_switch`, `shm_fill_producer`, `shm_market_data`, `shm_signal_consumer`, `signal_receiver`, `SystemMonitor` — всё wired в core/
+- `useExchangeData` — настоящий полный plumbing: candle dedup-map, orderbook delta apply, fills/funding/news/regime/circuit-breaker — все real
+- mock-mode честно гейтится `VITE_MOCK_MODE`/localStorage, задекларирован в README
+- `useTradeJournal` (CSV export) + `useSessionRecorder` (localStorage) — реальные
 
 ---
 
