@@ -34,6 +34,9 @@ export interface UseWebSocketOptions {
   onOpen?: () => void
   onClose?: () => void
   autoConnect?: boolean
+  /** Sent as the very first frame on every (re)connect — must precede
+   *  the auto-subscribe so auth-required servers don't drop us. */
+  authToken?: string
   syncOnReconnect?: boolean
   getLastTimestamp?: () => number
   maxBufferSize?: number
@@ -61,7 +64,7 @@ export interface UseWebSocketReturn {
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {
     onMessage, onOpen, onClose, autoConnect = true,
-    syncOnReconnect = false, getLastTimestamp,
+    authToken, syncOnReconnect = false, getLastTimestamp,
     maxBufferSize = 5000,
     batchInterval = 50,
     batchTypes = [],
@@ -142,6 +145,10 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         reconnectCount.current += 1
         if (reconnectCount.current > 1) {
           setReconnects(reconnectCount.current - 1)
+        }
+
+        if (authToken) {
+          ws.send(JSON.stringify({ type: 'auth', token: authToken }))
         }
 
         if (syncOnReconnect && reconnectCount.current > 1) {
@@ -251,7 +258,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
       }
     }
-  }, [url, autoConnect, perMessageDeflate, batchInterval, flushBatch, syncOnReconnect, maxReconnects])
+  }, [url, autoConnect, authToken, perMessageDeflate, batchInterval, flushBatch, syncOnReconnect, maxReconnects])
 
   const batchTypesKey = batchTypes.join(',')
 

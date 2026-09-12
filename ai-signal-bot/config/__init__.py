@@ -344,6 +344,17 @@ class SignalBotConfig:
     def signals_csv(self) -> str:
         return self.raw.get("logging", {}).get("signals_csv", "logs/signals.csv")
 
+    # --- api ---
+    @property
+    def api_auth_token(self) -> str:
+        """Shared secret for signal-WS handshake + health-server Bearer auth.
+
+        Empty string = auth disabled. Prefer the AI_BOT_AUTH_TOKEN env var
+        over committing a token to settings.yaml.
+        """
+        return os.environ.get("AI_BOT_AUTH_TOKEN") or str(
+            self.raw.get("api", {}).get("auth_token", ""))
+
     # --- metrics ---
     @property
     def metrics_enabled(self) -> bool:

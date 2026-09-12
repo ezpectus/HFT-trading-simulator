@@ -180,6 +180,34 @@ class HealthChecker:
             "version": "1.0.0",
         }
 
+    async def check_component_health(self, name: str) -> dict[str, Any]:
+        """Public adapter for HealthServer.register_check — runs the matching
+        private component probe and normalizes to ``{'healthy': bool, ...}``.
+
+        Known names: ``websocket`` (sim link), ``database`` (timescaledb client),
+        ``redis``, ``exchange`` (trading-active). Unknown names report a
+        healthy placeholder — same contract as HealthServer's fallback.
+        """
+        checks = {
+            "websocket": self._check_ws,
+            "database": self._check_db,
+            "redis": self._check_redis,
+            "exchange": self._check_exchange,
+        }
+        fn = checks.get(name)
+        if fn is None:
+            return {"healthy": True, "message": f"No {name} check"}
+        try:
+            c = await fn()
+        except Exception as e:  # health endpoint must not 500 on a check bug
+            return {"healthy": False, "error": str(e)}
+        return {
+            "healthy": c.status != HealthStatus.UNHEALTHY,
+            "status": c.status.value,
+            "message": c.details,
+            "latency_ms": round(c.latency_ms, 2),
+        }
+
     async def _check_ws(self) -> ComponentHealth:
         start = time.monotonic()
         try:

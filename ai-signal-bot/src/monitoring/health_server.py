@@ -145,7 +145,14 @@ class HealthServer:
 
     @web.middleware
     async def _auth_middleware(self, request: web.Request, handler):
-        """Reject requests without valid Bearer token."""
+        """Reject requests without valid Bearer token.
+
+        ``/live`` and ``/ready`` stay unauthenticated — kubelet probes
+        cannot attach credentials. All /health* detail endpoints require
+        the token when one is configured.
+        """
+        if request.path in ("/live", "/ready"):
+            return await handler(request)
         auth = request.headers.get("Authorization", "")
         if auth == f"Bearer {self._auth_token}":
             return await handler(request)

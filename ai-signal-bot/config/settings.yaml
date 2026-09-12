@@ -79,6 +79,10 @@ network:
   ws_recv_timeout: 30              # WebSocket recv/idle timeout (seconds)
   rest_timeout: 15                 # REST API timeout (seconds)
 
+# API — inbound server auth (signal publisher :8766 + health server :8080)
+api:
+  auth_token: ""                 # Shared secret. Empty = auth disabled. Prefer AI_BOT_AUTH_TOKEN env var.
+
 # Risk management — all percentages are of total account balance
 risk:
   max_risk_per_trade_pct: 2.0    # Max loss per trade as % of balance

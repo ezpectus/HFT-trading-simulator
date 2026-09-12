@@ -72,6 +72,21 @@ describe('useWebSocket', () => {
     expect(sent.type).toBe('subscribe')
   })
 
+  it('sends auth frame BEFORE subscribe when authToken set', async () => {
+    renderHook(() => useWebSocket('ws://localhost:8766', { authToken: 'tok-1' }))
+    await act(() => new Promise(r => setTimeout(r, 10)))
+    const frames = mockInstances[0].sent.map(s => JSON.parse(s))
+    expect(frames[0]).toEqual({ type: 'auth', token: 'tok-1' })
+    expect(frames[1].type).toBe('subscribe')
+  })
+
+  it('sends no auth frame when authToken unset', async () => {
+    renderHook(() => useWebSocket('ws://localhost:8766'))
+    await act(() => new Promise(r => setTimeout(r, 10)))
+    const frames = mockInstances[0].sent.map(s => JSON.parse(s))
+    expect(frames.every(f => f.type !== 'auth')).toBe(true)
+  })
+
   it('calls onMessage callback for received data', async () => {
     const onMessage = vi.fn()
     renderHook(() => useWebSocket('ws://localhost:8765', { onMessage }))

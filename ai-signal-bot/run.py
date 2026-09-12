@@ -84,7 +84,7 @@ class AISignalBot:
         # Bind host overridable via env (0.0.0.0 required inside containers;
         # use 127.0.0.1 for direct host runs)
         bind_host = os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0")
-        self.signal_publisher = SignalPublisher(host=bind_host, port=8766)
+        self.signal_publisher = SignalPublisher(host=bind_host, port=8766, auth_token=config.api_auth_token)
         self.db = Database(config.db_path)
         self.validator = SignalValidator(
             min_confidence=config.min_confidence,
@@ -168,9 +168,21 @@ class AISignalBot:
         prom_server = None
         if enable_metrics or self.config.metrics_enabled:
             from src.monitoring.health_server import HealthServer
-            metrics_server = HealthServer(port=8080, host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"))
-            metrics_server.register_check("liveness", self.health_checker.check_liveness)
-            metrics_server.register_check("readiness", self.health_checker.check_readiness)
+            metrics_server = HealthServer(
+                port=8080,
+                host=os.environ.get("AI_BOT_BIND_HOST", "0.0.0.0"),
+                auth_token=self.config.api_auth_token or None,
+            )
+            # Register under the component names HealthServer actually queries
+            # ("exchange"/"database"/"shm" — /live and /ready stay probe-only).
+            # "exchange" = sim link: unhealthy when WS down, else trading state.
+            async def _exchange_check():
+                ws = await self.health_checker.check_component_health("websocket")
+                if not ws["healthy"]:
+                    return ws
+                return await self.health_checker.check_component_health("exchange")
+            metrics_server.register_check("exchange", _exchange_check)
+            metrics_server.register_check("database", lambda: self.health_checker.check_component_health("database"))
             await metrics_server.start()
             self.logger.info("Health server running on port 8080")
             try:
