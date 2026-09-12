@@ -150,7 +150,7 @@ class BacktestPlotter:
         colors = [COLORS["profit"] if p > 0 else COLORS["loss"] for p in pnls]
 
         # Bar chart of individual trade PnL
-        ax1.bar(range(len(pnls)), pnls, color=colors, width=0.8)
+        ax1.bar(np.arange(len(pnls)), pnls, color=colors, width=0.8)
         ax1.axhline(y=0, color="black", linewidth=0.5)
         ax1.set_title(title, fontsize=14, fontweight="bold")
         ax1.set_ylabel("PnL ($)", fontsize=11)
@@ -159,10 +159,10 @@ class BacktestPlotter:
 
         # Cumulative PnL
         cum_pnl = np.cumsum(pnls)
-        ax2.plot(range(len(cum_pnl)), cum_pnl, color=COLORS["equity"], linewidth=1.5)
-        ax2.fill_between(range(len(cum_pnl)), 0, cum_pnl,
+        ax2.plot(np.arange(len(cum_pnl)), cum_pnl, color=COLORS["equity"], linewidth=1.5)
+        ax2.fill_between(np.arange(len(cum_pnl)), 0, cum_pnl,
                          where=cum_pnl >= 0, color=COLORS["profit"], alpha=0.2)
-        ax2.fill_between(range(len(cum_pnl)), 0, cum_pnl,
+        ax2.fill_between(np.arange(len(cum_pnl)), 0, cum_pnl,
                          where=cum_pnl < 0, color=COLORS["loss"], alpha=0.2)
         ax2.set_ylabel("Cumulative PnL ($)", fontsize=11)
         ax2.set_xlabel("Trade #", fontsize=11)
@@ -189,7 +189,7 @@ class BacktestPlotter:
         )):
             color = STRATEGY_COLORS[i % len(STRATEGY_COLORS)]
             equity = np.array(result.equity_curve)
-            ax.plot(range(len(equity)), equity, color=color, linewidth=1.5, label=name)
+            ax.plot(np.arange(len(equity)), equity, color=color, linewidth=1.5, label=name)
 
         ax.axhline(y=results[list(results.keys())[0]].initial_balance,
                    color=COLORS["benchmark"], linestyle="--", linewidth=0.8,
