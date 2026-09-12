@@ -597,3 +597,42 @@ Registry: ~20 panel entries changed from \props: () => ({})\ to real context pro
 - \itest run\: 986 passed / 8 failed (all 8 = Finding 031 pre-existing)
 - \pytest tests/unit/test_real_market_data.py\: 22/22 (incl. new malformed-JSON resilience test)
 
+
+## Round 5 — wire-to-live batch 2 + S038 test repairs
+
+### Panels rewired (S001–S003 continued)
+
+| Panel | Real source |
+|-------|-------------|
+| DashboardProfiler | Web Vitals via performanceMonitor + per-panel React `<Profiler>` timings recorded in PanelContainer |
+| RegimeDetector | live `market_regime` broadcast (FFT classifier: TRENDING/RANGING/MIXED) + real candle statistics (vol, slope, skew, kurtosis, autocorr) |
+| RealtimeAttribution | realized PnL from `accounts[*].trade_history` — by symbol, by close reason, cumulative curve |
+
+### Finding 039 — patterns.ts: HAMMER/SHOOTING_STAR never fired
+
+Condition `upperWick < body * 0.5` / `lowerWick < body * 0.5` rejected textbook candles (wick == body). Detector was dead on real data. Fixed to `<= body * 2` (canonical 2:1 wick:body). **High**
+
+### Finding 040 — initPerformanceMonitoring was dead code + FID gone
+
+The web-vitals instrumentation module existed but was never imported/called anywhere. Additionally `onFID` no longer exists in web-vitals v6 (installed) — the import would have failed had anyone called it. Fixed: FID→INP (v6 API, 200ms budget), DashboardProfiler initializes monitoring, PanelContainer wraps every panel in `<Profiler>`. **High**
+
+### Finding 031 (S038) — all 7 fixed
+
+- `format.test.js` — aligned to impl+utils.test (`-$500.00`)
+- `patterns.test.js` — revealed Finding 039 real bug (fixed impl, not test)
+- `auditExport.test.js` — removed broken `vi.fn(()=>({}))` Blob mock (not a constructor); happy-dom provides real Blob
+- `performanceMonitor.test.js` — wrong export name, FID→INP, customMetrics object shape
+- `alertWebhook.test.jsx` — new webhooks start enabled; test asserted wrong initial label
+
+### Mechanical (S026/S029/S034)
+
+- S026: `JSON.parse(JSON.stringify())` → `structuredClone()` in useSessionRecorder
+- S029: all 15 `toBeTruthy()` → specific asserts (length>0 / not.toBeNull / toBeInTheDocument)
+- S034: `assert True` → `assert client.connected`; `== True` → `is True` ×2
+- S012/S022 closed as N/A — prints/console.log were docstring examples, not executed code
+
+## Round 5 verification
+
+- `vitest run`: **995/995 green** (was 986/8 after round 4)
+- `pytest test_portfolio.py + test_real_market_data.py`: 44/44
+- `vite build`: green
