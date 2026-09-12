@@ -312,9 +312,11 @@ class SignalPublisher:
         from src.backtesting import Backtester
 
         bt_params = self._parse_backtest_params(params)
-        candles = self._generate_synthetic_candles(
+        client_candles = self._parse_client_candles(params)
+        candles = client_candles if client_candles is not None else self._generate_synthetic_candles(
             bt_params["candles"], bt_params["initial_price"], bt_params["volatility"]
         )
+        data_source = "client" if client_candles is not None else "synthetic"
         risk_config = self._build_risk_config(bt_params)
         bt = Backtester(
             initial_balance=bt_params["balance"],
@@ -336,7 +338,8 @@ class SignalPublisher:
             "type": "backtest_result",
             "strategy": bt_params["strategy"],
             "symbol": bt_params["symbol"],
-            "candles": bt_params["candles"],
+            "candles": len(candles),
+            "data_source": data_source,
             "results": results,
         }
 
@@ -353,6 +356,28 @@ class SignalPublisher:
             "trailing_stop": bool(params.get("trailing_stop", False)),
             "breakeven": bool(params.get("breakeven", False)),
         }
+
+    @staticmethod
+    def _parse_client_candles(params: dict) -> "list[dict] | None":
+        """Parse optional caller-supplied candles — real market data instead of
+        the synthetic GBM series. Returns None to fall back to synthetic."""
+        raw = params.get("candles_data")
+        if not isinstance(raw, list) or not raw:
+            return None
+        candles = []
+        for c in raw[:10000]:
+            try:
+                candles.append({
+                    "timestamp": float(c.get("timestamp", c.get("time"))),
+                    "open": float(c["open"]),
+                    "high": float(c["high"]),
+                    "low": float(c["low"]),
+                    "close": float(c["close"]),
+                    "volume": float(c.get("volume", 0.0)),
+                })
+            except (TypeError, ValueError, KeyError):
+                return None  # malformed payload — fall back to synthetic
+        return candles or None
 
     @staticmethod
     def _build_risk_config(bt_params: dict) -> "RiskConfig | None":

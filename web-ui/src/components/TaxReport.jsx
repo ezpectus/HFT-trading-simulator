@@ -3,32 +3,21 @@ import { FileText, Download, Calculator, DollarSign, TrendingUp, TrendingDown } 
 import { formatUsd } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 
-const MOCK_TRADES = [
-  { id: 1, symbol: 'BTC/USDT', side: 'BUY', quantity: 0.1, price: 42000, timestamp: '2024-01-15', pnl: 0, fee: 4.2 },
-  { id: 2, symbol: 'BTC/USDT', side: 'SELL', quantity: 0.1, price: 43500, timestamp: '2024-01-20', pnl: 150, fee: 4.35 },
-  { id: 3, symbol: 'ETH/USDT', side: 'BUY', quantity: 2, price: 2400, timestamp: '2024-02-01', pnl: 0, fee: 4.8 },
-  { id: 4, symbol: 'ETH/USDT', side: 'SELL', quantity: 2, price: 2580, timestamp: '2024-02-10', pnl: 360, fee: 5.16 },
-  { id: 5, symbol: 'SOL/USDT', side: 'BUY', quantity: 10, price: 85, timestamp: '2024-02-15', pnl: 0, fee: 0.85 },
-  { id: 6, symbol: 'SOL/USDT', side: 'SELL', quantity: 10, price: 98, timestamp: '2024-02-25', pnl: 130, fee: 0.98 },
-]
-
 const TaxReport = memo(function TaxReport({ fills, addToast }) {
-  const [year, setYear] = useState(2024)
+  const [year, setYear] = useState(new Date().getFullYear())
 
   const trades = useMemo(() => {
-    if (fills && fills.length > 0) {
-      return fills.slice(0, 20).map((f, i) => ({
-        id: f.id || i,
-        symbol: f.symbol,
-        side: f.side,
-        quantity: f.filled_quantity || f.quantity || 0,
-        price: f.filled_price || f.price || 0,
-        timestamp: new Date((f.timestamp || 0) * 1000).toISOString().split('T')[0],
-        pnl: f.pnl || 0,
-        fee: (f.fee || (f.filled_price || 0) * (f.filled_quantity || 0) * 0.001),
-      }))
-    }
-    return MOCK_TRADES
+    if (!fills?.length) return []
+    return fills.slice(0, 50).map((f, i) => ({
+      id: f.id || i,
+      symbol: f.symbol,
+      side: f.side,
+      quantity: f.filled_quantity || f.quantity || 0,
+      price: f.filled_price || f.price || 0,
+      timestamp: f.timestamp ? new Date(f.timestamp * 1000).toISOString().split('T')[0] : '—',
+      pnl: f.pnl || 0,
+      fee: (f.fee || (f.filled_price || 0) * (f.filled_quantity || 0) * 0.001),
+    }))
   }, [fills])
 
   const summary = useMemo(() => {
@@ -57,8 +46,8 @@ const TaxReport = memo(function TaxReport({ fills, addToast }) {
           onChange={(e) => setYear(Number(e.target.value))}
           className="bg-bg-700 border border-bg-600 text-[10px] text-gray-400 px-1 py-0.5 focus:outline-none focus:border-accent-blue"
         >
-          <option value={2024}>2024</option>
-          <option value={2023}>2023</option>
+          <option value={year}>{year}</option>
+          <option value={year - 1}>{year - 1}</option>
         </select>
       </div>
 
@@ -133,7 +122,7 @@ const TaxReport = memo(function TaxReport({ fills, addToast }) {
       </button>
 
       {trades.length === 0 && (
-        <EmptyState icon={FileText} title="No trades" subtitle="Trade history will appear here" />
+        <EmptyState icon={FileText} title="No fills yet" subtitle="Realized PnL is computed from live fills — nothing to report yet" />
       )}
     </div>
   )

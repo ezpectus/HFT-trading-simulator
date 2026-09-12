@@ -1,14 +1,8 @@
-import { memo, useMemo } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { Newspaper, TrendingUp, TrendingDown, Clock } from 'lucide-react'
 import { EmptyState } from './LoadingSkeleton'
 
-const MOCK_NEWS = [
-  { id: 1, title: 'Fed announces rate hold', source: 'Reuters', sentiment: 'positive', impact: 'high', timestamp: Date.now() / 1000 - 300, symbols: ['BTC/USDT', 'ETH/USDT'] },
-  { id: 2, title: 'Major exchange reports record outflow', source: 'CoinDesk', sentiment: 'negative', impact: 'medium', timestamp: Date.now() / 1000 - 900, symbols: ['BTC/USDT'] },
-  { id: 3, title: 'New DeFi protocol launches on Solana', source: 'The Block', sentiment: 'neutral', impact: 'low', timestamp: Date.now() / 1000 - 1800, symbols: ['SOL/USDT'] },
-  { id: 4, title: 'SEC approves Bitcoin ETF application', source: 'Bloomberg', sentiment: 'positive', impact: 'high', timestamp: Date.now() / 1000 - 3600, symbols: ['BTC/USDT'] },
-  { id: 5, title: 'Exchange hack reported — $50M lost', source: 'CoinDesk', sentiment: 'negative', impact: 'high', timestamp: Date.now() / 1000 - 7200, symbols: [] },
-]
+const MAX_ITEMS = 50
 
 const SENTIMENT_CONFIG = {
   positive: { icon: TrendingUp, color: 'text-accent-green', bg: 'bg-accent-green/10', label: 'Bullish' },
@@ -59,22 +53,29 @@ function NewsItem({ news }) {
   )
 }
 
-const NewsFeed = memo(function NewsFeed({ newsEvent, signals, addToast }) {
-  const allNews = useMemo(() => {
-    const news = [...MOCK_NEWS]
-    if (newsEvent && newsEvent.title) {
-      news.unshift({
-        id: Date.now(),
-        title: newsEvent.title,
+const NewsFeed = memo(function NewsFeed({ newsEvent }) {
+  // Accumulate real news_event broadcasts — no feed history exists, so the
+  // list holds only events received while this panel was mounted.
+  const [events, setEvents] = useState([])
+
+  useEffect(() => {
+    if (!newsEvent) return
+    setEvents(prev => {
+      const item = {
+        id: newsEvent.timestamp ?? Date.now() / 1000,
+        title: newsEvent.title ?? `${newsEvent.symbol ?? 'Market'} event`,
         source: newsEvent.source || 'Exchange',
-        sentiment: newsEvent.sentiment || 'neutral',
+        sentiment: newsEvent.sentiment || (newsEvent.direction === 'up' ? 'positive' : newsEvent.direction === 'down' ? 'negative' : 'neutral'),
         impact: newsEvent.impact || 'medium',
         timestamp: newsEvent.timestamp || Date.now() / 1000,
-        symbols: newsEvent.symbols || [],
-      })
-    }
-    return news.sort((a, b) => b.timestamp - a.timestamp)
+        symbols: newsEvent.symbols || (newsEvent.symbol ? [newsEvent.symbol] : []),
+      }
+      if (prev.some(e => e.id === item.id && e.title === item.title)) return prev
+      return [item, ...prev].slice(0, MAX_ITEMS)
+    })
   }, [newsEvent])
+
+  const allNews = useMemo(() => [...events].sort((a, b) => b.timestamp - a.timestamp), [events])
 
   const stats = useMemo(() => {
     const positive = allNews.filter(n => n.sentiment === 'positive').length
@@ -112,7 +113,7 @@ const NewsFeed = memo(function NewsFeed({ newsEvent, signals, addToast }) {
         {allNews.length > 0 ? (
           allNews.map(n => <NewsItem key={n.id} news={n} />)
         ) : (
-          <EmptyState icon={Newspaper} title="No news" subtitle="News will appear when available" />
+          <EmptyState icon={Newspaper} title="No news events yet" subtitle="Only real news_event broadcasts appear here — no external news feed is connected" />
         )}
       </div>
     </div>

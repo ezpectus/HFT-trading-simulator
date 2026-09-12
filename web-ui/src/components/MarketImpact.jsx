@@ -4,16 +4,38 @@ import { formatPrice, formatVolume } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 import { StatCard, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 
-const MOCK_IMPACT_LEVELS = [
-  { size: '1k', cost: 0.5, priceImpact: 0.01, marketShare: 0.1 },
-  { size: '5k', cost: 2.1, priceImpact: 0.04, marketShare: 0.5 },
-  { size: '10k', cost: 4.8, priceImpact: 0.12, marketShare: 1.2 },
-  { size: '25k', cost: 12.3, priceImpact: 0.35, marketShare: 3.1 },
-  { size: '50k', cost: 28.7, priceImpact: 0.82, marketShare: 6.5 },
-  { size: '100k', cost: 65.4, priceImpact: 1.95, marketShare: 13.2 },
-  { size: '250k', cost: 180.2, priceImpact: 5.4, marketShare: 32.8 },
-  { size: '500k', cost: 410.6, priceImpact: 12.3, marketShare: 65.5 },
-]
+const ORDER_SIZES_USD = [1e3, 5e3, 1e4, 2.5e4, 5e4, 1e5, 2.5e5, 5e5]
+
+// Walk the ask side of a real book: VWAP fill + slippage vs best ask.
+function impactForSizeUsd(asks, sizeUsd) {
+  let remaining = sizeUsd
+  let filled = 0
+  let cost = 0
+  let lastPrice = null
+  for (const level of asks) {
+    const p = level.price ?? level[0]
+    const q = level.quantity ?? level[1]
+    if (p == null || q == null) continue
+    const levelUsd = p * q
+    const takeUsd = Math.min(remaining, levelUsd)
+    filled += takeUsd / p
+    cost += takeUsd
+    lastPrice = p
+    remaining -= takeUsd
+    if (remaining <= 0) break
+  }
+  if (filled <= 0) return null
+  const bestAsk = asks[0].price ?? asks[0][0]
+  const vwap = cost / filled
+  const priceImpact = ((vwap - bestAsk) / bestAsk) * 100
+  return {
+    filledUsd: cost,
+    exhausted: remaining > 0,
+    priceImpact,
+    costBps: priceImpact * 100 / 2, // half-spread-style cost vs mid estimate
+    lastPrice,
+  }
+}
 
 function impactColor(pct) {
   if (pct < 0.1) return 'text-accent-green'
@@ -32,14 +54,25 @@ function impactBg(pct) {
 const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, currentPrice, orderbooks }) {
   const price = currentPrice ?? (candles?.length > 0 ? candles[candles.length - 1].close : null)
 
+  const book = orderbooks?.[`${exchange}|${symbol}`]
+
   const liquidity = useMemo(() => {
-    if (!orderbooks) return null
-    const book = orderbooks[`${exchange}|${symbol}`]
     if (!book) return null
-    const bidVol = (book.bids || []).slice(0, 10).reduce((s, l) => s + l[1], 0)
-    const askVol = (book.asks || []).slice(0, 10).reduce((s, l) => s + l[1], 0)
+    const getQ = (l) => l.quantity ?? l[1] ?? 0
+    const bidVol = (book.bids || []).slice(0, 10).reduce((s, l) => s + getQ(l), 0)
+    const askVol = (book.asks || []).slice(0, 10).reduce((s, l) => s + getQ(l), 0)
     return { bidVol, askVol, total: bidVol + askVol, imbalance: (bidVol - askVol) / (bidVol + askVol) }
-  }, [orderbooks, symbol, exchange])
+  }, [book])
+
+  const impactLevels = useMemo(() => {
+    if (!book?.asks?.length) return []
+    return ORDER_SIZES_USD.map(usd => {
+      const r = impactForSizeUsd(book.asks, usd)
+      return r ? { usd, ...r } : null
+    }).filter(Boolean)
+  }, [book])
+
+  const maxImpact = impactLevels.length ? Math.max(...impactLevels.map(l => l.priceImpact)) : 1
 
   if (!price) {
     return (
@@ -70,14 +103,16 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
           <span className="text-[10px] text-gray-600 uppercase">Impact by Order Size</span>
         </div>
         <div className="space-y-0.5">
-          {MOCK_IMPACT_LEVELS.map(level => (
-            <div key={level.size} className="flex items-center gap-2 py-0.5">
-              <span className="text-[10px] text-gray-400 w-10">${level.size}</span>
+          {impactLevels.length === 0 ? (
+            <div className="text-[10px] text-gray-600 py-1">No order book — impact cannot be estimated.</div>
+          ) : impactLevels.map(level => (
+            <div key={level.usd} className="flex items-center gap-2 py-0.5">
+              <span className="text-[10px] text-gray-400 w-10">${level.usd >= 1e3 ? `${level.usd / 1e3}k` : level.usd}</span>
               <div className="flex-1 flex items-center gap-1">
                 <div className="flex-1 h-2 bg-bg-600 rounded overflow-hidden">
                   <div
                     className={`h-full ${impactBg(level.priceImpact)} opacity-70`}
-                    style={{ width: `${Math.min(level.priceImpact / 12.3 * 100, 100)}%` }}
+                    style={{ width: `${Math.min(level.priceImpact / Math.max(maxImpact, 1e-9) * 100, 100)}%` }}
                   />
                 </div>
               </div>
@@ -85,15 +120,15 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
                 {level.priceImpact.toFixed(2)}%
               </span>
               <span className="text-[10px] font-mono text-gray-500 w-14 text-right">
-                ${level.cost.toFixed(1)}
+                {level.exhausted ? 'book+' : `$${formatPrice(level.lastPrice)}`}
               </span>
             </div>
           ))}
         </div>
         <div className="flex justify-between mt-1 text-[8px] text-gray-600">
           <span>Size</span>
-          <span>Price Impact</span>
-          <span>Cost (bps)</span>
+          <span>VWAP slippage vs best ask</span>
+          <span>Last level</span>
         </div>
       </div>
 
@@ -121,10 +156,12 @@ const MarketImpact = memo(function MarketImpact({ candles, symbol, exchange, cur
         </div>
       )}
 
-      {/* Warning */}
-      <WarningBanner icon={Zap} color="text-accent-yellow">
-        Orders {'>'} $50k may move price {'>'} 0.8%
-      </WarningBanner>
+      {/* Warning — derived from the real book */}
+      {impactLevels.some(l => l.priceImpact > 0.5) && (
+        <WarningBanner icon={Zap} color="text-accent-yellow">
+          ${(impactLevels.find(l => l.priceImpact > 0.5).usd / 1e3).toFixed(0)}k buy slips {'>'} 0.5% on current book
+        </WarningBanner>
+      )}
     </div>
   )
 })

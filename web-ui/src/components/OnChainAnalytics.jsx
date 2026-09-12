@@ -1,122 +1,20 @@
 import { memo } from 'react'
-import { Link2, TrendingUp, TrendingDown, Wallet, Activity, Database } from 'lucide-react'
-import { formatVolume } from '../utils/format'
-import { Label, SectionTitle, CLASS } from '../utils/ui-helpers'
+import { Link2 } from 'lucide-react'
+import { NoDataFeed } from '../utils/ui-helpers'
 
-const MOCK_METRICS = [
-  { metric: 'Active Addresses', value: 1245000, change: 5.2, trend: 'up' },
-  { metric: 'Transaction Count', value: 425000, change: 8.7, trend: 'up' },
-  { metric: 'Avg Tx Fee', value: 2.34, change: -12.5, trend: 'down' },
-  { metric: 'Hash Rate', value: 645000, change: 3.1, trend: 'up' },
-  { metric: 'MVRV Ratio', value: 2.45, change: -1.8, trend: 'down' },
-  { metric: 'NVT Ratio', value: 18.2, change: 4.5, trend: 'up' },
-  { metric: 'Exchange Inflow', value: 3250, change: -8.2, trend: 'down' },
-  { metric: 'Exchange Outflow', value: 4120, change: 12.3, trend: 'up' },
-]
 
-const MOCK_WHALES = [
-  { address: 'bc1q...8a3f', balance: 125000, change: 500, type: 'accumulation' },
-  { address: 'bc1q...4k2d', balance: 89000, change: -1200, type: 'distribution' },
-  { address: 'bc1q...9x1c', balance: 67000, change: 300, type: 'accumulation' },
-  { address: 'bc1q...2m5b', balance: 45000, change: -800, type: 'distribution' },
-  { address: 'bc1q...7n3e', balance: 38000, change: 120, type: 'accumulation' },
-]
-
-function trendIcon(trend) {
-  return trend === 'up' ? <TrendingUp size={10} className="text-accent-green" /> : <TrendingDown size={10} className="text-accent-red" />
-}
-
-function trendColor(change) {
-  return change >= 0 ? 'text-accent-green' : 'text-accent-red'
-}
-
-const NET_FLOW = MOCK_METRICS.find(m => m.metric === 'Exchange Outflow').value - MOCK_METRICS.find(m => m.metric === 'Exchange Inflow').value
-
-const OnChainAnalytics = memo(function OnChainAnalytics({ symbol }) {
-  const netFlow = NET_FLOW
-
-  const accumCount = MOCK_WHALES.filter(w => w.type === 'accumulation').length
-  const distCount = MOCK_WHALES.filter(w => w.type === 'distribution').length
-
+const OnChainAnalytics = memo(function OnChainAnalytics() {
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <SectionTitle icon={Link2} title="On-Chain Analytics" right={<span className="text-[10px] text-gray-600">{(symbol ?? 'BTC/USDT').split('/')[0]}</span>} />
-
-      {/* Net exchange flow */}
-      <div className="p-2 bg-bg-700 border border-bg-600 rounded">
-        <div className="flex items-center justify-between">
-          <Label>Net Exchange Flow</Label>
-          <span className={`text-sm font-mono font-bold ${netFlow >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-            {netFlow >= 0 ? '+' : ''}{formatVolume(netFlow)} BTC
-          </span>
-        </div>
-        <div className="text-[9px] text-gray-600 mt-0.5">
-          {netFlow >= 0 ? 'Outflow exceeds inflow — bullish signal' : 'Inflow exceeds outflow — bearish signal'}
-        </div>
+      <div className="flex items-center gap-1.5">
+        <Link2 size={14} className="text-accent-blue" />
+        <span className="text-sm font-medium">On-Chain Analytics</span>
       </div>
 
-      {/* Key metrics */}
-      <div>
-        <div className="flex items-center gap-1 mb-1">
-          <Activity size={11} className="text-gray-500" />
-          <Label>Key Metrics</Label>
-        </div>
-        <div className="grid grid-cols-2 gap-1">
-          {MOCK_METRICS.map(m => (
-            <div key={m.metric} className="p-1.5 bg-bg-700 border border-bg-600">
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] text-gray-600 truncate flex-1">{m.metric}</span>
-                {trendIcon(m.trend)}
-              </div>
-              <div className="flex items-center justify-between mt-0.5">
-                <span className="text-[11px] font-mono text-gray-300">
-                  {m.value >= 1000 ? formatVolume(m.value) : m.value.toFixed(2)}
-                </span>
-                <span className={`text-[9px] font-mono ${trendColor(m.change)}`}>
-                  {m.change >= 0 ? '+' : ''}{m.change.toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Whale activity */}
-      <div>
-        <div className="flex items-center gap-1 mb-1">
-          <Wallet size={11} className="text-gray-500" />
-          <Label>Whale Activity</Label>
-          <span className="text-[9px] text-gray-600 ml-auto">
-            <span className="text-accent-green">{accumCount} acc</span>
-            {' / '}
-            <span className="text-accent-red">{distCount} dist</span>
-          </span>
-        </div>
-        <div className="space-y-0.5">
-          {MOCK_WHALES.map(whale => (
-            <div key={whale.address} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
-              <span className="text-[9px] font-mono text-gray-400 w-24 truncate">{whale.address}</span>
-              <span className={`${CLASS.mono10} w-16`}>{formatVolume(whale.balance)}</span>
-              <span className={`text-[10px] font-mono w-14 text-right ${trendColor(whale.change)}`}>
-                {whale.change >= 0 ? '+' : ''}{whale.change}
-              </span>
-              <span className={`text-[8px] px-1 rounded ${whale.type === 'accumulation' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red'}`}>
-                {whale.type === 'accumulation' ? 'ACC' : 'DIST'}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">
-        <span className="flex items-center gap-1">
-          <Database size={9} />
-          Data from blockchain API
-        </span>
-        <span>Updated: 5 min ago</span>
-      </div>
+      <NoDataFeed feed="on-chain data" />
+      <div className="text-[10px] text-gray-600">No on-chain data source is connected — exchange flows and whale metrics are not produced by the backend.</div>
     </div>
   )
 })
 
-export default memo(OnChainAnalytics)
+export default OnChainAnalytics

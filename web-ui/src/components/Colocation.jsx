@@ -1,101 +1,20 @@
-import { memo, useMemo } from 'react'
-import { Server, Wifi, Clock, MapPin } from 'lucide-react'
-import { ICONS, statusColor, StatCard, Label, SectionTitle } from '../utils/ui-helpers'
-import { MOCK_DATACENTERS, MOCK_SERVICES } from '../utils/mock-data'
+import { memo } from 'react'
+import { Server } from 'lucide-react'
+import { NoDataFeed } from '../utils/ui-helpers'
 
-function statusIcon(status) {
-  if (status === 'online') return ICONS.green()
-  if (status === 'degraded') return ICONS.yellow()
-  return ICONS.red()
-}
-
-const STATUS_MAP = {
-  online: 'text-accent-green',
-  degraded: 'text-accent-yellow',
-  default: 'text-accent-red',
-}
 
 const Colocation = memo(function Colocation() {
-  const stats = useMemo(() => {
-    const online = MOCK_DATACENTERS.filter(d => d.status === 'online').length
-    const coloCount = MOCK_DATACENTERS.filter(d => d.colo).length
-    const avgLatency = MOCK_DATACENTERS.filter(d => d.status === 'online')
-      .reduce((s, d) => s + d.latency, 0) / online
-    const totalConns = MOCK_SERVICES.reduce((s, svc) => s + svc.conns, 0)
-    return { online, coloCount, avgLatency, totalConns, total: MOCK_DATACENTERS.length }
-  }, [])
-
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
-      <SectionTitle icon={Server} title="Colocation Status" iconColor="text-accent-purple" right={<span className="text-[10px] text-gray-600">{stats.online}/{stats.total} DCs</span>} />
-
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-1">
-        <StatCard label="Avg Latency" value={`${stats.avgLatency.toFixed(1)}ms`} color="text-accent-green" />
-        <StatCard label="Colo Sites" value={stats.coloCount} color="text-accent-blue" />
-        <StatCard label="Connections" value={stats.totalConns} color="text-gray-300" />
+      <div className="flex items-center gap-1.5">
+        <Server size={14} className="text-accent-blue" />
+        <span className="text-sm font-medium">Colocation</span>
       </div>
 
-      {/* Datacenters */}
-      <div>
-        <Label className="mb-1">Datacenters</Label>
-        <div className="space-y-0.5">
-          {MOCK_DATACENTERS.map(dc => (
-            <div key={dc.id} className="flex items-center gap-2 py-1 px-1.5 bg-bg-700">
-              <MapPin size={10} className={statusColor(dc.status, STATUS_MAP)} />
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] text-gray-300 truncate">{dc.name}</span>
-              </div>
-              <span className="text-[9px] text-gray-600 w-10">{dc.region}</span>
-              {dc.colo && (
-                <span className="text-[8px] text-accent-purple bg-accent-purple/10 px-1 rounded">COLO</span>
-              )}
-              <span className={`text-[10px] font-mono w-12 text-right ${statusColor(dc.status, STATUS_MAP)}`}>
-                {dc.status === 'offline' ? '—' : `${dc.latency.toFixed(1)}ms`}
-              </span>
-              {statusIcon(dc.status)}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Services */}
-      <div>
-        <Label className="mb-1">Services</Label>
-        <div className="space-y-0.5">
-          {MOCK_SERVICES.map(svc => (
-            <div key={svc.name} className="flex items-center gap-2 py-1 px-1.5 bg-bg-700">
-              {statusIcon(svc.status)}
-              <span className="text-[10px] text-gray-300 flex-1 truncate">{svc.name}</span>
-              <span className="text-[9px] text-gray-600 w-16">{svc.dc}</span>
-              <div className="flex items-center gap-1 w-20">
-                <span className="text-[8px] text-gray-600">CPU</span>
-                <div className="w-8 h-1.5 bg-bg-600 rounded overflow-hidden">
-                  <div
-                    className={`h-full ${svc.cpu > 70 ? 'bg-accent-red' : svc.cpu > 50 ? 'bg-accent-yellow' : 'bg-accent-green'}`}
-                    style={{ width: `${svc.cpu}%` }}
-                  />
-                </div>
-              </div>
-              <span className="text-[9px] font-mono text-gray-500 w-10 text-right">{svc.conns}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Uptime footer */}
-      <div className="flex justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">
-        <span className="flex items-center gap-1">
-          <Clock size={9} />
-          Best uptime: 99.99%
-        </span>
-        <span className="flex items-center gap-1">
-          <Wifi size={9} />
-          {stats.totalConns} active conns
-        </span>
-      </div>
+      <NoDataFeed feed="datacenter telemetry" />
+      <div className="text-[10px] text-gray-600">No datacenter/latency telemetry feed — colocation status is not produced by the backend.</div>
     </div>
   )
 })
 
-export default memo(Colocation)
+export default Colocation
