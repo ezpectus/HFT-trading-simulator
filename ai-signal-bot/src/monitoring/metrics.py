@@ -201,6 +201,10 @@ class MetricsExporter:
             "ai_signal_bot_uptime_seconds", "Uptime in seconds",
             registry=self.registry,
         )
+        self.backtests_run_total = Counter(
+            "ai_signal_bot_backtests_run_total", "Total backtests executed",
+            registry=self.registry,
+        )
         self.ws_reconnects_total = Counter(
             "trading_ws_reconnects_total", "Total WebSocket reconnections",
             registry=self.registry,
@@ -343,13 +347,18 @@ class MetricsExporter:
             return
         self.ws_reconnects_total.inc()
 
+    def record_backtest(self):
+        if not HAS_PROMETHEUS:
+            return
+        self.backtests_run_total.inc()
+
     # ── HTTP endpoint ──
 
-    async def start_server(self, host: str = "0.0.0.0", port: int = 9090):  # nosec: B104
-        """Start Prometheus metrics HTTP server."""
+    async def start_server(self, host: str = "0.0.0.0", port: int = 9090) -> bool:  # nosec: B104
+        """Start Prometheus metrics HTTP server. Returns True if serving."""
         if not HAS_PROMETHEUS or not HAS_AIOHTTP:
             logger.warning("Cannot start metrics server — missing dependencies")
-            return
+            return False
 
         app = web.Application()
         app.router.add_get("/metrics", self._metrics_handler)
@@ -359,6 +368,7 @@ class MetricsExporter:
         site = web.TCPSite(self._runner, host, port)
         await site.start()
         logger.info("Prometheus metrics server started on %s:%s", host, port)
+        return True
 
     async def stop_server(self):
         """Stop metrics server."""

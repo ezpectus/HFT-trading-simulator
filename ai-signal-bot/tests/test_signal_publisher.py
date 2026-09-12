@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from src.communication.backtest_requests import run_backtest_request
 from src.communication.signal_publisher import SignalPublisher
 
 
@@ -13,11 +14,11 @@ def publisher():
 
 
 class TestRunBacktest:
-    """Test the _run_backtest method."""
+    """Test the backtest-request handler (now in backtest_requests)."""
 
     @pytest.mark.asyncio
     async def test_backtest_trend_strategy(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "trend",
             "candles": 200,
             "balance": 10000,
@@ -38,7 +39,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_all_strategies(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "all",
             "candles": 300,
         })
@@ -50,7 +51,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_with_risk_options(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "trend",
             "candles": 200,
             "trailing_stop": True,
@@ -62,7 +63,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_unknown_strategy(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "nonexistent",
             "candles": 100,
         })
@@ -71,7 +72,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_default_params(self, publisher):
-        result = await publisher._run_backtest({})
+        result = await run_backtest_request({})
         assert result["type"] == "backtest_result"
         assert result["strategy"] == "all"
         assert result["candles"] == 500
@@ -79,7 +80,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_equity_curve_length(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "trend",
             "candles": 100,
         })
@@ -88,7 +89,7 @@ class TestRunBacktest:
 
     @pytest.mark.asyncio
     async def test_backtest_custom_price(self, publisher):
-        result = await publisher._run_backtest({
+        result = await run_backtest_request({
             "strategy": "trend",
             "candles": 100,
             "initial_price": 100,

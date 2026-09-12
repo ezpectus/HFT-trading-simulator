@@ -10,12 +10,22 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import time
 from collections import OrderedDict
-from dataclasses import dataclass, field
 from typing import Any  # Any: aiohttp.ClientSession lacks type stubs
 
+from src.llm_engine.llm_types import (
+    LLMAnalysis,
+    LLMConfig,
+    MarketContext,
+    SecretStr,
+)
+from src.llm_engine.rule_based import (
+    parse_llm_response,
+    rule_based_analysis,
+    rule_based_explanation,
+    rule_based_risk,
+)
 from src.observability.logging import get_logger
 
 logger = get_logger(__name__)
@@ -25,76 +35,6 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-
-
-class SecretStr:
-    """Wrapper to prevent secret leakage in repr/logs."""
-
-    __slots__ = ("_value",)
-
-    def __init__(self, value: str = ""):
-        self._value = value
-
-    def get(self) -> str:
-        """Get the underlying string value."""
-        return self._value
-
-    def __repr__(self) -> str:
-        return "SecretStr('***')"
-
-    def __str__(self) -> str:
-        return "***"
-
-    def __bool__(self) -> bool:
-        return bool(self._value)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, SecretStr):
-            return self._value == other._value
-        return False
-
-
-@dataclass
-class LLMConfig:
-    provider: str = "openai"           # openai, anthropic, ollama, none
-    api_key: SecretStr = field(default_factory=lambda: SecretStr(""))
-    model: str = "gpt-4o-mini"
-    base_url: str = ""
-    max_tokens: int = 500
-    temperature: float = 0.3
-    timeout_seconds: float = 10.0
-    enabled: bool = True
-    cache_ttl_seconds: int = 60
-
-
-@dataclass
-class MarketContext:
-    symbol: str = ""
-    price: float = 0.0
-    change_24h: float = 0.0
-    volume_24h: float = 0.0
-    rsi: float = 50.0
-    ema_fast: float = 0.0
-    ema_slow: float = 0.0
-    adx: float = 0.0
-    atr: float = 0.0
-    bollinger_pos: float = 0.5
-    order_book_imbalance: float = 0.0
-    recent_signals: list = field(default_factory=list)
-    regime: str = "unknown"
-
-
-@dataclass
-class LLMAnalysis:
-    symbol: str = ""
-    summary: str = ""
-    sentiment: str = "neutral"         # bullish, bearish, neutral
-    confidence: float = 0.0
-    key_levels: dict = field(default_factory=dict)
-    risk_factors: list = field(default_factory=list)
-    recommendation: str = "hold"
-    timestamp: float = field(default_factory=time.time)
-    cached: bool = False
 
 
 class LLMEngine:
@@ -198,27 +138,27 @@ class LLMEngine:
             self._cache.popitem(last=False)
 
         if self.config.provider == "none" or not self.config.api_key:
-            return self._rule_based_analysis(ctx)
+            return rule_based_analysis(ctx)
 
         prompt_template = self._load_prompt("market_analysis")
         prompt = prompt_template.replace("{context}", self._build_context_str(ctx))
 
         try:
             response = await self._call_llm(prompt)
-            analysis = self._parse_response(response, ctx.symbol)
+            analysis = parse_llm_response(response, ctx.symbol)
             self._cache[cache_key] = (now, analysis)
             self._request_count += 1
             return analysis
         except (RuntimeError, OSError, ValueError, KeyError) as e:
             self._error_count += 1
             logger.error("[LLMEngine] Analysis failed: %s", e)
-            return self._rule_based_analysis(ctx)
+            return rule_based_analysis(ctx)
 
     async def explain_signal(self, symbol: str, direction: str, price: float,
                               rsi: float, adx: float, ema_trend: str) -> str:
         """Generate natural language explanation for a signal."""
         if self.config.provider == "none" or not self.config.api_key:
-            return self._rule_based_explanation(direction, price, rsi, adx, ema_trend)
+            return rule_based_explanation(direction, price, rsi, adx, ema_trend)
 
         template = self._load_prompt("signal_explanation")
         prompt = (template
@@ -234,13 +174,13 @@ class LLMEngine:
             return response.strip()
         except (RuntimeError, OSError, ValueError, KeyError) as e:
             logger.error("[LLMEngine] Explain failed: %s", e)
-            return self._rule_based_explanation(direction, price, rsi, adx, ema_trend)
+            return rule_based_explanation(direction, price, rsi, adx, ema_trend)
 
     async def assess_risk(self, symbol: str, direction: str, price: float,
                           atr: float, leverage: int) -> dict:
         """Assess risk of a potential position."""
         if self.config.provider == "none" or not self.config.api_key:
-            return self._rule_based_risk(atr, leverage, price)
+            return rule_based_risk(atr, leverage, price)
 
         template = self._load_prompt("risk_assessment")
         prompt = (template
@@ -255,7 +195,7 @@ class LLMEngine:
             return {"assessment": response.strip(), "source": "llm"}
         except (RuntimeError, OSError, ValueError, KeyError) as e:
             logger.error("[LLMEngine] Risk assessment failed: %s", e)
-            return self._rule_based_risk(atr, leverage, price)
+            return rule_based_risk(atr, leverage, price)
 
     async def _call_llm(self, prompt: str) -> str:
         """Call the LLM API (rate-limited)."""
@@ -312,122 +252,6 @@ class LLMEngine:
                     return data.get("response", "")
                 return str(data)
 
-    def _parse_response(self, response: str, symbol: str) -> LLMAnalysis:
-        """Parse LLM response into LLMAnalysis with schema validation."""
-        try:
-            data = None
-            json_block = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response, re.DOTALL)
-            if json_block:
-                data = json.loads(json_block.group(1))
-            if data is None:
-                start = response.find("{")
-                end = response.rfind("}") + 1
-                if start >= 0 and end > start:
-                    data = json.loads(response[start:end])
-            if data is None:
-                raise ValueError("No JSON found in response")
-            # Validate schema fields
-            sentiment = str(data.get("sentiment", "neutral")).lower()
-            if sentiment not in ("bullish", "bearish", "neutral"):
-                sentiment = "neutral"
-            confidence = float(data.get("confidence", 50))
-            confidence = max(0.0, min(100.0, confidence))
-            recommendation = str(data.get("recommendation", "hold")).lower()
-            if recommendation not in ("buy", "sell", "hold"):
-                recommendation = "hold"
-            return LLMAnalysis(
-                symbol=symbol,
-                summary=str(data.get("summary", response[:200])),
-                sentiment=sentiment,
-                confidence=confidence,
-                key_levels=data.get("key_levels", {}),
-                risk_factors=data.get("risk_factors", []),
-                recommendation=recommendation,
-            )
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
-            logger.warning("[LLMEngine] Response validation failed: %s", e)
-
-        return LLMAnalysis(
-            symbol=symbol,
-            summary=response[:500],
-            sentiment="neutral",
-            confidence=50.0,
-            recommendation="hold",
-        )
-
-    def _rule_based_analysis(self, ctx: MarketContext) -> LLMAnalysis:
-        """Fallback rule-based analysis when LLM is unavailable."""
-        bullish = (
-            ctx.rsi < 70 and
-            ctx.ema_fast > ctx.ema_slow and
-            ctx.adx > 25 and
-            ctx.order_book_imbalance > 0.1
-        )
-        bearish = (
-            ctx.rsi > 30 and
-            ctx.ema_fast < ctx.ema_slow and
-            ctx.adx > 25 and
-            ctx.order_book_imbalance < -0.1
-        )
-
-        if bullish:
-            sentiment = "bullish"
-            confidence = min(80, 40 + ctx.adx * 0.5)
-            recommendation = "buy"
-            summary = f"{ctx.symbol} shows bullish momentum: EMA bullish cross, ADX={ctx.adx:.1f}, RSI={ctx.rsi:.1f}"
-        elif bearish:
-            sentiment = "bearish"
-            confidence = min(80, 40 + ctx.adx * 0.5)
-            recommendation = "sell"
-            summary = f"{ctx.symbol} shows bearish momentum: EMA bearish cross, ADX={ctx.adx:.1f}, RSI={ctx.rsi:.1f}"
-        else:
-            sentiment = "neutral"
-            confidence = 30.0
-            recommendation = "hold"
-            summary = f"{ctx.symbol} is in consolidation: RSI={ctx.rsi:.1f}, ADX={ctx.adx:.1f}, regime={ctx.regime}"
-
-        risk_factors = []
-        if ctx.price > 0 and ctx.atr / ctx.price > 0.03:
-            risk_factors.append("High volatility (ATR > 3% of price)")
-        if abs(ctx.order_book_imbalance) > 0.5:
-            risk_factors.append("Extreme order book imbalance — possible reversal risk")
-        if ctx.bollinger_pos > 2.0 or ctx.bollinger_pos < -2.0:
-            risk_factors.append("Price outside Bollinger Bands — mean reversion likely")
-
-        return LLMAnalysis(
-            symbol=ctx.symbol,
-            summary=summary,
-            sentiment=sentiment,
-            confidence=confidence,
-            key_levels={
-                "support": ctx.price - 2 * ctx.atr,
-                "resistance": ctx.price + 2 * ctx.atr,
-            },
-            risk_factors=risk_factors,
-            recommendation=recommendation,
-        )
-
-    def _rule_based_explanation(self, direction: str, price: float,
-                                 rsi: float, adx: float, ema_trend: str) -> str:
-        if direction == "LONG":
-            return (f"Bullish signal: EMA trend is {ema_trend}, RSI at {rsi:.1f} suggests "
-                    f"room to grow, ADX={adx:.1f} confirms trend strength. Entry at ${price:.2f}.")
-        elif direction == "SHORT":
-            return (f"Bearish signal: EMA trend is {ema_trend}, RSI at {rsi:.1f} suggests "
-                    f"overbought conditions, ADX={adx:.1f} confirms trend strength. Entry at ${price:.2f}.")
-        return f"Neutral signal at ${price:.2f}. No clear directional bias."
-
-    def _rule_based_risk(self, atr: float, leverage: int, price: float) -> dict:
-        vol_pct = (atr / price) * 100 if price > 0 else 0
-        risk_level = "low" if vol_pct < 1.5 else "medium" if vol_pct < 3.0 else "high"
-        suggested_size = 1.0 / max(leverage, 1) * (0.02 / max(vol_pct / 100, 0.005))
-        return {
-            "risk_level": risk_level,
-            "volatility_pct": round(vol_pct, 2),
-            "suggested_position_size_pct": round(min(suggested_size * 100, 20), 2),
-            "max_leverage": min(int(3.0 / max(vol_pct, 0.5)), 10),
-            "source": "rule_based",
-        }
 
     def get_stats(self) -> dict:
         return {
