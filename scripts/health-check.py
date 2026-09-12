@@ -212,6 +212,8 @@ def print_section(title: str) -> None:
 
 
 def main() -> int:
+    if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf8"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Project Health Dashboard")
     parser.add_argument("--verbose", action="store_true", help="Show all details")
     args = parser.parse_args()
