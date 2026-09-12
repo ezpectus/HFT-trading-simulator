@@ -7,7 +7,8 @@
 # Find Python
 PYTHON=""
 for cmd in python3 python py; do
-    if command -v "$cmd" >/dev/null 2>&1; then
+    # WindowsApps python3 stub exists on PATH but exits non-zero — verify it runs
+    if command -v "$cmd" >/dev/null 2>&1 && "$cmd" --version >/dev/null 2>&1; then
         PYTHON="$cmd"
         break
     fi
