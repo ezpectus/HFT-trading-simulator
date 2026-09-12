@@ -55,9 +55,9 @@ describe('CompetitionFramework', () => {
     rerender(<CompetitionFramework {...baseProps} sendSignalMessage={send}
       backtestResult={mkResult('mean_reversion', 'Mean Reversion', METRICS.mean_reversion)} />)
 
-    expect(screen.getByText(/Leaderboard/)).toBeTruthy()
-    expect(screen.getByText(/Sharpe 1\.50/)).toBeTruthy()
-    expect(screen.getByText(/real candles/)).toBeTruthy()
+    expect(screen.getByText(/Leaderboard/)).toBeInTheDocument()
+    expect(screen.getByText(/Sharpe 1\.50/)).toBeInTheDocument()
+    expect(screen.getByText(/real candles/)).toBeInTheDocument()
     // trend (sharpe 1.5) must outrank mean_reversion (sharpe 0.5)
     const rows = container.querySelectorAll('.truncate')
     expect(rows[0].textContent).toBe('Trend Following')
@@ -81,6 +81,6 @@ describe('CompetitionFramework', () => {
     rerender(<CompetitionFramework {...baseProps} sendSignalMessage={send}
       backtestResult={mkResult('ensemble', 'Ensemble', METRICS.trend)} />)
 
-    expect(screen.getByText('Unknown strategy')).toBeTruthy()
+    expect(screen.getByText('Unknown strategy')).toBeInTheDocument()
   })
 })

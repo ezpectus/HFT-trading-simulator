@@ -15,19 +15,19 @@ describe('StreakPanel', () => {
     render(<StreakPanel accounts={acc([
       T(10, 5), T(10, 4), T(-5, 3), T(10, 2), T(10, 1), T(10, 0),
     ])} />)
-    expect(screen.getByText('3W')).toBeTruthy()
-    expect(screen.getByText('3')).toBeTruthy()   // max win streak
-    expect(screen.getByText('1')).toBeTruthy()   // max loss streak
+    expect(screen.getByText('3W')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()   // max win streak
+    expect(screen.getByText('1')).toBeInTheDocument()   // max loss streak
   })
 
   it('losing streak shows -L and counts max', () => {
     render(<StreakPanel accounts={acc([T(-5, 1), T(-5, 0)])} />)
-    expect(screen.getByText('2L')).toBeTruthy()
+    expect(screen.getByText('2L')).toBeInTheDocument()
   })
 
   it('empty history → zero streaks and dash', () => {
     render(<StreakPanel accounts={{}} />)
-    expect(screen.getByText('—')).toBeTruthy()
+    expect(screen.getByText('—')).toBeInTheDocument()
   })
 
   it('aggregates trades across exchanges', () => {
@@ -35,6 +35,6 @@ describe('StreakPanel', () => {
       a: { trade_history: [T(10, 1), T(10, 0)] },
       b: { trade_history: [T(10, 2)] },
     }} />)
-    expect(screen.getByText('3W')).toBeTruthy()
+    expect(screen.getByText('3W')).toBeInTheDocument()
   })
 })

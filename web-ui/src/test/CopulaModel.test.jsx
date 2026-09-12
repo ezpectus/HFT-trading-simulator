@@ -24,7 +24,7 @@ describe('CopulaModel', () => {
     render(<CopulaModel
       candles={[...candles('BTC/USDT'), ...candles('ETH/USDT')]}
       symbols={['BTC/USDT', 'ETH/USDT']} exchange="sim" />)
-    expect(screen.getByText('Copula Dependency Model')).toBeTruthy()
-    expect(screen.getByText('Asset A:')).toBeTruthy()
+    expect(screen.getByText('Copula Dependency Model')).toBeInTheDocument()
+    expect(screen.getByText('Asset A:')).toBeInTheDocument()
   })
 })

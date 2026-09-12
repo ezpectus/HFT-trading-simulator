@@ -15,12 +15,12 @@ vi.mock('lightweight-charts', () => ({
 describe('ComparisonChart', () => {
   it('renders a container', () => {
     const { container } = render(<ComparisonChart curves={[]} />)
-    expect(container.firstChild).toBeTruthy()
+    expect(container.firstChild).toBeInTheDocument()
   })
 
   it('renders with named curve data without crashing', () => {
     const curves = { trend: [100, 110], fft: [100, 95] }
     const { container } = render(<ComparisonChart curves={curves} />)
-    expect(container.firstChild).toBeTruthy()
+    expect(container.firstChild).toBeInTheDocument()
   })
 })

@@ -16,8 +16,8 @@ describe('BacktestRunner', () => {
   it('renders strategy selector and run button', () => {
     render(<BacktestRunner symbol="BTC/USDT" connected={true}
       sendSignalMessage={vi.fn()} backtestResult={null} />)
-    expect(screen.getByText('Trend Following')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Run Backtest' })).toBeTruthy()
+    expect(screen.getByText('Trend Following')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Run Backtest' })).toBeInTheDocument()
   })
 
   it('run sends run_backtest message over WS', () => {

@@ -14,14 +14,14 @@ const base = {
 describe('RiskMetricsPanel', () => {
   it('renders risk metrics when trades exist', () => {
     render(<RiskMetricsPanel {...base} />)
-    expect(screen.getByText('Max Drawdown')).toBeTruthy()
-    expect(screen.getByText('-8.46%')).toBeTruthy()         // worst dd (min of negatives)
-    expect(screen.getByText('Profit Factor')).toBeTruthy()
-    expect(screen.getByText('3.50')).toBeTruthy()          // 700/200
-    expect(screen.getByText('$350.00')).toBeTruthy()       // avg win
-    expect(screen.getByText('$200.00')).toBeTruthy()       // avg loss
-    expect(screen.getByText('$25.00')).toBeTruthy()        // total fees
-    expect(screen.getByText('5.0%')).toBeTruthy()          // 25/500
+    expect(screen.getByText('Max Drawdown')).toBeInTheDocument()
+    expect(screen.getByText('-8.46%')).toBeInTheDocument()         // worst dd (min of negatives)
+    expect(screen.getByText('Profit Factor')).toBeInTheDocument()
+    expect(screen.getByText('3.50')).toBeInTheDocument()          // 700/200
+    expect(screen.getByText('$350.00')).toBeInTheDocument()       // avg win
+    expect(screen.getByText('$200.00')).toBeInTheDocument()       // avg loss
+    expect(screen.getByText('$25.00')).toBeInTheDocument()        // total fees
+    expect(screen.getByText('5.0%')).toBeInTheDocument()          // 25/500
   })
 
   it('hides risk block when no trades', () => {
@@ -35,8 +35,8 @@ describe('RiskMetricsPanel', () => {
     render(<RiskMetricsPanel {...base} allTrades={[{ pnl: 1 }]} />)
     expect(screen.queryByText('Sharpe Ratio')).toBeNull()
     render(<RiskMetricsPanel {...base} />)
-    expect(screen.getByText('1.500')).toBeTruthy()   // sharpe
-    expect(screen.getByText('2.100')).toBeTruthy()   // sortino
+    expect(screen.getByText('1.500')).toBeInTheDocument()   // sharpe
+    expect(screen.getByText('2.100')).toBeInTheDocument()   // sortino
   })
 
   it('infinite sharpe renders as infinity symbol', () => {

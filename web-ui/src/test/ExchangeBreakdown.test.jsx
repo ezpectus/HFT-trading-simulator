@@ -40,9 +40,9 @@ describe('ExchangeBreakdown', () => {
 
   it('shows balance, signed pnl, win rate per row', () => {
     render(<ExchangeBreakdown accounts={accounts} />)
-    expect(screen.getByText('$1000.00')).toBeTruthy()
-    expect(screen.getByText('+50.00')).toBeTruthy()
-    expect(screen.getByText('-20.00')).toBeTruthy()
-    expect(screen.getByText('70.0%')).toBeTruthy()
+    expect(screen.getByText('$1000.00')).toBeInTheDocument()
+    expect(screen.getByText('+50.00')).toBeInTheDocument()
+    expect(screen.getByText('-20.00')).toBeInTheDocument()
+    expect(screen.getByText('70.0%')).toBeInTheDocument()
   })
 })

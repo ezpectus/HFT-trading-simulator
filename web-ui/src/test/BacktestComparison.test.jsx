@@ -28,7 +28,7 @@ describe('BacktestComparison', () => {
 
   it('shows the honest empty state when nothing is saved', () => {
     render(<BacktestComparison />)
-    expect(screen.getByText('No backtests to compare')).toBeTruthy()
+    expect(screen.getByText('No backtests to compare')).toBeInTheDocument()
   })
 
   it('loads saved backtests from localStorage and maps snake_case metrics', () => {
@@ -45,7 +45,7 @@ describe('BacktestComparison', () => {
 
   it('reloads when saved-backtests-changed fires (same-tab sync)', () => {
     render(<BacktestComparison />)
-    expect(screen.getByText('No backtests to compare')).toBeTruthy()
+    expect(screen.getByText('No backtests to compare')).toBeInTheDocument()
     act(() => {
       localStorage.setItem(SAVED_KEY, JSON.stringify([savedEntry('e2')]))
       window.dispatchEvent(new Event('saved-backtests-changed'))
@@ -59,7 +59,7 @@ describe('BacktestComparison', () => {
     const del = document.querySelector('.bc-td-action button')
     fireEvent.click(del)
     expect(JSON.parse(localStorage.getItem(SAVED_KEY))).toHaveLength(0)
-    expect(screen.getByText('No backtests to compare')).toBeTruthy()
+    expect(screen.getByText('No backtests to compare')).toBeInTheDocument()
   })
 
   it('prefers externalResults over localStorage when provided', () => {

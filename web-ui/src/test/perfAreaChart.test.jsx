@@ -19,7 +19,7 @@ describe('PerfAreaChart', () => {
       <PerfAreaChart data={[]} mapPoint={(p) => ({ time: 0, value: p })}
         lineColor="#fff" topColor="rgba(0,0,0,0.2)" bottomColor="rgba(0,0,0,0)" />
     )
-    expect(container.firstChild).toBeTruthy()
+    expect(container.firstChild).toBeInTheDocument()
   })
 
   it('pushes mapped data into the series', () => {
