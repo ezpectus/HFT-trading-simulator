@@ -9,6 +9,7 @@ liquidation -> exchange_liquidation.py.
 """
 
 from collections import deque
+from itertools import islice
 
 from exchange_simulator.audit_logger import get_audit_logger
 from exchange_simulator.exchange_advanced_orders import AdvancedOrderMixin
@@ -117,7 +118,8 @@ class SimulatedExchange(
         return notifications
 
     def get_order_history(self, limit: int = 50) -> list[Order]:
-        return self._order_history[-limit:]
+        history = self._order_history
+        return list(islice(history, max(0, len(history) - limit), len(history)))
 
     def get_account_status(self) -> dict:
         self.update_positions_pnl()

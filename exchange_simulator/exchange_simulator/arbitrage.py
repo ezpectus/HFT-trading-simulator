@@ -253,7 +253,7 @@ class ArbitrageDetector:
 
     def get_recent_closed(self, limit: int = 20) -> list[ArbitrageOpportunity]:
         """Get recently closed/expired opportunities."""
-        return self._closed_history[-limit:]
+        return list(self._closed_history)[-limit:]
 
     def to_dict(self) -> dict:
         """Serialize detector state for WebSocket broadcast."""
