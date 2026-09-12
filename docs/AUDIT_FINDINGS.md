@@ -1149,3 +1149,21 @@ Verified: `ruff check .` 0 · `eslint src/` 0 · `clang-format --dry-run --Werro
 **Bonus:** `helpers.retry_with_backoff` — `coro_fn`/`**kwargs` now `ParamSpec`-typed (preserves wrapped signature).
 
 Verified: sim 60 tests green (43 ws_server + 17 security), ai-bot 77 green (30 factory + 23 walk_forward + 12 bot_helpers + others), ruff clean on touched files.
+
+---
+
+## Round 29 — S001/S004/S005/S006/S032 closed
+
+**S001 — Done.** Финальная проверка эпопеи: все **271 registry-записей** имеют `props:` ctx-маппинги (0 панелей без данных); 19 панелей с нестандартными prop-именами (`orderbookData`, `currentPrice`, `auditLogs`) подтверждены wired через `ob(ctx)`/`ctx.currentPrice`. 13 non-MOCK data-literals в компонентах — все оказались computed/config массивами на реальных входах (FearGreed weights на computed scores, paramSets с параметрами от meanR/varR, indicator fn-обёртки). MOCK_=0, random-as-live=0, mock-mode env-gated.
+
+**S004 — Done.** `len(...) > 0` standalone: **0** (12 сайтов → exact: order count+sides, equity `n-warmup+1`/`n-lookback`, optimizer grids `==4`/`==2`/`==7` windows, plotter `==4` pngs, fft `==32`/`==1` bins, sim stub `==1`, validator `==2`, orderbook depth `==20`). Единственный оставшийся `or`-site — легитимный either-feed contract. 23 single-assert vacuous теста → semantic asserts: `exit_reason` в enum-set (was discarded listcomp!), `SignalDirection.NEUTRAL`, `sharpe > 0`, bollinger `> 0.5` (z-score/2 convention), `cci > 0`, prometheus `# HELP`/`# TYPE` markers, `callable(log.bind)`, `transaction_cost == 0.001`. Остаточные `isinstance`/`len ==` — paired с content, легитимны.
+
+**S005 — Done.** `range(len(` → 0: 12 сайтов ai-signal-bot (pairwise `zip(strict=False)`, same-length `zip(strict=True)`, `enumerate` где нужен индекс) + 6 в exchange_simulator (test_market_simulator, visualizer_charts). Plotter-хиты были `np.arange` — корректная numpy-идиома, не трогал.
+
+**S006 — Done.** Все top-level моки spec'd: `cross_exchange_arb` 15× `MagicMock(spec=["place_order"])` (единственный метод что вызывает engine), unit `signal_publisher` `AsyncMock(spec=CircuitBreaker)`, `ws_client._ws` ×4 `spec=WebSocketClientProtocol`, e2e `market` `spec=MarketSimulator`, observability spec-lists. Остаточные unspec'd — attribute-overrides на spec'd родителях (имена проверены родителем) + injected callbacks (spec бессмысленен для callables). Параллельный агент spec'ит shm_* файлы в той же итерации.
+
+**S032 — N/A.** После dead-code чисток осталось 56 `-> dict` — все JSON wire payloads (signal_publisher broadcast, health endpoints) или гетерогенные exchange-API ответы (`exchange_factory` Protocol). Внутренние structured results уже dataclass'ы (`BacktestResult`, `VaRResult`…). TypedDict для wire payloads — ceremony без поведения.
+
+**Бонус:** новый `tests/unit/test_hawkes_model.py` — 6 contract-тестов на `hawkes_log_lik` (stationarity guards, empty→-mu·t, clustered > spread при alpha>0, Poisson-equivalence при alpha=0) — файл тронут S005, gate требовал тест.
+
+**Verified:** 1181+165+150+32+21 тестов green · ruff clean на всех моих файлах (1 I001 в agent's test_ws_message_handler — не моё).
