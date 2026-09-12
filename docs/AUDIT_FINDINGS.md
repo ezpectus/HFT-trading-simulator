@@ -779,3 +779,21 @@ Rotation target: docs-vs-reality + dead code. Verified README/docs claims agains
 - All 18 unregistered web-ui components are App.jsx chrome, not orphans; AuditLogViewer is registered
 - `health_server.py` :8080 is real (aiohttp, started in run.py)
 - helm templates exist with real httpGet probes
+
+## Round 10 — audit branch: ai-signal-bot deep subdirs + repo periphery
+
+Rotation target: un-audited ai-signal-bot subdirs (communication/networking/notification/llm_engine) + repo-root periphery (helm/deploy-helm/terraform/audit/hft-skills).
+
+### New findings S078–S080
+
+**S078 — ~1000 more dead lines: fix_client + notifier + socket_transport.** `communication/fix_client.py` (459) is a full FIX 4.4 client — logon/logout, heartbeat, resend requests, execution reports — imported ONLY by `test_fix_client.py`. `notification/notifier.py` (384) referenced only by dead `funding_arb_detector` (S076) + own test. `networking/socket_transport.py` (164) referenced only by own test — even fix_client doesn't use it. The project's FIX story is dead on BOTH sides: C++ `src/fix/` (S060) and Python `fix_client.py` — nothing calls either.
+
+**S079 — Two divergent helm charts.** `helm/` and `deploy/helm/` both exist with different template sets (root has ingress.yaml + network-policy.yaml; deploy/ has jaeger.yaml + namespace.yaml). DEPLOYMENT.md points at root `./helm`. No workflow/script references either — two silent-forking sources of truth.
+
+**S080 — Repo cargo: audit/ (320K) + hft-skills/ (20MB).** `audit/` holds stale August mega-audit artifacts next to the live `.cascade/` system. `hft-skills/` is a 20MB skills-content library with zero code references.
+
+### ЧИСТО (ai-signal-bot periphery)
+
+- `llm_engine/engine.py` — REAL: OpenAI/Anthropic via aiohttp, rate-limit, LRU cache, rule-based fallback; wired in run.py:116/148
+- shm_* producers/consumers + ws_client + signal_publisher — live in run.py
+- terraform/ — real .tf modules, documented in DEPLOYMENT.md

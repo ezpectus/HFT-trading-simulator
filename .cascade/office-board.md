@@ -90,6 +90,9 @@
 | **S075** | README — главная архитектурная схема и фичи фантомные | Диаграмма заявляет путь `C++ Bot → [FFI 1us] → Rust → [WS 0.5ms] → Exchange` — Rust executor мёртв (S058), весь FFI-хоп latency-бюджета не существует. Bullets рекламируют "FIX 4.4 protocol" (S060 мёртв), "Memory-mapped persistence for crash recovery" (S061 мёртв), "Smart Order Router: 5 strategies" (S059 — route() не вызывается). Центральные claims README описывают компоненты, которые ничто не запускает. | High | [ ] Open |
 | **S076** | README: prod-порты + "13 strategies" + "8-stage pipeline" — неверно | Таблица deploy: AI bot `:8080` health (prod compose не публикует его наружу), Prometheus `:9099` (prod только expose 9090 внутри). "13 strategies" — `build_strategies` (`bot_helpers.py:39-58`) инстанцирует максимум 6 + StatArb отдельно; `CrossExchangeArbEngine` (cross_exchange_arb.py:93), `FundingRateArbitrageDetector` (funding_arb_detector.py:74), `StrategyMarketplace` (marketplace.py:54) — **0 вызовов вне тестов**, не экспортированы в `__init__.py`. "8-stage pipeline" — файла pipeline нет вообще, run.py — неформальный цикл. | Medium | [ ] Open |
 | **S077** | `exchange_simulator/price_feed_*` + `health.py` — мёртвые острова (1120 строк) | `price_feed_apis.py` (416) + `price_feed_manager.py` (329) + `price_feed_models.py` (208): "multi-API real-time price feeds" с failover/rate-limiting — импортируют только друг друга + 4 собственных тест-файла; 0 вызовов из `__main__`/`websocket_server`/`exchange`. `health.py` (167) — сам себя пометил deprecated ("not used in production"), живёт ради `test_health.py` — тестируем мёртвый код. Ирония: единственная подсистема, умеющая тянуть РЕАЛЬНЫЕ цены, мертва, пока симулятор синтезирует GBM. | Medium | [ ] Open |
+| **S078** | ai-signal-bot: `fix_client.py` + `notifier.py` + `socket_transport.py` — ещё ~1000 строк мёртвых островов | `communication/fix_client.py` (459) — полный FIX 4.4 клиент (logon/heartbeat/resend/execution reports) — импортируется ТОЛЬКО `test_fix_client.py`. `notification/notifier.py` (384) — только мёртвый `funding_arb_detector` (S076) + свой тест. `networking/socket_transport.py` (164) — только свой тест; даже `fix_client` его не использует. FIX-история проекта мертва с ОБЕИХ сторон: C++ `src/fix/` (S060) и Python `fix_client.py` — никто не вызывает ни один. | High | [ ] Open |
+| **S079** | Два расходящихся helm-чарта: `helm/` и `deploy/helm/` | Оба дерева существуют с РАЗНЫМ набором templates: у `helm/` есть `ingress.yaml` + `network-policy.yaml`, у `deploy/helm/` — `jaeger.yaml` + `namespace.yaml`. `DEPLOYMENT.md` ссылается на корневой `./helm`. Ни один workflow/скрипт не ссылается ни на один — два источника истины, оба непроверяемые, расходятся молча. | Medium | [ ] Open |
+| **S080** | `audit/` (320K) + `hft-skills/` (20MB) — груз в репо | `audit/` — артефакты августовского мега-аудита (AUDIT_REPORT.md/PROGRESS.json/PROMPT.md) — застойный мусор рядом со свежей `.cascade/` системой. `hft-skills/` — 20MB skills-библиотека, 0 ссылок из кода — контент-дерево внутри торгового репо. | Info | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -155,6 +158,9 @@
 - Все 18 незарегистрированных web-ui компонентов — App.jsx chrome (Header/StatusBar/OrderForm…), не сироты
 - helm templates существуют, httpGet пробы — по claim'у в README
 - `health_server.py` на :8080 — реальный (aiohttp, поднимается в run.py)
+- `llm_engine/engine.py` — РЕАЛЬНЫЙ LLM-клиент: openai/anthropic HTTP через aiohttp, rate-limit, LRU-кэш, rule-based fallback при provider=none/нет ключа — wired в run.py:116/148
+- `terraform/` — настоящие .tf модули (eks/rds/elasticache + env-mains), задокументированы в DEPLOYMENT.md
+- shm_* + ws_client + signal_publisher в communication/ — живые (wired в run.py)
 
 ---
 
@@ -172,3 +178,4 @@
 10. **S068–S071 (infra)** — Grafana prod без дашбордов (provisioning path), hft /metrics = JSON не Prom-формат, зелёные-при-крахе CI гейты, мёртвый .pre-commit-config.
 11. **S074–S075 (docs)** — REST_API.md документирует ~15 несуществующих endpoint'ов (переписать под реальные или удалить); README диаграмма/фичи рекламируют мёртвый Rust FFI, FIX, SOR, mapped persistence.
 12. **S076–S077 (docs+dead code)** — README: "13 strategies" (реально ≤7), prod-порты :8080/:9099 не опубликованы; exchange_simulator price_feed_* (953 строки) + health.py — мёртвые острова, удалить или встроить.
+13. **S078–S079 (dead code)** — fix_client/notifier/socket_transport ~1000 строк мёртвы (FIX мёртв с обеих сторон); два расходящихся helm-чарта — выбрать канонический, удалить второй.
