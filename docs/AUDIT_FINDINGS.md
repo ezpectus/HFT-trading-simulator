@@ -1426,3 +1426,5 @@ No WRONG/ROTTED entries.
   - UI: HawkesProcess, ConditionalValueAtRisk, PositionSizeOptimizer, FundingRateHistory, RiskDashboard send real requests via `sendSignalMessage`; 5 new result states in `useSignalData`; registry props updated.
   - Tests: +21 `test_analysis_requests.py` +15 `test_shm_alerting_wiring.py` (incl. real WS round-trips). Full suite: **1519 passed**.
 - **S126 → Done (kept).** 6 zero-importer web-ui files retained per user decision (utility-library intent) — no code change.
+
+**S127 (Low) — Done.** Verify R52 caught S029 rot: `toBeTruthy()` returned — 37 sites across 10 newer test files (RiskMetricsPanel, StreakPanel, competitionFramework, ExchangeBreakdown, BacktestComparison, BacktestRunner, ComparisonChart, CopulaModel, perfAreaChart, performanceDashboard). `expect(getBy*(...)).toBeTruthy()` is redundant (query throws on miss); `expect(container.firstChild).toBeTruthy()` is weak. All 37 → `toBeInTheDocument()` per project convention. 33/33 vitest green.

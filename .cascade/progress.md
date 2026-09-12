@@ -930,3 +930,4 @@ Post-fix adversarial verify:
 - Old tail: S072 (nginx headers), S073 (compose pins), S077 (price_feed удалены), S083 (OCO на fill-путях), S084 (nested pkg), S089 (candles_data), S099 (ConnectionClosed+kelly caps), S108 (ci-equivalence прогнан — PASS), S118 (.pyc purge держится, 3 инертных residue) — все VERIFIED.
 - WRONG/ROTTED: 0.
 - Batch 2 (ancient era): S002 (Math.random = legit sampling), S005 (range(len = 0), S006 (spec'd mocks), S007 (39 monotonic), S008 (1 legit pragma), S013 (JSONDecodeError пережил рефактор в market_data_feed), S004. Все VERIFIED — ни одного WRONG/ROTTED. Дрейф: real_market_data.py стал shim, обработчики переехали — claim держится.
+- Batch 3: S016-S041 — 13 VERIFIED (S016 metrics.py gone, S017 0 logger-fstring, S018 env-defaults, S026 test-serialization legit, S033/034 zero, S035-037/039-041 all hold). **1 ROTTED: S029** → S127 (toBeTruthy вернулся в 10 новых тестах) — исправлено тем же раундом, 33/33 green.
