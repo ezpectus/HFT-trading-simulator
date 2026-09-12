@@ -160,3 +160,24 @@ metrics:
   enabled: false                 # Off by default in dev (--metrics flag or this key enables)
   port: 9090                     # Prometheus scrape port (matches helm aiSignalBot.ports.metrics)
   host: "localhost"              # Bind address (AI_BOT_BIND_HOST env overrides)
+
+# SHM — shared-memory IPC with the C++ hft-trade-bot
+# Linux: /dev/shm segments; Windows: named file mappings. C++ side must be
+# built with matching segment names/struct layouts (shm_ring_buffer.py mirrors
+# hft-trade-bot's ShmRingBuffer<T>).
+shm:
+  enabled: false                 # Off by default — enable only when hft-trade-bot runs locally
+  signals_name: "/hft_signals"   # bot→hft signal ring (bot creates)
+  fills_name: "/hft_fills"       # hft→bot fill ring (hft creates, bot consumes)
+  market_name: "/hft_market"     # bot→hft market snapshot slots (bot creates)
+  capacity: 4096                 # ring capacity per segment
+  max_symbols: 10                # market snapshot slots
+
+# Alerting — ops alerts (daily loss, no fills, SHM/DB down) via webhooks
+alerting:
+  enabled: false
+  check_interval: 30             # seconds between rule evaluations
+  webhook_url: ""                # Generic webhook — prefer ALERT_WEBHOOK_URL env
+  discord_webhook: ""            # Prefer ALERT_DISCORD_WEBHOOK env
+  telegram_bot_token: ""         # Prefer ALERT_TELEGRAM_TOKEN env
+  telegram_chat_id: ""           # Prefer ALERT_TELEGRAM_CHAT_ID env

@@ -368,6 +368,56 @@ class SignalBotConfig:
     def metrics_host(self) -> str:
         return str(self.raw.get("metrics", {}).get("host", "0.0.0.0"))
 
+    # --- shm (hft↔bot shared-memory IPC) ---
+    @property
+    def shm_enabled(self) -> bool:
+        return bool(self.raw.get("shm", {}).get("enabled", False))
+
+    @property
+    def shm_signals_name(self) -> str:
+        return str(self.raw.get("shm", {}).get("signals_name", "/hft_signals"))
+
+    @property
+    def shm_fills_name(self) -> str:
+        return str(self.raw.get("shm", {}).get("fills_name", "/hft_fills"))
+
+    @property
+    def shm_market_name(self) -> str:
+        return str(self.raw.get("shm", {}).get("market_name", "/hft_market"))
+
+    @property
+    def shm_capacity(self) -> int:
+        return int(self.raw.get("shm", {}).get("capacity", 4096))
+
+    # --- alerting (ops alerts → webhook/Discord/Telegram) ---
+    @property
+    def alerting_enabled(self) -> bool:
+        return bool(self.raw.get("alerting", {}).get("enabled", False))
+
+    @property
+    def alerting_check_interval(self) -> float:
+        return float(self.raw.get("alerting", {}).get("check_interval", 30.0))
+
+    @property
+    def alerting_webhook_url(self) -> str:
+        return os.environ.get("ALERT_WEBHOOK_URL") or str(
+            self.raw.get("alerting", {}).get("webhook_url", ""))
+
+    @property
+    def alerting_discord_webhook(self) -> str:
+        return os.environ.get("ALERT_DISCORD_WEBHOOK") or str(
+            self.raw.get("alerting", {}).get("discord_webhook", ""))
+
+    @property
+    def alerting_telegram_token(self) -> str:
+        return os.environ.get("ALERT_TELEGRAM_TOKEN") or str(
+            self.raw.get("alerting", {}).get("telegram_bot_token", ""))
+
+    @property
+    def alerting_telegram_chat_id(self) -> str:
+        return os.environ.get("ALERT_TELEGRAM_CHAT_ID") or str(
+            self.raw.get("alerting", {}).get("telegram_chat_id", ""))
+
     def __getattr__(self, name: str):
         """Dynamic config accessor — reduces boilerplate for new config keys.
 

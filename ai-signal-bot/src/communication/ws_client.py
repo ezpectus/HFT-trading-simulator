@@ -51,6 +51,8 @@ class ExchangeClient:
         self._latest_candles: dict[str, dict] = {}  # {symbol: latest_candle_dict}
         self._candle_history: dict[str, deque] = {}  # {symbol: deque(candle_dicts)}
         self._latest_prices: dict[str, dict[str, float]] = {}  # {exchange: {symbol: price}}
+        self._funding_rates: dict[str, float] = {}  # {exchange: rate}
+        self._candles_to_funding: int = 0
         self._accounts: dict[str, dict] = {}
 
     @property
@@ -72,6 +74,14 @@ class ExchangeClient:
     @property
     def latest_prices(self) -> dict[str, dict[str, float]]:
         return self._latest_prices
+
+    @property
+    def funding_rates(self) -> dict[str, float]:
+        return self._funding_rates
+
+    @property
+    def candles_to_funding(self) -> int:
+        return self._candles_to_funding
 
     @property
     def accounts(self) -> dict[str, dict]:
@@ -169,7 +179,7 @@ class ExchangeClient:
         """Process incoming market data."""
         msg_type = data.get("type")
 
-        if msg_type in ("candles", "snapshot"):
+        if msg_type in ("candles", "snapshot", "sync_state"):
             candles = data.get("candles")
             if candles:
                 for candle in candles:
@@ -183,6 +193,10 @@ class ExchangeClient:
                     hist.append(candle)
             self._latest_prices = data.get("prices", {})
             self._accounts = data.get("accounts", {})
+            if "funding_rates" in data:
+                self._funding_rates = data["funding_rates"]
+            if "candles_to_funding" in data:
+                self._candles_to_funding = data["candles_to_funding"]
             if "trading_active" in data:
                 self._trading_active = data["trading_active"]
         elif msg_type == "trading_state":

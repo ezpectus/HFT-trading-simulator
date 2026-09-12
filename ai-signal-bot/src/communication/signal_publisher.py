@@ -29,6 +29,13 @@ try:
 except ImportError:
     _HAS_ORJSON = False
 
+from src.communication.analysis_requests import (
+    cvar_analysis_request,
+    funding_arb_scan_request,
+    hawkes_fit_request,
+    position_size_request,
+    stress_test_request,
+)
 from src.communication.backtest_requests import (
     compare_backtests_request,
     run_backtest_request,
@@ -61,6 +68,9 @@ class SignalPublisher:
         self._max_history = 100
         self._server: websockets.WebSocketServer | None = None
         self._running = False
+        # Optional live-data source (ExchangeClient) for handlers that can
+        # fall back to server-side state, e.g. funding_arb_scan.
+        self.data_source = None
         self.circuit_breaker = CircuitBreaker()
         self.metrics = MetricsCollector()
         self._cb_broadcast_task: asyncio.Task | None = None
@@ -175,6 +185,8 @@ class SignalPublisher:
                     _VALID_MSG_TYPES = {
                         "subscribe", "run_backtest", "compare_backtests",
                         "optimize_portfolio", "vol_surface", "auth", "ping",
+                        "cvar_analysis", "stress_test", "position_size",
+                        "hawkes_fit", "funding_arb_scan",
                     }
                     if msg_type not in _VALID_MSG_TYPES:
                         logger.warning("Unknown message type '%s' from %s", msg_type, remote)
@@ -201,6 +213,21 @@ class SignalPublisher:
                         await websocket.send(json.dumps(result, separators=(',', ':')))
                     elif msg_type == "vol_surface":
                         result = await vol_surface_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "cvar_analysis":
+                        result = await cvar_analysis_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "stress_test":
+                        result = await stress_test_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "position_size":
+                        result = await position_size_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "hawkes_fit":
+                        result = await hawkes_fit_request(data)
+                        await websocket.send(json.dumps(result, separators=(',', ':')))
+                    elif msg_type == "funding_arb_scan":
+                        result = await funding_arb_scan_request(data, exchange=self.data_source)
                         await websocket.send(json.dumps(result, separators=(',', ':')))
                 except json.JSONDecodeError:
                     logger.warning("Invalid JSON from %s: %s", remote, message[:100])

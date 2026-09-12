@@ -96,6 +96,20 @@ class AISignalBot:
         self.signal_logger = SignalLogger(config.signals_csv)
         self.trade_logger = TradeLogger(config.trades_csv)
 
+        # Live-data fallback for WS handlers (funding_arb_scan uses it)
+        self.signal_publisher.data_source = self.exchange
+
+        # SHM IPC with the C++ hft-trade-bot (only if config.shm.enabled)
+        self._shm_producer = None
+        self._shm_fills = None
+        self._shm_market = None
+        self._symbol_map: dict[str, int] = {}
+        self._symbol_names: list[str] = []
+
+        # Ops alerting (only if config.alerting.enabled)
+        self._alert_system = None
+        self._day_start_balance: float | None = None
+
         # Strategies
         self.strategies = build_strategies(config)
         self.ensemble = EnsembleVoter(
@@ -163,6 +177,14 @@ class AISignalBot:
         await self.signal_publisher.start()
         self.logger.info("Signal publisher running on port 8766")
 
+        # SHM IPC channel (bot→hft signals/market, hft→bot fills)
+        if self.config.shm_enabled:
+            self._start_shm_channel()
+
+        # Ops alerting (daily loss / no fills / shm down / db down)
+        if self.config.alerting_enabled:
+            self._start_alerting()
+
         # Start metrics server if enabled
         metrics_server = None
         prom_server = None
@@ -216,6 +238,8 @@ class AISignalBot:
             self._running = False
             listen_task.cancel()
             self._background_tasks.discard(listen_task)
+            await self._stop_shm_channel()
+            await self._stop_alerting()
             await self.signal_publisher.stop()
             if prom_server:
                 await prom_server.stop_server()
@@ -233,6 +257,141 @@ class AISignalBot:
         exc = task.exception()
         if exc:
             self.logger.error("Background task %s crashed: %s", task.get_name(), exc, exc_info=exc)
+
+    # --- SHM IPC channel (bot↔hft-trade-bot shared memory) ---
+
+    def _start_shm_channel(self) -> None:
+        """Init SHM rings + start the fill-consumer polling task."""
+        from src.communication.shm_fill_consumer import ShmFillConsumer
+        from src.communication.shm_market_data_writer import ShmMarketDataWriter
+        from src.communication.shm_signal_producer import ShmSignalProducer
+
+        self._symbol_names = sorted(self.config.symbols)
+        self._symbol_map = {s: i for i, s in enumerate(self._symbol_names)}
+
+        self._shm_producer = ShmSignalProducer(
+            name=self.config.shm_signals_name, capacity=self.config.shm_capacity)
+        if not self._shm_producer.init():
+            self._shm_producer = None
+        self._shm_market = ShmMarketDataWriter(
+            name=self.config.shm_market_name, max_symbols=len(self._symbol_names))
+        if not self._shm_market.init():
+            self._shm_market = None
+        self._shm_fills = ShmFillConsumer(
+            name=self.config.shm_fills_name, capacity=self.config.shm_capacity)
+        if self._shm_fills.init():
+            task = asyncio.create_task(
+                self._shm_fills.run_polling(self._on_shm_fills))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._on_task_done)
+        else:
+            self._shm_fills = None
+        self.logger.info(
+            "SHM channel: signals=%s market=%s fills=%s",
+            bool(self._shm_producer), bool(self._shm_market), bool(self._shm_fills))
+
+    async def _stop_shm_channel(self) -> None:
+        if self._shm_fills:
+            self._shm_fills.stop()
+            self._shm_fills.close()
+        for seg in (self._shm_producer, self._shm_market):
+            if seg:
+                seg.close()
+        self._shm_producer = self._shm_market = self._shm_fills = None
+
+    def _on_shm_fills(self, fills: list[tuple]) -> None:
+        """Persist fills pushed by the C++ bot: (ts_ns, symbol_id, side, qty, price, fee, ex_id)."""
+        for ts_ns, symbol_id, side, qty, price, fee, _ex_id in fills:
+            symbol = (self._symbol_names[symbol_id]
+                      if 0 <= symbol_id < len(self._symbol_names) else f"#{symbol_id}")
+            trade = {
+                "timestamp": ts_ns / 1e9, "symbol": symbol,
+                "exchange": self.config.default_exchange,
+                "side": {1: "BUY", 2: "SELL"}.get(side, "BUY"),
+                "quantity": qty, "entry_price": price, "fee": fee,
+                "status": "FILLED", "signal_id": None,
+            }
+            try:
+                self.db.save_trade(trade)
+                self.trade_logger.log(trade)
+            except (OSError, ValueError, RuntimeError) as e:
+                self.logger.warning("SHM fill persist failed: %s", e)
+
+    def _write_shm_market(self) -> None:
+        """Push latest prices into the market snapshot slots."""
+        if not self._shm_market:
+            return
+        prices = self.exchange.latest_prices.get(self.config.default_exchange, {})
+        for symbol, symbol_id in self._symbol_map.items():
+            price = prices.get(symbol)
+            if price is None:
+                continue
+            volume = float(
+                self.exchange.latest_candles.get(symbol, {}).get("volume", 0.0))
+            self._shm_market.write_price(symbol_id, price, price, price, volume)
+
+    # --- Ops alerting ---
+
+    def _start_alerting(self) -> None:
+        """Build AlertSystem with the default ops rules and start its loop."""
+        from src.monitoring.alerting import AlertRule, AlertSeverity, AlertSystem
+
+        alerts = AlertSystem(
+            webhook_url=self.config.alerting_webhook_url or None,
+            discord_webhook=self.config.alerting_discord_webhook or None,
+            telegram_token=self.config.alerting_telegram_token or None,
+            telegram_chat_id=self.config.alerting_telegram_chat_id or None,
+        )
+
+        def _daily_loss() -> bool:
+            account = self.exchange.accounts.get(self.config.default_exchange, {})
+            balance = account.get("balance")
+            if not balance:
+                return False
+            if self._day_start_balance is None:
+                self._day_start_balance = balance
+                return False
+            drop = (self._day_start_balance - balance) / self._day_start_balance * 100
+            return drop >= self.config.max_drawdown_pct
+
+        def _no_fills() -> bool:
+            # Signal pipeline alive but nothing executed for 10+ min
+            return (self.tracker.uptime_seconds() > 600
+                    and self.tracker.orders_sent == 0)
+
+        def _shm_down() -> bool:
+            return (self.config.shm_enabled and self._shm_producer is not None
+                    and self._shm_producer.pending() >= self.config.shm_capacity)
+
+        def _db_down() -> bool:
+            try:
+                self.db._get_conn().execute("SELECT 1")
+                return False
+            except (OSError, RuntimeError, ValueError):
+                return True
+
+        alerts.add_rule(AlertRule("daily_loss", "Balance dropped ≥ max drawdown today",
+                                  AlertSeverity.CRITICAL, _daily_loss))
+        alerts.add_rule(AlertRule("no_fills", "No orders executed in 10+ min uptime",
+                                  AlertSeverity.WARNING, _no_fills))
+        alerts.add_rule(AlertRule("shm_disconnected", "SHM signal ring full — hft not consuming",
+                                  AlertSeverity.WARNING, _shm_down))
+        alerts.add_rule(AlertRule("db_down", "SQLite probe failed",
+                                  AlertSeverity.CRITICAL, _db_down))
+
+        self._alert_system = alerts
+        task = asyncio.create_task(
+            alerts.start_monitoring(check_interval=self.config.alerting_check_interval))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._on_task_done)
+        self.logger.info("Alerting active: %s rules, interval=%ss",
+                         len(alerts.rules), self.config.alerting_check_interval)
+
+    async def _stop_alerting(self) -> None:
+        if self._alert_system:
+            await self._alert_system.stop_monitoring()
+            await self._alert_system.close_session()
+            self._alert_system = None
 
     async def _listen_loop(self) -> None:
         """Background task to listen for exchange messages."""
@@ -258,6 +417,7 @@ class AISignalBot:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
             self.health_checker.record_signal()
+        self._write_shm_market()
 
     async def _process_symbol(self, symbol: str, candles: list, now_ts: int) -> None:
         """Run strategies, ensemble vote, validate and execute for a single symbol."""
@@ -308,6 +468,8 @@ class AISignalBot:
         sig_dict["explanation"] = explanation
         sig_dict["signal_id"] = signal_id
         await self.signal_publisher.broadcast_signal(sig_dict)
+        if self._shm_producer:
+            self._shm_producer.push_signal_dict(sig_dict, self._symbol_map)
 
         if self.config.paper_trading:
             if self.exchange.is_trading_active:

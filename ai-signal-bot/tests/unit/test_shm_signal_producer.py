@@ -152,7 +152,16 @@ class TestPushSignalDict:
         assert args[1] == 0  # unknown symbol defaults to 0
 
     def test_timestamp_from_signal(self, producer):
+        # Strategy dicts carry unix seconds — the ring expects nanoseconds.
         ts = 1234567890
+        signal = {"symbol": "BTC", "direction": "LONG", "timestamp": ts}
+        producer.push_signal_dict(signal, {"BTC": 0})
+        args = producer._buffer.try_push.call_args[0][0]
+        assert args[0] == ts * 1_000_000_000
+
+    def test_timestamp_ns_passthrough(self, producer):
+        # Nanosecond timestamps are pushed unchanged.
+        ts = 1234567890000000000
         signal = {"symbol": "BTC", "direction": "LONG", "timestamp": ts}
         producer.push_signal_dict(signal, {"BTC": 0})
         args = producer._buffer.try_push.call_args[0][0]

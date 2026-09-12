@@ -67,6 +67,9 @@ class ShmSignalProducer:
             action = 2
 
         ts = int(signal.get("timestamp", time.time_ns()))
+        # Strategy dicts carry unix seconds; the ring expects nanoseconds.
+        if ts < 1_000_000_000_000_000:
+            ts *= 1_000_000_000
         confidence = float(signal.get("confidence", 0.0)) / 100.0
         price = float(signal.get("entry_price", signal.get("price", 0.0)))
         sl = float(signal.get("stop_loss", 0.0))
