@@ -1,49 +1,38 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import MLInsights from '../components/MLInsights'
-
-const mockCandles = [
-  { timestamp: 1, open: 100, high: 105, low: 95, close: 43250, volume: 1000 },
-]
 
 const mockSignals = {
   signals: [
-    { symbol: 'BTC/USDT', direction: 'LONG', confidence: 75, strategy: 'ml_ensemble' },
-    { symbol: 'ETH/USDT', direction: 'SHORT', confidence: 60, strategy: 'trend' },
-    { symbol: 'SOL/USDT', direction: 'LONG', confidence: 80, strategy: 'ml_lstm' },
+    { symbol: 'BTC/USDT', direction: 'LONG', confidence: 75, strategy: 'ml_ensemble', price: 44000 },
+    { symbol: 'ETH/USDT', direction: 'SHORT', confidence: 60, strategy: 'trend', price: 2500 },
+    { symbol: 'SOL/USDT', direction: 'LONG', confidence: 80, strategy: 'ml_lstm', price: 100 },
   ],
 }
 
 describe('MLInsights', () => {
-  it('renders model cards with names and stats', () => {
-    render(<MLInsights signals={mockSignals} candles={mockCandles} symbol="BTC/USDT" />)
+  it('discloses missing model registry instead of fake model cards', () => {
+    render(<MLInsights signals={mockSignals} symbol="BTC/USDT" />)
     expect(screen.getByText('ML Insights')).toBeInTheDocument()
-    expect(screen.getByText('LSTM Price Predictor')).toBeInTheDocument()
-    expect(screen.getByText('Transformer Forecast')).toBeInTheDocument()
-    expect(screen.getByText('RL Trading Agent')).toBeInTheDocument()
-    expect(screen.getByText('AutoML Ensemble')).toBeInTheDocument()
+    expect(screen.getByText(/No model registry feed/)).toBeInTheDocument()
+    expect(screen.queryByText('LSTM Price Predictor')).not.toBeInTheDocument()
   })
 
-  it('shows consensus based on model predictions', () => {
-    render(<MLInsights signals={mockSignals} candles={mockCandles} symbol="BTC/USDT" />)
-    expect(screen.getAllByText(/BULLISH|BEARISH|NEUTRAL/).length).toBeGreaterThan(0)
+  it('lists only real ML-tagged signals', () => {
+    render(<MLInsights signals={mockSignals} symbol="BTC/USDT" />)
+    expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
+    expect(screen.getByText('SOL/USDT')).toBeInTheDocument()
+    // 'trend' strategy is not ML — must be filtered out
+    expect(screen.queryByText('ETH/USDT')).not.toBeInTheDocument()
   })
 
-  it('expands model details on click', () => {
-    render(<MLInsights signals={mockSignals} candles={mockCandles} symbol="BTC/USDT" />)
-    const detailsBtn = screen.getAllByText('▶ Details')[0]
-    fireEvent.click(detailsBtn)
-    expect(screen.getByText(/Features/)).toBeInTheDocument()
+  it('derives long/short consensus from real signals', () => {
+    render(<MLInsights signals={mockSignals} symbol="BTC/USDT" />)
+    expect(screen.getByText('BULLISH')).toBeInTheDocument()
   })
 
-  it('handles empty signals gracefully', () => {
-    render(<MLInsights signals={null} candles={[]} symbol="BTC/USDT" />)
-    expect(screen.getByText('ML Insights')).toBeInTheDocument()
-    expect(screen.getByText('LSTM Price Predictor')).toBeInTheDocument()
-  })
-
-  it('shows average accuracy in summary', () => {
-    render(<MLInsights signals={mockSignals} candles={mockCandles} symbol="BTC/USDT" />)
-    expect(screen.getByText('Avg Acc')).toBeInTheDocument()
+  it('shows empty state when no ML signals exist', () => {
+    render(<MLInsights signals={{ signals: [] }} symbol="BTC/USDT" />)
+    expect(screen.getByText('No ML signals')).toBeInTheDocument()
   })
 })

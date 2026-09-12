@@ -1,40 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import TeamCollab from '../components/TeamCollab'
 
 describe('TeamCollab', () => {
-  it('renders team members with roles and status', () => {
+  it('renders the panel title', () => {
     render(<TeamCollab />)
     expect(screen.getByText('Team Collaboration')).toBeInTheDocument()
-    expect(screen.getByText('Alice')).toBeInTheDocument()
-    expect(screen.getByText('Bob')).toBeInTheDocument()
-    expect(screen.getByText('Admin')).toBeInTheDocument()
-    expect(screen.getAllByText('Trader').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows online count in header', () => {
+  it('discloses the missing feed instead of fabricating data', () => {
     render(<TeamCollab />)
-    expect(screen.getByText(/online/)).toBeInTheDocument()
-  })
-
-  it('renders chat messages', () => {
-    render(<TeamCollab />)
-    expect(screen.getByText('BTC signal looking strong, confidence at 82%')).toBeInTheDocument()
-    expect(screen.getByText('Agreed, already entered 0.5 BTC long position')).toBeInTheDocument()
-  })
-
-  it('sends message on input + Enter', () => {
-    render(<TeamCollab />)
-    const input = screen.getByPlaceholderText('Type a message...')
-    fireEvent.change(input, { target: { value: 'Test message' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(screen.getByText('Test message')).toBeInTheDocument()
-  })
-
-  it('renders shared resources list', () => {
-    render(<TeamCollab />)
-    expect(screen.getByText('Shared Resources')).toBeInTheDocument()
-    expect(screen.getByText('Scalping Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Trend + MeanRev Ensemble')).toBeInTheDocument()
+    expect(screen.getByText(/No collaboration feed — this data is not produced/)).toBeInTheDocument()
   })
 })

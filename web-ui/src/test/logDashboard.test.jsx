@@ -1,41 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import LogDashboard from '../components/LogDashboard'
 
 describe('LogDashboard', () => {
-  it('renders log entries with timestamps', () => {
+  it('renders the panel title', () => {
     render(<LogDashboard />)
     expect(screen.getByText('Log Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('12:45:32')).toBeInTheDocument()
-    expect(screen.getByText('12:45:33')).toBeInTheDocument()
   })
 
-  it('shows info/warn/error counts', () => {
+  it('discloses there is no log stream feed', () => {
     render(<LogDashboard />)
-    expect(screen.getByText('Info')).toBeInTheDocument()
-    expect(screen.getByText('Warnings')).toBeInTheDocument()
-    expect(screen.getByText('Errors')).toBeInTheDocument()
+    expect(screen.getByText(/No log stream feed — this data is not produced/)).toBeInTheDocument()
+    expect(screen.getByText(/no log stream is published over WebSocket/)).toBeInTheDocument()
   })
 
-  it('filters logs by level on button click', () => {
+  it('renders no fabricated log entries', () => {
     render(<LogDashboard />)
-    const errorBtns = screen.getAllByText('ERROR')
-    const errorBtn = errorBtns.find(el => el.tagName === 'BUTTON')
-    fireEvent.click(errorBtn)
-    expect(screen.getByText('Order rejected: INSUFFICIENT_BALANCE')).toBeInTheDocument()
-    expect(screen.queryByText('Signal generated: BTC/USDT LONG confidence=0.82')).not.toBeInTheDocument()
-  })
-
-  it('shows all logs when ALL filter selected', () => {
-    render(<LogDashboard />)
-    expect(screen.getByText('Signal generated: BTC/USDT LONG confidence=0.82')).toBeInTheDocument()
-    expect(screen.getByText('Order rejected: INSUFFICIENT_BALANCE')).toBeInTheDocument()
-  })
-
-  it('shows source labels for log entries', () => {
-    render(<LogDashboard />)
-    expect(screen.getAllByText('SignalBot').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('OrderManager').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('RiskManager').length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryByText(/Signal generated:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Order rejected:/)).not.toBeInTheDocument()
   })
 })

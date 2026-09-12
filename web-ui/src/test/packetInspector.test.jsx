@@ -1,37 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import PacketInspector from '../components/PacketInspector'
 
 describe('PacketInspector', () => {
-  it('renders packet list with timestamps', () => {
+  it('renders the panel title', () => {
     render(<PacketInspector />)
     expect(screen.getByText('Packet Inspector')).toBeInTheDocument()
-    expect(screen.getByText('12:45:32.100')).toBeInTheDocument()
-    expect(screen.getByText('12:45:32.500')).toBeInTheDocument()
   })
 
-  it('shows summary stats (in, out, ws, errors)', () => {
+  it('discloses there is no packet capture feed instead of fabricating packets', () => {
     render(<PacketInspector />)
-    expect(screen.getByText('In')).toBeInTheDocument()
-    expect(screen.getByText('Out')).toBeInTheDocument()
-    expect(screen.getByText('WS Pkts')).toBeInTheDocument()
-    expect(screen.getByText('Errors')).toBeInTheDocument()
+    expect(screen.getByText(/No packet capture feed — this data is not produced/)).toBeInTheDocument()
+    expect(screen.getByText(/does not publish raw message captures/)).toBeInTheDocument()
   })
 
-  it('filters packets by direction', () => {
+  it('renders no fabricated packet rows', () => {
     render(<PacketInspector />)
-    fireEvent.click(screen.getByText('IN'))
-    expect(screen.getAllByText('IN').length).toBeGreaterThan(0)
-  })
-
-  it('shows packet detail on click', () => {
-    render(<PacketInspector />)
-    fireEvent.click(screen.getByText('12:45:32.100'))
-    expect(screen.getByText(/Packet #1 Detail/)).toBeInTheDocument()
-  })
-
-  it('shows error icon for failed packets', () => {
-    render(<PacketInspector />)
-    expect(screen.getAllByText('order').length).toBeGreaterThan(0)
+    // previously asserted fake timestamps like 12:45:32.100 — none may exist now
+    expect(screen.queryByText(/\d{2}:\d{2}:\d{2}\.\d{3}/)).not.toBeInTheDocument()
   })
 })

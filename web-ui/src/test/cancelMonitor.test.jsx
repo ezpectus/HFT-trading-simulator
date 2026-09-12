@@ -1,43 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import CancelMonitor from '../components/CancelMonitor'
 
 describe('CancelMonitor', () => {
-  it('renders cancel list with timestamps and reasons', () => {
+  it('renders the panel title', () => {
     render(<CancelMonitor />)
     expect(screen.getByText('Cancel Monitor')).toBeInTheDocument()
-    expect(screen.getAllByText('Price moved').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Timeout').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Circuit breaker').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('shows summary stats (total, user, system, risk)', () => {
+  it('discloses there is no order cancellation feed', () => {
     render(<CancelMonitor />)
-    expect(screen.getByText('Total')).toBeInTheDocument()
-    expect(screen.getByText('User')).toBeInTheDocument()
-    expect(screen.getByText('System')).toBeInTheDocument()
-    expect(screen.getByText('Risk')).toBeInTheDocument()
+    expect(screen.getByText(/No order cancellation feed — this data is not produced/)).toBeInTheDocument()
   })
 
-  it('renders cancel reasons breakdown', () => {
+  it('renders no fabricated cancel reasons', () => {
     render(<CancelMonitor />)
-    expect(screen.getByText('Cancel Reasons')).toBeInTheDocument()
-    expect(screen.getAllByText('Insufficient liquidity').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('User cancelled').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('filters cancels by source', () => {
-    render(<CancelMonitor />)
-    const riskBtns = screen.getAllByText(/risk/i)
-    const riskBtn = riskBtns.find(el => el.tagName === 'BUTTON')
-    fireEvent.click(riskBtn)
-    expect(screen.getAllByText('Risk limit hit').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Circuit breaker').length).toBeGreaterThanOrEqual(1)
-    expect(screen.queryAllByText('Price moved').length).toBeLessThanOrEqual(1)
-  })
-
-  it('shows risk cancel warning', () => {
-    render(<CancelMonitor />)
-    expect(screen.getByText(/risk-triggered cancels/)).toBeInTheDocument()
+    expect(screen.queryByText('Price moved')).not.toBeInTheDocument()
+    expect(screen.queryByText('Circuit breaker')).not.toBeInTheDocument()
   })
 })

@@ -50,14 +50,14 @@ describe('useMockExchangeData', () => {
   })
 
   it('returns initial state with connected and zero latency', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(result.current.connected).toBe(true)
     expect(result.current.latency).toBe(0)
     expect(result.current.reconnects).toBe(0)
   })
 
   it('loads initial snapshot on mount', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(generateInitialSnapshot).toHaveBeenCalled()
     expect(result.current.candles).toHaveLength(2)
     expect(result.current.prices['binance|BTC/USDT']).toBe(50050)
@@ -65,7 +65,7 @@ describe('useMockExchangeData', () => {
   })
 
   it('returns correct API surface', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(typeof result.current.submitOrder).toBe('function')
     expect(typeof result.current.closePosition).toBe('function')
     expect(typeof result.current.sendSpeedChange).toBe('function')
@@ -79,7 +79,7 @@ describe('useMockExchangeData', () => {
   })
 
   it('submitOrder generates fill and returns true', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     let ret
     act(() => {
       ret = result.current.submitOrder({ symbol: 'BTC/USDT', exchange: 'binance' })
@@ -89,7 +89,7 @@ describe('useMockExchangeData', () => {
   })
 
   it('closePosition returns true', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     let ret
     act(() => {
       ret = result.current.closePosition('binance', 'BTC/USDT')
@@ -98,17 +98,17 @@ describe('useMockExchangeData', () => {
   })
 
   it('sendSpeedChange returns true', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(result.current.sendSpeedChange(2.0)).toBe(true)
   })
 
   it('sendConfigUpdate returns true', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(result.current.sendConfigUpdate({ leverage: 5 })).toBe(true)
   })
 
   it('toggleReplay toggles paused state', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(result.current.replayPaused).toBe(false)
     act(() => result.current.toggleReplay())
     expect(result.current.replayPaused).toBe(true)
@@ -117,12 +117,12 @@ describe('useMockExchangeData', () => {
   })
 
   it('scrubReplay does not throw', () => {
-    const { result } = renderHook(() => useMockExchangeData())
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
     expect(() => act(() => result.current.scrubReplay(5000))).not.toThrow()
   })
 
   it('generates periodic updates on interval', () => {
-    renderHook(() => useMockExchangeData())
+    renderHook(() => useMockExchangeData({ enabled: true }))
 
     act(() => {
       vi.advanceTimersByTime(2000)
@@ -133,7 +133,7 @@ describe('useMockExchangeData', () => {
   })
 
   it('cleans up interval on unmount', () => {
-    const { unmount } = renderHook(() => useMockExchangeData())
+    const { unmount } = renderHook(() => useMockExchangeData({ enabled: true }))
     unmount()
     // Advancing timers should not cause errors after unmount
     act(() => {
@@ -154,7 +154,7 @@ describe('useMockSignalData', () => {
   })
 
   it('returns initial state with signals after mount', () => {
-    const { result } = renderHook(() => useMockSignalData())
+    const { result } = renderHook(() => useMockSignalData({ enabled: true }))
     // Should generate 10 initial signals
     expect(result.current.signals).toHaveLength(10)
     expect(result.current.regime).toBeNull()
@@ -164,7 +164,7 @@ describe('useMockSignalData', () => {
   })
 
   it('generates new signals on interval', () => {
-    const { result } = renderHook(() => useMockSignalData())
+    const { result } = renderHook(() => useMockSignalData({ enabled: true }))
 
     act(() => {
       vi.advanceTimersByTime(5000)
@@ -175,12 +175,12 @@ describe('useMockSignalData', () => {
   })
 
   it('sendSignalMessage returns true', () => {
-    const { result } = renderHook(() => useMockSignalData())
+    const { result } = renderHook(() => useMockSignalData({ enabled: true }))
     expect(result.current.sendSignalMessage({ type: 'test' })).toBe(true)
   })
 
   it('cleans up interval on unmount', () => {
-    const { unmount } = renderHook(() => useMockSignalData())
+    const { unmount } = renderHook(() => useMockSignalData({ enabled: true }))
     unmount()
     act(() => {
       vi.advanceTimersByTime(5000)
