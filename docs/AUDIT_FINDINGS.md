@@ -928,3 +928,12 @@ Rotation target: GBM/news/funding core, orderbook broadcast, arbitrage auto-exec
 
 - market_simulator GBM core is real: shared+idiosyncratic correlated shocks, news events, weekend mode, honest wick/volume synthesis
 - funding `rng.gauss(0,0.0002)` per exchange — deliberate sim design, live pipeline to UI
+
+## Round 19 — FIX branch: sim accounting criticals (S081, S082, S085, S098)
+
+All four exchange_simulator findings fixed and runtime-verified. 621 sim tests pass.
+
+- **S081**: `_close_position` now opens `_open_residual_position` for the overshoot — residual gets entry=filled_price, default SL/TP, its share of order margin, POSITION_OPENED audit event. Verified: SELL 0.3 on a 0.1 long → SHORT 0.2, margin 1323.96, equity conserved.
+- **S082**: new `Position.margin` field; `_lock_margin` debits `notional/lev` at fill (skipped for force_close — closing needs no margin). Close releases `pos.margin * close_qty/pos.qty` plus the order-margin share for the closed part; partial liquidation releases proportionally; same-side adds accumulate margin. `Account.equity = balance + Σ(margin + uPnL)`. `balance` is now free collateral — the existing INSUFFICIENT_MARGIN check became real.
+- **S085**: removed unconditional `order.status = FILLED` after force_close submit; `trade_history[-1].reason` retag gated on actual FILLED status. Verified: price=0 → honest REJECTED NO_PRICE_DATA, prior history untouched.
+- **S098**: `_execute_arbitrage` checks both leg statuses before closing the opportunity — rejection closes it as "FAILED" with a warning naming both rejection reasons, no fake profit rows. Dead `orjson.dumps`/`json.dumps` throwaway serialization removed.
