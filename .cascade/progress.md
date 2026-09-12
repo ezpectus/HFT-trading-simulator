@@ -943,3 +943,11 @@ Post-fix adversarial verify:
 - S116/S117/S122/S123/S124 — VERIFIED (R40/R43/R46 fix-проверки + R52 self-QA).
 - **S050** — единственный untraceable: hmc/emd тест-файлы не находятся (код переехал/переименован с R6-era). Оставлен unstamped, не reopened.
 - Итог по всему done-log: ~101 claim → 1 ROTTED (S029→S127, fixed), 1 untraceable (S050), остальное VERIFIED.
+
+## Round 54 — 2026-09-12 — slop-audit: interface/config drift → S128+S129 → fixed
+
+Новая поверхность: env-vars declared-vs-read + registry props sent-vs-destructured + public assets.
+
+- **S128 (Low)**: `.env.example` — 7 мёртвых env-флагов (VITE_DEFAULT_*+VITE_ENABLE_*, 0 читателей). Удалены.
+- **S129 (Low)**: 22 registry-entries слали 35 dead props — trimmed (FP-очистка: title/auth/ws-manager = nested-payload keys). Полный vitest **1112 green**.
+- Public assets / prod .env: чисто.

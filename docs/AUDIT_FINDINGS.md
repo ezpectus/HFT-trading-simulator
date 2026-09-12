@@ -1428,3 +1428,7 @@ No WRONG/ROTTED entries.
 - **S126 → Done (kept).** 6 zero-importer web-ui files retained per user decision (utility-library intent) — no code change.
 
 **S127 (Low) — Done.** Verify R52 caught S029 rot: `toBeTruthy()` returned — 37 sites across 10 newer test files (RiskMetricsPanel, StreakPanel, competitionFramework, ExchangeBreakdown, BacktestComparison, BacktestRunner, ComparisonChart, CopulaModel, perfAreaChart, performanceDashboard). `expect(getBy*(...)).toBeTruthy()` is redundant (query throws on miss); `expect(container.firstChild).toBeTruthy()` is weak. All 37 → `toBeInTheDocument()` per project convention. 33/33 vitest green.
+
+**S128 (Low) — Done.** `web-ui/.env.example` documented 7 env vars nothing reads: `VITE_DEFAULT_EXCHANGE/SYMBOL/TIMEFRAME` + `VITE_ENABLE_ADVANCED_ORDERS/AUDIT_LOGS/EXCHANGE_CLONES/SYMBOL_SEARCH` — with a note claiming "feature flags control visibility". Dead config documentation (S120 class on the env surface). Both blocks removed.
+
+**S129 (Low) — Done.** Registry→component props drift: 22 panel entries sent props their components don't destructure (35 dead keys — FillAnalytics/TCA/Inventory/RealtimeAttribution the worst at 3-4 each; `title` flags on Auth/ChartTemplates/etc turned out nested-payload false positives). Dead selector evaluation + misleading contract. Keys trimmed; full vitest 1112 green.
