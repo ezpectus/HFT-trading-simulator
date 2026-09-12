@@ -1,0 +1,423 @@
+"""RealMarketDataFeed — multi-exchange WebSocket subscription with
+normalization to internal format and reconnect + state sync."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import time
+from collections.abc import Awaitable, Callable
+
+from src.data_collection.market_data_types import (
+    NormalizedCandle,
+    NormalizedOrderBook,
+    NormalizedTicker,
+)
+from src.observability.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+class RealMarketDataFeed:
+    """
+    Multi-exchange real market data feed.
+
+    Subscribes to WebSocket streams from Binance, OKX, and/or Bybit.
+    Normalizes all data to internal format and invokes callbacks.
+    """
+
+    def __init__(self, exchanges: list[str] | None = None, testnet: bool = False):
+        self.exchanges = exchanges or ["binance"]
+        self.testnet = testnet
+        self._ws_connections: dict[str, object] = {}
+        self._running = False
+        self._reconnect_delay = 1.0
+        self._reconnect_delays: dict[str, float] = {}
+        self._max_reconnect_delay = 30.0
+        self._state_lock = asyncio.Lock()
+        self._msg_queue: asyncio.Queue = asyncio.Queue(maxsize=500)
+        self._processor_task: asyncio.Task | None = None
+
+        # Callbacks
+        self.on_ticker: Callable[[NormalizedTicker], Awaitable[None]] | None = None
+        self.on_candle: Callable[[NormalizedCandle], Awaitable[None]] | None = None
+        self.on_orderbook: Callable[[NormalizedOrderBook], Awaitable[None]] | None = None
+        self.on_reconnect: Callable[[str, list[str]], Awaitable[None]] | None = None
+        self._last_msg_times: dict[str, float] = {}
+
+    async def start(self, symbols: list[str], intervals: list[str] | None = None):
+        """Start WebSocket subscriptions for all configured exchanges."""
+        self._running = True
+        intervals = intervals or ["1m", "5m", "15m"]
+
+        # Start message processor to drain queue with backpressure
+        self._processor_task = asyncio.create_task(self._process_queue())
+
+        tasks = []
+        for ex in self.exchanges:
+            if ex == "binance":
+                tasks.append(self._run_binance(symbols, intervals))
+            elif ex == "okx":
+                tasks.append(self._run_okx(symbols, intervals))
+            elif ex == "bybit":
+                tasks.append(self._run_bybit(symbols, intervals))
+
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def stop(self):
+        """Stop all WebSocket connections."""
+        self._running = False
+        if self._processor_task:
+            self._processor_task.cancel()
+            try:
+                await self._processor_task
+            except asyncio.CancelledError:
+                pass
+        async with self._state_lock:
+            for ws in self._ws_connections.values():
+                try:
+                    await ws.close()
+                except (ConnectionError, OSError, RuntimeError) as e:
+                    logger.debug("WS close error: %s", e)
+            self._ws_connections.clear()
+
+    async def _process_queue(self):
+        """Drain message queue with backpressure. Drops oldest on overflow."""
+        while self._running:
+            try:
+                exchange, msg = await self._msg_queue.get()
+                handler = {
+                    "binance": self._handle_binance_msg,
+                    "okx": self._handle_okx_msg,
+                    "bybit": self._handle_bybit_msg,
+                }.get(exchange)
+                if handler:
+                    await handler(msg)
+            except asyncio.CancelledError:
+                break
+            except (KeyError, ValueError, TypeError) as e:
+                logger.debug("Queue processor error: %s", e)
+
+    async def _run_binance(self, symbols: list[str], intervals: list[str]):
+        """Binance Futures WebSocket feed."""
+        try:
+            import websockets
+        except ImportError:
+            logger.error("websockets not installed")
+            return
+
+        # Build combined stream URL
+        streams = []
+        for sym in symbols:
+            sym_lower = sym.lower()
+            streams.append(f"{sym_lower}@bookTicker")
+            streams.append(f"{sym_lower}@aggTrade")
+            for iv in intervals:
+                streams.append(f"{sym_lower}@kline_{iv}")
+
+        if self.testnet:
+            url = "wss://stream.binancefuture.com/stream?streams=" + "/".join(streams)
+        else:
+            url = "wss://fstream.binance.com/stream?streams=" + "/".join(streams)
+
+        while self._running:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
+                    async with self._state_lock:
+                        self._ws_connections["binance"] = ws
+                        self._reconnect_delays["binance"] = 1.0
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("binance") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("binance", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning("Binance gap-fill failed: %s", e)
+                    self._last_msg_times["binance"] = time.monotonic()
+                    logger.info("Binance WebSocket connected: %s streams", len(streams))
+
+                    async for raw in ws:
+                        if not self._running:
+                            break
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("Binance WS: dropping malformed message: %s", e)
+                            continue
+                        self._last_msg_times["binance"] = time.monotonic()
+                        try:
+                            self._msg_queue.put_nowait(("binance", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("binance", msg))
+
+            except (ConnectionError, OSError) as e:
+                logger.error("Binance WS error: %s", e)
+                if self._running:
+                    delay = self._reconnect_delays.get("binance", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["binance"] = min(delay * 2, self._max_reconnect_delay)
+
+    async def _handle_binance_msg(self, msg: dict):
+        """Handle Binance combined stream message."""
+        stream = msg.get("stream", "")
+        data = msg.get("data", {})
+
+        if "@bookTicker" in stream:
+            symbol = data.get("s", "")
+            ticker = NormalizedTicker(
+                exchange="binance",
+                symbol=symbol,
+                bid=float(data.get("b", 0)),
+                ask=float(data.get("a", 0)),
+                last=0.0,  # bookTicker has no last traded price; updated by aggTrade
+                volume=0.0,
+                timestamp=int(data.get("T", time.time() * 1000)),
+            )
+            if self.on_ticker:
+                await self.on_ticker(ticker)
+
+        elif "@kline_" in stream:
+            k = data.get("k", {})
+            symbol = data.get("s", "")
+            interval = stream.split("@kline_")[-1]
+            candle = NormalizedCandle(
+                exchange="binance",
+                symbol=symbol,
+                interval=interval,
+                open=float(k.get("o", 0)),
+                high=float(k.get("h", 0)),
+                low=float(k.get("l", 0)),
+                close=float(k.get("c", 0)),
+                volume=float(k.get("v", 0)),
+                time=int(k.get("t", 0)),
+            )
+            if self.on_candle:
+                await self.on_candle(candle)
+
+    async def _run_okx(self, symbols: list[str], intervals: list[str]):
+        """OKX Futures WebSocket feed."""
+        try:
+            import websockets
+        except ImportError:
+            return
+
+        url = "wss://ws.okx.com:8443/ws/v5/public"
+
+        while self._running:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
+                    async with self._state_lock:
+                        self._ws_connections["okx"] = ws
+                        self._reconnect_delays["okx"] = 1.0
+
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("okx") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("okx", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning("OKX gap-fill failed: %s", e)
+                    self._last_msg_times["okx"] = time.monotonic()
+
+                    # Subscribe to tickers and candles
+                    sub_args = []
+                    for sym in symbols:
+                        inst_id = self._to_okx_inst_id(sym)
+                        sub_args.append({"channel": "tickers", "instId": inst_id})
+                        for iv in intervals:
+                            sub_args.append({"channel": f"candle{iv}",
+                                           "instId": inst_id})
+
+                    await ws.send(json.dumps({"op": "subscribe", "args": sub_args}))
+                    logger.info("OKX WebSocket connected")
+
+                    async for raw in ws:
+                        if not self._running:
+                            break
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("OKX WS: dropping malformed message: %s", e)
+                            continue
+                        try:
+                            self._msg_queue.put_nowait(("okx", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("okx", msg))
+
+            except (ConnectionError, OSError) as e:
+                logger.error("OKX WS error: %s", e)
+                if self._running:
+                    delay = self._reconnect_delays.get("okx", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["okx"] = min(delay * 2, self._max_reconnect_delay)
+
+    async def _handle_okx_msg(self, msg: dict):
+        """Handle OKX WebSocket message."""
+        channel = msg.get("arg", {}).get("channel", "")
+        data = msg.get("data", [])
+
+        if channel == "tickers" and data:
+            d = data[0]
+            inst_id = d.get("instId", "")
+            ticker = NormalizedTicker(
+                exchange="okx",
+                symbol=inst_id,
+                bid=float(d.get("bidPx", 0)),
+                ask=float(d.get("askPx", 0)),
+                last=float(d.get("last", 0)),
+                volume=float(d.get("vol24h", 0)),
+                timestamp=int(d.get("ts", time.time() * 1000)),
+            )
+            if self.on_ticker:
+                await self.on_ticker(ticker)
+
+        elif channel.startswith("candle") and data:
+            d = data[0]
+            # OKX candle format: [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm]
+            inst_id = msg.get("arg", {}).get("instId", "")
+            interval = channel.replace("candle", "").lower()
+            candle = NormalizedCandle(
+                exchange="okx",
+                symbol=inst_id,
+                interval=interval,
+                open=float(d[1]),
+                high=float(d[2]),
+                low=float(d[3]),
+                close=float(d[4]),
+                volume=float(d[5]),
+                time=int(d[0]),
+            )
+            if self.on_candle:
+                await self.on_candle(candle)
+
+    async def _run_bybit(self, symbols: list[str], intervals: list[str]):
+        """Bybit Futures WebSocket feed."""
+        try:
+            import websockets
+        except ImportError:
+            return
+
+        url = "wss://stream.bybit.com/v5/public/linear"
+
+        while self._running:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
+                    async with self._state_lock:
+                        self._ws_connections["bybit"] = ws
+                        self._reconnect_delays["bybit"] = 1.0
+
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get("bybit") and self.on_reconnect:
+                        try:
+                            await self.on_reconnect("bybit", symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning("Bybit gap-fill failed: %s", e)
+                    self._last_msg_times["bybit"] = time.monotonic()
+
+                    # Subscribe
+                    sub_args = []
+                    for sym in symbols:
+                        sub_args.append(f"orderbook.50.{sym}")
+                        sub_args.append(f"tickers.{sym}")
+                        for iv in intervals:
+                            sub_args.append(f"kline.{iv}.{sym}")
+
+                    await ws.send(json.dumps({"op": "subscribe", "args": sub_args}))
+                    logger.info("Bybit WebSocket connected")
+
+                    async for raw in ws:
+                        if not self._running:
+                            break
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("Bybit WS: dropping malformed message: %s", e)
+                            continue
+                        try:
+                            self._msg_queue.put_nowait(("bybit", msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait(("bybit", msg))
+
+            except (ConnectionError, OSError) as e:
+                logger.error("Bybit WS error: %s", e)
+                if self._running:
+                    delay = self._reconnect_delays.get("bybit", 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays["bybit"] = min(delay * 2, self._max_reconnect_delay)
+
+    async def _handle_bybit_msg(self, msg: dict):
+        """Handle Bybit WebSocket message."""
+        topic = msg.get("topic", "")
+        data = msg.get("data", {})
+
+        if topic.startswith("tickers."):
+            symbol = topic.replace("tickers.", "")
+            ticker = NormalizedTicker(
+                exchange="bybit",
+                symbol=symbol,
+                bid=float(data.get("bid1Price", 0)),
+                ask=float(data.get("ask1Price", 0)),
+                last=float(data.get("lastPrice", 0)),
+                volume=float(data.get("volume24h", 0)),
+                timestamp=int(data.get("ts", time.time() * 1000)),
+            )
+            if self.on_ticker:
+                await self.on_ticker(ticker)
+
+        elif topic.startswith("orderbook."):
+            symbol = topic.split(".")[-1]
+            bids = [(float(p), float(q)) for p, q in data.get("b", [])[:20]]
+            asks = [(float(p), float(q)) for p, q in data.get("a", [])[:20]]
+            ob = NormalizedOrderBook(
+                exchange="bybit",
+                symbol=symbol,
+                bids=bids,
+                asks=asks,
+                timestamp=int(msg.get("ts", time.time() * 1000)),
+            )
+            if self.on_orderbook:
+                await self.on_orderbook(ob)
+
+        elif topic.startswith("kline."):
+            parts = topic.split(".")
+            interval = parts[1]
+            symbol = parts[2]
+            for k in data:
+                candle = NormalizedCandle(
+                    exchange="bybit",
+                    symbol=symbol,
+                    interval=interval,
+                    open=float(k.get("open", 0)),
+                    high=float(k.get("high", 0)),
+                    low=float(k.get("low", 0)),
+                    close=float(k.get("close", 0)),
+                    volume=float(k.get("volume", 0)),
+                    time=int(k.get("start", 0)),
+                )
+                if self.on_candle:
+                    await self.on_candle(candle)
+
+    @staticmethod
+    def _to_okx_inst_id(symbol: str) -> str:
+        """Convert BTCUSDT or BTC/USDT → BTC-USDT-SWAP."""
+        clean = symbol.replace("/", "")
+        # Handle perpetual swap notation: BTC/USDT:USDT → BTCUSDT
+        if ":" in clean:
+            clean = clean.split(":")[0]
+        if clean.endswith("USDT"):
+            base = clean[:-4]
+            return f"{base}-USDT-SWAP"
+        return symbol
