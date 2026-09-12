@@ -240,18 +240,19 @@ class MessageHandlerMixin:
                 f"{_sanitize_log(data['symbol'])} @ {order.filled_price:.2f} "
                 f"fee={order.fee:.4f} | {_sanitize_log(exchange_id)}"
             )
-            self.trade_logger.log_fill({
-                "timestamp": time.time(),
-                "exchange": exchange_id,
-                "symbol": data["symbol"],
-                "side": data["side"],
-                "type": data.get("order_type", "MARKET"),
-                "price": order.filled_price,
-                "quantity": order.filled_quantity,
-                "fee": order.fee,
-                "order_id": order.id,
-                "status": "FILLED",
-            })
+            if self.trade_logger is not None:
+                self.trade_logger.log_fill({
+                    "timestamp": time.time(),
+                    "exchange": exchange_id,
+                    "symbol": data["symbol"],
+                    "side": data["side"],
+                    "type": data.get("order_type", "MARKET"),
+                    "price": order.filled_price,
+                    "quantity": order.filled_quantity,
+                    "fee": order.fee,
+                    "order_id": order.id,
+                    "status": "FILLED",
+                })
         elif order.status.value == "REJECTED":
             reason = order.rejection_reason or "UNKNOWN"
             logger.info(

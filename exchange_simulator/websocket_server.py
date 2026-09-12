@@ -1,4 +1,4 @@
-﻿"""WebSocket server -- streams simulated market data to connected bots.
+"""WebSocket server -- streams simulated market data to connected bots.
 
 Broadcasts candle updates, order book snapshots, and account status
 to all connected WebSocket clients (AI Signal Bot, HFT Trade Bot).
@@ -26,11 +26,14 @@ from exchange_simulator.ws_message_handler import MessageHandlerMixin
 from exchange_simulator.ws_metrics import WebSocketMetrics
 from exchange_simulator.ws_prometheus import PrometheusMixin
 
-# Add project root for trade_csv_logger
+# Add project root for trade_csv_logger (optional dev script — not shipped)
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_root not in sys.path:
     sys.path.insert(0, _proj_root)
-from trade_csv_logger import TradeCsvLogger  # noqa: E402
+try:
+    from trade_csv_logger import TradeCsvLogger
+except ImportError:
+    TradeCsvLogger = None
 
 
 class ExchangeWebSocketServer(
@@ -72,7 +75,7 @@ class ExchangeWebSocketServer(
         self._speed_event = asyncio.Event()
         self._speed_event.set()
         self._trading_active = True
-        self.trade_logger = TradeCsvLogger()
+        self.trade_logger = TradeCsvLogger() if TradeCsvLogger is not None else None
         self._client_versions: dict = {}
         self._client_encodings: dict = {}
         self._last_orderbooks: dict = {}
@@ -81,7 +84,8 @@ class ExchangeWebSocketServer(
         self._total_connections: int = 0
         self._total_disconnections: int = 0
         self._sequence_number: int = 0
-        logger.info(f"Trade CSV log: {self.trade_logger.path}")
+        if self.trade_logger is not None:
+            logger.info(f"Trade CSV log: {self.trade_logger.path}")
 
         self.metrics = WebSocketMetrics()
 

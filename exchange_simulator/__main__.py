@@ -18,11 +18,14 @@ import time
 
 import yaml
 
-# Add project root for run_logger
+# Add project root for run_logger (optional dev script — not shipped)
 _proj_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _proj_root not in sys.path:
     sys.path.insert(0, _proj_root)
-from run_logger import setup_run_logging  # noqa: E402
+try:
+    from run_logger import setup_run_logging
+except ImportError:
+    setup_run_logging = None
 
 from exchange_simulator.arbitrage import ArbitrageDetector  # noqa: E402
 from exchange_simulator.config_validator import validate_or_exit  # noqa: E402
@@ -44,7 +47,11 @@ def load_config(path: str | None = None) -> dict:
 def setup_logging(level: str = "INFO") -> tuple[logging.Logger, str]:
     """Setup logging with timestamped file output."""
     fmt = os.environ.get("LOG_FORMAT", "text")
-    return setup_run_logging("exchange_simulator", level=level, format_type=fmt)
+    if setup_run_logging is not None:
+        return setup_run_logging("exchange_simulator", level=level, format_type=fmt)
+    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO),
+                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    return logging.getLogger("exchange_simulator"), "stdout"
 
 
 def build_exchanges(config: dict) -> tuple[dict[str, SimulatedExchange], MarketSimulator]:

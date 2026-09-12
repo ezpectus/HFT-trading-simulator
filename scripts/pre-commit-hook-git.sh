@@ -7,7 +7,9 @@
 # Find Python: prefer python3, fallback to python
 PYTHON=""
 for cmd in python3 python py; do
-    if command -v "$cmd" >/dev/null 2>&1; then
+    # command -v alone is not enough: the WindowsApps python3 stub exists on
+    # PATH but exits non-zero instead of running Python — verify it runs.
+    if command -v "$cmd" >/dev/null 2>&1 && "$cmd" --version >/dev/null 2>&1; then
         PYTHON="$cmd"
         break
     fi
@@ -27,7 +29,7 @@ echo "============================================================"
 echo "  PRE-COMMIT: Smart staged file check"
 echo "============================================================"
 
-"$PYTHON" "$PROJECT_ROOT/scripts/pre-commit-check.py" --staged --quick
+"$PYTHON" "$PROJECT_ROOT/scripts/pre-commit-check.py" --staged
 RESULT=$?
 
 if [ $RESULT -ne 0 ]; then

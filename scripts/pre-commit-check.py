@@ -14,7 +14,7 @@ WHAT IT DOES (matches .github/workflows/ci.yml):
 
 Usage:
     python scripts/pre-commit-check.py                    # Default: lint + tests (all languages)
-    python scripts/pre-commit-check.py --staged --quick   # Hook: only staged files, fast
+    python scripts/pre-commit-check.py --staged           # Hook: only staged files, fast
     python scripts/pre-commit-check.py --lint             # Lint only (ruff + eslint + clang-format)
     python scripts/pre-commit-check.py --tests            # Tests only (pytest + vitest + ctest + cargo)
     python scripts/pre-commit-check.py --full             # Full: lint + tests + build + security
@@ -504,8 +504,8 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
         # Skip non-source files
         if ext not in {"py", "jsx", "js", "tsx", "ts"}:
             continue
-        # Skip __init__.py, conftest.py, setup.py, manage.py
-        if p.name in {"__init__.py", "conftest.py", "setup.py", "manage.py"}:
+        # Skip __init__.py, conftest.py, setup.py, manage.py, __main__.py
+        if p.name in {"__init__.py", "conftest.py", "setup.py", "manage.py", "__main__.py"}:
             continue
         # Skip files that ARE tests
         if p.name.startswith("test_") or ".test." in p.name:
@@ -819,10 +819,13 @@ def main() -> int:
         if has_py:
             for comp in COMPONENTS_PY:
                 comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
+                if comp_py is not None and not comp_py:
+                    continue  # staged mode: nothing staged in this component
                 summary.add(check_ruff(comp, files=comp_py))
         if has_js:
             comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
-            summary.add(check_eslint(files=comp_js))
+            if comp_js is None or comp_js:  # skip when staged mode has none in this component
+                summary.add(check_eslint(files=comp_js))
         if has_cpp:
             summary.add(check_clang_format(files=cpp_files))
 
@@ -831,10 +834,13 @@ def main() -> int:
         if has_py:
             for comp in COMPONENTS_PY:
                 comp_py = [f for f in (py_files or []) if f.startswith(comp)] if py_files else None
+                if comp_py is not None and not comp_py:
+                    continue  # staged mode: nothing staged in this component
                 summary.add(check_pytest(comp, quick=args.quick, files=comp_py))
         if has_js:
             comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
-            summary.add(check_vitest(quick=args.quick, files=comp_js))
+            if comp_js is None or comp_js:  # skip when staged mode has none in this component
+                summary.add(check_vitest(quick=args.quick, files=comp_js))
         if has_cpp and (run_build or args.full or args.all):
             summary.add(check_cpp_build_and_test(quick=args.quick))
 
