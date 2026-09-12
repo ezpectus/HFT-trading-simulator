@@ -855,3 +855,16 @@ No WRONG/ROTTED entries — nothing reopened.
 - **S095 (High) VERIFIED:** `src/research/` отсутствует, 0 orphan-импортов.
 
 0 WRONG/ROTTED. Done-log эпохи R26-R35 частично подтверждена — 8 самых критичных claims проверены.
+
+## Round 48b — slop-verify batch 2 (9 more old claims, all VERIFIED)
+
+- **S001 (Critical):** registry.js — 271 entries / 271 props-функций, 0 starved.
+- **S003 (Critical):** `MOCK_*` в компонентах — единственный хит = `MockModeBanner` (сама env-gated инфра), 0 фабрикантов.
+- **S074 (High):** REST_API.md — только реальные endpoints (sim 8775, ai-bot 8080/9090, hft 9091); фантомов нет.
+- **S085 (High):** `status=FILLED` только на реальных fill-сайтах (limit/market/iceberg), REJECTED+ORDER_REJECTED audit на отказах.
+- **S088+S096 (High):** hft `src/market_data/` отсутствует; фантомные хедеры без ссылок; `order_type_selector.h` живой (include в order_executor + doctest).
+- **S101 (High):** ruff clean на ai-signal-bot/src + exchange_simulator.
+- **S105 (High):** `SPSCQueue::STORAGE = Capacity+1` с explanatory comment; `LatencyHistogram` трекает min/max до bucket early-return — комментарий в коде сам документирует фикс.
+- **S110 (High):** NewsFeed → `ctx.exchange.newsEvent`; BacktestComparison self-pull из SAVED_KEY + `saved-backtests-changed` listeners + двусторонний sync.
+
+Итого verified-стемпов: 17 claims за R48.
