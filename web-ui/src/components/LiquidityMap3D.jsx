@@ -1,24 +1,6 @@
 import { memo, useMemo } from 'react'
 import { Box, Layers, Eye } from 'lucide-react'
-import { StatCard } from '../utils/ui-helpers'
-
-const MOCK_LIQUIDITY = [
-  { priceLevel: 43900, bidVol: 12.5, askVol: 8.2, depth: 20.7, imbalance: 0.60 },
-  { priceLevel: 44000, bidVol: 18.3, askVol: 15.1, depth: 33.4, imbalance: 0.55 },
-  { priceLevel: 44100, bidVol: 25.8, askVol: 22.5, depth: 48.3, imbalance: 0.53 },
-  { priceLevel: 44200, bidVol: 32.1, askVol: 28.8, depth: 60.9, imbalance: 0.53 },
-  { priceLevel: 44300, bidVol: 45.5, askVol: 38.2, depth: 83.7, imbalance: 0.54 },
-  { priceLevel: 44400, bidVol: 28.3, askVol: 35.5, depth: 63.8, imbalance: 0.44 },
-  { priceLevel: 44500, bidVol: 15.2, askVol: 22.8, depth: 38.0, imbalance: 0.40 },
-  { priceLevel: 44600, bidVol: 8.5, askVol: 14.2, depth: 22.7, imbalance: 0.37 },
-]
-
-const MOCK_ZONES = [
-  { zone: 'Bid Wall', price: 44300, volume: 45.5, type: 'support' },
-  { zone: 'Ask Wall', price: 44400, volume: 35.5, type: 'resistance' },
-  { zone: 'Bid Cluster', price: 44100, volume: 25.8, type: 'support' },
-  { zone: 'Ask Cluster', price: 44500, volume: 22.8, type: 'resistance' },
-]
+import { StatCard, NoDataFeed } from '../utils/ui-helpers'
 
 function imbalanceColor(imb) {
   if (imb >= 0.55) return 'text-accent-green'
@@ -26,17 +8,74 @@ function imbalanceColor(imb) {
   return 'text-gray-400'
 }
 
-const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
-  const midPrice = currentPrice ?? 44200
+const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice, orderbooks, exchange, symbol }) {
+  const book = orderbooks?.[`${exchange}|${symbol}`]
 
-  const stats = useMemo(() => {
-    const totalBid = MOCK_LIQUIDITY.reduce((s, l) => s + l.bidVol, 0)
-    const totalAsk = MOCK_LIQUIDITY.reduce((s, l) => s + l.askVol, 0)
-    const totalDepth = MOCK_LIQUIDITY.reduce((s, l) => s + l.depth, 0)
-    const maxDepth = Math.max(...MOCK_LIQUIDITY.map(l => l.depth))
-    const overallImb = totalBid / (totalBid + totalAsk)
-    return { totalBid, totalAsk, totalDepth, maxDepth, overallImb }
-  }, [])
+  const { levels, zones, stats } = useMemo(() => {
+    if (!book?.bids?.length || !book?.asks?.length) {
+      return { levels: [], zones: [], stats: null }
+    }
+
+    // Merge book levels into a symmetric ladder around mid price.
+    const bids = book.bids.slice(0, 12)
+    const asks = book.asks.slice(0, 12)
+    const mid = (bids[0].price + asks[0].price) / 2
+
+    // Bucket both sides onto shared price rows (bucket = spread/2 or 0.05% of mid)
+    const step = Math.max(asks[0].price - bids[0].price, mid * 0.0005)
+    const rows = new Map()
+    for (const b of bids) {
+      const k = Math.round(b.price / step) * step
+      const r = rows.get(k) ?? { priceLevel: k, bidVol: 0, askVol: 0 }
+      r.bidVol += b.quantity
+      rows.set(k, r)
+    }
+    for (const a of asks) {
+      const k = Math.round(a.price / step) * step
+      const r = rows.get(k) ?? { priceLevel: k, bidVol: 0, askVol: 0 }
+      r.askVol += a.quantity
+      rows.set(k, r)
+    }
+
+    const lv = [...rows.values()]
+      .sort((a, b) => a.priceLevel - b.priceLevel)
+      .map(r => ({
+        ...r,
+        depth: r.bidVol + r.askVol,
+        imbalance: (r.bidVol + r.askVol) > 0 ? r.bidVol / (r.bidVol + r.askVol) : 0.5,
+      }))
+
+    const totalBid = lv.reduce((s, l) => s + l.bidVol, 0)
+    const totalAsk = lv.reduce((s, l) => s + l.askVol, 0)
+    const totalDepth = totalBid + totalAsk
+    const maxDepth = lv.length ? Math.max(...lv.map(l => l.depth)) : 0
+    const overallImb = totalDepth > 0 ? totalBid / totalDepth : 0.5
+
+    // Zones = biggest single-side levels on each side
+    const z = []
+    const maxBid = lv.reduce((m, l) => (l.bidVol > (m?.bidVol ?? 0) ? l : m), null)
+    const maxAsk = lv.reduce((m, l) => (l.askVol > (m?.askVol ?? 0) ? l : m), null)
+    if (maxBid) z.push({ zone: 'Bid Wall', price: maxBid.priceLevel, volume: maxBid.bidVol, type: 'support' })
+    if (maxAsk) z.push({ zone: 'Ask Wall', price: maxAsk.priceLevel, volume: maxAsk.askVol, type: 'resistance' })
+
+    return { levels: lv, zones: z, stats: { totalBid, totalAsk, totalDepth, maxDepth, overallImb } }
+  }, [book])
+
+  const midPrice = book?.bids?.[0] && book?.asks?.[0]
+    ? (book.bids[0].price + book.asks[0].price) / 2
+    : currentPrice
+
+  if (!stats) {
+    return (
+      <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Box size={14} className="text-accent-purple" />
+          <span className="text-sm font-medium">Liquidity Map 3D</span>
+        </div>
+        <NoDataFeed feed={`live order book for ${symbol} on ${exchange}`} />
+      </div>
+    )
+  }
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -45,7 +84,7 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
           <Box size={14} className="text-accent-purple" />
           <span className="text-sm font-medium">Liquidity Map 3D</span>
         </div>
-        <span className="text-[10px] text-gray-600">${midPrice.toLocaleString()}</span>
+        <span className="text-[10px] text-gray-600">{midPrice != null ? `$${midPrice.toLocaleString()}` : '—'}</span>
       </div>
 
       {/* Summary */}
@@ -63,18 +102,18 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
           <span className="text-[10px] text-gray-600 uppercase">Depth Profile</span>
         </div>
         <div className="space-y-0.5">
-          {MOCK_LIQUIDITY.map(l => (
+          {levels.map(l => (
             <div key={l.priceLevel} className="flex items-center gap-1">
-              <span className={`text-[8px] font-mono w-14 ${l.priceLevel === midPrice ? 'text-accent-yellow font-bold' : 'text-gray-500'}`}>
+              <span className={`text-[8px] font-mono w-14 ${Math.abs(l.priceLevel - midPrice) < (levels[1]?.priceLevel - levels[0]?.priceLevel || 1) / 2 ? 'text-accent-yellow font-bold' : 'text-gray-500'}`}>
                 ${l.priceLevel.toLocaleString()}
               </span>
               <div className="flex-1 flex items-center gap-0.5">
                 <div className="flex-1 flex justify-end">
-                  <div className="bg-accent-green opacity-60" style={{ width: `${(l.bidVol / 50) * 100}%`, height: '10px' }} />
+                  <div className="bg-accent-green opacity-60" style={{ width: `${Math.min(100, (l.bidVol / Math.max(stats.maxDepth, 1e-9)) * 100)}%`, height: '10px' }} />
                 </div>
                 <div className="w-1" />
                 <div className="flex-1">
-                  <div className="bg-accent-red opacity-60" style={{ width: `${(l.askVol / 50) * 100}%`, height: '10px' }} />
+                  <div className="bg-accent-red opacity-60" style={{ width: `${Math.min(100, (l.askVol / Math.max(stats.maxDepth, 1e-9)) * 100)}%`, height: '10px' }} />
                 </div>
               </div>
               <span className={`text-[8px] font-mono w-10 text-right ${imbalanceColor(l.imbalance)}`}>
@@ -96,14 +135,14 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
           <span className="text-[10px] text-gray-600 uppercase">Liquidity Zones</span>
         </div>
         <div className="space-y-0.5">
-          {MOCK_ZONES.map((z, i) => (
+          {zones.map((z, i) => (
             <div key={i} className="flex items-center gap-2 py-0.5 px-1.5 bg-bg-700">
               <span className={`text-[8px] px-1 rounded ${z.type === 'support' ? 'bg-accent-green/20 text-accent-green' : 'bg-accent-red/20 text-accent-red'} w-16 text-center`}>
                 {z.type === 'support' ? 'SUPPORT' : 'RESIST'}
               </span>
               <span className="text-[10px] text-gray-300 flex-1">{z.zone}</span>
               <span className="text-[9px] font-mono text-gray-400">${z.price.toLocaleString()}</span>
-              <span className="text-[9px] font-mono text-accent-purple">{z.volume.toFixed(1)} BTC</span>
+              <span className="text-[9px] font-mono text-accent-purple">{z.volume.toFixed(1)} {symbol?.split('/')?.[0] ?? ''}</span>
             </div>
           ))}
         </div>
@@ -111,10 +150,10 @@ const LiquidityMap3D = memo(function LiquidityMap3D({ currentPrice }) {
 
       <div className="flex items-center justify-between text-[9px] text-gray-600 pt-1 border-t border-bg-600">
         <span>Overall: {stats.overallImb > 0.5 ? 'bid-heavy (bullish)' : 'ask-heavy (bearish)'}</span>
-        <span>Total depth: {stats.totalDepth.toFixed(1)} BTC</span>
+        <span>Total depth: {stats.totalDepth.toFixed(1)} {symbol?.split('/')?.[0] ?? ''}</span>
       </div>
     </div>
   )
 })
 
-export default memo(LiquidityMap3D)
+export default LiquidityMap3D

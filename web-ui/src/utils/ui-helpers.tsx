@@ -147,3 +147,21 @@ export function WarningBanner({ icon: Icon = AlertTriangle, color = 'text-accent
     </div>
   )
 }
+
+interface NoDataFeedProps {
+  /** Which backend feed would supply this panel — named honestly. */
+  feed: string
+  icon?: ElementType
+}
+
+/** Honest empty state for panels whose backend feed does not exist. */
+export function NoDataFeed({ feed, icon: Icon = AlertTriangle }: NoDataFeedProps) {
+  return (
+    <div className="flex items-center gap-1.5 p-1.5 bg-bg-700/50 border border-bg-600">
+      <Icon size={11} className="text-gray-500" />
+      <span className="text-[10px] text-gray-500">
+        No {feed} feed — this data is not produced by the backend.
+      </span>
+    </div>
+  )
+}

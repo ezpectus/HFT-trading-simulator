@@ -224,9 +224,9 @@ export default memo(function SessionReplay({ accounts, fills, signals, candles, 
                     <div><span className="text-gray-600">Balance:</span> <span className="text-gray-200 font-mono">${(acc.balance || 0).toFixed(2)}</span></div>
                     <div><span className="text-gray-600">Equity:</span> <span className="text-gray-200 font-mono">${(acc.equity || 0).toFixed(2)}</span></div>
                     <div><span className="text-gray-600">PnL:</span> <span className={`font-mono ${(acc.total_pnl || 0) >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>{(acc.total_pnl || 0) >= 0 ? '+' : ''}${(acc.total_pnl || 0).toFixed(2)}</span></div>
-                    <div><span className="text-gray-600">Pos:</span> <span className="text-gray-200 font-mono">{Object.keys(acc.positions || {}).length}</span></div>
+                    <div><span className="text-gray-600">Pos:</span> <span className="text-gray-200 font-mono">{(acc.positions?.length ?? 0)}</span></div>
                   </div>
-                  {acc.positions && Object.keys(acc.positions).length > 0 && (
+                  {acc.positions && (acc.positions?.length ?? 0) > 0 && (
                     <div className="mt-1 space-y-0.5">
                       {Object.values(acc.positions).slice(0, 5).map((p, i) => (
                         <div key={i} className="text-[8px] text-gray-400 flex justify-between">

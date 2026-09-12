@@ -17,7 +17,7 @@ const BotStatus = memo(function BotStatus({ signals, fills, accounts, signalConn
     let totalTrades = 0
 
     for (const acc of Object.values(accounts || {})) {
-      totalPositions += Object.keys(acc.positions || {}).length
+      totalPositions += (acc.positions?.length ?? 0)
       totalBalance += acc.balance || 0
       totalEquity += acc.equity || 0
       totalPnl += acc.total_pnl || 0
