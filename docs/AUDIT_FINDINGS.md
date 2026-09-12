@@ -1042,3 +1042,27 @@ Stale tests fixed:
 **S073** — dev compose `prometheus:latest`/`grafana:latest` → `v3.0.0`/`11.4.0` (same pins as prod).
 
 Verified: ai-signal-bot **1368 passed, 0 failed** (was 23 failed). Targeted module tests green after monotonic conversion. Ruff clean on touched files (6 I001 import-sort warnings pre-existing).
+
+## Round 25 — FIX branch: dual backtest engines, hook gating, repo-junk correction, nginx honesty (S089, S091, S080, S072)
+
+- **S089 — the "duplicate backtest engines" were not duplicates.** The panel runs a **custom rule-builder** (user-defined condition/action rules) in JS on live sim candles; the server `run_backtest` runs **named Python strategy classes** on self-generated synthetic GBM. Wiring the panel to the server as-is would have silently dropped both the user's rules and the real candles. Fix honors both: server `_run_backtest` now accepts `candles_data` (validated, 10k cap, malformed → synthetic fallback) and reports `data_source: client|synthetic`; the panel gained a "Server engine" section (strategy select → `sendSignalMessage` → results table) with both engines honestly labeled. Live-verified: 120 client candles → real `Backtester` → 14 trades on uptrend; bad payload → synthetic fallback.
+- **S091 — hooks gated by mode.** `useExchangeData`/`useSignalData` pass `autoConnect: !IS_MOCK` — mock mode no longer opens real sockets to :8765/:8766 with reconnect spam. Mock hooks take `{enabled = IS_MOCK}` — real mode no longer ticks mock intervals. Tests pass `enabled: true` explicitly.
+- **S080 — finding was wrong.** `audit/` (320K) and `hft-skills/` (20MB) are untracked AND gitignored — `git ls-files` empty, `check-ignore` confirms. They were never repo weight; local workspace junk only. Corrected, not deleted (user's local files).
+- **S072 — nginx headers honest.** Removed `X-XSS-Protection` (deprecated; would only re-enable the buggy legacy auditor) and `Strict-Transport-Security` (browsers ignore HSTS over HTTP — it belongs on a TLS terminator that doesn't exist here). Kept the four headers that actually work over HTTP.
+- **Gate fallout:** new real test files `test_ws_message_handler.py` (advanced-params forwarding regression), `useTradingStore`/`usePanelContext` (field-drop regression), `strategyMarketplace`, `strategyBacktest` — the repaired pre-commit gate demanded them, correctly.
+
+**Verified:** server backtest live-repro; vitest targeted files green (mock 16, strategyBacktest 4, useExchangeData 29, panel-context 3); vite build green.
+
+---
+
+## Round 25 — S003 финал (mock → real/no-feed), S006 partial
+
+**S003 — закрыт полностью.** Оставшиеся 16 `MOCK_*` компонентов:
+- **Real-data wiring (4):** `MarketImpact` — walk-the-book VWAP slippage из реального `orderbooks` (orderbook[] levels), отображает `book+` когда сайз превышает видимую ликвидность; `TaxReport` — mock-fallback удалён, рендерит реальные `fills`/`pnl`; `NewsFeed` — накапливает реальные `news_event` broadcast-сообщения (latest-only в сторе → in-component accumulator); `MLInsights` — fake model-cards (accuracy/MSE/epochs без фида) → NoDataFeed, Long/Short counts теперь из реальных ml-tagged signals.
+- **NoDataFeed (12):** ABTesting, ApiPlayground, Colocation, DeployStatus, HyperoptUI, OnChainAnalytics, PortfolioOptLab, RetrainingPipeline, ScenarioSim, StrategyVersionControl, TeamCollab, WidgetSDK — ни у одного нет backend-фида; вместо сфабрикованных таблиц — disclosure с именем отсутствующего фида.
+- **Удалён сирота:** `src/utils/mock-data/` — 12 файлов (~268 строк фабрик), последние consumers только что конвертированы; 0 внешних импортов.
+- `MOCK_` в компонентах: **0**. Остались только легитимные: `MockModeBanner` (env flag) + `mockData.js`/`useMockData.js` (mock-mode factory, gated by `enabled`).
+
+**S006 partial:** `test_signal_publisher` (24 мока — самый большой файл) → `spec=websockets.WebSocketServerProtocol`/`WebSocketServer`, 22 сайта, 23/23 green. Спеки отлавливают wrong-attr использование (раньше `ws.anything` молча проходил).
+
+**Verification:** vitest 120 files / 960 tests green · vite build green · eslint clean на тронутых файлах (15 pre-existing ошибок в 4 нетронутых тестах: exchange-ui, indicators, panelErrorBoundary, virtualList — кандидаты в борду).
