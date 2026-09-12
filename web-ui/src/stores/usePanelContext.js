@@ -17,6 +17,8 @@ export function usePanelContext() {
     setSelectedSymbol,
     EXCHANGES,
     SYMBOLS,
+    customIndicators,
+    setCustomIndicators,
   } = useUIStore()
 
   const {
@@ -120,6 +122,9 @@ export function usePanelContext() {
     removeToast,
     clearAll,
     setSelectedSymbol,
+    customIndicators,
+    setCustomIndicators,
   }), [exchange, signalsObj, selectedExchange, selectedSymbol, chartCandles,
-      currentPrice, SYMBOLS, EXCHANGES, toasts, addToast, removeToast, clearAll, setSelectedSymbol])
+      currentPrice, SYMBOLS, EXCHANGES, toasts, addToast, removeToast, clearAll,
+      setSelectedSymbol, customIndicators, setCustomIndicators])
 }

@@ -75,6 +75,10 @@ export const useUIStore = create((set, get) => ({
   timeframe: TIMEFRAMES[0],
   setTimeframe: (tf) => set({ timeframe: tf }),
 
+  // Custom indicators built in the Indicator Builder panel — consumed by CandleChart as overlays
+  customIndicators: [],
+  setCustomIndicators: (inds) => set({ customIndicators: inds }),
+
   // Sim speed
   simSpeed: 1,
   setSimSpeed: (speed) => set({ simSpeed: speed }),

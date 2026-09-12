@@ -81,4 +81,27 @@ describe('Registry Structure', () => {
       expect(isLazy).toBe(true)
     }
   })
+
+  it('S130 contract: starved panels receive their backend props', () => {
+    const ctx = {
+      selectedSymbol: 'BTC/USDT',
+      chartCandles: [{ time: 1, close: 100 }],
+      setCustomIndicators: () => {},
+      exchange: { accounts: {}, fills: [], connected: true },
+      signals: { signals: [], connected: true, sendSignalMessage: () => {}, backtestResult: null },
+    }
+    const byId = Object.fromEntries(PANELS.map(p => [p.id, p]))
+
+    const runner = byId['backtest-runner'].props(ctx)
+    expect(runner.sendSignalMessage).toBe(ctx.signals.sendSignalMessage)
+    expect(runner.backtestResult).toBeNull()
+    expect(runner.connected).toBe(true)
+
+    const perf = byId['perf-dashboard'].props(ctx)
+    expect(perf.fills).toBe(ctx.exchange.fills)
+    expect(perf.signals).toBe(ctx.signals.signals)
+
+    const builder = byId['indicator-builder'].props(ctx)
+    expect(builder.onIndicatorsChange).toBe(ctx.setCustomIndicators)
+  })
 })

@@ -12,7 +12,7 @@ const INDICATORS = [
   { id: 'rsi', label: 'RSI 14', color: '#0ecb81' },
 ]
 
-const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, selectedExchange }) {
+const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, selectedExchange, customIndicators }) {
   const chartContainerRef = useRef(null)
   const rsiContainerRef = useRef(null)
   const chartRef = useRef(null)
@@ -24,6 +24,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
   const rsiSeriesRef = useRef(null)
   const vwapSeriesRef = useRef(null)
   const markersSeriesRef = useRef(null)
+  const customSeriesRef = useRef({})
   const [showMarkers, setShowMarkers] = useState(true)
 
   const [activeIndicators, setActiveIndicators] = useState({
@@ -235,6 +236,33 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
       rsiSeriesRef.current.setData(rsiData)
     }
 
+    // Custom indicators from Indicator Builder panel — one line series per indicator line
+    const wanted = new Set()
+    if (chartRef.current && customIndicators?.length) {
+      for (const ind of customIndicators) {
+        for (const line of ind.lines || []) {
+          const key = `${ind.id}:${line.name}`
+          wanted.add(key)
+          if (!customSeriesRef.current[key]) {
+            customSeriesRef.current[key] = chartRef.current.addLineSeries({
+              color: ind.color || '#8899aa',
+              lineWidth: 1,
+              priceLineVisible: false,
+              lastValueVisible: false,
+              title: ind.label || 'custom',
+            })
+          }
+          customSeriesRef.current[key].setData(line.data || [])
+        }
+      }
+    }
+    for (const key of Object.keys(customSeriesRef.current)) {
+      if (!wanted.has(key)) {
+        chartRef.current?.removeSeries(customSeriesRef.current[key])
+        delete customSeriesRef.current[key]
+      }
+    }
+
     // Set trade markers from fills
     if (showMarkers && markersSeriesRef.current && fills?.length) {
       const candleTimes = new Set(candles.map(c => c.time))
@@ -260,7 +288,7 @@ const CandleChart = memo(function CandleChart({ candles, symbol, regime, fills, 
     } else if (markersSeriesRef.current) {
       markersSeriesRef.current.setMarkers([])
     }
-  }, [candles, activeIndicators, fills, showMarkers, symbol, selectedExchange])
+  }, [candles, activeIndicators, fills, showMarkers, symbol, selectedExchange, customIndicators])
 
   return (
     <div className="h-full flex flex-col">

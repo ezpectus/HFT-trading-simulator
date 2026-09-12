@@ -82,7 +82,7 @@ export default function App() {
           activeTab, setActiveTab, timeframe, setTimeframe,
           simSpeed, setSimSpeed, sidebarCollapsed, setSidebarCollapsed,
           mobilePanel, setMobilePanel, soundOn, setSoundOn,
-          EXCHANGES, SYMBOLS } = useUIStore()
+          customIndicators, EXCHANGES, SYMBOLS } = useUIStore()
 
   const isMobile = useIsMobile()
   const isTablet = useIsTablet()
@@ -218,7 +218,7 @@ export default function App() {
         <div className={'flex flex-col gap-px min-w-0 ' + (isMobile ? (mobilePanel === 'chart' ? 'flex-1' : 'hidden') : 'flex-1')}>
           <DetachablePanel panelId="chart" onDetach={handleDetach} isDetached={isDetached('chart')}>
             <div className="h-full">
-              <CandleChart candles={chartCandles} symbol={selectedSymbol} regime={signals.regime} fills={exchange.fills} selectedExchange={selectedExchange} />
+              <CandleChart candles={chartCandles} symbol={selectedSymbol} regime={signals.regime} fills={exchange.fills} selectedExchange={selectedExchange} customIndicators={customIndicators} />
             </div>
           </DetachablePanel>
           <div className={'bg-bg-800 overflow-hidden ' + (isMobile ? 'h-[180px]' : isTablet ? 'h-[160px]' : 'h-[200px]')}>
