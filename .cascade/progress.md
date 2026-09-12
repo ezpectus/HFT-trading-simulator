@@ -673,3 +673,7 @@ R25: S003 закрыт (16 комп: 4 wired real-data, 12 NoDataFeed; mock-data
 R26: S002 Done (остаток Math.random — легитимный MC; MarketDepthReplay jitter→deterministic). S030 Done (11 console.warn→IS_DEV, console.error оставлен). +5 hook/component test файла по требованию coverage gate. UI 122 files green.
 
 R26b: S033 fixed (sleeps→monotonic patch, 80 green). S018 fixed (monitor.py+ApiClient env URLs). S028/S017/S010/S009 → N/A после ревизии (идиомы/удалённые файлы/легитимный duck-typing).
+
+| 133 | 2026-09-12 | FIX R27 — S101: три CI lint-джобы красные на master (локальный gate проверяет только staged — коммиты проходили, CI гнил). ruff 29→0 (autofix + мёртвый scripts/pre-commit.py удалён — dead predecessor с фейковым --quick флагом). eslint 303→0: 268 no-unused-vars — обломки S003-пурджа (мёртвые пропсы/деструктуры/аккумуляторы); codemod fix_eslint_unused.py по 121 файлу + ручные починки каскадов (PtauCov_, calcATR, zMax, мёртвые helper-функции). clang-format -i: 66 файлов → 0 violations. S017-extension: 45 f-string logger calls в exchange_simulator → lazy %-args (fix_fstring_logs.py). Verified: ruff/eslint/clang-format 0, vitest 981/981, sim 366, build green. Files: ~175 (web-ui components + hft headers + sim + scripts) | Status: Done |
+
+R27: S008 Done (type:ignore=0: var.py ModuleType|None, helpers assert). S006 топ-3 spec (63/156: signal_publisher websockets, real_account _CCXT_SURFACE names, metrics_server asyncio stdlib).
