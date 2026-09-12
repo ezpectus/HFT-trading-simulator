@@ -93,6 +93,11 @@
 | **S078** | ai-signal-bot: `fix_client.py` + `notifier.py` + `socket_transport.py` — ещё ~1000 строк мёртвых островов | `communication/fix_client.py` (459) — полный FIX 4.4 клиент (logon/heartbeat/resend/execution reports) — импортируется ТОЛЬКО `test_fix_client.py`. `notification/notifier.py` (384) — только мёртвый `funding_arb_detector` (S076) + свой тест. `networking/socket_transport.py` (164) — только свой тест; даже `fix_client` его не использует. FIX-история проекта мертва с ОБЕИХ сторон: C++ `src/fix/` (S060) и Python `fix_client.py` — никто не вызывает ни один. | High | [ ] Open |
 | **S079** | Два расходящихся helm-чарта: `helm/` и `deploy/helm/` | Оба дерева существуют с РАЗНЫМ набором templates: у `helm/` есть `ingress.yaml` + `network-policy.yaml`, у `deploy/helm/` — `jaeger.yaml` + `namespace.yaml`. `DEPLOYMENT.md` ссылается на корневой `./helm`. Ни один workflow/скрипт не ссылается ни на один — два источника истины, оба непроверяемые, расходятся молча. | Medium | [ ] Open |
 | **S080** | `audit/` (320K) + `hft-skills/` (20MB) — груз в репо | `audit/` — артефакты августовского мега-аудита (AUDIT_REPORT.md/PROGRESS.json/PROMPT.md) — застойный мусор рядом со свежей `.cascade/` системой. `hft-skills/` — 20MB skills-библиотека, 0 ссылок из кода — контент-дерево внутри торгового репо. | Info | [ ] Open |
+| **S081** | Sim: встречный ордер больше позиции — остаток испаряется | `_update_position` → `_close_position` закрывает `min(order.qty, pos.qty)` и возвращается — **перелёт не открывает встречную позицию**. Проверено живьём: BUY 1 BTC, потом SELL 3 BTC → `positions: 0`, fee снят со всех 3 BTC ($79.44), PnL посчитан по 1 BTC, шорт на 2 BTC молча потерян. Деньги испаряются без лога. `exchange_order_submission.py:344-391`. | **Critical** | [ ] Open |
+| **S082** | Sim: маржа никогда не резервируется — бесконечный левередж | `_check_margin_and_size` проверяет `notional/lev + fee > balance`, но **balance не дебетуется при открытии** — только fee. Каждая следующая позиция проверяется против того же незарезервированного баланса. Проверено: $10k баланс, lev=10 → открыто $200k notional в 5 позициях (реальный левередж 20x при заявленных 10x), баланс упал только на fee. `exchange_order_submission.py:282-297`. | High | [ ] Open |
+| **S083** | OCO-ордера полностью мертвы | `submit_order(oco_group_id=...)` принимает параметр, `OCOGroup` модель есть (`models.py:247`), `_oco_groups` dict создан (`exchange.py:71`) — но `add_order`/`on_fill` **никогда не вызываются**. Ордер с oco_group_id обрабатывается как обычный, группа не формируется. README рекламирует "OCO" как фичу. | Medium | [ ] Open |
+| **S084** | `exchange_simulator/exchange_simulator/` — вложенный пакет + sys.path хак | Внешний `__init__.py` мутирует `sys.path` (добавляет обе директории), потом `importlib.import_module` по КОРОТКОМУ имени + `sys.modules["exchange_simulator.X"] = mod` алиасинг. У каждого модуля 2-3 импорт-идентичности (`arbitrage`, `exchange_simulator.arbitrage`, `exchange_simulator.exchange_simulator.arbitrage`). ImportError в любом модуле проглатывается в `logger.debug` — модуль молча отсутствует в namespace. | Medium | [ ] Open |
+| **S085** | SL/TP/ликвидация: REJECTED ордер переписывается в FILLED + ворует чужую trade_history запись | `_close_triggered_position` (`exchange_liquidation.py:95-104`): `submit_order` при `mid_price==0` возвращает REJECTED → код **безусловно** ставит `order.status = FILLED`, потом `self.account.trade_history[-1].reason = reason` — но rejection не добавлял trade → помечается ПОСЛЕДНЯЯ ЧУЖАЯ сделка как "LIQUIDATION"/"STOP_LOSS". Позиция остаётся открытой (повторная попытка каждый тик), история отравлена. | High | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -161,6 +166,8 @@
 - `llm_engine/engine.py` — РЕАЛЬНЫЙ LLM-клиент: openai/anthropic HTTP через aiohttp, rate-limit, LRU-кэш, rule-based fallback при provider=none/нет ключа — wired в run.py:116/148
 - `terraform/` — настоящие .tf модули (eks/rds/elasticache + env-mains), задокументированы в DEPLOYMENT.md
 - shm_* + ws_client + signal_publisher в communication/ — живые (wired в run.py)
+- exchange_simulator: qty=NaN/≤0/over-limit отклоняются корректно, SL/TP default 2%/4% ставятся, partial-liquidation PnL формула верна, insurance fund покрывает дефицит, ликвидационные цены `entry*(1∓1/lev±mmr)` — канонические
+- лимит-ордера корректно уходят в PENDING когда цена не проходит fill_price
 
 ---
 
@@ -171,7 +178,7 @@
 3. **S004** — переписать топ-10 тестовых файлов с `assert len(` на проверку значений.
 4. **S005–S007** — механическая чистка: `enumerate`, `autospec=True`, `monotonic()`.
 5. **Infra** — `.git/hooks/pre-commit` — batch-скрипт, git не может его spawn'ить (работает только `scripts/pre-commit-check.py --staged` вручную). Переписать hook как `.sh`.
-6. **S062 (Critical)** — `pos_mgr.open_position()` после `submit_order` безусловно, 3 сайта в `bot_loop.cpp` — фантомные позиции когда WS не подключён.
+6. **S062 (Critical)** — `pos_mgr.open_position()` после `submit_order` безусловно, 3 сайта в `bot_loop.cpp` — фантомные позиции когда WS не подключён. **S081 (Critical)** — sim: встречный ордер больше позиции теряет остаток (fee снят, шорт не открыт).
 7. **S058–S061** — dead code в hft: Rust-крейт hft-executor (584 строки, 0 вызовов), SmartOrderRouterV2+6 адаптеров (route() не вызывается), src/fix/ (979 строк), mapped_persistence.h (371). Удалить или встроить.
 8. **S063–S065** — Rust submit/queue/latency семантика, arb ноги без хеджа, v1 synthetic book без warn.
 9. **S066–S067 (infra)** — nightly-backtest — детерминированный театр (seed=42, warning-only, failure() недостижим); deploy health-check бьёт в :9090 вместо :9092.
@@ -179,3 +186,4 @@
 11. **S074–S075 (docs)** — REST_API.md документирует ~15 несуществующих endpoint'ов (переписать под реальные или удалить); README диаграмма/фичи рекламируют мёртвый Rust FFI, FIX, SOR, mapped persistence.
 12. **S076–S077 (docs+dead code)** — README: "13 strategies" (реально ≤7), prod-порты :8080/:9099 не опубликованы; exchange_simulator price_feed_* (953 строки) + health.py — мёртвые острова, удалить или встроить.
 13. **S078–S079 (dead code)** — fix_client/notifier/socket_transport ~1000 строк мёртвы (FIX мёртв с обеих сторон); два расходящихся helm-чарта — выбрать канонический, удалить второй.
+14. **S082/S085 (sim accounting)** — резервировать маржу при открытии; в `_close_triggered_position` не форсить FILLED при rejection и не трогать чужую trade_history[-1]. S083 OCO — реализовать группировку или убрать param+рекламу.

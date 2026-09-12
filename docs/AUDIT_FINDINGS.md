@@ -797,3 +797,25 @@ Rotation target: un-audited ai-signal-bot subdirs (communication/networking/noti
 - `llm_engine/engine.py` — REAL: OpenAI/Anthropic via aiohttp, rate-limit, LRU cache, rule-based fallback; wired in run.py:116/148
 - shm_* producers/consumers + ws_client + signal_publisher — live in run.py
 - terraform/ — real .tf modules, documented in DEPLOYMENT.md
+
+## Round 11 — audit branch: exchange_simulator core (matching/liquidation/orders)
+
+Rotation target: exchange internals — order submission, liquidation, advanced orders, package structure. Empirically verified two accounting bugs by running the sim.
+
+### New findings S081–S085
+
+**S081 — Opposite-side order larger than the position silently drops the residual (VERIFIED).** `_update_position` → `_close_position` closes `min(order.qty, pos.qty)` and returns. Live repro: BUY 1 BTC then SELL 3 BTC → `positions: 0` — fee charged on all 3 BTC ($79.44), PnL booked for 1, the 2-BTC short never opens. Money evaporates with no log. `exchange_order_submission.py:344-391`.
+
+**S082 — Margin is never reserved; effective leverage is unbounded (VERIFIED).** `_check_margin_and_size` checks `notional/lev + fee > balance` but balance is never debited on open — only the fee. Every subsequent position is checked against the same un-reserved balance. Live repro: $10k balance, lev=10 → opened $200k notional across 5 symbols (real leverage 20x on a 10x cap); balance dropped by fees only. `exchange_order_submission.py:282-297`.
+
+**S083 — OCO orders are dead code.** `submit_order(oco_group_id=...)` accepts the param, `OCOGroup` model + `on_fill` cancel logic exist (`models.py:247`), `_oco_groups` dict is created (`exchange.py:71`) — but `add_order`/`on_fill` are never called. An order carrying oco_group_id processes as a normal order; the group never forms. README advertises OCO.
+
+**S084 — Nested `exchange_simulator/exchange_simulator/` package + sys.path surgery.** Outer `__init__.py` mutates `sys.path` (adds both dirs), imports nested modules by SHORT name via importlib, then aliases `sys.modules["exchange_simulator.X"]`. Each module has 2-3 import identities; an `ImportError` inside any module is swallowed to `logger.debug` — the module silently vanishes from the namespace.
+
+**S085 — SL/TP/liquidation path forces REJECTED → FILLED and mislabels someone else's trade.** `_close_triggered_position` (`exchange_liquidation.py:95-104`): when `mid_price==0` the close order comes back REJECTED; the code unconditionally sets `order.status = FILLED` and then writes `trade_history[-1].reason = reason` — but the rejection appended no trade, so it retags the LAST UNRELATED trade as LIQUIDATION/STOP_LOSS. Position stays open (retries every tick), history is poisoned.
+
+### ЧИСТО (exchange core)
+
+- NaN/≤0/oversize quantity correctly rejected; limit orders go PENDING when price doesn't cross
+- Partial-liquidation PnL math correct; insurance-fund deficit cover works; liq prices canonical `entry*(1∓1/lev±mmr)`
+- Default SL/TP (2%/4%) applied on every new position — intended sim behavior, honestly auto-armed
