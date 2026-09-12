@@ -1,5 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 const SCHEMA_VERSION = 1
 const MAX_SNAPSHOTS = 5000
 const SNAPSHOT_INTERVAL_MS = 1000
@@ -44,7 +46,7 @@ export function useSessionRecorder() {
       const saved = localStorage.getItem('trading-sim-session-recordings')
       if (saved) setSavedRecordings(JSON.parse(saved))
     } catch (e) {
-      console.warn('[SessionRecorder] Failed to load recordings:', e)
+      if (IS_DEV) console.warn('[SessionRecorder] Failed to load recordings:', e)
     }
   }, [])
 
@@ -53,7 +55,7 @@ export function useSessionRecorder() {
     try {
       localStorage.setItem('trading-sim-session-recordings', JSON.stringify(recordings))
     } catch (e) {
-      console.warn('[SessionRecorder] Failed to persist:', e)
+      if (IS_DEV) console.warn('[SessionRecorder] Failed to persist:', e)
     }
   }, [])
 

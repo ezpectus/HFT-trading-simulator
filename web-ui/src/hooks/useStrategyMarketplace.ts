@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 const STORAGE_KEY = 'trading-sim-strategy-marketplace'
 const SCHEMA_VERSION = 1
 
@@ -119,7 +121,7 @@ export function useStrategyMarketplace() {
         setImportedStrategies(parsed)
       }
     } catch (e) {
-      console.warn('[StrategyMarketplace] Failed to load:', e)
+      if (IS_DEV) console.warn('[StrategyMarketplace] Failed to load:', e)
     }
     setStrategies(DEFAULT_STRATEGIES)
   }, [])
@@ -129,7 +131,7 @@ export function useStrategyMarketplace() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     } catch (e) {
-      console.warn('[StrategyMarketplace] Failed to save:', e)
+      if (IS_DEV) console.warn('[StrategyMarketplace] Failed to save:', e)
     }
   }, [])
 

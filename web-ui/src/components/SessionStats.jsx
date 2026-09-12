@@ -1,6 +1,8 @@
 import { memo, useMemo, useState, useEffect } from 'react'
-import { Clock, TrendingUp, TrendingDown, Award, AlertCircle, Timer } from 'lucide-react'
+import { Clock, TrendingUp, TrendingDown, Award, Timer } from 'lucide-react'
 import { formatUsd } from '../utils/format'
+
+const IS_DEV = import.meta.env?.DEV ?? false
 
 const SESSION_KEY = 'trading-sim-session-start'
 
@@ -16,7 +18,7 @@ function SessionStats({ accounts, fills }) {
       }
       setSessionStart(parseInt(start))
     } catch (e) {
-      console.warn('[SessionStats] Failed to load session start:', e)
+      if (IS_DEV) console.warn('[SessionStats] Failed to load session start:', e)
       setSessionStart(Date.now())
     }
   }, [])
@@ -186,7 +188,7 @@ function SessionStats({ accounts, fills }) {
           onClick={() => {
             const now = Date.now()
             try { localStorage.setItem(SESSION_KEY, now.toString()) } catch (e) {
-              console.warn('[SessionStats] Failed to reset session:', e)
+              if (IS_DEV) console.warn('[SessionStats] Failed to reset session:', e)
             }
             setSessionStart(now)
           }}

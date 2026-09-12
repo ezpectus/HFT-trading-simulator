@@ -2,6 +2,8 @@ import { memo, useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, BellRing, Plus, X, TrendingUp, TrendingDown, Volume2, VolumeX } from 'lucide-react'
 import { formatPrice } from '../utils/format'
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 export default memo(function PriceAlerts({ currentPrice, symbol, exchange, onAlert }) {
   const [alerts, setAlerts] = useState([])
   const [showForm, setShowForm] = useState(false)
@@ -34,7 +36,7 @@ export default memo(function PriceAlerts({ currentPrice, symbol, exchange, onAle
         osc.stop(now + i * 0.15 + 0.12)
       }
     } catch (e) {
-      console.warn('[PriceAlerts] Sound playback failed:', e)
+      if (IS_DEV) console.warn('[PriceAlerts] Sound playback failed:', e)
     }
   }, [soundEnabled])
 

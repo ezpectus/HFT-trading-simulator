@@ -2,7 +2,7 @@ import { memo, useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Film, Play, Pause, SkipBack, SkipForward, Clock, Layers } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-function MarketDepthReplay({ candles, orderbooks, fills, symbol, exchange }) {
+function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, exchange }) {
   const [playing, setPlaying] = useState(false)
   const [currentIdx, setCurrentIdx] = useState(-1)
   const [speed, setSpeed] = useState(1)
@@ -35,11 +35,14 @@ function MarketDepthReplay({ candles, orderbooks, fills, symbol, exchange }) {
       for (let l = 0; l < levels; l++) {
         const bidPrice = midPrice - spread - l * spread * 1.5
         const askPrice = midPrice + spread + l * spread * 1.5
-        // Decay volume with distance
+        // Decay volume with distance; deterministic per-candle jitter so the
+        // reconstructed book is stable across renders for the same candle
         const decay = Math.exp(-l * 0.3)
         const baseVol = c.volume * 0.1 * decay
-        bids.push({ price: bidPrice, quantity: baseVol * (0.8 + Math.random() * 0.4) })
-        asks.push({ price: askPrice, quantity: baseVol * (0.8 + Math.random() * 0.4) })
+        const bidJitter = 0.8 + 0.4 * (((c.timestamp * 31 + l * 7) % 97) / 97)
+        const askJitter = 0.8 + 0.4 * (((c.timestamp * 17 + l * 13) % 97) / 97)
+        bids.push({ price: bidPrice, quantity: baseVol * bidJitter })
+        asks.push({ price: askPrice, quantity: baseVol * askJitter })
       }
 
       // Imbalance

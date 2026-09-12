@@ -1,6 +1,8 @@
 import { memo, useState, useEffect } from 'react'
 import { Webhook, Plus, X, Check, TestTube } from 'lucide-react'
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 const WEBHOOK_KEY = 'trading-sim-webhooks'
 
 const EVENT_TYPES = [
@@ -24,14 +26,14 @@ export default memo(function AlertWebhook({ fills: _fills, toasts: _toasts }) {
       const saved = localStorage.getItem(WEBHOOK_KEY)
       if (saved) setWebhooks(JSON.parse(saved))
     } catch (e) {
-      console.warn('[AlertWebhook] Failed to load webhooks:', e)
+      if (IS_DEV) console.warn('[AlertWebhook] Failed to load webhooks:', e)
     }
   }, [])
 
   const saveWebhooks = (list) => {
     setWebhooks(list)
     try { localStorage.setItem(WEBHOOK_KEY, JSON.stringify(list)) } catch (e) {
-      console.warn('[AlertWebhook] Failed to save webhooks:', e)
+      if (IS_DEV) console.warn('[AlertWebhook] Failed to save webhooks:', e)
     }
   }
 
@@ -74,7 +76,7 @@ export default memo(function AlertWebhook({ fills: _fills, toasts: _toasts }) {
       })
       setTestStatus({ ...testStatus, [id]: 'ok' })
       setTimeout(() => setTestStatus(s => ({ ...s, [id]: undefined })), 3000)
-    } catch (_e) {
+    } catch {
       setTestStatus({ ...testStatus, [id]: 'error' })
       setTimeout(() => setTestStatus(s => ({ ...s, [id]: undefined })), 3000)
     }

@@ -1,5 +1,7 @@
 import { memo, useState, useEffect } from 'react'
-import { FlaskConical, Plus, X, Play, Save } from 'lucide-react'
+import { FlaskConical, Plus, X, Save } from 'lucide-react'
+
+const IS_DEV = import.meta.env?.DEV ?? false
 
 const CONDITIONS = [
   { id: 'price_above', label: 'Price above', param: 'value', unit: '$' },
@@ -33,7 +35,7 @@ export default memo(function StrategyBuilder({ currentPrice }) {
       const saved = localStorage.getItem(SAVED_KEY)
       if (saved) setSavedStrategies(JSON.parse(saved))
     } catch (e) {
-      console.warn('[StrategyBuilder] Failed to load strategies:', e)
+      if (IS_DEV) console.warn('[StrategyBuilder] Failed to load strategies:', e)
     }
   }, [])
 
@@ -54,7 +56,7 @@ export default memo(function StrategyBuilder({ currentPrice }) {
     const next = [...savedStrategies, entry].slice(-10)
     setSavedStrategies(next)
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)) } catch (e) {
-      console.warn('[StrategyBuilder] Failed to save strategy:', e)
+      if (IS_DEV) console.warn('[StrategyBuilder] Failed to save strategy:', e)
     }
   }
 
@@ -70,7 +72,7 @@ export default memo(function StrategyBuilder({ currentPrice }) {
     const next = savedStrategies.filter(s => s.id !== id)
     setSavedStrategies(next)
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)) } catch (e) {
-      console.warn('[StrategyBuilder] Failed to delete strategy:', e)
+      if (IS_DEV) console.warn('[StrategyBuilder] Failed to delete strategy:', e)
     }
   }
 

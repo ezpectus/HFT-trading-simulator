@@ -4,6 +4,8 @@
  * Functions for exporting audit logs to various formats (JSON, CSV)
  */
 
+const IS_DEV = import.meta.env?.DEV ?? false
+
 export function exportAuditLogsToJSON(logs) {
   const data = JSON.stringify(logs, null, 2)
   const blob = new Blob([data], { type: 'application/json' })
@@ -19,7 +21,7 @@ export function exportAuditLogsToJSON(logs) {
 
 export function exportAuditLogsToCSV(logs) {
   if (!logs || logs.length === 0) {
-    console.warn('No logs to export')
+    if (IS_DEV) console.warn('No logs to export')
     return
   }
 
