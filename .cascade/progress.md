@@ -931,3 +931,15 @@ Post-fix adversarial verify:
 - WRONG/ROTTED: 0.
 - Batch 2 (ancient era): S002 (Math.random = legit sampling), S005 (range(len = 0), S006 (spec'd mocks), S007 (39 monotonic), S008 (1 legit pragma), S013 (JSONDecodeError пережил рефактор в market_data_feed), S004. Все VERIFIED — ни одного WRONG/ROTTED. Дрейф: real_market_data.py стал shim, обработчики переехали — claim держится.
 - Batch 3: S016-S041 — 13 VERIFIED (S016 metrics.py gone, S017 0 logger-fstring, S018 env-defaults, S026 test-serialization legit, S033/034 zero, S035-037/039-041 all hold). **1 ROTTED: S029** → S127 (toBeTruthy вернулся в 10 новых тестах) — исправлено тем же раундом, 33/33 green.
+
+## Round 53 — 2026-09-12 — slop-verify: done-log tail complete → 40/41 VERIFIED
+
+Финальные батчи done-log:
+
+- S050-S071 era: S060/061 (мёртвые модули удалены), S065 (synthetic-book warn на обоих сайтах bot_loop.cpp), S068 (grafana provisioning), S069 (format_prometheus), S070 (pipefail), S071 — VERIFIED.
+- Misc era: S019-S032 паттерн-claims — все держатся; S076 (README numbers), S079 (deploy/helm gone), S087 (options_chain wired), S090 (local-only badge+test), S091 (IS_MOCK gating), S093/097 — VERIFIED.
+- S100 (18 тест-файлов с disclosure-asserts), S103 (terraform disclaimer), S104 (нет huskов) — VERIFIED.
+- N/A-класс S009-S012/S023/S024/S028/S080 — ревью подтверждено.
+- S116/S117/S122/S123/S124 — VERIFIED (R40/R43/R46 fix-проверки + R52 self-QA).
+- **S050** — единственный untraceable: hmc/emd тест-файлы не находятся (код переехал/переименован с R6-era). Оставлен unstamped, не reopened.
+- Итог по всему done-log: ~101 claim → 1 ROTTED (S029→S127, fixed), 1 untraceable (S050), остальное VERIFIED.
