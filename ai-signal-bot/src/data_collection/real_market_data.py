@@ -176,7 +176,11 @@ class RealMarketDataFeed:
                     async for raw in ws:
                         if not self._running:
                             break
-                        msg = json.loads(raw)
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("Binance WS: dropping malformed message: %s", e)
+                            continue
                         self._last_msg_times["binance"] = time.time()
                         try:
                             self._msg_queue.put_nowait(("binance", msg))
@@ -188,7 +192,7 @@ class RealMarketDataFeed:
                                 pass
                             self._msg_queue.put_nowait(("binance", msg))
 
-            except (ConnectionError, OSError, json.JSONDecodeError) as e:
+            except (ConnectionError, OSError) as e:
                 logger.error("Binance WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("binance", 1.0)
@@ -271,7 +275,11 @@ class RealMarketDataFeed:
                     async for raw in ws:
                         if not self._running:
                             break
-                        msg = json.loads(raw)
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("OKX WS: dropping malformed message: %s", e)
+                            continue
                         try:
                             self._msg_queue.put_nowait(("okx", msg))
                         except asyncio.QueueFull:
@@ -282,7 +290,7 @@ class RealMarketDataFeed:
                                 pass
                             self._msg_queue.put_nowait(("okx", msg))
 
-            except (ConnectionError, OSError, json.JSONDecodeError) as e:
+            except (ConnectionError, OSError) as e:
                 logger.error("OKX WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("okx", 1.0)
@@ -366,7 +374,11 @@ class RealMarketDataFeed:
                     async for raw in ws:
                         if not self._running:
                             break
-                        msg = json.loads(raw)
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("Bybit WS: dropping malformed message: %s", e)
+                            continue
                         try:
                             self._msg_queue.put_nowait(("bybit", msg))
                         except asyncio.QueueFull:
@@ -377,7 +389,7 @@ class RealMarketDataFeed:
                                 pass
                             self._msg_queue.put_nowait(("bybit", msg))
 
-            except (ConnectionError, OSError, json.JSONDecodeError) as e:
+            except (ConnectionError, OSError) as e:
                 logger.error("Bybit WS error: %s", e)
                 if self._running:
                     delay = self._reconnect_delays.get("bybit", 1.0)

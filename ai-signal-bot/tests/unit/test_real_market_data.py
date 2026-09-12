@@ -1,5 +1,6 @@
 """Tests for RealMarketDataFeed — data normalization, callbacks, reconnection config."""
 import asyncio
+import json
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -317,6 +318,51 @@ class TestBybitMessageHandling:
         assert candle.open == 50000.0
         assert candle.high == 50100.0
         assert candle.close == 50050.0
+
+
+class _FakeWs:
+    """Fake websocket connection yielding preset messages, then stopping the feed."""
+
+    def __init__(self, messages, feed):
+        self._messages = messages
+        self._feed = feed
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        self._feed._running = False  # prevent the outer reconnect loop
+        return False
+
+    def __aiter__(self):
+        async def gen():
+            for m in self._messages:
+                yield m
+        return gen()
+
+
+class TestMalformedMessages:
+    """S013: one malformed WS message must not kill the feed loop."""
+
+    @pytest.mark.asyncio
+    async def test_binance_drops_malformed_and_continues(self):
+        feed = RealMarketDataFeed(exchanges=["binance"])
+        feed._running = True
+        valid = json.dumps({
+            "stream": "btcusdt@bookTicker",
+            "data": {"s": "BTCUSDT", "b": "50000", "a": "50001", "T": 1700000000000},
+        })
+        msgs = ["{not valid json", valid, "also broken{{{"]
+        fake = _FakeWs(msgs, feed)
+
+        with patch("websockets.connect", return_value=fake):
+            await feed._run_binance(["BTCUSDT"], ["1m"])
+
+        # Only the valid message reached the queue — loop kept going
+        assert feed._msg_queue.qsize() == 1
+        exch, msg = feed._msg_queue.get_nowait()
+        assert exch == "binance"
+        assert msg["stream"] == "btcusdt@bookTicker"
 
 
 class TestOKXSymbolConversion:
