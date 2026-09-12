@@ -1,23 +1,6 @@
-import { memo, useMemo } from 'react'
-import { Activity, Zap, TrendingDown, Server, Wifi } from 'lucide-react'
+import { memo, useMemo, useRef } from 'react'
+import { Activity, Zap, Server, Wifi } from 'lucide-react'
 import { WarningBanner, Label, SectionTitle } from '../utils/ui-helpers'
-
-const MOCK_LATENCY_POINTS = Array.from({ length: 20 }, (_, i) => ({
-  t: i,
-  ws: 12 + Math.sin(i * 0.5) * 5 + Math.random() * 3,
-  order: 45 + Math.cos(i * 0.3) * 15 + Math.random() * 5,
-  data: 8 + Math.random() * 2,
-}))
-
-const MOCK_HOPS = [
-  { hop: 'Client → Gateway', latency: 2.1, status: 'good' },
-  { hop: 'Gateway → Matching Engine', latency: 0.8, status: 'good' },
-  { hop: 'Matching Engine → Risk Check', latency: 1.2, status: 'good' },
-  { hop: 'Risk Check → Order Submit', latency: 3.5, status: 'warning' },
-  { hop: 'Order Submit → Fill Confirm', latency: 8.7, status: 'warning' },
-  { hop: 'Fill → WS Broadcast', latency: 1.1, status: 'good' },
-  { hop: 'WS Broadcast → UI Render', latency: 5.3, status: 'warning' },
-]
 
 function statusColor(ms, good = 10, warn = 50) {
   if (ms <= good) return 'text-accent-green'
@@ -31,29 +14,37 @@ function statusBg(ms, good = 10, warn = 50) {
   return 'bg-accent-red'
 }
 
+const MAX_SAMPLES = 60
+
+/**
+ * Latency Monitor — real WS round-trip latency measured by useWebSocket
+ * (server timestamp → client receive time), accumulated into a rolling
+ * history for percentiles and the sparkline.
+ */
 const LatencyPanel = memo(function LatencyPanel({ exchange }) {
   const wsLatency = exchange?.latency ?? 0
   const connected = exchange?.connected ?? false
 
-  const stats = useMemo(() => {
-    const wsPoints = MOCK_LATENCY_POINTS.map(p => p.ws)
-    const orderPoints = MOCK_LATENCY_POINTS.map(p => p.order)
-    const allPoints = [...wsPoints, ...orderPoints]
-    return {
-      wsAvg: wsPoints.reduce((s, v) => s + v, 0) / wsPoints.length,
-      wsMin: Math.min(...wsPoints),
-      wsMax: Math.max(...wsPoints),
-      orderAvg: orderPoints.reduce((s, v) => s + v, 0) / orderPoints.length,
-      orderMin: Math.min(...orderPoints),
-      orderMax: Math.max(...orderPoints),
-      p50: allPoints.sort((a, b) => a - b)[Math.floor(allPoints.length * 0.5)],
-      p95: allPoints.sort((a, b) => a - b)[Math.floor(allPoints.length * 0.95)],
-      p99: allPoints.sort((a, b) => a - b)[Math.floor(allPoints.length * 0.99)],
-    }
-  }, [])
+  // Rolling sample history — appended on each render where latency changed
+  const historyRef = useRef([])
+  const lastVal = historyRef.current[historyRef.current.length - 1]
+  if (connected && wsLatency > 0 && wsLatency !== lastVal) {
+    historyRef.current = [...historyRef.current.slice(-(MAX_SAMPLES - 1)), wsLatency]
+  }
+  const samples = historyRef.current
 
-  const totalHops = MOCK_HOPS.reduce((s, h) => s + h.latency, 0)
-  const slowestHop = MOCK_HOPS.reduce((max, h) => h.latency > max.latency ? h : max, MOCK_HOPS[0])
+  const stats = useMemo(() => {
+    if (!samples.length) return null
+    const sorted = [...samples].sort((a, b) => a - b)
+    return {
+      wsAvg: samples.reduce((s, v) => s + v, 0) / samples.length,
+      wsMin: sorted[0],
+      wsMax: sorted[sorted.length - 1],
+      p50: sorted[Math.floor(sorted.length * 0.5)],
+      p95: sorted[Math.floor(sorted.length * 0.95)],
+      p99: sorted[Math.floor(sorted.length * 0.99)],
+    }
+  }, [samples])
 
   return (
     <div className="p-3 bg-bg-800 text-gray-200 text-xs space-y-2">
@@ -64,7 +55,7 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
         <div className="p-2 bg-bg-700 border border-bg-600">
           <div className="flex items-center gap-1 mb-0.5">
             <Wifi size={10} className="text-accent-blue" />
-            <span className="text-[9px] text-gray-600">WS</span>
+            <span className="text-[9px] text-gray-600">WS RTT</span>
           </div>
           <span className={`text-sm font-mono font-bold ${statusColor(wsLatency)}`}>
             {wsLatency.toFixed(1)}ms
@@ -73,93 +64,76 @@ const LatencyPanel = memo(function LatencyPanel({ exchange }) {
         <div className="p-2 bg-bg-700 border border-bg-600">
           <div className="flex items-center gap-1 mb-0.5">
             <Server size={10} className="text-accent-purple" />
-            <span className="text-[9px] text-gray-600">Order</span>
+            <span className="text-[9px] text-gray-600">Avg</span>
           </div>
-          <span className={`text-sm font-mono font-bold ${statusColor(stats.orderAvg)}`}>
-            {stats.orderAvg.toFixed(1)}ms
+          <span className={`text-sm font-mono font-bold ${stats ? statusColor(stats.wsAvg) : 'text-gray-500'}`}>
+            {stats ? `${stats.wsAvg.toFixed(1)}ms` : '—'}
           </span>
         </div>
         <div className="p-2 bg-bg-700 border border-bg-600">
           <div className="flex items-center gap-1 mb-0.5">
             <Activity size={10} className="text-accent-green" />
-            <span className="text-[9px] text-gray-600">Data</span>
+            <span className="text-[9px] text-gray-600">Samples</span>
           </div>
-          <span className="text-sm font-mono font-bold text-accent-green">
-            8.2ms
+          <span className="text-sm font-mono font-bold text-gray-300">
+            {samples.length}
           </span>
         </div>
       </div>
 
-      {/* Percentiles */}
-      <div className="p-2 bg-bg-700 border border-bg-600">
-        <Label className="mb-1">Latency Percentiles</Label>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] text-gray-600">p50</span>
-            <span className="text-[11px] font-mono text-accent-green">{stats.p50.toFixed(1)}ms</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] text-gray-600">p95</span>
-            <span className="text-[11px] font-mono text-accent-yellow">{stats.p95.toFixed(1)}ms</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] text-gray-600">p99</span>
-            <span className="text-[11px] font-mono text-accent-red">{stats.p99.toFixed(1)}ms</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Sparkline */}
-      <div className="p-2 bg-bg-700 border border-bg-600">
-        <Label className="mb-1">WS Latency Trend</Label>
-        <div className="flex items-end gap-0.5 h-12">
-          {MOCK_LATENCY_POINTS.map((p, i) => (
-            <div
-              key={i}
-              className={`flex-1 ${statusBg(p.ws)} opacity-70`}
-              style={{ height: `${(p.ws / stats.wsMax) * 100}%` }}
-            />
-          ))}
-        </div>
-        <div className="flex justify-between mt-0.5 text-[8px] text-gray-600">
-          <span>{stats.wsMin.toFixed(1)}ms min</span>
-          <span>{stats.wsMax.toFixed(1)}ms max</span>
-        </div>
-      </div>
-
-      {/* Network hops */}
-      <div>
-        <Label className="mb-1">Network Hops</Label>
-        <div className="space-y-0.5">
-          {MOCK_HOPS.map((hop, i) => (
-            <div key={i} className="flex items-center justify-between py-0.5 px-1.5 bg-bg-700">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[9px] text-gray-600 w-4">{i + 1}</span>
-                <span className="text-[10px] text-gray-400 truncate">{hop.hop}</span>
+      {!stats ? (
+        <div className="text-gray-500 text-[10px] p-2">Collecting latency samples from the live WebSocket feed…</div>
+      ) : (
+        <>
+          {/* Percentiles */}
+          <div className="p-2 bg-bg-700 border border-bg-600">
+            <Label className="mb-1">WS Latency Percentiles</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-gray-600">p50</span>
+                <span className="text-[11px] font-mono text-accent-green">{stats.p50.toFixed(1)}ms</span>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className={`text-[10px] font-mono ${statusColor(hop.latency, 2, 5)}`}>
-                  {hop.latency.toFixed(1)}ms
-                </span>
-                <div className={`w-1.5 h-1.5 rounded-full ${hop.status === 'good' ? 'bg-accent-green' : 'bg-accent-yellow'}`} />
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-gray-600">p95</span>
+                <span className="text-[11px] font-mono text-accent-yellow">{stats.p95.toFixed(1)}ms</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[9px] text-gray-600">p99</span>
+                <span className="text-[11px] font-mono text-accent-red">{stats.p99.toFixed(1)}ms</span>
               </div>
             </div>
-          ))}
-        </div>
-        <div className="flex items-center justify-between mt-1 px-1.5 text-[10px]">
-          <span className="text-gray-600">Total Round Trip</span>
-          <span className={`font-mono font-bold ${statusColor(totalHops, 15, 30)}`}>
-            {totalHops.toFixed(1)}ms
-          </span>
-        </div>
-      </div>
+          </div>
 
-      {/* Slowest hop alert */}
-      {slowestHop.latency > 5 && (
-        <WarningBanner icon={TrendingDown} color="text-accent-yellow">
-          Slowest: {slowestHop.hop} ({slowestHop.latency.toFixed(1)}ms)
-        </WarningBanner>
+          {/* Sparkline */}
+          <div className="p-2 bg-bg-700 border border-bg-600">
+            <Label className="mb-1">WS Latency Trend (live)</Label>
+            <div className="flex items-end gap-0.5 h-12">
+              {samples.map((v, i) => (
+                <div
+                  key={i}
+                  className={`flex-1 ${statusBg(v)} opacity-70`}
+                  style={{ height: `${(v / (stats.wsMax || 1)) * 100}%` }}
+                />
+              ))}
+            </div>
+            <div className="flex justify-between mt-0.5 text-[8px] text-gray-600">
+              <span>{stats.wsMin.toFixed(1)}ms min</span>
+              <span>{stats.wsMax.toFixed(1)}ms max</span>
+            </div>
+          </div>
+
+          {/* Slow spike alert */}
+          {stats.wsMax > 50 && (
+            <WarningBanner icon={Zap} color="text-accent-yellow">
+              Latency spike: {stats.wsMax.toFixed(1)}ms max observed
+            </WarningBanner>
+          )}
+        </>
       )}
+
+      <div className="text-[8px] text-gray-600 pt-1 border-t border-bg-600">
+        Measured: server message timestamp → browser receive. Order-path hops are not instrumented server-side.
+      </div>
     </div>
   )
 })

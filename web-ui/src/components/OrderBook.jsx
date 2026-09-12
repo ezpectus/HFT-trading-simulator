@@ -38,12 +38,13 @@ const OrderBook = memo(function OrderBook({ exchange, symbol, currentPrice, orde
     const synAsks = []
     let cumBid = 0, cumAsk = 0
 
+    // Deterministic synthetic book (no live book for this pair) — estimated shape only
     for (let i = 0; i < depth; i++) {
       const bidPrice = currentPrice - halfSpread * (1 + i * 1.1)
       const askPrice = currentPrice + halfSpread * (1 + i * 1.1)
       const decay = Math.pow(0.92, i)
-      const bidQty = (0.5 + Math.random() * 0.5) * decay * 2
-      const askQty = (0.5 + Math.random() * 0.5) * decay * 2
+      const bidQty = 0.75 * decay * 2
+      const askQty = 0.75 * decay * 2
       cumBid += bidQty
       cumAsk += askQty
       synBids.push({ price: bidPrice, qty: bidQty, total: cumBid })
