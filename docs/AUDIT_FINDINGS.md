@@ -1371,3 +1371,9 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - **S122 (Medium) → Open.** `scripts/docker-smoke-test.sh` (+ `.bat` twin): zero references — `ci.yml` `docker-smoke` job inlines its own checks against the **correct** ports (sim 8775 = WS+10, ai-bot 9090, hft 9091, web-ui 3000 — all matching compose healthchecks). The script instead curls `http://localhost:8765/health` and `:8766/health` — pure WebSocket ports with no HTTP listener — so a healthy stack always reports "failed". Fix ports or delete.
 - **S123 (Low) → Open.** `scripts/fix_eslint_unused.py` + `fix_fstring_logs.py`: one-shot codemods from S101 (eslint 257-site codemod); only "references" are audit-log mentions. Same class as S104 dead hooks.
 - **Verified clean:** CI↔compose health ports fully consistent; prometheus job_names ↔ alert `up{job}` selectors ↔ scrape targets; all 13 alert-`expr` metrics actually emitted (`metrics.py`, `ws_prometheus.py`); every web-ui dependency imported; `deploy.sh` post-S109 consistent (atomic swap over SQLite data dirs); `ebpf_monitor.py` standalone diagnostic as documented; zero CI/script refs to deleted postgres/redis/terraform.
+
+## Round 43 — 2026-09-12 — fix S122 + S123
+
+- **S122 (Medium) → Done.** Repaired `docker-smoke-test.{sh,bat}`: health checks now hit the real HTTP endpoints (sim :8775, ai-bot :9090, web-ui `/health`) matching compose healthchecks and the CI `docker-smoke` job; service summary prints `ws://` URLs for the WebSocket ports.
+- **S123 (Low) → Done.** Deleted `fix_eslint_unused.py` + `fix_fstring_logs.py` — spent one-shot codemods.
+- Board: **Open = 0.**

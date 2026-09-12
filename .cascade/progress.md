@@ -820,3 +820,9 @@ No WRONG/ROTTED entries — nothing reopened.
 - **S122 (new, Medium, open):** `scripts/docker-smoke-test.{sh,bat}` — 0 refs; CI имеет свой inline smoke с правильными портами (8775/9090/9091/3000 = compose healthchecks), а скрипт curl-ит WS-порты 8765/8766 без HTTP /health → всегда фейлит здоровый стек. Fix-or-delete.
 - **S123 (new, Low, open):** `fix_eslint_unused.py` + `fix_fstring_logs.py` — одноразовые codemod-скрипты из S101, refs только в аудит-логах. Delete-кандидаты.
 - ЧИСТО: prometheus.yml job_names ↔ alerts up{} ↔ targets ↔ реальные порты; все 13 метрик в alerts.yml эмитятся; web-ui deps все импортируются; deploy.sh корректен post-S109 (atomic swap SQLite); ebpf_monitor = documented standalone; нет CI-ссылок на удалённый postgres/redis/terraform.
+
+## Round 43 — 2026-09-12 — slop-fix S122+S123 (обе маленькие, без product-решения)
+
+- **S122 → Done:** smoke-test починен — порты приведены к CI/compose (sim 8775, ai-bot 9090, web-ui /health), summary-блок печатает ws:// для 8765/8766. `bash -n` синтаксис ок.
+- **S123 → Done:** `fix_eslint_unused.py` + `fix_fstring_logs.py` удалены (git rm) — одноразовые codemods, доказанная мёртвость.
+- Беклог пуст: board Открыто = 0.
