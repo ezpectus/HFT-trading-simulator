@@ -401,16 +401,6 @@ audit:
   max_memory_entries: 100000
   log_file_path: /var/log/hft/audit.log
   enable_file_logging: true
-
-# Enable price feed
-price_feed:
-  enabled: true
-  hybrid_mode: true
-  apis:
-    binance:
-      enabled: true
-      priority: 1
-      rate_limit: 1200
 ```
 
 **AI Signal Bot (`ai-signal-bot/config/settings.prod.yaml`):**
@@ -742,10 +732,6 @@ websocket:
 # Optimize order book depth
 market:
   order_book_depth: 10  # Reduce from 20
-
-# Enable caching
-price_feed:
-  cache_ttl: 10  # Increase from 5
 ```
 
 ### HFT Trade Bot

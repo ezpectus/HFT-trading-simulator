@@ -59,31 +59,27 @@ trading-system-lite/
 │   │   ├── __init__.py
 │   │   ├── __main__.py     # Entry point
 │   │   ├── market_simulator.py
-│   │   ├── market_microstructure.py
 │   │   ├── exchange.py
-│   │   ├── options.py
-│   │   ├── liquidation.py
+│   │   ├── exchange_liquidation.py
+│   │   ├── options_simulator.py
 │   │   └── ...
-│   ├── tests/              # 36 test files
+│   ├── tests/              # 28 test files
 │   ├── config/
 │   └── requirements.txt
 ├── ai-signal-bot/          # Python — AI trading signals
 │   ├── src/
-│   │   ├── strategies/     # 10+ trading strategies
+│   │   ├── strategies/     # 12 strategy modules
 │   │   ├── risk/           # VaR, CVaR, Kelly, stress tests
 │   │   ├── backtesting/    # Full backtest engine
-│   │   ├── ml/             # ML models (PPO, LSTM, Transformer)
-│   │   ├── research/       # 34 quant research modules
 │   │   ├── portfolio/      # Markowitz, BL, Risk Parity
-│   │   ├── technical_analysis/  # 18 TA modules
-│   │   ├── communication/  # WebSocket, FIX, SHM IPC
+│   │   ├── technical_analysis/  # 5 TA modules
+│   │   ├── communication/  # WebSocket, SHM IPC
 │   │   ├── monitoring/     # Metrics, alerting, health
 │   │   ├── observability/  # Tracing, logging
 │   │   ├── llm_engine/     # LLM for signal explanations
-│   │   ├── notification/   # Telegram, email, Discord
 │   │   ├── database/       # SQLite, models, migrations
 │   │   └── ...
-│   ├── tests/              # 118 test files
+│   ├── tests/              # 88 test files
 │   ├── config/
 │   └── requirements.txt
 ├── hft-trade-bot/          # C++20 — low-latency execution engine
@@ -91,8 +87,8 @@ trading-system-lite/
 │   │   ├── strategies/     # Signal Engine V2/V3
 │   │   ├── core/           # Order management, risk
 │   │   ├── data/           # Market data handlers
-│   │   └── communication/  # WebSocket, SHM, FIX
-│   ├── tests/              # 46 test files (doctest)
+│   │   └── communication/  # WebSocket, SHM
+│   ├── tests/              # 25 test files (doctest)
 │   ├── config/
 │   ├── CMakeLists.txt
 │   └── pch.h
@@ -133,8 +129,7 @@ trading-system-lite/
 | WebSocket | Exchange → AI Bot, HFT, UI | JSON over WS | ~1-5ms |
 | WebSocket | AI Bot → HFT, UI | JSON over WS | ~1-5ms |
 | Shared Memory (SHM) | AI Bot → HFT | SPSC ring buffer | ~10-50μs |
-| FIX 4.4 | HFT → Exchange | FIX protocol over TCP | ~100μs |
-| FFI (C ABI) | HFT (C++) → Executor (Rust) | Function call | ~1μs |
+| WebSocket | HFT → Exchange | Order execution over WS | ~1-5ms |
 | HTTP /metrics | All → Prometheus | Prometheus exposition | 15s scrape |
 
 ### SHM IPC (Shared Memory)

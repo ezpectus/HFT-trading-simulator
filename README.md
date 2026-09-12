@@ -100,8 +100,6 @@ Open **http://localhost:3000**.
 - Backtesting engine with walk-forward validation
 - Risk management: VaR, CVaR, Kelly criterion, stress tests
 - Portfolio optimization: Markowitz, Black-Litterman, risk parity
-- Research library (`research/`, `src/ml/`): experimental quant/ML modules —
-  present in the repo but not wired into the live signal loop (see audit S092/S095)
 
 ### HFT Trade Bot (C++20)
 - Signal Engine V2: 6-indicator weighted composite (EMA, RSI, ADX, VWAP, OBI, Pressure)
@@ -172,8 +170,6 @@ hft-trading-system/
 │   │   ├── backtesting/         # Backtester, optimizer, walk-forward
 │   │   ├── risk/                # VaR, CVaR, Kelly, stress tests
 │   │   ├── portfolio/           # Markowitz, BL, risk parity
-│   │   ├── ml/                  # Experimental ML modules (not wired — S092)
-│   │   ├── research/            # Experimental quant library (not wired — S095)
 │   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine

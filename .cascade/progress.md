@@ -705,3 +705,9 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 - **S103 (Medium, open):** doc drift — ~67 refs to deleted pkgs in 7 docs; worst: theory/module_guide_en.md (30), DEPLOYMENT price_feed YAML config (silently ignored if set).
 - **S104 (Low, open):** dead residue — 4 empty pkg husks (ml/research/notification/networking, 68 stale .pyc) + 2 dead web-ui hooks (usePrevious, useStatusMap).
 - ЧИСТО +14 patterns: async-no-await (27, all signature-bound), getattr-no-default, unbounded caches, seeded RNG, json.loads guards, dead classes/headers, skip-no-reason, infra drift — all clean.
+
+## Round 30b — 2026-04-24
+
+- **S104 → Done:** 4 pkg husks + 68 stale .pyc deleted; usePrevious/useStatusMap git rm'd; README tree+bullet fixed.
+- **S103 → Done:** live docs surgically cleaned (DEPLOYMENT price_feed YAML ×2, ARCHITECTURE module, TESTING inventory 12 dead names + real counts 117/88/28/25/120, DEV_GUIDE tree+comms table); theory/*.md + REFACTORING_PLAN bannered (gitignored local docs).
+- Open: S014/S015/S020 god-file splits (product decision; S020 split in-flight).

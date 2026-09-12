@@ -92,9 +92,9 @@ The system has **362 test files** across three languages:
 
 ---
 
-## Python Tests (193 files)
+## Python Tests (117 files)
 
-### AI Signal Bot (155 files)
+### AI Signal Bot (88 files)
 
 **Unit tests** (`ai-signal-bot/tests/unit/`): 58 files covering:
 
@@ -104,38 +104,35 @@ The system has **362 test files** across three languages:
 | Risk | test_risk, test_risk_manager, test_cvar, test_kelly, test_position_sizing, test_portfolio_optimizer | VaR, CVaR, Kelly, stress tests |
 | Portfolio | test_markowitz, test_portfolio_modules | Markowitz, BL, risk parity, rebalancing |
 | Backtesting | test_backtest, test_backtester, test_backtest_engine, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_order_book_replay, test_pnl_calculator | Full backtesting pipeline |
-| ML | test_ml_modules, test_ml_models, test_ml_features, test_ml_ensemble_funding | LSTM, Transformer, DQN, feature store, model registry |
-| Communication | test_circuit_breaker, test_comm_circuit_breaker, test_fix_client, test_signal_publisher, test_shm_fill_consumer | WebSocket, FIX, SHM, circuit breaker |
+| ML | test_ml_features, test_ml_ensemble_funding | Feature engineering, ML ensemble funding |
+| Communication | test_circuit_breaker, test_comm_circuit_breaker, test_signal_publisher, test_shm_fill_consumer | WebSocket, SHM, circuit breaker |
 | Monitoring | test_alerting, test_health_check, test_health_server, test_metrics_server, test_monitoring_metrics, test_monitoring_llm, test_observability | Health, metrics, tracing, alerting |
-| Data | test_exchange_factory, test_real_account, test_real_exchange_client, test_real_market_data | Data collection |
-| Research | test_research_modules | Greeks hedging, attribution, genetic strategy |
-| Other | test_db, test_socket_transport, test_fft_analysis, test_indicators, test_notifier, test_bot_helpers | Database, networking, indicators |
+| Data | test_exchange_factory, test_real_account, test_real_market_data | Data collection |
+| Other | test_db, test_fft_analysis, test_indicators, test_bot_helpers | Database, indicators |
 
 **Integration tests** (`ai-signal-bot/tests/integration/`): 3 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution
 - `test_trading_flow.py` — Full trading cycle simulation
 
-**Root-level tests** (`ai-signal-bot/tests/`): 94 files
+**Root-level tests** (`ai-signal-bot/tests/`): 33 files (+ 52 in `tests/unit/`)
 - test_backtest, test_config_validator, test_fft, test_indicators, test_integration, test_kelly, test_ml, test_optimizer, test_order_book_replay, test_portfolio, test_portfolio_optimizer, test_risk, test_risk_manager, test_signal_publisher, test_strategies, test_validator
 
-### Exchange Simulator (36 files)
+### Exchange Simulator (28 files)
 
 **Unit tests** (`exchange_simulator/tests/`):
 
 | Category | Test Files |
 |----------|-----------|
 | Core engine | test_exchange, test_simulator, test_simulated_exchange, test_market_simulator |
-| Order types | test_advanced_order_types, test_order_book_realism |
+| Order types | test_advanced_order_types |
 | Options | test_options_pricing, test_options_simulator |
-| Microstructure | test_market_microstructure, test_spread_analytics |
-| Funding & Liquidation | test_funding_rate, test_funding_liquidation, test_liquidation_engine_v2, test_liquidation_depth |
-| Price feed | test_price_feed_apis, test_price_feed_manager, test_price_feed_models, test_price_feed_performance |
-| WebSocket | test_websocket_orderbook, test_websocket_server |
+| Funding & Liquidation | test_funding_liquidation, test_liquidation_depth |
+| WebSocket | test_websocket_orderbook, test_websocket_server, test_ws_message_handler |
 | Property-based | test_property_based (Hypothesis) |
 | Security | test_security (log injection, order validation, overflow) |
 | Load testing | test_load_10k, load_test_50_symbols |
 | Chaos | test_chaos_enhanced, test_chaos_reconnect |
-| Other | test_arbitrage, test_audit_logger, test_config_validator, test_correlation_funding, test_data_export, test_exchange_metrics, test_health, test_integration_dataflow, test_latency_simulation, test_models, test_visualizer |
+| Other | test_arbitrage, test_audit_logger, test_config_validator, test_correlation_funding, test_data_export, test_integration_dataflow, test_models, test_visualizer, test_visualizer_charts |
 
 ### Monitoring (2 files)
 
@@ -165,7 +162,7 @@ Uses Hypothesis for invariant testing:
 
 ---
 
-## C++ Tests (49 files)
+## C++ Tests (25 files)
 
 **Framework:** doctest (header-only, fast compilation)
 
@@ -192,9 +189,9 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## JavaScript Tests (120 files)
+## JavaScript Tests (125 files)
 
-### Unit Tests (116 files)
+### Unit Tests (120 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`

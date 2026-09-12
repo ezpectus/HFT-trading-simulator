@@ -199,7 +199,6 @@ The system implements production-grade observability across all components:
 - `websocket_server.py` — WebSocket data feed, arbitrage auto-execution, CSV trade logging, audit log streaming
 - `models.py` — Data structures (Candle, Order, Position, Account, ClosedTrade, AuditLog, StopLimitOrder, TrailingStopOrder, OCOGroup, IcebergOrder)
 - `audit_logger.py` — Thread-safe audit logging service with filtering, search, export
-- `price_feed_manager.py` — Multi-API price feed integration with failover, rate limiting, caching
 - `arbitrage.py` — Multi-exchange arbitrage detection
 - `config_validator.py` — Config validation with comprehensive error checking
 - `data_export.py` — CSV/Parquet data export

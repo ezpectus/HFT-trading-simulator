@@ -1191,3 +1191,19 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - web-ui mock infra — env-gated `VITE_MOCK_MODE`, disclosed — легитимна.
 
 **Verified:** все поиски sanity-checked на known-present строках; hit-context прочитан до классификации.
+
+---
+
+## Round 30b — S103/S104 fixed
+
+**S104 — Done.** Удалены 4 пустых package-хаска (`src/ml/`, `src/research/`, `src/notification/`, `src/networking/` — только `__pycache__`, 68 stale .pyc) + `usePrevious.js`/`useStatusMap.js` (0 импортов). README: убраны строки `ml/`/`research/` из дерева и буллет "Research library" — пакетов больше нет вообще, даже "not wired".
+
+**S103 — Done.** Live-доки вычищены хирургически:
+- `DEPLOYMENT.md` — удалены 2 YAML-блока `price_feed:` (enabled/hybrid_mode/apis, cache_ttl) — ключи молча игнорировались бы пользователем.
+- `ARCHITECTURE.md` — `price_feed_manager.py` убран из списка модулей sim'а.
+- `TESTING.md` — тест-инвентарь переписан: удалены имена 12 мёртвых тестовых файлов (`test_price_feed_*` ×4, `test_research_modules`, `test_notifier`, `test_socket_transport`, `test_fix_client`, `test_ml_modules/models`, `test_real_exchange_client`, `test_order_book_realism` и др.); счётчики исправлены на реальные: 193→**117** py, 155→**88** ai-bot, 36→**28** sim, 49→**25** cpp, 116→**120** js unit.
+- `DEVELOPMENT_GUIDE.md` — дерево: удалены `ml/` (PPO/LSTM/Transformer), `research/`, `notification/`; `communication/` "FIX" → WebSocket/SHM (fix_client удалён); устаревшие имена файлов sim'а (`options.py`/`liquidation.py`/`market_microstructure.py`) → реальные; таблица протоколов — удалены строки FIX 4.4 и Rust FFI (hft-executor удалён).
+- `docs/theory/*.md` (7 файлов, 89 refs) — **gitignored local docs**, не коммитятся; добавлен post-cleanup banner с перечнем удалённых модулей — теория остаётся референсом, ложь "код существует" убрана.
+- `REFACTORING_PLAN_10DAYS.md` — HISTORICAL banner (тоже untracked, local).
+
+**Verified:** residual grep = 0 в live-доках; deleted-file check прогнан по каждому имени в TESTING.md; banners вставлены после title строки, формат файлов не сломан.
