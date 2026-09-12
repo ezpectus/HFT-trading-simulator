@@ -756,3 +756,26 @@ Rotation target: infra. Verified every healthcheck/scrape/deploy path against co
 - All 4 prod Dockerfiles: multi-stage, non-root, pinned bases
 - All compose healthcheck endpoints verified against real code (/health exists on 8775/9090/9091/3000)
 - `release.yml`/`deploy.yml` — legit, secrets via secrets.*
+
+## Round 9 — audit branch: docs-vs-reality + dead code
+
+Rotation target: docs-vs-reality + dead code. Verified README/docs claims against actual code paths.
+
+### New findings S074–S077
+
+**S074 — REST_API.md documents ~15 endpoints that were never built.** Exchange sim: `/symbols`, `/orderbook/{s}`, `POST /orders`, `GET/DELETE /orders/{id}`, `/account`, `/trades`, `/candles/{s}` — the actual server registers only `/health` `/live` `/ready` `/metrics` (websocket_server.py:204-207). AI bot: `/strategies`, `/signals`, `POST /strategies/{id}/toggle`, `/backtest` — actual routes are `/health*` `/ready` `/live` `/metrics` (health_server.py:124-129, metrics.py:355-356). HFT bot: `/performance`, `/positions`, `POST /kill_switch` — actual: `/health` `/metrics` only (health_server.h:123-125). The doc even ships a rate-limit table for phantom endpoints. A spec for an API nobody implemented.
+
+**S075 — README's headline architecture is phantom.** The diagram claims `C++ Bot → [FFI 1us] → Rust → [WS 0.5ms] → Exchange` — the Rust executor is dead code (S058): zero C++ callers, not linked in CMake. The latency budget's FFI hop doesn't exist. Feature bullets advertise "FIX 4.4 protocol" (S060 dead module), "Memory-mapped persistence" (S061 dead file), "Smart Order Router: 5 strategies" (S059 — route() never called). The README describes a different system than the one that runs.
+
+**S076 — README numbers are wrong: prod ports, "13 strategies", "8-stage pipeline".** Prod table claims AI-bot `:8080` health (prod compose doesn't publish it) and Prometheus `:9099` (prod exposes 9090 internally only). "13 strategies" — `build_strategies` (bot_helpers.py:39-58) instantiates at most 6 + StatArb; `CrossExchangeArbEngine` (cross_exchange_arb.py:93), `FundingRateArbitrageDetector` (funding_arb_detector.py:74) and `StrategyMarketplace` (marketplace.py:54) have zero non-test callers and aren't exported via `__init__.py`. "8-stage pipeline" — no pipeline module exists; run.py is an informal loop.
+
+**S077 — Dead-code islands in exchange_simulator: 1120 lines.** `price_feed_apis.py` (416) + `price_feed_manager.py` (329) + `price_feed_models.py` (208): a "multi-API real-time price feed" subsystem with failover and rate limiting — imported only by each other and 4 own test files; zero production callers. `health.py` (167): self-declared deprecated FastAPI module ("not used in production… will be removed") kept alive by test_health.py — tests for dead code. Irony: the only subsystem capable of pulling real prices is dead while the simulator synthesizes GBM.
+
+### ЧИСТО (docs-vs-reality, dead code)
+
+- README counts verified exact: 278 registry panels, 289 components, 116 vitest files
+- EnsembleVoter, CircuitBreaker, StatArb are actually wired (run.py / signal_publisher.py)
+- `visualizer.py` live via `__main__.py --no-visualizer`
+- All 18 unregistered web-ui components are App.jsx chrome, not orphans; AuditLogViewer is registered
+- `health_server.py` :8080 is real (aiohttp, started in run.py)
+- helm templates exist with real httpGet probes

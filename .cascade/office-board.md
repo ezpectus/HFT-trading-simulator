@@ -86,6 +86,10 @@
 | **S071** | `.pre-commit-config.yaml` — мёртвый конфиг | Framework-конфиг (ruff v0.5.0, eslint v9, pre-commit-hooks) — но hooks ставятся через `scripts/install-hooks.bat` (кастомные batch-скрипты), `pre-commit install` нигде не вызывается. Установленный `.git/hooks/pre-commit` — batch, не spawn'ится под git → обе системы фактически мёртвы; реально работает только ручной `pre-commit-check.py --staged`. | Medium | [ ] Open |
 | **S072** | nginx.conf — карго-культ security headers на plain HTTP | `Strict-Transport-Security` без TLS — браузер игнорирует HSTS по HTTP. `X-XSS-Protection` — deprecated заголовок. Нет TLS termination вообще — prod торчит HTTP. | Low | [ ] Open |
 | **S073** | dev compose — `latest`-теги | `prom/prometheus:latest`, `grafana/grafana:latest` в `docker-compose.yml` (prod пинит `v3.0.0`/`11.4.0`). Невоспроизводимые сборки в dev. | Low | [ ] Open |
+| **S074** | `docs/REST_API.md` — ~15 фантомных endpoint'ов | Документ описывает REST-команды, которых нет ни в одном сервисе. Exchange sim: `/symbols`, `/orderbook/{s}`, `POST /orders`, `GET/DELETE /orders/{id}`, `/account`, `/trades`, `/candles/{s}` — реально только `/health` `/live` `/ready` `/metrics` (`websocket_server.py:204-207`). AI bot: `/strategies`, `/signals`, `POST /strategies/{id}/toggle`, `/backtest` — реально `/health*` `/ready` `/live` `/metrics`. HFT: `/performance`, `/positions`, `POST /kill_switch` — реально `/health` `/metrics` (`health_server.h:123-125`). Есть даже rate-limit таблица для несуществующих endpoint'ов. Документ описывает API, который никогда не был построен. | High | [ ] Open |
+| **S075** | README — главная архитектурная схема и фичи фантомные | Диаграмма заявляет путь `C++ Bot → [FFI 1us] → Rust → [WS 0.5ms] → Exchange` — Rust executor мёртв (S058), весь FFI-хоп latency-бюджета не существует. Bullets рекламируют "FIX 4.4 protocol" (S060 мёртв), "Memory-mapped persistence for crash recovery" (S061 мёртв), "Smart Order Router: 5 strategies" (S059 — route() не вызывается). Центральные claims README описывают компоненты, которые ничто не запускает. | High | [ ] Open |
+| **S076** | README: prod-порты + "13 strategies" + "8-stage pipeline" — неверно | Таблица deploy: AI bot `:8080` health (prod compose не публикует его наружу), Prometheus `:9099` (prod только expose 9090 внутри). "13 strategies" — `build_strategies` (`bot_helpers.py:39-58`) инстанцирует максимум 6 + StatArb отдельно; `CrossExchangeArbEngine` (cross_exchange_arb.py:93), `FundingRateArbitrageDetector` (funding_arb_detector.py:74), `StrategyMarketplace` (marketplace.py:54) — **0 вызовов вне тестов**, не экспортированы в `__init__.py`. "8-stage pipeline" — файла pipeline нет вообще, run.py — неформальный цикл. | Medium | [ ] Open |
+| **S077** | `exchange_simulator/price_feed_*` + `health.py` — мёртвые острова (1120 строк) | `price_feed_apis.py` (416) + `price_feed_manager.py` (329) + `price_feed_models.py` (208): "multi-API real-time price feeds" с failover/rate-limiting — импортируют только друг друга + 4 собственных тест-файла; 0 вызовов из `__main__`/`websocket_server`/`exchange`. `health.py` (167) — сам себя пометил deprecated ("not used in production"), живёт ради `test_health.py` — тестируем мёртвый код. Ирония: единственная подсистема, умеющая тянуть РЕАЛЬНЫЕ цены, мертва, пока симулятор синтезирует GBM. | Medium | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -145,6 +149,12 @@
 - Все 4 prod Dockerfile: multi-stage, non-root user, пинned base images
 - `release.yml` — легитимный changelog/release flow
 - `deploy.yml` — scp/ssh + GHCR push, секреты через secrets.*, чисто
+- README числа точные: 278 panels (registry), 289 components, 116 vitest файлов
+- `EnsembleVoter` + `CircuitBreaker` + StatArb — реально в loop (run.py / signal_publisher)
+- `visualizer.py` — подключён через `__main__.py --no-visualizer`, живой
+- Все 18 незарегистрированных web-ui компонентов — App.jsx chrome (Header/StatusBar/OrderForm…), не сироты
+- helm templates существуют, httpGet пробы — по claim'у в README
+- `health_server.py` на :8080 — реальный (aiohttp, поднимается в run.py)
 
 ---
 
@@ -160,3 +170,5 @@
 8. **S063–S065** — Rust submit/queue/latency семантика, arb ноги без хеджа, v1 synthetic book без warn.
 9. **S066–S067 (infra)** — nightly-backtest — детерминированный театр (seed=42, warning-only, failure() недостижим); deploy health-check бьёт в :9090 вместо :9092.
 10. **S068–S071 (infra)** — Grafana prod без дашбордов (provisioning path), hft /metrics = JSON не Prom-формат, зелёные-при-крахе CI гейты, мёртвый .pre-commit-config.
+11. **S074–S075 (docs)** — REST_API.md документирует ~15 несуществующих endpoint'ов (переписать под реальные или удалить); README диаграмма/фичи рекламируют мёртвый Rust FFI, FIX, SOR, mapped persistence.
+12. **S076–S077 (docs+dead code)** — README: "13 strategies" (реально ≤7), prod-порты :8080/:9099 не опубликованы; exchange_simulator price_feed_* (953 строки) + health.py — мёртвые острова, удалить или встроить.
