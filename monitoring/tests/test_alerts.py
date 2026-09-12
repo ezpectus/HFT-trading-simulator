@@ -1,12 +1,14 @@
 # Tests for Alerting
-# Tests alert triggers, notifications, and escalation
+# Validates monitoring/alerts.yml structure against the live alert schema
 
 from pathlib import Path
+
+import pytest
 
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-ALERTS_FILE = PROJECT_ROOT / "monitoring" / "alerts" / "alerts.yml"
+ALERTS_FILE = PROJECT_ROOT / "monitoring" / "alerts.yml"
 
 
 class TestAlertRules:
@@ -20,50 +22,20 @@ class TestAlertRules:
         assert 'groups' in config
         assert len(config['groups']) > 0
     
-    def test_latency_alerts_group(self):
-        """Test latency alerts group."""
+    @pytest.mark.parametrize("group_name", [
+        "ai-signal-bot", "exchange-simulator", "hft-trade-bot", "system", "websocket",
+    ])
+    def test_alert_groups_exist(self, group_name):
+        """Every expected alert group exists with at least one rule."""
         with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
             config = yaml.safe_load(f)
-        
-        latency_group = next((g for g in config['groups'] if g['name'] == 'latency_alerts'), None)
-        
-        assert latency_group is not None
-        assert 'rules' in latency_group
-        assert len(latency_group['rules']) > 0
-    
-    def test_error_rate_alerts_group(self):
-        """Test error rate alerts group."""
-        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        
-        error_group = next((g for g in config['groups'] if g['name'] == 'error_rate_alerts'), None)
-        
-        assert error_group is not None
-        assert 'rules' in error_group
-        assert len(error_group['rules']) > 0
-    
-    def test_trading_alerts_group(self):
-        """Test trading alerts group."""
-        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        
-        trading_group = next((g for g in config['groups'] if g['name'] == 'trading_alerts'), None)
-        
-        assert trading_group is not None
-        assert 'rules' in trading_group
-        assert len(trading_group['rules']) > 0
-    
-    def test_system_health_alerts_group(self):
-        """Test system health alerts group."""
-        with open(ALERTS_FILE, 'r', encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        
-        health_group = next((g for g in config['groups'] if g['name'] == 'system_health_alerts'), None)
-        
-        assert health_group is not None
-        assert 'rules' in health_group
-        assert len(health_group['rules']) > 0
-    
+
+        group = next((g for g in config['groups'] if g['name'] == group_name), None)
+
+        assert group is not None
+        assert 'rules' in group
+        assert len(group['rules']) > 0
+
     def test_alert_rule_structure(self):
         """Test that alert rules have required fields."""
         with open(ALERTS_FILE, 'r', encoding="utf-8") as f:

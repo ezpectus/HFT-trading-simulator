@@ -831,3 +831,8 @@ No WRONG/ROTTED entries — nothing reopened.
 
 - **S124 (new, Medium, open):** `monitoring/tests/` — 23 dead tests. `test_metrics.py` spec-loads `ai-signal-bot/metrics.py`/`exchange_simulator/metrics.py` — deleted (S016/e983fdf), classes gone entirely. `test_alerts.py` reads `monitoring/alerts/alerts.yml` — empty dir; live file has different group schema. CI doesn't run the dir.
 - ЧИСТО: scripts/ci suite (deliberate local-CI, CHANGELOG-referenced, real commands); both bot config.yaml — 0 dead leaf keys; deploy/nightly/release/codeql workflows — real paths+APIs (strategies shim + Backtester.run signature match); Dockerfiles/helm/prometheus chain consistent.
+
+## Round 46 — 2026-09-12 — slop-fix S124
+
+- **S124 → Done:** `monitoring/tests/test_metrics.py` + `conftest.py` удалены (тестировали классы, удалённые в S016/e983fdf — живой MetricsExporter имеет свои тесты в ai-signal-bot/tests). `test_alerts.py` repointed: `monitoring/alerts/alerts.yml` → `monitoring/alerts.yml`, group-тесты под реальную схему → **10 passed**.
+- Беклог пуст.
