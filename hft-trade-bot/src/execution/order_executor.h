@@ -93,15 +93,17 @@ class OrderExecutor {
         connected_ = false;
     }
 
-    // Submit order to exchange simulator
-    void submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
+    // Submit order to exchange simulator. Returns true only if the order
+    // bytes were handed to the WebSocket — callers must not book a local
+    // position on false.
+    bool submit_order(const Signal& signal, double quantity, const OrderBook& ob) {
         if (!connected_) [[unlikely]] {
             spdlog::warn("Cannot submit order — not connected");
-            return;
+            return false;
         }
         if (!signal.is_actionable()) [[unlikely]] {
             spdlog::debug("Skipping order — signal is NEUTRAL for {}", signal.symbol);
-            return;
+            return false;
         }
 
         OrderType type  = OrderTypeSelector::select(signal, ob);
@@ -126,12 +128,12 @@ class OrderExecutor {
         }
         if (n <= 0) [[unlikely]] {
             spdlog::error("Order JSON serialization failed");
-            return;
+            return false;
         }
         if (n >= static_cast<int>(sizeof(buf))) [[unlikely]] {
             spdlog::error("Order JSON truncated: exchange={}, symbol={} exceeds {} byte buffer",
                           exchange_id_, signal.symbol, sizeof(buf));
-            return;
+            return false;
         }
         if (n < static_cast<int>(sizeof(buf) - 2)) {
             buf[n++] = '}';
@@ -143,16 +145,20 @@ class OrderExecutor {
                       websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
-        } else {
-            spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}", signal.is_long() ? "BUY" : "SELL",
-                         signal.symbol, quantity, exchange_id_, signal.entry_price);
+            return false;
         }
+        spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}", signal.is_long() ? "BUY" : "SELL",
+                     signal.symbol, quantity, exchange_id_, signal.entry_price);
+        return true;
     }
 
-    // Close an existing position — manual JSON to avoid heap alloc
-    void close_position(const std::string& symbol) {
-        if (!connected_) [[unlikely]]
-            return;
+    // Close an existing position — manual JSON to avoid heap alloc.
+    // Returns true only if the close request was handed to the WebSocket.
+    bool close_position(const std::string& symbol) {
+        if (!connected_) [[unlikely]] {
+            spdlog::warn("Cannot close position — not connected: {}", symbol);
+            return false;
+        }
 
         char buf[256];
         int  n = std::snprintf(buf, sizeof(buf),
@@ -161,25 +167,30 @@ class OrderExecutor {
 
         if (n <= 0) [[unlikely]] {
             spdlog::error("Close position JSON serialization failed");
-            return;
+            return false;
         }
 
         websocketpp::lib::error_code ec;
         client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
                       websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
+            spdlog::error("Failed to send close request for {}: {}", symbol, ec.message());
+            return false;
+        }
         spdlog::info("Close position request: {} on {}", symbol, exchange_id_);
+        return true;
     }
 
     bool is_connected() const { return connected_; }
 
     // Execute arbitrage: buy on one exchange, sell on another
     // Manual JSON serialization — avoids 2x nlohmann::json heap allocations
-    void execute_arbitrage(const std::string& symbol, const std::string& buy_exchange,
+    bool execute_arbitrage(const std::string& symbol, const std::string& buy_exchange,
                            const std::string& sell_exchange, double quantity, double buy_price,
                            double sell_price) {
         if (!connected_) [[unlikely]] {
             spdlog::warn("Cannot execute arbitrage — not connected");
-            return;
+            return false;
         }
 
         // Buy on the cheaper exchange — snprintf to stack buffer
@@ -198,7 +209,7 @@ class OrderExecutor {
 
         if (bn <= 0) [[unlikely]] {
             spdlog::error("Arb buy JSON serialization failed");
-            return;
+            return false;
         }
 
         websocketpp::lib::error_code ec;
@@ -206,25 +217,48 @@ class OrderExecutor {
                       websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
-            return;
+            return false;
         }
 
+        // Buy leg is out — if the sell leg fails for any reason, unwind the
+        // naked long with a single market sell back on the buy exchange.
+        auto unwind_buy_leg = [&](const char* reason) {
+            spdlog::warn("Arb sell leg failed ({}), unwinding buy leg: SELL {} {:.4f} on {}",
+                         reason, symbol, quantity, buy_exchange);
+            char unwind_buf[384];
+            int  un = std::snprintf(unwind_buf, sizeof(unwind_buf),
+                                    "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                                     "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                    buy_exchange.c_str(), symbol.c_str(), quantity);
+            websocketpp::lib::error_code uec;
+            if (un > 0 && un < static_cast<int>(sizeof(unwind_buf))) {
+                client_->send(connection_, std::string(unwind_buf, static_cast<size_t>(un)),
+                              websocketpp::frame::opcode::text, uec);
+            }
+            if (un <= 0 || uec) {
+                spdlog::critical("ARB UNWIND FAILED — NAKED LONG POSITION: {} {:.4f} on {} "
+                                 "requires manual intervention",
+                                 symbol, quantity, buy_exchange);
+            }
+        };
+
         if (sn <= 0) [[unlikely]] {
-            spdlog::error("Arb sell JSON serialization failed");
-            return;
+            unwind_buy_leg("sell JSON serialization failed");
+            return false;
         }
 
         client_->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)),
                       websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
-            spdlog::error("Arb sell order failed: {}", ec.message());
-            return;
+            unwind_buy_leg(ec.message().c_str());
+            return false;
         }
 
         double est_profit = (sell_price - buy_price) * quantity;
         spdlog::info("ARB EXECUTED: {} buy={}@{:.2f} sell={}@{:.2f} qty={:.4f} est_profit={:.2f}",
                      symbol, buy_exchange, buy_price, sell_exchange, sell_price, quantity,
                      est_profit);
+        return true;
     }
 
   private:

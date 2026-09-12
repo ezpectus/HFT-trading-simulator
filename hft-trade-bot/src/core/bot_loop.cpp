@@ -17,12 +17,15 @@ void process_sl_tp(BotContext& ctx, double current_balance) {
     auto triggers = ctx.pos_mgr.check_sl_tp(ctx.prices_cache);
     for (const auto& trigger : triggers) {
         spdlog::info("SL/TP triggered: {} @ {:.2f} ({})", trigger.symbol, trigger.price, trigger.reason);
-        ctx.executor->close_position(trigger.symbol);
-        auto closed = ctx.pos_mgr.close_position(trigger.symbol, trigger.price);
-        if (closed) {
-            ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed);
-            ctx.risk_mgr->update_pnl(closed->unrealized_pnl);
-            spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol, closed->unrealized_pnl);
+        if (ctx.executor->close_position(trigger.symbol)) {
+            auto closed = ctx.pos_mgr.close_position(trigger.symbol, trigger.price);
+            if (closed) {
+                ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed);
+                ctx.risk_mgr->update_pnl(closed->unrealized_pnl);
+                spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol, closed->unrealized_pnl);
+            }
+        } else {
+            spdlog::warn("SL/TP close request not sent — keeping local position: {}", trigger.symbol);
         }
     }
 }
@@ -38,9 +41,10 @@ void process_arbitrage(BotContext& ctx, bool can_trade) {
     }
     if (ctx.executor->is_connected() && arb.max_quantity > 0.001) {
         double qty = std::min(arb.max_quantity, 0.5);
-        ctx.executor->execute_arbitrage(arb.symbol, arb.buy_exchange, arb.sell_exchange,
-                                        qty, arb.buy_price, arb.sell_price);
-        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT, 2);
+        if (ctx.executor->execute_arbitrage(arb.symbol, arb.buy_exchange, arb.sell_exchange,
+                                            qty, arb.buy_price, arb.sell_price)) {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT, 2);
+        }
     }
 }
 
@@ -57,12 +61,15 @@ void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade)
                 spdlog::info("AI Signal execution: {} {} conf={:.1f} entry={:.2f} ({})",
                              ai_sig.direction, ai_sig.symbol, ai_sig.confidence,
                              ai_sig.entry_price, ai_sig.reason);
-                if (ctx.executor->is_connected()) {
-                    ctx.executor->submit_order(ai_sig, qty, ctx.receiver->get_order_book(ai_sig.symbol));
+                if (ctx.executor->is_connected() &&
+                    ctx.executor->submit_order(ai_sig, qty,
+                                               ctx.receiver->get_order_book(ai_sig.symbol))) {
                     ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
+                    ctx.pos_mgr.open_position(ai_sig, qty, ctx.config.default_exchange);
+                } else {
+                    spdlog::warn("Order not sent — local position NOT opened for {}", ai_sig.symbol);
                 }
                 ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
-                ctx.pos_mgr.open_position(ai_sig, qty, ctx.config.default_exchange);
             }
         } else if (!risk_result.passed) {
             spdlog::debug("AI signal rejected by risk: {} ({})", ai_sig.symbol, risk_result.reason);
@@ -151,9 +158,10 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
                  : os.kind == FastOrder::OrderKind::LIMIT_FOK ? "FOK"
                  : os.kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD" : "POST",
                  spread_bps, os.reason);
+    bool sent = false;
     if (ctx.executor->is_connected()) {
         if (os.kind == FastOrder::OrderKind::MARKET) {
-            ctx.executor->submit_order(sig, qty, ob);
+            sent = ctx.executor->submit_order(sig, qty, ob);
         } else {
             OrderBook ob_mod = ob;
             if (os.limit_price > 0) {
@@ -162,12 +170,15 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
                 else
                     ob_mod.asks.insert(ob_mod.asks.begin(), {os.limit_price, qty});
             }
-            ctx.executor->submit_order(sig, qty, ob_mod);
+            sent = ctx.executor->submit_order(sig, qty, ob_mod);
         }
-        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
+        if (sent)
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
+        else
+            spdlog::warn("Order not sent — local position NOT opened for {}", sig.symbol);
     }
     ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
-    ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
+    if (sent) ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
 }
 
 void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade) {
@@ -201,6 +212,13 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
         if (ob.bids.empty() || ob.asks.empty()) {
             double price = ctx.receiver->get_price(symbol);
             if (price == 0) continue;
+            static bool synthetic_warned = false;
+            if (!synthetic_warned) {
+                spdlog::warn("Generating synthetic order book (v1 fallback) for {} — no real order "
+                             "book data available. Using fake 10-level book with 1bp spacing and "
+                             "1.0 qty. Results are unrealistic for production trading.", symbol);
+                synthetic_warned = true;
+            }
             ob.symbol   = symbol;
             ob.exchange = ctx.config.default_exchange;
             for (int i = 0; i < 10; ++i) {
@@ -221,8 +239,11 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
         if (qty <= 0) continue;
         spdlog::info("HFT v1 Signal: {} {} conf={:.1f} entry={:.2f} ({})",
                      sig.direction, sig.symbol, sig.confidence, sig.entry_price, sig.reason);
-        if (ctx.executor->is_connected()) ctx.executor->submit_order(sig, qty, ob);
-        ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
+        if (ctx.executor->is_connected() && ctx.executor->submit_order(sig, qty, ob)) {
+            ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
+        } else {
+            spdlog::warn("Order not sent — local position NOT opened for {}", sig.symbol);
+        }
     }
 }
 

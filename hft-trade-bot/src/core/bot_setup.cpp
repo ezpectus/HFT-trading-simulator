@@ -11,8 +11,6 @@ namespace hft {
 static std::atomic<bool> g_running{true};
 
 static void signal_handler(int) { g_running = false; }
-static void setup_real_exchanges(BotContext& ctx);
-static void setup_sim_exchanges(BotContext& ctx);
 static void init_shm_signal_consumer(BotContext& ctx);
 static void init_shm_market_data(BotContext& ctx);
 
@@ -28,12 +26,11 @@ static void log_banner(const Config& c) {
     spdlog::info("  Paper trading: {}", c.paper_trading);
     spdlog::info("  Signal Engine V2: {}", c.signal_engine_v2_enabled);
     spdlog::info("  Signal Engine V3: {}", c.signal_engine_v3_enabled);
-    spdlog::info("  Smart Router: {}", c.smart_router_enabled);
     spdlog::info("  Adaptive Orders: {}", c.adaptive_order_enabled);
     spdlog::info("  Thread Pinning: {}", c.thread_pinning_enabled);
     if (c.is_production) {
-        spdlog::info("  IPC: {} | FIX: {} | DB: {} | Redis: {} | Metrics: {}",
-                     c.ipc_enabled, c.fix_enabled, !c.db_dsn.empty(),
+        spdlog::info("  IPC: {} | DB: {} | Redis: {} | Metrics: {}",
+                     c.ipc_enabled, !c.db_dsn.empty(),
                      c.redis_enabled, c.metrics_enabled);
     }
     spdlog::info("=" + std::string(60, '='));
@@ -151,70 +148,12 @@ bool init_signal_engines(BotContext& ctx) {
 }
 
 void init_order_routing(BotContext& ctx) {
-    SmartOrderRouterV2::RoutingConfig rc;
-    rc.strategy        = static_cast<SmartOrderRouterV2::Strategy>(ctx.config.router_strategy);
-    rc.toxic_threshold = ctx.config.router_toxic_threshold;
-    ctx.router = std::make_unique<SmartOrderRouterV2>(rc);
     AdaptiveOrderSelectorV2::Params ap;
     ap.high_confidence      = ctx.config.adaptive_high_confidence;
     ap.low_confidence       = ctx.config.adaptive_low_confidence;
     ap.emergency_confidence = ctx.config.adaptive_emergency_confidence;
     ap.gtd_seconds          = ctx.config.adaptive_gtd_seconds;
     ctx.adaptive_selector   = std::make_unique<AdaptiveOrderSelectorV2>(ap);
-    if (ctx.config.is_production && ctx.config.smart_router_enabled) {
-        setup_real_exchanges(ctx);
-    } else if (ctx.config.smart_router_enabled) {
-        setup_sim_exchanges(ctx);
-    }
-}
-
-static void setup_real_exchanges(BotContext& ctx) {
-    if (ctx.config.binance_cfg.enabled) {
-        BinanceAdapter::Config bcfg;
-        bcfg.api_key    = ctx.config.binance_cfg.api_key;
-        bcfg.api_secret = ctx.config.binance_cfg.api_secret;
-        bcfg.base_url   = ctx.config.binance_cfg.rest_url;
-        bcfg.ws_url     = ctx.config.binance_cfg.ws_url;
-        ctx.real_binance = std::make_unique<BinanceAdapter>(bcfg);
-        ctx.router->add_exchange(ctx.real_binance.get());
-        spdlog::info("Router: Binance adapter connected (ws={})", bcfg.ws_url);
-    }
-    if (ctx.config.okx_cfg.enabled) {
-        OKXAdapter::Config ocfg;
-        ocfg.api_key    = ctx.config.okx_cfg.api_key;
-        ocfg.api_secret = ctx.config.okx_cfg.api_secret;
-        ocfg.passphrase = ctx.config.okx_cfg.passphrase;
-        ocfg.base_url   = ctx.config.okx_cfg.rest_url;
-        ocfg.ws_url     = ctx.config.okx_cfg.ws_url;
-        ocfg.inst_type  = ctx.config.okx_cfg.inst_type;
-        ctx.real_okx    = std::make_unique<OKXAdapter>(ocfg);
-        ctx.router->add_exchange(ctx.real_okx.get());
-        spdlog::info("Router: OKX adapter connected (ws={})", ocfg.ws_url);
-    }
-    if (ctx.config.bybit_cfg.enabled) {
-        BybitAdapter::Config ycfg;
-        ycfg.api_key    = ctx.config.bybit_cfg.api_key;
-        ycfg.api_secret = ctx.config.bybit_cfg.api_secret;
-        ycfg.base_url   = ctx.config.bybit_cfg.rest_url;
-        ycfg.ws_url     = ctx.config.bybit_cfg.ws_url;
-        ycfg.category   = ctx.config.bybit_cfg.category;
-        ctx.real_bybit  = std::make_unique<BybitAdapter>(ycfg);
-        ctx.router->add_exchange(ctx.real_bybit.get());
-        spdlog::info("Router: Bybit adapter connected (ws={})", ycfg.ws_url);
-    }
-}
-
-static void setup_sim_exchanges(BotContext& ctx) {
-    ctx.sim_binance = std::make_unique<SimExchange>("binance", 0.02, 0.04, *ctx.receiver);
-    ctx.sim_okx     = std::make_unique<SimExchange>("okx", 0.01, 0.03, *ctx.receiver);
-    ctx.sim_bybit   = std::make_unique<SimExchange>("bybit", 0.03, 0.05, *ctx.receiver);
-    ctx.sim_binance->record_latency(120);
-    ctx.sim_okx->record_latency(200);
-    ctx.sim_bybit->record_latency(350);
-    ctx.router->add_exchange(ctx.sim_binance.get());
-    ctx.router->add_exchange(ctx.sim_okx.get());
-    ctx.router->add_exchange(ctx.sim_bybit.get());
-    spdlog::info("Router: 3 simulated exchanges (simulator mode)");
 }
 
 void init_kill_switch(BotContext& ctx) {
@@ -226,8 +165,12 @@ void init_kill_switch(BotContext& ctx) {
         spdlog::warn("KILL SWITCH: Closing all positions at market...");
         auto positions = ctx.pos_mgr.get_positions();
         for (const auto& pos : positions) {
-            ctx.executor->close_position(pos.symbol);
-            ctx.pos_mgr.close_position(pos.symbol, ctx.receiver->get_price(pos.symbol));
+            if (ctx.executor->close_position(pos.symbol)) {
+                ctx.pos_mgr.close_position(pos.symbol, ctx.receiver->get_price(pos.symbol));
+            } else {
+                spdlog::error("KILL SWITCH: close request not sent for {} — position still open "
+                              "locally and on exchange", pos.symbol);
+            }
         }
     });
     ctx.kill_switch->set_notify_callback([&](KillSwitch::Reason reason) {
