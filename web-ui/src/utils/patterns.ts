@@ -43,7 +43,7 @@ export function detectCandlePatterns(candles: Candle[], lookback: number = 50): 
       })
     }
 
-    if (bodyRatio < 0.35 && lowerWick > body * 2 && upperWick < body * 0.5) {
+    if (bodyRatio < 0.35 && lowerWick > body * 2 && upperWick <= body * 2) {
       patterns.push({
         time: c.time,
         type: 'HAMMER',
@@ -53,7 +53,7 @@ export function detectCandlePatterns(candles: Candle[], lookback: number = 50): 
       })
     }
 
-    if (bodyRatio < 0.35 && upperWick > body * 2 && lowerWick < body * 0.5) {
+    if (bodyRatio < 0.35 && upperWick > body * 2 && lowerWick <= body * 2) {
       patterns.push({
         time: c.time,
         type: 'SHOOTING_STAR',
