@@ -1,4 +1,5 @@
-import React, { memo, useState, useMemo } from 'react';
+import React, { memo, useState, useMemo, useEffect } from 'react';
+import { SAVED_KEY } from './backtest/constants';
 import { GitCompare, Trash2, Download, TrendingUp, TrendingDown, Award, Activity } from 'lucide-react';
 
 const METRICS = [
@@ -113,9 +114,53 @@ function EquityCurve({ results }) {
   );
 }
 
+/** Map a saved-backtest entry ({id,label,results:{name:metrics}}) to flat rows.
+ *  Server metrics are snake_case; keys absent from the payload (sortino, cagr,
+ *  calmar, volatility) stay undefined and render as '—'. */
+function savedEntryToRows(entry) {
+  return Object.entries(entry.results || {}).map(([name, m]) => ({
+    id: `${entry.id}:${name}`,
+    name: `${entry.label} · ${name}`,
+    timestamp: entry.timestamp,
+    sharpe: m.sharpe_ratio,
+    totalReturn: m.total_return_pct,
+    maxDrawdown: m.max_drawdown_pct,
+    winRate: m.win_rate,
+    profitFactor: m.profit_factor,
+    totalTrades: m.total_trades,
+    avgWin: m.avg_win,
+    avgLoss: m.avg_loss,
+    equityCurve: m.equity_curve,
+  }))
+}
+
+function loadSavedRows() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
+    return saved.flatMap(savedEntryToRows)
+  } catch {
+    return []
+  }
+}
+
 function BacktestComparison({ results: externalResults }) {
-  const [results, setResults] = useState(externalResults || []);
+  const [results, setResults] = useState(() => externalResults?.length ? externalResults : loadSavedRows());
   const [selected, setSelected] = useState(new Set());
+
+  // Reload when BacktestRunner saves/deletes (custom same-tab event) or
+  // another tab writes (storage), and when the tab regains focus.
+  useEffect(() => {
+    if (externalResults?.length) return
+    const reload = () => setResults(loadSavedRows())
+    window.addEventListener('saved-backtests-changed', reload)
+    window.addEventListener('storage', reload)
+    window.addEventListener('focus', reload)
+    return () => {
+      window.removeEventListener('saved-backtests-changed', reload)
+      window.removeEventListener('storage', reload)
+      window.removeEventListener('focus', reload)
+    }
+  }, [externalResults])
 
   const sortedResults = useMemo(() => {
     return [...results].sort((a, b) => (b.sharpe || 0) - (a.sharpe || 0));
@@ -131,17 +176,35 @@ function BacktestComparison({ results: externalResults }) {
   };
 
   const removeResult = (id) => {
-    setResults(prev => prev.filter(r => r.id !== id));
+    const entryId = id.split(':')[0]
+    setResults(prev => prev.filter(r => r.id.split(':')[0] !== entryId));
     setSelected(prev => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
+    if (!externalResults?.length) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]').filter(e => e.id !== entryId)
+        localStorage.setItem(SAVED_KEY, JSON.stringify(saved))
+        window.dispatchEvent(new Event('saved-backtests-changed'))
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const clearAll = () => {
     setResults([]);
     setSelected(new Set());
+    if (!externalResults?.length) {
+      try {
+        localStorage.removeItem(SAVED_KEY)
+        window.dispatchEvent(new Event('saved-backtests-changed'))
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const exportCSV = () => {

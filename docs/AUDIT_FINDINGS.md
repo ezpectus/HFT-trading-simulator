@@ -1269,3 +1269,15 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - TODO/FIXME/HACK markers — 0 real; hits were domain words (exchange "hack" event, "temporary" market impact).
 
 **Verified:** pytest 80 green (metrics+publisher suites) · ruff clean · both scripts now run end-to-end (health-check reports 52/100 FAIR).
+
+## Round 33 — 2026-09-12 — Infra + dead-layer sweep
+
+- **S109 (Medium)** — dead persistence layer: `src/database/db.py` (211 lines) imported only by its own tests; 4 SQL migrations + `migrate.py` never invoked by the app; prod compose + helm provision postgres/redis and inject `REDIS_URL` with **0 readers**; terraform provisions real RDS+ElastiCache for nothing. Misleading infra implying persistence that doesn't exist.
+- Verified clean: all compose services map to live Dockerfiles; nginx.conf is an honest static SPA server; 0 TODO/FIXME in hft src; all 5 production .cpp in CMake SOURCES; no dead C++ headers.
+- **S001/S003 → done-log**: final verification — 271/271 registry entries wired, 0 `MOCK_*` in components, 9 prop-less panels all legit (NoDataFeed / calculators / disclosed local-only), 27 `Math.random` users all algorithmic on real inputs, 5 'unused props' are deliberate `_` aliases. **Board open findings: 0→1** (only S109 remains).
+
+## Round 34 — 2026-09-12 — empty props-maps sweep
+
+- **S110 (High) → Done.** Earlier "all panels wired" check counted `props: () => ({})` as fed. Auditing the 16 empty maps: 14 legit (NoDataFeed/stores/calculators), **2 starved**: `NewsFeed` declared `{newsEvent}` while `ctx.exchange.newsEvent` was live (sim broadcasts `news_event`, `useExchangeData:101` parses it) — permanently empty; `BacktestComparison` waited for `externalResults` nobody passed — permanent empty state while saved backtests sat in localStorage. Fixed: registry wires `newsEvent`; `BacktestComparison` loads `SAVED_KEY` entries (snake_case→row mapping, missing metrics render '—'), listens for `saved-backtests-changed`/`storage`/`focus`; `useSavedBacktests` dispatches that event on writes and listens for it — delete/clear in the comparison panel now syncs back to BacktestRunner. +5 contract tests.
+- Verified clean: user's new `audit_logs` WS feed (deque-bounded, callback register/unregister, drained broadcast); `competition` registry fix matches `CompetitionFramework`'s signature; `DatabaseViewer`/`Colocation`/etc. NoDataFeed-disclosed.
+- **Verified:** vitest 148 files / 1080 green · eslint clean.

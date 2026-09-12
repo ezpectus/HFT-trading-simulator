@@ -3,6 +3,10 @@ import { SAVED_KEY } from '../components/backtest/constants'
 
 /** Saved-backtest persistence + side-by-side comparison state.
  *  Extracted from BacktestRunner.jsx (S015). */
+/** Notify same-tab panels (e.g. BacktestComparison) that SAVED_KEY changed —
+ *  the 'storage' event only fires across tabs. */
+const notifySavedChanged = () => window.dispatchEvent(new Event('saved-backtests-changed'))
+
 export function useSavedBacktests({ sendSignalMessage, setError }) {
   const [savedBacktests, setSavedBacktests] = useState([])
   const [showCompare, setShowCompare] = useState(false)
@@ -10,13 +14,23 @@ export function useSavedBacktests({ sendSignalMessage, setError }) {
   const [selectedForCompare, setSelectedForCompare] = useState(new Set())
   const [compareLoading, setCompareLoading] = useState(false)
 
-  // Load saved backtests from localStorage
+  // Load saved backtests from localStorage; re-load when another panel
+  // (BacktestComparison) or another tab mutates SAVED_KEY.
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SAVED_KEY)
-      if (saved) setSavedBacktests(JSON.parse(saved))
-    } catch {
-      // ignore
+    const reload = () => {
+      try {
+        const saved = localStorage.getItem(SAVED_KEY)
+        setSavedBacktests(saved ? JSON.parse(saved) : [])
+      } catch {
+        // ignore
+      }
+    }
+    reload()
+    window.addEventListener('saved-backtests-changed', reload)
+    window.addEventListener('storage', reload)
+    return () => {
+      window.removeEventListener('saved-backtests-changed', reload)
+      window.removeEventListener('storage', reload)
     }
   }, [])
 
@@ -35,6 +49,7 @@ export function useSavedBacktests({ sendSignalMessage, setError }) {
     setSavedBacktests(next)
     try {
       localStorage.setItem(SAVED_KEY, JSON.stringify(next))
+      notifySavedChanged()
     } catch {
       // ignore
     }
@@ -45,6 +60,7 @@ export function useSavedBacktests({ sendSignalMessage, setError }) {
     setSavedBacktests(next)
     try {
       localStorage.setItem(SAVED_KEY, JSON.stringify(next))
+      notifySavedChanged()
     } catch {
       // ignore
     }
