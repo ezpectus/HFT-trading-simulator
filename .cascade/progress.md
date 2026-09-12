@@ -724,3 +724,19 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 
 - **S014 → Partial:** strategies.py → 4 модуля + shim (96 тестов green); real_market_data.py → 3 модуля + shim (полный suite 1381 green). Остаток: signal_publisher.py (496), engine.py (440); backtester.py режет параллельная сессия.
 - **S015 → Partial:** PerformanceDashboard.jsx 522→166 (performanceReport.js + PerfAreaChart.jsx + smoke-test). Остаток: App.jsx (514), CopulaModel.jsx (498), EDM (455); BacktestRunner — параллельная сессия.
+
+## Round 32 — 2026-04-24 (FIX, god-files финал + real bug)
+
+- **S014 → Done:** `signal_publisher.py` 496→307 — весь backtest-request блок (~220 строк: parse/clamp bounds, client-candles нормализация, synthetic GBM gen seeded 42, risk-config, strategy build, run/compare envelopes) → `communication/backtest_requests.py`. Паблишер = только WS-lifecycle/auth/broadcast, протокол не изменён. `engine.py` 440→266 — `SecretStr`+LLMConfig/MarketContext/LLMAnalysis → `llm_types.py`; `_parse_response`+3 rule-based фолбэка → `rule_based.py` (все self-free, чистые функции).
+- **S015 → Done:** `CopulaModel.jsx` 498→311 (копула-математика 15 ф-ций → `utils/copulaMath.js`), `EmpiricalDynamicModeling.jsx` 455→265 (mutualInfo/FNN/embed/simplexForecast/ccm → `utils/edmMath.js`). PerformanceDashboard: +ExchangeBreakdown/StreakPanel/RiskMetricsPanel (exSortMode-стейт внутрь ExchangeBreakdown).
+- **S106 (new, High) → Done:** сплит CopulaModel вскрыл сломанную incomplete-beta — `regIncompleteBeta` делила на `a` дважды, `betaCF` была naive-рекурсией вместо Lentz → `tCDF(1,200)=0.50` вместо 0.84, studentT tail-λ занижена ~3×. Переписано на Lentz betacf; проверено на учебных критических значениях (tCDF(2.015,5)=0.95, I_0.5(2,2)=0.5 с 14 знаками).
+- **Tests:** +test_backtest_requests (24), +test_llm_fallbacks (18), +copulaMath.test (17), +edmMath.test (10). pytest 1075 green, vitest 996+27 green, eslint/ruff clean.
+- **Open:** S001, S003 (оба Partial — остаток MOCK_* панелей).
+
+## Round 33 — 2026-04-24 (AUDIT → 2 находки → FIX)
+
+- **S107 (new, High) → Done:** две параллельных metrics-системы, обе полу-мёртвые. `MetricsCollector` кормился signal_publisher'ом, но `MetricsServer` (единственный потребитель `.render()`) не стартовал в prod — данные умирали в памяти. `MetricsExporter` на :9090 (helm-порт) стартовал, но из ~15 методов был подключён только `record_ws_reconnect` — alert-метрики `ai_signal_bot_*` вечные нули → Grafana рисовала дохлого бота при живых сигналах. Fix: `record_backtest` добавлен в exporter, `start_server` → bool, run.py свопает `signal_publisher.metrics` на exporter когда сервер реально поднялся.
+- **S108 (new, Low) → Done:** `ci-equivalence.py` + `health-check.py` падали с UnicodeEncodeError на cp1251 (box-drawing/emoji в print) — reconfigure stdout utf-8 в обоих.
+- **AUDIT extraction-output (ЧИСТО):** новые хуки (useChartCandles/useTradingStoreSync/useDetachedPanelSync/useAppShortcuts) — честные, dep-массивы полные; backtest_requests/llm_types/rule_based/market_data_* — чистые; helm — один чарт, sidecar задокументирован; config.yaml sim'а — все ключи читаются; web-ui fetch — 1 легитимный outbound webhook; 64 empty-return сайта — все честные; TODO/FIXME — 0.
+- **Verified:** pytest 80 green (metrics+publisher), ruff clean, оба скрипта отрабатывают.
+- **Open:** S001, S003 (MOCK_* панели остаток ~17).

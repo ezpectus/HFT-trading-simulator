@@ -1235,3 +1235,37 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 **S015 — Partial.** `PerformanceDashboard.jsx` 522→166: PDF-report генератор (80 строк HTML-строк) → `utils/performanceReport.js`; два идентичных lightweight-charts эффекта → `components/performance/PerfAreaChart.jsx`. Параллельно: `BacktestRunner.jsx` резан другой сессией.
 
 **Verified:** pytest 1381 green, vitest 998/998 (129 файлов), eslint clean на тронутых.
+
+---
+
+## Round 32 — S014/S015 финал + S106
+
+**S014 → Done.** `signal_publisher.py` 496→307: backtest-request handling (param clamps, client-candle parsing, deterministic synthetic GBM, risk-config, strategy construction, run/compare envelopes) extracted to `communication/backtest_requests.py` — all functions self-free, WS protocol unchanged. `engine.py` 440→266: `llm_types.py` (SecretStr + 3 dataclasses), `rule_based.py` (response parser + rule-based fallbacks, all pure).
+
+**S015 → Done.** `CopulaModel.jsx` 498→311 (`utils/copulaMath.js`), `EmpiricalDynamicModeling.jsx` 455→265 (`utils/edmMath.js`). Both were React components wrapping ~190 lines of pure math — the split makes the math independently testable.
+
+**S106 (new High) → Done.** The CopulaModel split surfaced a real math bug: `regIncompleteBeta` divided by `a` twice (`front` already carried `/a`) and `betaCF` was a naive recursion, not Lentz — `I_0.5(2,2)` returned 0.81, `tCDF(1,200)` returned 0.50 instead of 0.84. `fitCopula` computes student-t tail dependence through it, so the panel's tail-dependence numbers were ~3× understated. Replaced with Lentz betacf; verified against textbook critical values (t₀.₉₅,₅=2.015 → 0.95; I_0.5(2,2)=0.5 to 14 digits).
+
+**Verified:** pytest 1075 green · vitest 1023 green (27 new math-contract tests) · eslint/ruff clean.
+
+---
+
+## Round 33 — dead metrics path + cp1251 dev-script crashes
+
+**S107 (High) — Done.** Two parallel metrics stacks, each half-wired, neither connected end-to-end:
+- `MetricsCollector` (`communication/metrics_server.py`) — hand-rolled, fed by `signal_publisher` (`record_signal_sent`/`record_signal_blocked`/`set_ws_clients`/`set_circuit_breaker_state`/`record_backtest`). But `MetricsServer` — the only code calling `collector.render()` — was **never instantiated outside tests**. Every signal metric died in process memory.
+- `MetricsExporter` (`monitoring/metrics.py`, prometheus_client+aiohttp) — IS served on :9090, the exact port helm values/prometheus scrape. But `run.py` wired only `record_ws_reconnect`; all `ai_signal_bot_*` alert series (`signals_sent_total`, `signals_blocked_total`, `circuit_breaker_state`, `ws_clients_connected`, pnl/drawdown/win_rate) stayed at zero forever — **Grafana shows a flatlined bot while signals flow**. Same series names in both stacks = duplicate architecture with no working end.
+- Fix (wire-to-real): added missing `backtests_run_total` counter + `record_backtest()` to the exporter (its method names already mirrored the collector — clearly designed as the sink); `start_server` now returns `bool`; `run.py` sets `signal_publisher.metrics = prom_server` only when the endpoint actually started. MetricsCollector remains the in-process fallback when prometheus deps are absent.
+
+**S108 (Low) — Done.** `scripts/ci-equivalence.py` and `scripts/health-check.py` crashed with `UnicodeEncodeError` on this repo's own Windows dev env (cp1251 console, box-drawing/emoji in `print()`). Added `sys.stdout.reconfigure(utf-8, errors=replace)` at both `main()` entry points. `pre-commit-check.py` unaffected (Unicode only in comments).
+
+**Audit of R31/R32 extraction output (ЧИСТО):**
+- New hooks `useChartCandles`/`useTradingStoreSync`/`useDetachedPanelSync`/`useAppShortcuts` — faithful extractions; dep arrays complete; `EXCHANGES`/`SYMBOLS` are real `useUIStore` exports.
+- New modules `backtest_requests.py` (seeded `random.Random(42)`, honest malformed-candle fallback), `llm_types.py`, `rule_based.py` (validates+clamps sentiment/confidence/rec), `market_data_{types,feed,manager}.py` — clean.
+- `helm/` — single chart, `hft-trade-bot` sidecar-in-ai-bot-pod design documented in the template itself; hardcoded 9091 = hft health port (matches port map).
+- `exchange_simulator/config.yaml` — all 16 sampled keys (visualizer/metrics/arbitrage/audit/market/account) have readers.
+- web-ui `fetch(`/axios — 1 call total (`AlertWebhook` outbound POST) — legit, UI is WS-only as documented.
+- `return {}`/`return []`/`return None` sweep (64 sites) — all honest: Optional semantics or log-and-empty (`load_config` warns, `real_account` logs errors).
+- TODO/FIXME/HACK markers — 0 real; hits were domain words (exchange "hack" event, "temporary" market impact).
+
+**Verified:** pytest 80 green (metrics+publisher suites) · ruff clean · both scripts now run end-to-end (health-check reports 52/100 FAIR).
