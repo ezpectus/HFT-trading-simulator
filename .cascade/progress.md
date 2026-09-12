@@ -677,3 +677,13 @@ R26b: S033 fixed (sleeps→monotonic patch, 80 green). S018 fixed (monitor.py+Ap
 | 133 | 2026-09-12 | FIX R27 — S101: три CI lint-джобы красные на master (локальный gate проверяет только staged — коммиты проходили, CI гнил). ruff 29→0 (autofix + мёртвый scripts/pre-commit.py удалён — dead predecessor с фейковым --quick флагом). eslint 303→0: 268 no-unused-vars — обломки S003-пурджа (мёртвые пропсы/деструктуры/аккумуляторы); codemod fix_eslint_unused.py по 121 файлу + ручные починки каскадов (PtauCov_, calcATR, zMax, мёртвые helper-функции). clang-format -i: 66 файлов → 0 violations. S017-extension: 45 f-string logger calls в exchange_simulator → lazy %-args (fix_fstring_logs.py). Verified: ruff/eslint/clang-format 0, vitest 981/981, sim 366, build green. Files: ~175 (web-ui components + hft headers + sim + scripts) | Status: Done |
 
 R27: S008 Done (type:ignore=0: var.py ModuleType|None, helpers assert). S006 топ-3 spec (63/156: signal_publisher websockets, real_account _CCXT_SURFACE names, metrics_server asyncio stdlib).
+
+## Round 28 — 2026-04-24
+
+- **S004 partial:** `len(...) > 0` → exact contracts in 4 more test files — `test_rebalancing` (orders `== 3` + `[BUY, SELL, SELL]` sides), `test_backtest_plotter` (`== 4` pngs, all `.png`), `test_exchange_factory` (sim stub `== 1` USDT balance + `total == 100000` — documents the hardcoded offline stub), `test_fft_analysis` (`== 32` positive-freq bins). Reviewed `test_real_market_data`/`test_alerting`/remaining `test_fft` sites — their counts are the contract (paired with exact values). 68 tests green.
+- **S027 → Done:** old-style typing in ai-signal-bot src+tests + exchange_simulator: **0 code-level sites**. Dead-code rounds removed the heavy files (vae/ms_garch/autoencoder); only residue was a docstring `List[Signal]` in marketplace.py — fixed.
+- **S023 → N/A:** 4 remaining `**kwargs` sites are wrapper APIs (`bind_contextvars`, OTel spans, `retry_async`) where kwargs is the contract.
+- **S021 → Done:** nested `exchange_simulator/exchange_simulator/` already flattened (S084); remaining disk dirs are gitignored artifacts.
+- **S024 → N/A:** all 5 root dev scripts gitignored — user's local tools.
+- **S011 → N/A:** singletons are the intended pattern, consistently used.
+- Open: S001/S004/S005/S006 partials; S014/S015/S020 god-file splits (need product decision on decomposition).

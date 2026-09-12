@@ -1115,3 +1115,21 @@ Verified: `ruff check .` 0 · `eslint src/` 0 · `clang-format --dry-run --Werro
 **S006 — топ-3 файла spec'd (63/156):** `test_real_account` — `spec=_CCXT_SURFACE` (13 методов что реально вызывает prod-код; ccxt не установлен → spec-по-именам ловит опечатки в именах методов). `test_metrics_server` — `spec=asyncio.Server/StreamReader/StreamWriter` (stdlib классы). Ранее: `test_signal_publisher` — websockets protocol spec.
 
 **Verified:** 30+24+15 тестов green на тронутых файлах, ruff clean.
+
+---
+
+## Round 28 — S004 partial, S027/S021/S011/S023/S024 closed
+
+**S004 — partial:** `len(...) > 0` → exact contracts ещё в 4 файлах: `test_rebalancing` (orders `== 3` + стороны `[BUY, SELL, SELL]` — drift 0.4→0.5, 0.3→0.25, 0.3→0.25), `test_backtest_plotter` (`== 4` png: equity+pnl per strategy + comparison_equity+comparison_radar), `test_exchange_factory` (sim-stub возвращает ровно 1 захардкоженный USDT-баланс — тест теперь документирует stub-контракт), `test_fft_analysis` (`== 32` positive-frequency bins для N=64). Пересмотрены `test_real_market_data`/`test_alerting`/`test_fft_analysis` — там `len`-asserts и есть контракт (paired с exact values / alert-cooldown semantics), не трогал. ~40 слабых сайтов остаются.
+
+**S027 — Done:** code-level `List[`/`Dict[`/`Tuple[`/`Set[` в ai-signal-bot src+tests + exchange_simulator: **0** (проверено regex по annotation-позициям, исключая docstrings). Исходные 1121 ушли с dead-code раундами (vae/ms_garch/autoencoder удалены) и lint-свипами; последний residue — docstring `-> List[Signal]` в `marketplace.py` — исправлен.
+
+**S021 — Done:** `exchange_simulator/exchange_simulator/` nested package уже flattened (S084); оставшиеся `logs/`/`__pycache__` — gitignored artifacts.
+
+**S023 — N/A:** осталось 4 `**kwargs` сайта — все это wrapper-API где kwargs и есть контракт: `bind_contextvars` (arbitrary log context), OTel `start_as_current_span` attrs, `retry_async` forwarding. price_predictor/rl_trader удалены.
+
+**S024 — N/A:** все 5 root dev-скрипта подтверждённо gitignored — локальные инструменты пользователя, веса в репо нет.
+
+**S011 — N/A:** 4 `global` — singleton `get_or_create` паттерн, используется консистентно, утечек изоляции в тестах нет.
+
+**Verified:** 104 targeted тестов green · ruff clean на тронутых.

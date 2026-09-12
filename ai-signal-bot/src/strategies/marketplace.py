@@ -12,7 +12,7 @@ Each strategy plugin must implement:
   - name: str
   - version: str
   - description: str
-  - generate_signals(candles, indicators) -> List[Signal]
+  - generate_signals(candles, indicators) -> list[Signal]
   - get_config() -> StrategyConfig
 
 Usage:
