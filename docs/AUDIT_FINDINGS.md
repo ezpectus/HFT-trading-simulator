@@ -1078,3 +1078,17 @@ Verified: ai-signal-bot **1368 passed, 0 failed** (was 23 failed). Targeted modu
 **Gate-driven tests (5 новых файлов):** useSessionRecorder (snapshot→stop→metadata: peakEquity/maxDrawdown/totalTrades, import validation, localStorage), useStrategyMarketplace (builtin seeding, schema-version reject, id-replace, export round-trip), MarketDepthReplay (mid-price reconstruction, <10 candles guard), SessionStats (real PnL/win-rate aggregation), StrategyBuilder (save→localStorage).
 
 **Verified:** vitest targeted green (21 новых теста), eslint clean, full suite 122 files green.
+
+---
+
+## Round 26b — механические находки: 3 fixed, 3 N/A
+
+**Fixed:**
+- **S033** — `time.sleep` в 4 тестовых файлах убран: cooldown-тесты circuit breaker'ов теперь патчат `time.monotonic` (детерминированно, мгновенно — после S007 оба breaker'а читают monotonic). `test_validator._daily_reset` — вместо `sleep(0.01)` надежды на тик часов, сетится явный старый datetime (Windows timer resolution ~15.6ms делал старый тест флаки). 80/80 green.
+- **S018** — `monitor.py` WS_URL → env `SIGNAL_WS_URL`; `ApiClient.jsx` — WS URLs из `VITE_WS_EXCHANGE/VITE_WS_SIGNALS` (статус уже был живой через ctx — врали только захардкоженные URL при env-override).
+- **S028** — N/A: все 6 `or {}`/`or []` — корректная идиома защиты от mutable default / пустого YAML.
+
+**N/A (ложные находки):**
+- **S017** — 0 `logger.X(f"...")` в src (attribution/competition удалены ранее; везде lazy %-args).
+- **S010** — файлы 100% os.path, смешивания с pathlib нет.
+- **S009** — все 24 `hasattr`/`getattr` легитимны: ccxt capability detection, plugin loading, optional adapter methods — не "вместо isinstance" на своих классах.

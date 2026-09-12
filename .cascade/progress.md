@@ -671,3 +671,5 @@ See `.cascade/file_tracker.md` for full file-by-file tracking.
 R25: S003 закрыт (16 комп: 4 wired real-data, 12 NoDataFeed; mock-data/ dir удалён; MOCK_ в компонентах = 0). S100-followup: 21 тест-файл переписан под honest states. useMockData тесты → explicit enabled. S006 partial: test_signal_publisher spec. UI: 120 files/960 tests green, build green.
 
 R26: S002 Done (остаток Math.random — легитимный MC; MarketDepthReplay jitter→deterministic). S030 Done (11 console.warn→IS_DEV, console.error оставлен). +5 hook/component test файла по требованию coverage gate. UI 122 files green.
+
+R26b: S033 fixed (sleeps→monotonic patch, 80 green). S018 fixed (monitor.py+ApiClient env URLs). S028/S017/S010/S009 → N/A после ревизии (идиомы/удалённые файлы/легитимный duck-typing).
