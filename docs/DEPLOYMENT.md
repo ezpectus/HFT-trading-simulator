@@ -44,12 +44,15 @@ Requires 2x resources.
 critical updates (e.g., strategy change) where old + new coexistence
 is problematic (double signals).
 
-### Infrastructure as Code (Terraform)
+### Infrastructure as Code
 
-**Why IaC, not manual AWS console?**
+> Note: this repo no longer ships Terraform modules — the stack is
+> stateless (SQLite inside the signal-bot container). The notes below
+> are general guidance if you manage your own infra.
+
+**Why IaC, not manual console?**
 - **Reproducibility:** `terraform apply` = identical environment
 - **Version control:** Infrastructure changes tracked in git
-- **DRY:** Modules (EKS, RDS, ElastiCache) reused across envs
 - **Rollback:** `git revert` + `terraform apply`
 
 ## Overview
@@ -322,53 +325,13 @@ Both AI Signal Bot and Exchange Simulator handle SIGTERM for clean shutdown:
 
 Kubernetes sends SIGTERM with 30s grace period. Docker Compose sends SIGTERM with 10s timeout.
 
-### Option 4: Terraform (AWS)
+### Option 4: Terraform (AWS) — REMOVED
 
-**Why Terraform?** Provisions cloud infrastructure (EKS, RDS, ElastiCache) as code,
-enabling reproducible, version-controlled infrastructure.
-
-#### 1. Initialize Terraform
-
-```bash
-cd terraform/environments/dev
-terraform init
-```
-
-#### 2. Review the Plan
-
-```bash
-terraform plan
-```
-
-Resources provisioned:
-
-| Resource | Type | Purpose |
-|----------|------|---------|
-| EKS Cluster | `aws_eks_cluster` | Kubernetes cluster for containers |
-| EKS Node Group | `aws_eks_node_group` | Worker nodes |
-| RDS PostgreSQL | `aws_db_instance` | Production database |
-| ElastiCache Redis | `aws_elasticache_cluster` | ML feature store, cache |
-| S3 Bucket | `aws_s3_bucket` | Backup storage |
-| IAM Roles | `aws_iam_role` | Service permissions |
-
-#### 3. Apply
-
-```bash
-terraform apply
-```
-
-#### 4. Configure kubectl
-
-```bash
-aws eks update-kubeconfig --name hft-dev-cluster
-kubectl get nodes
-```
-
-#### 5. Deploy Application
-
-```bash
-helm install hft ./helm
-```
+The `terraform/` directory (EKS + RDS PostgreSQL + ElastiCache modules) was
+removed in the S109 cleanup: the stack is now fully stateless — the signal bot
+persists to embedded SQLite (`data/trading.db`) and no external database or
+cache is provisioned. For cloud deployment use Option 3 (Helm) against your own
+cluster, or manage infra with your own IaC.
 
 ### Option 5: CI/CD Pipeline
 
@@ -433,10 +396,18 @@ latency_optimization:
 ```bash
 VITE_WS_EXCHANGE=ws://your-server.com:8765
 VITE_WS_SIGNALS=ws://your-server.com:8766
+VITE_SIGNAL_TOKEN=            # optional — must match the bot's api.auth_token
 VITE_ENABLE_ADVANCED_ORDERS=true
 VITE_ENABLE_AUDIT_LOGS=true
 VITE_ENABLE_EXCHANGE_CLONES=true
 VITE_ENABLE_SYMBOL_SEARCH=true
+```
+
+**AI Signal Bot (`settings.yaml` / env):**
+```bash
+AI_BOT_AUTH_TOKEN=            # optional shared secret — enables WS handshake +
+                              # Bearer auth on /health* (/live, /ready stay open)
+AI_BOT_BIND_HOST=0.0.0.0      # WS bind host (127.0.0.1 for direct host runs)
 ```
 
 ## Monitoring

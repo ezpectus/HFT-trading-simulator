@@ -405,6 +405,19 @@ Broadcast to all clients when config is hot-reloaded.
 
 ### HFT Bot / Web UI → AI Signal Bot
 
+#### Auth (optional — required only when server has `api.auth_token` configured)
+```json
+{
+  "type": "auth",
+  "token": "<shared secret>"
+}
+```
+Sent as the first frame on connect when the server is configured with a token
+(`api.auth_token` in `settings.yaml` or `AI_BOT_AUTH_TOKEN` env). Server replies
+`{"type": "auth_ok"}` or `{"type": "auth_failed"}` and drops the connection on
+failure. When no token is configured the handshake is skipped entirely; a
+post-connect `auth` ping still answers `auth_ok` with `"required": false`.
+
 #### Subscribe
 ```json
 {
@@ -440,6 +453,44 @@ Request a backtest run. `strategy` can be `"all"`, `"trend"`, `"mean_reversion"`
 }
 ```
 Request comparison of multiple backtest results. Server responds with `comparison_result`.
+
+#### Optimize Portfolio
+```json
+{
+  "type": "optimize_portfolio",
+  "method": "max_sharpe",
+  "assets": [
+    { "symbol": "BTC/USDT", "candles_data": [ { "close": 64000, ... }, ... ] },
+    { "symbol": "ETH/USDT", "candles_data": [ ... ] }
+  ],
+  "current_weights": [0.5, 0.5],
+  "portfolio_value": 10000,
+  "views": [
+    { "assets": ["BTC/USDT"], "weights": [1], "expected_return": 0.001, "confidence": 0.7 }
+  ]
+}
+```
+Run portfolio optimization over client-supplied candles. `method` is one of
+`max_sharpe`, `min_variance`, `risk_parity`, `black_litterman`. Optional:
+`current_weights` + `portfolio_value` adds rebalancing orders to the response;
+`views` is Black-Litterman only. Server responds with `portfolio_result`.
+
+#### Volatility Surface
+```json
+{
+  "type": "vol_surface",
+  "model": "svi",
+  "forward": 64000,
+  "points": [
+    { "strike": 60000, "maturity_days": 30, "iv": 0.62 },
+    { "strike": 64000, "maturity_days": 30, "iv": 0.55 }
+  ],
+  "eval_strikes": [58000, 60000, 62000, 64000]
+}
+```
+Calibrate an implied-vol model to market IV points. `model` is `svi` or `sabr`
+(`beta` optional, default 0.5). `eval_strikes` optionally picks the output grid
+(median maturity). Server responds with `vol_surface_result`.
 
 ### AI Signal Bot → HFT Bot / Web UI
 
@@ -525,6 +576,44 @@ Returned in response to a `run_backtest` request. Contains results for each stra
 ```
 Returned in response to `compare_backtests`. Includes statistical significance tests and best strategy.
 
+#### Portfolio Result
+```json
+{
+  "type": "portfolio_result",
+  "method": "max_sharpe",
+  "weights": { "BTC/USDT": 0.62, "ETH/USDT": 0.38 },
+  "expected_return": 0.0012,
+  "volatility": 0.021,
+  "sharpe_ratio": 1.45,
+  "risk_contributions": { "BTC/USDT": 0.71, "ETH/USDT": 0.29 },
+  "orders": [ { "symbol": "BTC/USDT", "side": "buy", "quantity": 0.02 } ]
+}
+```
+Returned in response to `optimize_portfolio`. `risk_contributions` only for
+`risk_parity`; `orders` only when `current_weights` + `portfolio_value` were
+sent. On bad input: `{"type": "portfolio_result", "error": "<reason>"}`.
+
+#### Vol Surface Result
+```json
+{
+  "type": "vol_surface_result",
+  "model": "svi",
+  "params": { "a": 0.01, "b": 0.1, "rho": -0.2, "m": 0.0, "sigma": 0.3 },
+  "fitted": [ { "strike": 60000, "maturity_days": 30, "iv_model": 0.60 } ],
+  "points": 12,
+  "calibrated": true
+}
+```
+Returned in response to `vol_surface`. On bad input or failed calibration:
+`{"type": "vol_surface_result", "error": "<reason>"}`.
+
+#### Auth Result
+```json
+{ "type": "auth_ok", "required": true }
+{ "type": "auth_failed" }
+```
+Answer to an `auth` frame.
+
 ---
 
 ## Message Type Summary
@@ -552,14 +641,20 @@ Returned in response to `compare_backtests`. Includes statistical significance t
 | 8765 | S→C | `options_chain` | Options chain with Greeks (response) |
 | 8765 | S→C | `pong` | Latency response |
 | 8765 | S→C | `error` | Error message |
+| 8766 | C→S | `auth` | Token handshake (when `api.auth_token` configured) |
 | 8766 | C→S | `subscribe` | Subscribe to AI signals |
 | 8766 | C→S | `run_backtest` | Request backtest execution |
 | 8766 | C→S | `compare_backtests` | Request backtest comparison |
+| 8766 | C→S | `optimize_portfolio` | Portfolio optimization (Markowitz/RP/BL + rebalance) |
+| 8766 | C→S | `vol_surface` | SVI/SABR implied-vol calibration |
+| 8766 | S→C | `auth_ok` / `auth_failed` | Auth handshake result |
 | 8766 | S→C | `signal` | Validated trading signal |
 | 8766 | S→C | `signal_history` | Historical signals on connect |
 | 8766 | S→C | `market_regime` | FFT regime update |
 | 8766 | S→C | `backtest_result` | Backtest results with equity curves |
 | 8766 | S→C | `comparison_result` | Backtest comparison with significance tests |
+| 8766 | S→C | `portfolio_result` | Optimization weights/metrics/orders (or `error`) |
+| 8766 | S→C | `vol_surface_result` | Calibrated SVI/SABR params + fitted IVs (or `error`) |
 
 ---
 
