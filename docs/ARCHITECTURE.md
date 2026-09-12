@@ -155,16 +155,13 @@ The system implements production-grade observability across all components:
 ### 1. Exchange Simulator (`exchange_simulator/`)
 
 **Language:** Python 3.12+
-**Role:** Simulates 3 crypto exchanges with realistic market microstructure and real-time price feeds
+**Role:** Simulates 3 crypto exchanges — seeded GBM price engine, order matching, WebSocket data feeds
 
 | Feature | Implementation |
 | --- | --- |
-| **Price generation** | GBM (market_simulator.py) + Student-t/Merton/Heston/Markov regime (market_microstructure.py), correlated multi-symbol, news events, market impact, slippage, partial fills |
-| Real-time price feeds | Multi-API integration (Binance, Coinbase Pro) with automatic failover, rate limiting, caching |
-| Microstructure | Student-t fat tails (df=4), Merton jump diffusion, Heston stochastic vol (kappa=2, theta=0.04), Markov regime switching (4-state), U-shaped intraday vol |
-| Options | Black-Scholes pricing, Binomial Tree, Greeks, implied vol (Newton-Raphson), Options strategies (Straddle, Strangle, Iron Condor, Butterfly) |
-| Order book realism | Power-law volume decay, spoofing detection, iceberg orders, queue position tracking, adverse selection |
-| Spread analytics | Per-exchange spread tracking, percentile-based slippage stats, effective cost analysis |
+| **Price generation** | GBM (market_simulator.py), correlated multi-symbol, news events, weekend vol mode, market impact, slippage, partial fills |
+| Options | Black-Scholes pricing, Greeks, implied vol (Newton-Raphson) via `options_simulator.py` |
+| Order book | 20 levels/side, exponential decay depth (`e^{-0.15i}`) + random qty, real-time depth snapshot API |
 | Data export | CSV and Parquet export for candles, trades, account data (backtesting/ML training) |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
 | Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
@@ -184,16 +181,12 @@ The system implements production-grade observability across all components:
 | Timestamped logging | Per-run log files in `logs/` with `_latest.log` symlink |
 | Visualizer | Terminal-based candle charts, RSI, MACD, BB, FFT regime, equity sparkline |
 | Data feed | WebSocket server streaming candles, order books, accounts, fills, audit logs |
-| Market microstructure | Heston stochastic volatility, Student-t fat tails, Merton jump diffusion, Markov regime switching (CALM/VOLATILE/CRASH/RECOVERY), U-shaped intraday volume |
-| Latency simulation | Per-exchange base latency (Binance 50ms, OKX 80ms, Bybit 120ms), Gaussian jitter, Poisson spikes, exponential backoff reconnection |
-| Order book realism | Power-law depth profiles, spoofing detection, iceberg orders, FIFO queue positions, adverse selection (toxic flow score) |
 | Funding rate history | Per-exchange funding rate tracking with history deque, visualization in Web UI |
 | Depth snapshot API | Cumulative bid/ask volumes, imbalance, spread, level-by-level depth data |
-| Health check | Aggregated health endpoint across all services (/health, /healthz) |
-| Spread analytics | Per-exchange/symbol spread tracking with P50/P90/P99 percentiles, effective slippage measurement in basis points |
+| Health check | Aggregated health endpoint across all services (/health, /live, /ready) |
 
 **Key files:**
-- `market_simulator.py` — GBM price engine with volatility multipliers, hybrid mode with real price feeds
+- `market_simulator.py` — GBM price engine (seeded/deterministic) with correlated symbols, volatility multipliers, news events, weekend mode
 - `exchange.py` — Order matching, account management, slippage, market impact, audit logging integration
 - `visualizer.py` — Terminal dashboard with ASCII charts and sparklines
 - `websocket_server.py` — WebSocket data feed, arbitrage auto-execution, CSV trade logging, audit log streaming
@@ -444,22 +437,21 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `src/contexts/ExchangeContext.jsx` — Exchange theme and layout context provider
 - `src/components/ExchangeSelector.jsx` — Exchange switcher UI component
 - `src/utils/auditExport.js` — Audit log export utilities (JSON, CSV, statistics)
-- `src/hooks/useWebSocket.js` — Generic WebSocket hook with exponential backoff auto-reconnect
-- `src/hooks/useExchangeData.js` — Exchange data hook (candles, prices, orderbooks, accounts, fills, arbitrage)
-- `src/hooks/useSignalData.js` — AI signal data hook (signals, regime, backtest results)
+- `src/hooks/useWebSocket.ts` — Generic WebSocket hook with exponential backoff auto-reconnect
+- `src/hooks/useExchangeData.js` — Exchange data hook (candles, prices, orderbooks, accounts, fills, arbitrage) + exports `useSignalData` (AI signals, regime, backtest results)
 - `src/hooks/useDetachablePanels.js` — Multi-monitor popup panel support
-- `src/hooks/useSoundAlerts.js` — Web Audio API sound notifications
-- `src/hooks/useTheme.js` — Dark/light theme toggle (uses useLocalStorage)
-- `src/hooks/useMediaQuery.js` — Mobile responsive detection
-- `src/hooks/useTradeJournal.js` — Trade notes with localStorage persistence (uses useLocalStorage)
+- `src/hooks/useSoundAlerts.ts` — Web Audio API sound notifications
+- `src/hooks/useTheme.ts` — Dark/light theme toggle (uses useLocalStorage)
+- `src/hooks/useMediaQuery.ts` — Mobile responsive detection
+- `src/hooks/useTradeJournal.ts` — Trade notes with localStorage persistence (uses useLocalStorage)
 - `src/hooks/useLocalStorage.ts` — Generic localStorage persistence hook with JSON serialization
-- `src/hooks/useKeyboardShortcuts.js` — Centralized keyboard shortcut registration with modifier support
-- `src/hooks/useDebounce.js` — Debounce hook for search/filter inputs (300ms default)
+- `src/hooks/useKeyboardShortcuts.ts` — Centralized keyboard shortcut registration with modifier support
+- `src/hooks/useDebounce.ts` — Debounce hook for search/filter inputs (300ms default)
 - `src/utils/indicators.js` — EMA, RSI, SMA, Bollinger Bands, VWAP, ATR, ADX, OBV, MFI, Williams %R, Stochastic, CCI, Awesome Oscillator, Parabolic SAR, MACD, ADX
-- `src/utils/performance.js` — Aggregate metrics, equity curve, drawdown, Sharpe/Sortino
+- `src/utils/performance.ts` — Aggregate metrics, equity curve, drawdown, Sharpe/Sortino
 - `src/utils/format.ts` — Number/price formatting helpers
-- `src/utils/timeframes.js` — Multi-timeframe candle aggregation
-- `src/utils/patterns.js` — Candle pattern detection (doji, hammer, engulfing)
+- `src/utils/timeframes.ts` — Multi-timeframe candle aggregation
+- `src/utils/patterns.ts` — Candle pattern detection (doji, hammer, engulfing)
 
 **Advanced Math Model components (75+):**
 
