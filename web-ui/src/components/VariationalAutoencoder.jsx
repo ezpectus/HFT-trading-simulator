@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Variational Autoencoder (VAE) ──────────────────────────────────────────
 // Deep generative model that learns a latent representation of return
@@ -156,8 +157,8 @@ function VariationalAutoencoder({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(8)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Recurrent Neural Network (RNN) for Price Prediction ────────────────────
 // Implements a simplified Elman RNN with BPTT (Backpropagation Through Time)
@@ -242,8 +243,8 @@ function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
   const [lr, setLr] = useState(0.01)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 40) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 40) return null
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

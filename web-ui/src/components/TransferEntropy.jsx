@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles, groupCandles } from '../utils/candles'
 
 // ─── Transfer Entropy (Information-Theoretic Causality) ──────────────────────
 // Measures directed information flow between time series using transfer entropy.
@@ -132,8 +133,9 @@ function TransferEntropy({ candles, symbol, exchange, symbols }) {
   const [lookback, setLookback] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
+    const bySym = groupCandles(candles, exchange)
     const prices1 = cds.slice(-lookback).map(c => c.close)
     const returns1 = []
     for (let i = 1; i < prices1.length; i++) {
@@ -151,7 +153,7 @@ function TransferEntropy({ candles, symbol, exchange, symbols }) {
     if (symbols) {
       for (const sym2 of symbols) {
         if (sym2 === symbol) continue
-        const cds2 = candles[exchange]?.[sym2]
+        const cds2 = bySym[sym2]
         if (!cds2 || cds2.length < lookback + 1) continue
         const prices2 = cds2.slice(-lookback).map(c => c.close)
         const returns2 = []

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Tensor Decomposition (CP / Tucker for Multi-Way Data) ───────────────────
 // Decomposes multi-dimensional financial data tensors using CANDECOMP/PARAFAC
@@ -21,7 +22,7 @@ import React, { memo, useMemo, useState } from 'react'
 //   Applications: multi-asset multi-timeframe analysis, latent factor extraction
 
 // Build tensor: assets × timeframes × features
-const buildTensor = (candles, exchange, symbols, timeframes, lookback) => {
+const buildTensor = (bySym, symbols, timeframes, lookback) => {
   const nAssets = symbols.length
   const nTF = timeframes.length
   const nFeatures = 5 // return, vol, range, momentum, volume
@@ -29,7 +30,7 @@ const buildTensor = (candles, exchange, symbols, timeframes, lookback) => {
 
   const tensor = []
   for (let a = 0; a < nAssets; a++) {
-    const cds = candles[exchange]?.[symbols[a]]
+    const cds = bySym[symbols[a]]
     if (!cds || cds.length < lookback) return null
 
     const assetSlice = []
@@ -187,15 +188,16 @@ function TensorDecomposition({ candles, symbols, exchange }) {
   const timeframes = [1, 5, 15]
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 2) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 2) return null
 
     const validSymbols = symbols.filter(s => {
-      const cds = candles[exchange]?.[s]
+      const cds = bySym[s]
       return cds && cds.length >= lookback
     })
     if (validSymbols.length < 2) return null
 
-    const result = buildTensor(candles, exchange, validSymbols, timeframes, lookback)
+    const result = buildTensor(bySym, validSymbols, timeframes, lookback)
     if (!result) return null
 
     const { tensor, nAssets, nTF, nTime, nFeatures, nCols } = result

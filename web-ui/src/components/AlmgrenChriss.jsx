@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Almgren-Chriss Optimal Execution ────────────────────────────────────────
 // Implements the Almgren-Chriss model for optimal order execution that
@@ -125,8 +126,8 @@ function AlmgrenChriss({ candles, symbol, exchange, currentPrice }) {
 
   // Estimate sigma from candle data
   const sigma = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 10) return 0.02
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 10) return 0.02
     const returns = []
     for (let i = 1; i < cds.length; i++) {
       returns.push((cds[i].close - cds[i - 1].close) / cds[i - 1].close)

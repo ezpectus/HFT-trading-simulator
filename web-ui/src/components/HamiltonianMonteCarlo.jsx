@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Hamiltonian Monte Carlo (HMC) ──────────────────────────────────────────
 // Momentum-based MCMC sampler that uses Hamiltonian dynamics to propose
@@ -131,8 +132,8 @@ function HamiltonianMonteCarlo({ candles, symbol, exchange }) {
   const [burnIn, setBurnIn] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback - 1).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Gaussian Mixture Models (GMM) + EM Algorithm ───────────────────────────
 // Fits Gaussian Mixture Models to return distributions using the
@@ -139,8 +140,8 @@ function GaussianMixtureModel({ candles, symbol, exchange }) {
   const [autoK, setAutoK] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback - 1).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

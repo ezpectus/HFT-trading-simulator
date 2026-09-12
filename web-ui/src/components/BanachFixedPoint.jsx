@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Banach Fixed-Point Iteration (Contraction Mapping Equilibrium) ─────────
 // Uses Banach's contraction mapping theorem to find fixed points of
@@ -67,8 +68,8 @@ function BanachFixedPoint({ candles, symbol, exchange }) {
   const [coupling, setCoupling] = useState(0.3)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

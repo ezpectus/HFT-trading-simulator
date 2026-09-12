@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Wasserstein Barycenters (Fréchet Mean in OT Space) ─────────────────────
 // Computes Wasserstein barycenters — the "average" of multiple distributions
@@ -84,9 +85,10 @@ function WassersteinBarycenters({ candles, symbols, exchange }) {
   const [nPoints, setNPoints] = useState(80)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 1) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 1) return null
     const sym = symbols[0]
-    const cds = candles[exchange]?.[sym]
+    const cds = bySym[sym]
     if (!cds || cds.length < lookback + 1) return null
 
     const prices = cds.slice(-lookback).map(c => c.close)
@@ -165,7 +167,7 @@ function WassersteinBarycenters({ candles, symbols, exchange }) {
       const multiDists = []
       const multiLabels = []
       for (const s of symbols.slice(0, 5)) {
-        const cds2 = candles[exchange]?.[s]
+        const cds2 = bySym[s]
         if (cds2 && cds2.length > lookback) {
           const p2 = cds2.slice(-lookback).map(c => c.close)
           const r2 = computeReturns(p2)

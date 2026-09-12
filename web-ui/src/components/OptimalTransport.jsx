@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Optimal Transport (Wasserstein Distance) ───────────────────────────────
 // Computes Wasserstein (earth mover's) distance between return distributions
@@ -125,8 +126,8 @@ const OptimalTransport = memo(function OptimalTransport({ candles, symbol, excha
   const [nBins, setNBins] = useState(20)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < windowSize * 3) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < windowSize * 3) return null
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

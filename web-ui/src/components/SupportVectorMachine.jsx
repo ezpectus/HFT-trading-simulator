@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Support Vector Machine (SVM) Classifier ────────────────────────────────
 // Implements a linear SVM using Stochastic Gradient Descent (SGD) with
@@ -241,8 +242,8 @@ function SupportVectorMachine({ candles, symbol, exchange }) {
   const [epochs, setEpochs] = useState(200)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 50) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 50) return null
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

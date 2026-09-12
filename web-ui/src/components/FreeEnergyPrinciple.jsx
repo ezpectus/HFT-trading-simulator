@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Free Energy Principle (Active Inference for Trading) ───────────────────
 // Implements the Free Energy Principle (Friston) for trading decisions:
@@ -114,8 +115,8 @@ function FreeEnergyPrinciple({ candles, symbol, exchange }) {
   const [horizon, setHorizon] = useState(3)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Sobolev Space Regularization (Smoothness-Constrained Estimation) ───────
 // Uses Sobolev space norms to regularize estimates, enforcing smoothness
@@ -116,8 +117,8 @@ function SobolevSpaceRegularization({ candles, symbol, exchange }) {
   const [noiseLevel, setNoiseLevel] = useState(0.5)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

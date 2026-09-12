@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Variational Mode Decomposition (VMD) ────────────────────────────────────
 // VMD is a non-recursive signal decomposition method that adaptively
@@ -227,8 +228,8 @@ function VariationalModeDecomposition({ candles, symbol, exchange }) {
   const [maxIter, setMaxIter] = useState(50)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 32) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 32) return null
     const prices = cds.map(c => c.close)
 
     // Use last 128 prices (or available)

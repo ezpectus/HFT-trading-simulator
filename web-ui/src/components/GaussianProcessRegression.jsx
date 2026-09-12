@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Gaussian Process Regression ────────────────────────────────────────────
 // Non-parametric Bayesian regression using Gaussian Processes.
@@ -179,8 +180,8 @@ function GaussianProcessRegression({ candles, symbol, exchange }) {
   const [nPredict, setNPredict] = useState(10)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < nTrain + nPredict + 5) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < nTrain + nPredict + 5) return null
     const prices = cds.map(c => c.close)
 
     // Use last nTrain+nPredict prices

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Information Bottleneck (Rate-Distortion Optimization) ──────────────────
 // Finds optimal compression of return signals by trading off information
@@ -173,8 +174,8 @@ function InformationBottleneck({ candles, symbol, exchange }) {
   const [lag, setLag] = useState(1)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + lag + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + lag + 1) return null
     const prices = cds.slice(-lookback - lag).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

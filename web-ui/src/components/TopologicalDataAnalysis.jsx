@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Topological Data Analysis (TDA) — Persistence Homology ─────────────────
 // Computes persistence diagrams from point clouds derived from price data,
@@ -155,8 +156,8 @@ function TopologicalDataAnalysis({ candles, symbol, exchange }) {
   const [maxFeatures, setMaxFeatures] = useState(30)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

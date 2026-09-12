@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // --- Malliavin-Stein Sensitivity (Greeks via Integration by Parts) ---
 // Combines Malliavin calculus with Stein's method to compute
@@ -126,8 +127,8 @@ function MalliavinSteinSensitivity({ candles, symbol, exchange }) {
   const [r, setR] = useState(0.05)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

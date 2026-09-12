@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Hidden Markov Model (HMM) ───────────────────────────────────────────────
 // Full implementation of HMM with:
@@ -218,8 +219,8 @@ function HiddenMarkovModel({ candles, symbol, exchange }) {
   const [maxIter, setMaxIter] = useState(50)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 50) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 50) return null
     const prices = cds.map(c => c.close)
 
     // Returns

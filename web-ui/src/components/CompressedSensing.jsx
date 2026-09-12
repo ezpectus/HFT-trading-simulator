@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Compressed Sensing (Sparse Signal Recovery) ────────────────────────────
 // Recovers sparse signals from undersampled observations using L1 minimization.
@@ -180,8 +181,8 @@ function CompressedSensing({ candles, symbol, exchange }) {
   const [method, setMethod] = useState('omp')
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
     const n = returns.length

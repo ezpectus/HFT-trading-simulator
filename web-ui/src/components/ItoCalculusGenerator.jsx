@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Itô Calculus Generator (Infinitesimal Generator of Diffusions) ─────────
 // Computes the infinitesimal generator A of an Itô diffusion, which
@@ -68,8 +69,8 @@ function ItoCalculusGenerator({ candles, symbol, exchange }) {
   const [funcType, setFuncType] = useState('identity')
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

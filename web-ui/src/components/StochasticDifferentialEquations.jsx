@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Stochastic Differential Equations (SDE) ────────────────────────────────
 // Simulates financial SDEs using Euler-Maruyama and Milstein schemes.
@@ -177,8 +178,8 @@ function StochasticDifferentialEquations({ candles, symbol, exchange }) {
   const [autoParams, setAutoParams] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 30) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 30) return null
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

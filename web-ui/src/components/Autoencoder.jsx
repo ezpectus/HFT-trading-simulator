@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Autoencoder (Deep Learning Anomaly Detection) ──────────────────────────
 // Implements a shallow autoencoder with tied weights for unsupervised
@@ -207,8 +208,8 @@ function Autoencoder({ candles, symbol, exchange }) {
   const [threshold, setThreshold] = useState(2.0)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 40) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 40) return null
 
     const rawFeatures = extractAEFeatures(cds, 20)
     if (rawFeatures.length < 20) return null

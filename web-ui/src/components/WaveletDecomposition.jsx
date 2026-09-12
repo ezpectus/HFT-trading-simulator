@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Wavelet Decomposition (MRA) ─────────────────────────────────────────────
 // Implements Multi-Resolution Analysis using discrete wavelet transforms.
@@ -177,8 +178,8 @@ function WaveletDecomposition({ candles, symbol, exchange }) {
   const [showComponents, setShowComponents] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 16) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 16) return null
     const prices = cds.map(c => c.close)
 
     // Pad to power of 2

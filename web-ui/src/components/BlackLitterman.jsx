@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Black-Litterman Portfolio Allocation ───────────────────────────────────
 // Combines market equilibrium returns (reverse-optimized from market caps)
@@ -99,13 +100,14 @@ function BlackLitterman({ candles, symbols, exchange }) {
   ])
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 2) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 2) return null
 
     // Get returns for all symbols
     const allReturns = []
     const validSymbols = []
     for (const sym of symbols) {
-      const cds = candles[exchange]?.[sym]
+      const cds = bySym[sym]
       if (!cds || cds.length < lookback + 1) continue
       const prices = cds.slice(-lookback - 1).map(c => c.close)
       const rets = []

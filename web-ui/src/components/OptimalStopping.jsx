@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Optimal Stopping (Snell Envelope) ───────────────────────────────────────
 // Implements the Snell envelope for optimal exercise of American options.
@@ -232,8 +233,8 @@ const OptimalStopping = memo(({ candles, symbol, exchange, currentPrice }) => {
 
   // Estimate sigma from candles
   const estSigma = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 10) return sigma
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 10) return sigma
     const rets = []
     for (let i = 1; i < cds.length; i++) {
       rets.push((cds[i].close - cds[i - 1].close) / cds[i - 1].close)

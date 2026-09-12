@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Rough Volatility (Bergomi Model) ───────────────────────────────────────
 // Implements the rough Bergomi (rBergomi) model where volatility follows
@@ -196,8 +197,8 @@ function RoughVolatility({ candles, symbol, exchange }) {
   const [autoHurst, setAutoHurst] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 40) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 40) return null
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

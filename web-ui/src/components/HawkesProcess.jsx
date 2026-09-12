@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Hawkes Process (Self-Exciting Point Process) ───────────────────────────
 // Models trade clustering and self-excitation in order flow.
@@ -138,8 +139,8 @@ function HawkesProcess({ candles, symbol, exchange }) {
   const [simT, setSimT] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 30) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 30) return null
 
     // Extract "events" from candles: significant price moves
     const events = []

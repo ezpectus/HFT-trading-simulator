@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // --- Cameron-Martin Formula (Gaussian Shift Theorem for Drift) ---
 // Uses the Cameron-Martin theorem to quantify how a deterministic shift
@@ -33,8 +34,8 @@ function CameronMartinFormula({ candles, symbol, exchange }) {
   const [shiftMode, setShiftMode] = useState('constant')
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

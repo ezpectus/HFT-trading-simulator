@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Lie Group Symmetries (Symmetry-Based Market Analysis) ──────────────────
 // Analyzes financial time series through the lens of Lie group symmetries,
@@ -135,8 +136,8 @@ function LieGroupSymmetries({ candles, symbol, exchange }) {
   const [lookback, setLookback] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

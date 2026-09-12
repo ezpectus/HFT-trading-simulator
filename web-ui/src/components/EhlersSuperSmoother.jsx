@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Ehlers SuperSmoother Filter ─────────────────────────────────────────────
 // John Ehlers' zero-lag digital signal processing filter.
@@ -194,8 +195,8 @@ function EhlersSuperSmoother({ candles, symbol, exchange }) {
   const [showRoofing, setShowRoofing] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 10) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 10) return null
     const prices = cds.map(c => c.close)
     const timestamps = cds.map(c => c.timestamp)
 

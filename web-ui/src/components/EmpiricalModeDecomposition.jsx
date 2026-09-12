@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Empirical Mode Decomposition (EMD) + Hilbert-Huang Transform ────────────
 // EMD adaptively decomposes a signal into Intrinsic Mode Functions (IMFs)
@@ -271,8 +272,8 @@ function EmpiricalModeDecomposition({ candles, symbol, exchange }) {
   const [showHilbert, setShowHilbert] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 32) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 32) return null
     const N = Math.min(128, cds.length)
     const prices = cds.slice(-N).map(c => c.close)
 

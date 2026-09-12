@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Bayesian Price Predictor ────────────────────────────────────────────────
 // Uses Bayesian inference with conjugate priors to estimate the probability
@@ -165,8 +166,8 @@ function BayesianPricePredictor({ candles, symbol, exchange }) {
   const [hazardRate, setHazardRate] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 30) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 30) return null
     const prices = cds.map(c => c.close)
     const n = prices.length
 

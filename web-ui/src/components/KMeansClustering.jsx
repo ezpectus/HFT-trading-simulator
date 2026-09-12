@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── K-Means Market Clustering ───────────────────────────────────────────────
 // Unsupervised ML for market regime detection using K-Means clustering.
@@ -218,8 +219,8 @@ function KMeansClustering({ candles, symbol, exchange }) {
   const [autoK, setAutoK] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 50) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 50) return null
     const prices = cds.map(c => c.close)
     const volumes = cds.map(c => c.volume || 1)
 

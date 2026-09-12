@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // --- Prokhorov Metric (Weak Convergence of Measures) ---
 // Computes the Prokhorov metric between empirical distributions to
@@ -109,8 +110,8 @@ function ProkhorovMetric({ candles, symbol, exchange }) {
   const [windowSize, setWindowSize] = useState(50)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

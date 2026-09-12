@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Malliavin Calculus (Sensitivity Estimation via Monte Carlo) ────────────
 // Uses Malliavin calculus to compute Greeks (sensitivities) of financial
@@ -163,8 +164,8 @@ function MalliavinCalculus({ candles, symbol, exchange }) {
   const [riskFreeRate, setRiskFreeRate] = useState(0.05)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 30) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 30) return null
     const prices = cds.slice(-50).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

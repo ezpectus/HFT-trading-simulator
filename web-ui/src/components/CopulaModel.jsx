@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Copula Dependency Model ─────────────────────────────────────────────────
 // Models non-linear dependency between assets using copula theory.
@@ -221,7 +222,8 @@ function CopulaModel({ candles, symbols, exchange }) {
   const [copulaType, setCopulaType] = useState('clayton')
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0) return null
     const syms = symbols || []
     if (syms.length < 2) return null
 
@@ -229,8 +231,8 @@ function CopulaModel({ candles, symbols, exchange }) {
     const b = syms[pairB] || syms[1]
     if (a === b) return null
 
-    const cdsA = candles[exchange]?.[a]
-    const cdsB = candles[exchange]?.[b]
+    const cdsA = bySym[a]
+    const cdsB = bySym[b]
     if (!cdsA || !cdsB || cdsA.length < 30 || cdsB.length < 30) return null
 
     const n = Math.min(cdsA.length, cdsB.length)

@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Reproducing Kernel Hilbert Space (RKHS) ────────────────────────────────
 // Uses kernel methods to map financial time series into a high-dimensional
@@ -155,8 +156,8 @@ function ReproducingKernelHilbertSpace({ candles, symbol, exchange }) {
   const [nComponents, setNComponents] = useState(3)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {

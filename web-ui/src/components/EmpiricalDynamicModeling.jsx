@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles, groupCandles } from '../utils/candles'
 
 // ─── Empirical Dynamic Modeling (EDM) ───────────────────────────────────────
 // Implements Takens' embedding theorem and Convergent Cross Mapping (CCM)
@@ -223,8 +224,9 @@ function EmpiricalDynamicModeling({ candles, symbol, exchange, symbols }) {
   const [ccmTarget, setCcmTarget] = useState(null)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 50) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 50) return null
+    const bySym = groupCandles(candles, exchange)
     const prices = cds.map(c => c.close)
     const returns = []
     for (let i = 1; i < prices.length; i++) {
@@ -271,7 +273,7 @@ function EmpiricalDynamicModeling({ candles, symbol, exchange, symbols }) {
     if (symbols && symbols.length > 1) {
       for (const sym of symbols) {
         if (sym === symbol) continue
-        const cds2 = candles[exchange]?.[sym]
+        const cds2 = bySym[sym]
         if (!cds2 || cds2.length < 50) continue
         const prices2 = cds2.map(c => c.close)
         const returns2 = []

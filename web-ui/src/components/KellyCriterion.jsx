@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Kelly Criterion + Fractional Kelly Portfolio Sizing ─────────────────────
 // Implements optimal position sizing based on the Kelly Criterion,
@@ -181,12 +182,13 @@ function KellyCriterion({ candles, symbols, exchange }) {
   }, [winProb, winLossRatio, fraction, maxLeverage])
 
   const multiAsset = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 2) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 2) return null
 
     const allReturns = []
     const validSymbols = []
     for (const sym of symbols) {
-      const cds = candles[exchange]?.[sym]
+      const cds = bySym[sym]
       if (!cds || cds.length < lookback + 1) continue
       const prices = cds.slice(-lookback - 1).map(c => c.close)
       const rets = []

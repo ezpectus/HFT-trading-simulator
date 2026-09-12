@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Random Matrix Theory (RMT) ─────────────────────────────────────────────
 // Applies Marchenko-Pastur law to filter noise from empirical correlation
@@ -116,12 +117,13 @@ function RandomMatrixTheory({ candles, symbols, exchange }) {
   const [lookback, setLookback] = useState(100)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 3) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 3) return null
 
     const allReturns = []
     const validSymbols = []
     for (const sym of symbols) {
-      const cds = candles[exchange]?.[sym]
+      const cds = bySym[sym]
       if (!cds || cds.length < lookback + 1) continue
       const prices = cds.slice(-lookback - 1).map(c => c.close)
       const rets = []

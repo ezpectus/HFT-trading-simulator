@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Dynamic Time Warping (DTW) ──────────────────────────────────────────────
 // Measures similarity between temporal sequences that may vary in speed.
@@ -103,8 +104,8 @@ function DynamicTimeWarping({ candles, symbol, exchange }) {
   const [scanAll, setScanAll] = useState(true)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < 40) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < 40) return null
     const prices = cds.map(c => c.close)
     const returns = computeReturns(prices)
 

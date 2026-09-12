@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Affine Arithmetic for Interval Uncertainty Propagation ──────────────────
 // Uses affine arithmetic (AA) to propagate uncertainty through financial
@@ -193,8 +194,8 @@ function AffineArithmetic({ candles, symbol, exchange }) {
   const [riskFreeRate, setRiskFreeRate] = useState(0.05)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
     const returns = computeReturns(prices)
 

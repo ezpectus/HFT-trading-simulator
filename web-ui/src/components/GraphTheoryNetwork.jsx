@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { groupCandles } from '../utils/candles'
 
 // ─── Graph Theory: Correlation Networks & MST ───────────────────────────────
 // Constructs financial networks from return correlations using:
@@ -140,12 +141,13 @@ function GraphTheoryNetwork({ candles, symbols, exchange }) {
   const [edgeThreshold, setEdgeThreshold] = useState(0.3)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange] || !symbols || symbols.length < 3) return null
+    const bySym = groupCandles(candles, exchange)
+    if (Object.keys(bySym).length === 0 || !symbols || symbols.length < 3) return null
 
     const allReturns = []
     const validSymbols = []
     for (const sym of symbols) {
-      const cds = candles[exchange]?.[sym]
+      const cds = bySym[sym]
       if (!cds || cds.length < lookback + 1) continue
       const prices = cds.slice(-lookback - 1).map(c => c.close)
       const rets = []

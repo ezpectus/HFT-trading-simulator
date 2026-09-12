@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useState } from 'react'
+import { selectCandles } from '../utils/candles'
 
 // ─── Bayesian Structural Time Series (BSTS) ─────────────────────────────────
 // State-space model with Kalman filter for decomposing time series into
@@ -158,8 +159,8 @@ function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
   const [sigmaIrregular, setSigmaIrregular] = useState(0.1)
 
   const data = useMemo(() => {
-    if (!candles?.[exchange]?.[symbol] || candles[exchange][symbol].length < lookback + 1) return null
-    const cds = candles[exchange][symbol]
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return null
     const prices = cds.slice(-lookback).map(c => c.close)
 
     // Use log prices for stability
