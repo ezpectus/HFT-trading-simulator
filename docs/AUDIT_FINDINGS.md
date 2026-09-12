@@ -999,3 +999,46 @@ HFT rows skipped — parallel session owns them (S058–S065 all landed in R21 t
 
 - **S003 — 8 more components off MOCK_*** (25 → 17 remaining). `LiquidityMap3D` now renders the real order book — merged bid/ask ladder, bid/ask walls, imbalance — from the `orderbooks` ctx prop the registry already passed. The other 7 have no backend feed and were lying about it: `CancelMonitor` (cancellations are audit-logged but never broadcast), `ModelDashboard`, `LogDashboard`, `DatabaseViewer`, `PacketInspector`, `CapacityAnalysis`, `GeneticViewer` (its backend module `genetic_strategy` was deleted as dead code). All now render a shared `NoDataFeed` disclosure naming the missing feed instead of fabricated tables.
 - **S041 — positions review closed.** All 14 `Object.*(acc.positions)` sites audited: `Object.values` on the list is correct, `Object.keys().length` was incidentally correct — normalized to `positions?.length` in 4 files. Zero remaining `Object.entries`/index-key bugs.
+
+## Round 24 — FIX branch: mediums — grafana provisioning, nested package, binds, options chain, marketplace label (S068, S084, S031, S087, S090)
+
+- **S068 — Grafana prod never provisioned a single dashboard.** `docker-compose.prod.yml` mounted `./monitoring/grafana/dashboards` to `/etc/grafana/dashboards`, but the provider config reads `/etc/grafana/provisioning/` — prod loaded 0 dashboards while `GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH` pointed at a non-provisioned file (home 404). Now mounted under `/etc/grafana/provisioning/dashboards` and the env points at the provisioned path.
+- **S084 — nested `exchange_simulator/exchange_simulator/` package + sys.path surgery removed.** The outer `__init__.py` mutated `sys.path`, imported modules by short name via importlib, and aliased `sys.modules` — every module had 2-3 import identities, and ImportError was swallowed into `logger.debug`. All 4 live modules flattened to package root; all live imports already used full paths. Bonus fix: `websocket_server.py` hard-imported `trade_csv_logger` — a **gitignored dev script** — meaning in a clean clone the importlib swallow made websocket_server silently vanish. Dev-script imports are now optional/defensive.
+- **S031 — 0.0.0.0 binds now env-configurable.** `run.py` reads `SIGNAL_WS_HOST`/`HEALTH_HOST`/`METRICS_HOST` (container-safe `0.0.0.0` default preserved); health/Prometheus ports also env-configurable.
+- **S087 — OptionsChain wired to the real endpoint.** `useExchangeData` sends `options_chain` requests and routes responses through the store/panel-context/registry; `OptionsChain.jsx` renders the server chain (simulator spot, sim volatility, strikes, expiries, Greeks), keeping client-side BS as an explicitly labeled fallback. Empty state and sigma label now name the data source.
+- **S090 — StrategyMarketplace honestly labeled.** It's hardcoded defaults + localStorage JSON import/export — no server marketplace exists. Added a `local only` badge with a tooltip stating exactly that.
+- **New finding S100:** 35 web-ui tests fail because they assert the fabricated data that R23's NoDataFeed refactor removed (packetInspector/cancelMonitor/capacityAnalysis/geneticViewer/logDashboard/modelDashboard/liquidityMap3D/databaseViewer). Tests are green only when the component lies — need rewrites against honest empty states or real props. Also fixed en passant: `optionsChain.test.jsx` empty-state wording, `sessionMarkers.test.jsx` brittle `getByText` (active session renders its name twice).
+
+**Verified:** optionsChain + sessionMarkers test files green (8/8); vite build green; sim suite 375 pass; ai-bot 1377 collect clean. The 35 S100 failures are pre-existing on committed HEAD (components from R23 commit + stale tests) — not caused by this round's edits.
+
+---
+
+## Round 24 — S099 (test suite green) + S007 + S016 + S073
+
+**S099 — 23 failing tests → 0.** Split: ~15 stale tests under moved APIs + 3 real bugs.
+
+Stale tests fixed:
+- `test_config.py` VALID_CONFIG predated the validator schema (shipped settings.yaml passes clean — validator was right). Fixture brought to the real schema: `default_exchange`, SL/TP/max_position_size, trend_following/mean_reversion/ensemble params, all 6 indicator periods.
+- `test_kelly_position_sizer`: `entry=` → `entry_price=` kwarg rename.
+- `test_kelly` min_risk: `max_position_pct=1000` headroom so min-risk bump isn't clipped by the 100%-notional cap.
+- `test_cvar`: `cvar >= var` → `<=` (CVaR is loss beyond VaR — deeper negative).
+- `test_rebalancing`: `rebalance()` → `execute_rebalance(portfolio_value=)`.
+- `test_var_calculator`: nonexistent `calculate_var(method=)` dispatcher → named methods; sign convention `>0` → `<0`, `r99>=r95` → `<=`.
+- `test_fft`: radix-2 padding assert → numpy handles any N (DC-value check).
+- `test_shm_*`: bare `Exception` → `OSError` (what shm-open raises; impl contract is bool-return).
+- `test_health_checks`: `message=` → `details=`; `test_metrics`: asserts real `signals_total` attr.
+- `test_monitoring_llm`: case-sensitive "No SHM check" → case-insensitive.
+- `test_circuit_breaker`/`test_tracker`: patch/inject `time.monotonic` (impl converted).
+
+**Real bugs fixed (found by the failing tests):**
+- `real_account.py`: all 13 except-clauses caught `(OSError, RuntimeError, KeyError, ValueError)` — but ccxt raises `ccxt.*Error` (plain `Exception` tree). Real exchange failures would crash `get_health`/`get_balance`/`set_leverage` instead of returning graceful defaults. Broadened to `Exception` (CancelledError is BaseException — unaffected).
+- `signal_publisher._send`: caught `(ConnectionError, OSError, TimeoutError)` — `websockets.ConnectionClosed` is an `Exception`, so dead clients were never marked disconnected; `gather(return_exceptions=True)` swallowed the failure silently and `_clients` grew forever. Broadened to `Exception`.
+- `test_kelly` min_risk: confirmed impl correct — notional cap legitimately wins over min-risk bump (test needed headroom, not a bug).
+
+**S007 — time.time()→monotonic for intervals.** 37 sites converted across 11 files (cooldowns, uptimes, latencies, ages, cache-TTL, decay). Wall-clock timestamps in messages/DB/payloads kept `time.time()` — correct semantics. NTP adjustments can no longer warp cooldowns or reported latencies.
+
+**S016** — `exchange_simulator/metrics.py` (264 lines) deleted: server uses `ws_metrics.WebSocketMetrics`; file lived only for its own test (also deleted).
+
+**S073** — dev compose `prometheus:latest`/`grafana:latest` → `v3.0.0`/`11.4.0` (same pins as prod).
+
+Verified: ai-signal-bot **1368 passed, 0 failed** (was 23 failed). Targeted module tests green after monotonic conversion. Ruff clean on touched files (6 I001 import-sort warnings pre-existing).
