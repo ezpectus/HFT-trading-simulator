@@ -865,3 +865,19 @@ Rotation target: the live-data plumbing itself — useExchangeData/useSignalData
 - `useExchangeData` — real and thorough: candle dedup map, orderbook delta application, fills/funding/news/regime/circuit-breaker all consumed from real messages
 - Mock mode honestly gated (`VITE_MOCK_MODE`/localStorage), declared in README
 - `useTradeJournal` (CSV export), `useSessionRecorder` (localStorage) — real local features
+
+## Round 15 — audit branch: ai-signal-bot internals (backtesting/risk/portfolio/ml)
+
+Rotation target: the remaining Python core — backtesting, risk, portfolio, ml, pricing, signal_validation.
+
+### New findings S092–S093
+
+**S092 — The entire `src/ml/` package is dead: 2848 lines, 10 modules.** autoencoder (375), automl (219), environment (163), feature_store (220), model_registry (310), price_predictor (385), rkhs (241), rl_trader (408), svm_signal (181), vae (346) — imported ONLY by their own test files (10+ test files testing dead code). `ml/__init__.py` is empty. The wired `MLEnsembleStrategy` uses `strategies/ml_features.py` + sklearn directly — nothing from `src/ml/`. README's "models not trained" disclaimer understates it: the package isn't merely untrained — nothing calls it.
+
+**S093 — `backtesting/order_book_replay.py` dead (262 lines).** `OrderBookBacktester`/`OrderBookReplay`/`ReplayOrderBook` re-exported in `__init__.py` but zero callers. Rest of backtesting/ is live via run.py/run_backtest.py/nightly.
+
+### ЧИСТО (ai-signal-bot internals)
+
+- risk/ modules live through backtester + signal_publisher (VaR/CVaR/Kelly/stress/position_sizing/risk_manager all imported)
+- Live loop does its own position sizing (run.py:299-306) + SignalValidator checks — honest architecture, no fake risk gate
+- backtester/optimizer/walk_forward/plotter/backtest_engine/pnl_calculator/comparison all reachable

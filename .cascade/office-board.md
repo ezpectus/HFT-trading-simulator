@@ -104,6 +104,8 @@
 | **S089** | Два бэктест-движка: панель гоняет клиентский, серверный API не вызывается | `StrategyBacktest.jsx` использует `utils/backtestEngine.js` (421 строка JS) на клиентских свечах, а сервер реально принимает `run_backtest`/`compare_backtests` по signals WS (`signal_publisher.py:187-191,310`) с настоящими strategy-объектами. Две реализации → разные результаты на одних данных; server path используется только push'ем в WalkForwardViewer. | Medium | [ ] Open |
 | **S090** | `useStrategyMarketplace` — localStorage-only "маркетплейс" | Панель = JSON import/export захардкоженных DEFAULT_STRATEGIES в localStorage (`useStrategyMarketplace.ts:110-125`). Серверный `StrategyMarketplace` (marketplace.py, dead per S076) — задуманный backend, никогда не подключён. Название рекламирует маркетплейс, реализация — файлообменник. | Medium | [ ] Open |
 | **S091** | App.jsx монтирует real + mock hooks безусловно | `App.jsx:89-93` — `useExchangeData()` и `useMockExchangeData()` оба вызываются всегда: в real-режиме mock-таймеры тикают впустую, в mock-режиме реальный WS коннектится к :8765/:8766 и сыплет reconnect-логи. | Low | [ ] Open |
+| **S092** | `src/ml/` — весь пакет мёртв (2848 строк, 10 модулей) | autoencoder (375), automl (219), environment (163), feature_store (220), model_registry (310), price_predictor (385), rkhs (241), rl_trader (408), svm_signal (181), vae (346) — импортируются ТОЛЬКО собственными тестами (10+ тест-файлов тестируют мёртвый код). `ml/__init__.py` пустой. `MLEnsembleStrategy` (wired) использует `strategies/ml_features.py` + sklearn напрямую — ничего из `src/ml/`. README честно пишет "models not trained", но занижает: пакет не просто необучен — он не вызывается нигде. | High | [ ] Open |
+| **S093** | `backtesting/order_book_replay.py` — мёртвые 262 строки | `OrderBookBacktester`/`OrderBookReplay`/`ReplayOrderBook` — только реэкспорт в `__init__.py`, 0 вызовов. Остальное в backtesting/ живое (backtester/optimizer/walk_forward/plotter — через run_backtest.py + run.py + nightly). | Medium | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -182,6 +184,10 @@
 - `useExchangeData` — настоящий полный plumbing: candle dedup-map, orderbook delta apply, fills/funding/news/regime/circuit-breaker — все real
 - mock-mode честно гейтится `VITE_MOCK_MODE`/localStorage, задекларирован в README
 - `useTradeJournal` (CSV export) + `useSessionRecorder` (localStorage) — реальные
+- risk/ модули живы через backtester+signal_publisher (VaR/CVaR/Kelly/stress/position_sizing/risk_manager)
+- live-цикл делает собственный sizing (run.py:299-306) + validator (confidence/RR/drawdown/maxpos/dup) — честная архитектура
+- backtesting/: backtester/optimizer/walk_forward/plotter/backtest_engine/pnl_calculator/comparison — живы через run.py/run_backtest.py/nightly
+- README "models not trained" дисклеймер существует (но занижает — ml/ вообще не вызывается)
 
 ---
 
