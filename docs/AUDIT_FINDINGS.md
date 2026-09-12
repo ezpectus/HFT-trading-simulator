@@ -1092,3 +1092,26 @@ Verified: ai-signal-bot **1368 passed, 0 failed** (was 23 failed). Targeted modu
 - **S017** — 0 `logger.X(f"...")` в src (attribution/competition удалены ранее; везде lazy %-args).
 - **S010** — файлы 100% os.path, смешивания с pathlib нет.
 - **S009** — все 24 `hasattr`/`getattr` легитимны: ccxt capability detection, plugin loading, optional adapter methods — не "вместо isinstance" на своих классах.
+
+## Round 27 — S101: CI lint jobs red on master (local gate never saw it)
+
+**S101 — three CI lint jobs were red on clean master.** `ci.yml` runs `ruff check .` per component, `npm run lint` (eslint src/), and `clang-format-18 --dry-run --Werror` on hft-trade-bot. The local pre-commit gate checks only *staged* files — so commits passed while repo-wide lint rotted. Verified on HEAD: ruff **29 errors**, eslint **303**, clang-format **~670 violations across 66 files**.
+
+Fixes:
+- **ruff:** `ruff check --fix` cleared 28 (18 I001 in ai-signal-bot tests + F541 f-string-without-placeholder). The last error (F841) lived in `scripts/pre-commit.py` — the **dead predecessor** of `pre-commit-check.py` (the hook invokes the latter; the former is referenced by nothing). Its `--quick` flag was fake — parsed, never read. Deleted rather than patched.
+- **eslint 303 → 0:** 268 `no-unused-vars` — mostly dead assignments/props left behind by the S003 mock-purge — plus `prefer-const`. A codemod (`scripts/fix_eslint_unused.py`) removed unused destructure members/imports/statements and `_`-prefixed position-dependent args across 121 files; ~15 sites needed hand repair (dead helper-function bodies, multi-declarator lines, cascading orphans like `PtauCov_`/`calcATR`/`highs`/`lows`/`zMax`). Deleted real dead code: `randomNormal`/`logGaussian`/`computeFreeEnergy`/`generatePolicies` bodies in FreeEnergyPrinciple, `kellyContinuous`, `levyProkhorov`, `conditionalProb`, `euclideanMean`, dead `direction`/`maxDDStart`/`cumulativeForce`/`im` accumulators.
+- **clang-format:** `-i` over the exact CI file set — 66 files, 0 violations after.
+
+**S017-extension:** the ai-signal-bot scope was clean, but `exchange_simulator/` had **45 f-string logger calls** — converted to lazy `%`-args by `scripts/fix_fstring_logs.py` (3 spec/slice sites handled by hand). f-string in `logger.X(...)` builds the string even when the level is filtered.
+
+Verified: `ruff check .` 0 · `eslint src/` 0 · `clang-format --dry-run --Werror` 0 · vitest **981/981** (125 files) · exchange_simulator **366 passed** · vite build green.
+
+---
+
+## Round 27 — S008 type:ignore=0, S006 топ-3 мок-файла spec'd
+
+**S008 — Done.** `type: ignore` 0 в src: `var.py` — `stats: ModuleType | None` для optional scipy import вместо suppress; `helpers.py` — `assert last_exc is not None` перед raise (loop выходит только после caught exception — инвариант задокументирован). price_predictor/rl_trader ignores ушли с удалёнными файлами.
+
+**S006 — топ-3 файла spec'd (63/156):** `test_real_account` — `spec=_CCXT_SURFACE` (13 методов что реально вызывает prod-код; ccxt не установлен → spec-по-именам ловит опечатки в именах методов). `test_metrics_server` — `spec=asyncio.Server/StreamReader/StreamWriter` (stdlib классы). Ранее: `test_signal_publisher` — websockets protocol spec.
+
+**Verified:** 30+24+15 тестов green на тронутых файлах, ruff clean.
