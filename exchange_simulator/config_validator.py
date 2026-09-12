@@ -261,13 +261,13 @@ def validate_or_exit(config: dict) -> dict:
     errors, warnings = validate_config(config)
 
     for w in warnings:
-        logger.warning(f"Config: {w}")
+        logger.warning("Config: %s", w)
 
     if errors:
         for e in errors:
-            logger.error(f"Config: {e}")
-        logger.error(f"Configuration validation failed with {len(errors)} error(s)")
+            logger.error("Config: %s", e)
+        logger.error("Configuration validation failed with %s error(s)", len(errors))
         sys.exit(1)
 
-    logger.info(f"Configuration validated: {len(warnings)} warning(s)")
+    logger.info("Configuration validated: %s warning(s)", len(warnings))
     return config

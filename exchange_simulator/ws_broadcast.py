@@ -140,7 +140,7 @@ class BroadcastMixin:
             "missed_candles": len(all_candles),
         }
         await self._send_json(websocket, message)
-        logger.info(f"  Sync state sent: {len(all_candles)} candles since ts={_sanitize_log(last_ts)}")
+        logger.info("  Sync state sent: %s candles since ts=%s", len(all_candles), _sanitize_log(last_ts))
 
     def _compute_orderbook_delta(self, key: str, bids: list, asks: list) -> tuple[dict, dict] | None:
         """Compute delta between current and last-sent order book for a symbol."""
@@ -235,7 +235,7 @@ class BroadcastMixin:
                 if rate != 0:
                     notifications = exchange.charge_funding(rate)
                     for note in notifications:
-                        logger.info(f"  FUNDING: {ex_id} rate={rate:.6f} | {note}")
+                        logger.info("  FUNDING: %s rate=%.6f | %s", ex_id, rate, note)
 
             batched_fills = []
             for order in closed_orders:

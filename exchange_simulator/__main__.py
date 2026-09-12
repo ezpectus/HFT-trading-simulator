@@ -104,7 +104,7 @@ def run_visualizer_thread(
             )
             viz.start()
         except (RuntimeError, OSError, ValueError, TypeError) as e:
-            logger.error(f"Visualizer error: {e}")
+            logger.error("Visualizer error: %s", e)
 
     thread = threading.Thread(target=_viz_loop, daemon=True)
     thread.start()
@@ -155,8 +155,8 @@ def run_headless(
 ) -> None:
     """Run without visualizer or WebSocket — just generate market data."""
     logger.info("Running in headless mode (no visualizer, no WebSocket)")
-    logger.info(f"Symbols: {list(config['initial_prices'].keys())}")
-    logger.info(f"Exchanges: {list(config['exchanges'].keys())}")
+    logger.info("Symbols: %s", list(config['initial_prices'].keys()))
+    logger.info("Exchanges: %s", list(config['exchanges'].keys()))
 
     tick = 0
     try:
@@ -201,7 +201,7 @@ def main():
     logger.info("  HFT TRADING SIMULATOR v2.2.0")
     logger.info("  3 Exchanges | 3 Symbols | Paper Trading")
     logger.info("=" * 60)
-    logger.info(f"  Log file: {log_path}")
+    logger.info("  Log file: %s", log_path)
 
     if args.export:
         # Run a short simulation to generate data, then export
@@ -221,7 +221,7 @@ def main():
         )
         files = exporter.export_all()
         exporter.export_summary()
-        logger.info(f"Export complete: {len(files)} files in {args.export_dir}/")
+        logger.info("Export complete: %s files in %s/", len(files), args.export_dir)
         return
 
     if args.headless:
@@ -238,7 +238,7 @@ def main():
     except KeyboardInterrupt:
         logger.info("Shutting down...")
     finally:
-        logger.info(f"Run complete. Log file: {log_path}")
+        logger.info("Run complete. Log file: %s", log_path)
 
 
 if __name__ == "__main__":

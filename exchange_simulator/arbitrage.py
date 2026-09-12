@@ -244,7 +244,7 @@ class ArbitrageDetector:
                 self._closed_history.append(opp)
                 self._active_opportunities.pop(i)
                 self._stats["total_closed"] += 1
-                logger.info(f"ARB CLOSED: {symbol} {buy_ex}→{sell_ex} ({reason})")
+                logger.info("ARB CLOSED: %s %s→%s (%s)", symbol, buy_ex, sell_ex, reason)
                 return
 
     def get_active(self) -> list[ArbitrageOpportunity]:

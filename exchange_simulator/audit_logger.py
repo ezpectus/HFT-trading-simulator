@@ -106,7 +106,7 @@ class AuditLogger:
             with open(self.log_file_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(audit_log.to_dict()) + "\n")
         except (OSError, ValueError, TypeError, RuntimeError) as e:
-            logger.error(f"Failed to write audit log to file: {e}")
+            logger.error("Failed to write audit log to file: %s", e)
 
     def _notify_callbacks(self, audit_log: AuditLog) -> None:
         """Notify all registered callbacks."""
@@ -116,7 +116,7 @@ class AuditLogger:
             try:
                 callback(audit_log)
             except (TypeError, ValueError, RuntimeError, OSError) as e:
-                logger.error(f"Callback error: {e}")
+                logger.error("Callback error: %s", e)
 
     def register_callback(self, callback: Callable[[AuditLog], None]) -> None:
         """Register a callback for real-time audit log notifications."""
@@ -215,7 +215,7 @@ class AuditLogger:
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump([log.to_dict() for log in logs], f, indent=2)
 
-        logger.info(f"Exported {len(logs)} audit logs to {output_path}")
+        logger.info("Exported %s audit logs to %s", len(logs), output_path)
         return len(logs)
 
     def export_to_csv(
@@ -253,7 +253,7 @@ class AuditLogger:
             for log in logs:
                 writer.writerow(log.to_dict())
 
-        logger.info(f"Exported {len(logs)} audit logs to {output_path}")
+        logger.info("Exported %s audit logs to %s", len(logs), output_path)
         return len(logs)
 
     def clear_old_logs(self, before_timestamp: int) -> int:
@@ -266,7 +266,7 @@ class AuditLogger:
             )
             removed = initial_count - len(self._logs)
 
-        logger.info(f"Cleared {removed} old audit logs")
+        logger.info("Cleared %s old audit logs", removed)
         return removed
 
     def get_statistics(self) -> dict:

@@ -85,7 +85,7 @@ class ExchangeWebSocketServer(
         self._total_disconnections: int = 0
         self._sequence_number: int = 0
         if self.trade_logger is not None:
-            logger.info(f"Trade CSV log: {self.trade_logger.path}")
+            logger.info("Trade CSV log: %s", self.trade_logger.path)
 
         self.metrics = WebSocketMetrics()
 
@@ -120,9 +120,9 @@ class ExchangeWebSocketServer(
                 if i >= self._shm_max_symbols:
                     break
                 self._shm_symbol_ids[sym] = i
-            logger.info(f"SHM market data publisher ready (shm={shm_name}, symbols={len(self._shm_symbol_ids)})")
+            logger.info("SHM market data publisher ready (shm=%s, symbols=%s)", shm_name, len(self._shm_symbol_ids))
         except (OSError, RuntimeError, KeyError, ValueError, TypeError, BufferError) as e:
-            logger.warning(f"SHM market data publisher init failed: {e}")
+            logger.warning("SHM market data publisher init failed: %s", e)
             self._shm_market = None
 
     def _publish_shm_snapshot(self, timestamp_ns: int) -> None:
@@ -157,7 +157,7 @@ class ExchangeWebSocketServer(
     async def start(self) -> None:
         """Start the WebSocket server."""
         self._running = True
-        logger.info(f"WebSocket server starting on {self.host}:{self.port}")
+        logger.info("WebSocket server starting on %s:%s", self.host, self.port)
 
         # Start Prometheus metrics HTTP server on port+10
         # (port+1=8766 conflicts with AI Signal Bot WebSocket)
@@ -213,7 +213,7 @@ class ExchangeWebSocketServer(
         await runner.setup()
         site = web.TCPSite(runner, self.host, port)
         await site.start()
-        logger.info(f"Health/metrics endpoints on http://{self.host}:{port}/health, /live, /ready, /metrics")
+        logger.info("Health/metrics endpoints on http://%s:%s/health, /live, /ready, /metrics", self.host, port)
         await self._shutdown_event  # Run until shutdown requested
 
     async def stop(self) -> None:

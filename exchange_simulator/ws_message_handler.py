@@ -48,7 +48,7 @@ class MessageHandlerMixin:
             return True
 
         if counts["count"] >= self._rate_limit_max:
-            logger.warning(f"Rate limit exceeded for {websocket.remote_address}")
+            logger.warning("Rate limit exceeded for %s", websocket.remote_address)
             return False
 
         counts["count"] += 1
@@ -63,7 +63,7 @@ class MessageHandlerMixin:
         self._client_subscriptions[websocket] = set(self.market.symbols)
         self._client_message_counts[websocket] = {"count": 0, "window_start": time.time()}
         remote = websocket.remote_address
-        logger.info(f"Client connected: {remote}")
+        logger.info("Client connected: %s", remote)
 
         try:
             await self._send_json(websocket, {
@@ -97,7 +97,7 @@ class MessageHandlerMixin:
                 return
             await self._handle_message(websocket, data)
         except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
-            logger.error(f"Error handling message: {e}")
+            logger.error("Error handling message: %s", e)
 
     def _parse_message(self, message, remote) -> dict | None:
         """Parse a message from bytes or str. Returns parsed dict or None."""
@@ -105,13 +105,17 @@ class MessageHandlerMixin:
             try:
                 return msgpack.unpackb(message, raw=False)
             except (msgpack.exceptions.UnpackException, ValueError):
-                logger.warning(f"Invalid msgpack from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
+                logger.warning(
+                    "Invalid msgpack from %s: %s",
+                    _sanitize_log(remote), _sanitize_log(message[:100]))
                 return None
         else:
             try:
                 return json.loads(message)
             except (json.JSONDecodeError, TypeError):
-                logger.warning(f"Invalid JSON from {_sanitize_log(remote)}: {_sanitize_log(message[:100])}")
+                logger.warning(
+                    "Invalid JSON from %s: %s",
+                    _sanitize_log(remote), _sanitize_log(message[:100]))
                 return None
 
     def _cleanup_client(self, websocket, remote) -> None:
@@ -122,7 +126,7 @@ class MessageHandlerMixin:
         self._client_subscriptions.pop(websocket, None)
         self._client_message_counts.pop(websocket, None)
         self._total_disconnections += 1
-        logger.info(f"Client disconnected: {remote}")
+        logger.info("Client disconnected: %s", remote)
 
     async def _handle_message(
         self, websocket: WebSocketServerConnection, data: dict
@@ -267,7 +271,7 @@ class MessageHandlerMixin:
         encoding = data.get("encoding", "json")
         if encoding == "msgpack" and not _HAS_MSGPACK:
             encoding = "json"
-            logger.warning(f"Client {_sanitize_log(websocket.remote_address)} requested msgpack but not installed — falling back to JSON")
+            logger.warning("Client %s requested msgpack but not installed — falling back to JSON", _sanitize_log(websocket.remote_address))
         self._client_encodings[websocket] = encoding
 
         symbols = data.get("symbols")
@@ -276,16 +280,16 @@ class MessageHandlerMixin:
                 self._client_subscriptions[websocket] = set(symbols)
             else:
                 self._client_subscriptions[websocket] = set(self.market.symbols)
-            logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed to {len(self._client_subscriptions[websocket])} symbols")
+            logger.info("Client %s subscribed to %s symbols", _sanitize_log(websocket.remote_address), len(self._client_subscriptions[websocket]))
 
-        logger.info(f"Client {_sanitize_log(websocket.remote_address)} subscribed (protocol v{_sanitize_log(client_ver)}, encoding={_sanitize_log(encoding)})")
+        logger.info("Client %s subscribed (protocol v%s, encoding=%s)", _sanitize_log(websocket.remote_address), _sanitize_log(client_ver), _sanitize_log(encoding))
         await self._send_market_snapshot(websocket)
 
     async def _handle_unsubscribe(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle unsubscribe request from a client."""
         symbols = data.get("symbols", [])
         if not symbols:
-            logger.warning(f"Unsubscribe from {_sanitize_log(websocket.remote_address)} — no symbols specified")
+            logger.warning("Unsubscribe from %s — no symbols specified", _sanitize_log(websocket.remote_address))
             return
         current_subs = self._client_subscriptions.get(websocket, set())
         current_subs -= set(symbols)
@@ -310,7 +314,7 @@ class MessageHandlerMixin:
             self._tick_interval = {1: 1.0, 2: 0.5, 5: 0.2}.get(speed, 1.0)
             if was_paused:
                 self._speed_event.set()
-            logger.info(f"  Simulation speed set to {_sanitize_log(speed)}x (interval={self._tick_interval}s)")
+            logger.info("  Simulation speed set to %sx (interval=%ss)", _sanitize_log(speed), self._tick_interval)
             asyncio.create_task(websocket.send(json.dumps({"type": "speed_set", "speed": speed})))
             if was_paused:
                 asyncio.create_task(websocket.send(json.dumps({"type": "replay_state", "paused": False})))
@@ -369,7 +373,7 @@ class MessageHandlerMixin:
         """Handle start/stop trading commands."""
         self._trading_active = active
         state = "STARTED" if active else "STOPPED"
-        logger.info(f"Trading {state} by client command")
+        logger.info("Trading %s by client command", state)
         await websocket.send(json.dumps({
             "type": "trading_state",
             "trading_active": active,
@@ -386,24 +390,24 @@ class MessageHandlerMixin:
                 if symbol in self.market._volatility:
                     old = self.market._volatility[symbol]
                     self.market._volatility[symbol] = vol
-                    logger.info(f"  Config hot-reload: {_sanitize_log(symbol)} volatility {_sanitize_log(str(old))} → {_sanitize_log(str(vol))}")
+                    logger.info("  Config hot-reload: %s volatility %s → %s", _sanitize_log(symbol), _sanitize_log(str(old)), _sanitize_log(str(vol)))
         if "fees" in updates:
             for ex_id, fee in updates["fees"].items():
                 if ex_id in self.exchanges:
                     old = self.exchanges[ex_id].fee_pct
                     self.exchanges[ex_id].fee_pct = fee
-                    logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} fee {_sanitize_log(str(old))}% → {_sanitize_log(str(fee))}%")
+                    logger.info("  Config hot-reload: %s fee %s% → %s%", _sanitize_log(ex_id), _sanitize_log(str(old)), _sanitize_log(str(fee)))
         if "slippage" in updates:
             for ex_id, slip in updates["slippage"].items():
                 if ex_id in self.exchanges:
                     old = self.exchanges[ex_id].slippage_bps
                     self.exchanges[ex_id].slippage_bps = slip
-                    logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} slippage {_sanitize_log(str(old))}bps → {_sanitize_log(str(slip))}bps")
+                    logger.info("  Config hot-reload: %s slippage %sbps → %sbps", _sanitize_log(ex_id), _sanitize_log(str(old)), _sanitize_log(str(slip)))
         if "leverage" in updates:
             for ex_id, lev in updates["leverage"].items():
                 if ex_id in self.exchanges:
                     self.exchanges[ex_id].account.leverage = lev
-                    logger.info(f"  Config hot-reload: {_sanitize_log(ex_id)} leverage → {_sanitize_log(str(lev))}x")
+                    logger.info("  Config hot-reload: %s leverage → %sx", _sanitize_log(ex_id), _sanitize_log(str(lev)))
         asyncio.create_task(websocket.send(json.dumps({"type": "config_updated", "updates": updates})))
 
     async def _handle_options_chain(self, websocket: WebSocketServerConnection, data: dict) -> None:

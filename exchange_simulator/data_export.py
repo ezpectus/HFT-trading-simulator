@@ -92,7 +92,7 @@ class DataExporter:
         else:
             self._write_csv(all_candles, filepath)
 
-        logger.info(f"Exported {len(all_candles)} candles to {filepath}")
+        logger.info("Exported %s candles to %s", len(all_candles), filepath)
         return filepath
 
     def export_orders(self, exchange: str | None = None) -> str:
@@ -126,7 +126,7 @@ class DataExporter:
         filename = f"orders_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv(all_orders, filepath)
-        logger.info(f"Exported {len(all_orders)} orders to {filepath}")
+        logger.info("Exported %s orders to %s", len(all_orders), filepath)
         return filepath
 
     def export_account_status(self) -> str:
@@ -149,7 +149,7 @@ class DataExporter:
         filename = f"accounts_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv(rows, filepath)
-        logger.info(f"Exported account status for {len(rows)} exchanges to {filepath}")
+        logger.info("Exported account status for %s exchanges to %s", len(rows), filepath)
         return filepath
 
     def export_positions(self) -> str:
@@ -175,7 +175,7 @@ class DataExporter:
             filename = f"positions_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
             filepath = os.path.join(self.output_dir, filename)
             self._write_csv(rows, filepath)
-            logger.info(f"Exported {len(rows)} positions to {filepath}")
+            logger.info("Exported %s positions to %s", len(rows), filepath)
         else:
             logger.info("No open positions to export")
             return ""
@@ -193,7 +193,7 @@ class DataExporter:
         files.append(self.export_account_status())
         files.append(self.export_positions())
         files = [f for f in files if f]
-        logger.info(f"Export complete: {len(files)} files in {self.output_dir}")
+        logger.info("Export complete: %s files in %s", len(files), self.output_dir)
         return files
 
     def export_summary(self) -> str:
@@ -218,7 +218,7 @@ class DataExporter:
         filename = f"summary_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
         filepath = os.path.join(self.output_dir, filename)
         self._write_csv([summary], filepath)
-        logger.info(f"Summary exported to {filepath}")
+        logger.info("Summary exported to %s", filepath)
         return filepath
 
     def _write_csv(self, rows: list[dict], filepath: str) -> None:
