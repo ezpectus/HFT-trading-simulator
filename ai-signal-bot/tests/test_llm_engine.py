@@ -1,5 +1,6 @@
 """Tests for LLM Engine."""
 import pytest
+
 from src.llm_engine.engine import SecretStr
 
 

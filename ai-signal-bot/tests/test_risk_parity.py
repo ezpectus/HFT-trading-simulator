@@ -1,7 +1,8 @@
 """Tests for Risk Parity optimizer."""
 import numpy as np
 import pytest
-from src.portfolio.risk_parity import RiskParityOptimizer, RiskContribution
+
+from src.portfolio.risk_parity import RiskContribution, RiskParityOptimizer
 
 
 class TestRiskParity:

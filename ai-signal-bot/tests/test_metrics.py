@@ -1,5 +1,6 @@
 """Tests for monitoring metrics."""
 import pytest
+
 from src.monitoring.metrics import MetricsExporter
 
 

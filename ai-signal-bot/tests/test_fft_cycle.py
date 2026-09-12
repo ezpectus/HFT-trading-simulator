@@ -1,7 +1,8 @@
 """Tests for FFTCycleStrategy."""
 import pytest
-from src.strategies.strategies import FFTCycleStrategy
+
 from src.strategies.signal import Signal, SignalDirection
+from src.strategies.strategies import FFTCycleStrategy
 
 
 def make_candles(n, start_price=65000, period=30):

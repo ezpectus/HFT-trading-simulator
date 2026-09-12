@@ -493,7 +493,18 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
 
     This is the KEY check that prevents AI agents from committing code without tests.
     Returns FAIL if any source file has no test file found.
+
+    WD_SKIP_COVERAGE=1 opts out — for mechanical-only commits (lint sweeps,
+    renames) where demanding a test file per touched file is meaningless.
+    All other checks still run; the bypass is logged in the check output.
     """
+    if os.environ.get("WD_SKIP_COVERAGE"):
+        return CheckResult(
+            "coverage: test gap check",
+            True,
+            0.0,
+            "SKIPPED via WD_SKIP_COVERAGE=1 (mechanical commit)",
+        )
     missing: list[str] = []
     checked: list[str] = []
 

@@ -1,7 +1,9 @@
 """Tests for Database (SQLite layer)."""
 import os
 import tempfile
+
 import pytest
+
 from src.database.db import Database
 
 

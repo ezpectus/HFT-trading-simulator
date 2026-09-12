@@ -58,7 +58,7 @@ class TestPowerSpectrum:
     def test_basic(self):
         closes = [100 + i for i in range(64)]
         freqs, power = power_spectrum(closes)
-        assert len(freqs) > 0
+        assert len(freqs) == 32  # positive-frequency bins of fft(64): N/2
         assert len(freqs) == len(power)
         # Power should be normalized (sum ≈ 1)
         assert sum(power) == pytest.approx(1.0, rel=1e-3)

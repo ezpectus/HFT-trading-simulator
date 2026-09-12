@@ -1,5 +1,6 @@
 """Tests for DynamicPositionSizer."""
 import pytest
+
 from src.risk.position_sizing import DynamicPositionSizer, PositionSizingResult
 
 

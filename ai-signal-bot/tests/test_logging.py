@@ -1,6 +1,7 @@
 """Tests for observability logging."""
 import pytest
-from src.observability.logging import setup_logging, get_logger
+
+from src.observability.logging import get_logger, setup_logging
 
 
 class TestLogging:

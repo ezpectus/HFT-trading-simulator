@@ -228,7 +228,8 @@ class TestBacktesterPipeline:
 
         assert isinstance(result, BacktestResult)
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
         assert result.signals_generated > 0
 
     def test_backtest_with_risk_manager(self):
@@ -249,7 +250,8 @@ class TestBacktesterPipeline:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
 
     def test_backtest_win_rate_calculation(self):
         """Win rate is correctly calculated from trades."""
@@ -295,7 +297,8 @@ class TestFullPipelineStrategyRiskBacktest:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.signals_generated > 0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
         assert result.initial_balance == 10000
         assert result.final_balance != result.initial_balance or result.total_trades == 0
 
@@ -309,7 +312,8 @@ class TestFullPipelineStrategyRiskBacktest:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.signals_generated > 0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
 
     def test_ensemble_full_pipeline(self):
         """EnsembleVoter → SignalValidator → Backtester with RiskManager."""
@@ -331,7 +335,8 @@ class TestFullPipelineStrategyRiskBacktest:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.signals_generated > 0
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
 
 
 class TestStressScenarios:
@@ -351,7 +356,8 @@ class TestStressScenarios:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
         assert result.max_drawdown_pct >= 0
 
     def test_pump_scenario(self):
@@ -376,7 +382,8 @@ class TestStressScenarios:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
 
     def test_high_volatility(self):
         """Pipeline handles extreme volatility."""
@@ -392,4 +399,5 @@ class TestStressScenarios:
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=30)
 
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 30 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance

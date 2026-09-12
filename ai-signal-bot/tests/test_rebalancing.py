@@ -1,8 +1,12 @@
 """Tests for portfolio rebalancing."""
 import numpy as np
 import pytest
+
 from src.portfolio.rebalancing import (
-    RebalanceTrigger, RebalanceOrder, RebalanceResult, RebalancingStrategy,
+    RebalanceOrder,
+    RebalanceResult,
+    RebalanceTrigger,
+    RebalancingStrategy,
 )
 
 
@@ -30,4 +34,5 @@ class TestRebalancing:
         target = np.array([0.5, 0.25, 0.25])
         result = strategy.execute_rebalance(current, target, portfolio_value=10000)
         assert isinstance(result, RebalanceResult)
-        assert len(result.orders) > 0
+        assert len(result.orders) == 3  # all three assets drift past threshold
+        assert [o.side for o in result.orders] == ["BUY", "SELL", "SELL"]

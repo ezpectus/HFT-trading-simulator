@@ -46,7 +46,8 @@ class TestBacktester:
         bt = Backtester(initial_balance=10000, fee_pct=0.075, slippage_bps=2.0)
         result = bt.run(candles, strategy, symbol="BTC/USDT", warmup=50)
         assert result.initial_balance == 10000
-        assert len(result.equity_curve) > 0
+        assert len(result.equity_curve) == len(candles) - 50 + 1  # initial balance + one per post-warmup bar
+        assert result.equity_curve[0] == 10000  # seeded with initial balance
         assert result.signals_generated > 0
 
     def test_mean_reversion_on_range(self):

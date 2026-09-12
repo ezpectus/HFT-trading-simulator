@@ -1,10 +1,11 @@
 """Tests for config loading and validation."""
-import pytest
-import tempfile
 import os
-import yaml
-from config import SignalBotConfig
+import tempfile
 
+import pytest
+import yaml
+
+from config import SignalBotConfig
 
 VALID_CONFIG = {
     "trading": {

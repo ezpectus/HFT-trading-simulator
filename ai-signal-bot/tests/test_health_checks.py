@@ -1,6 +1,7 @@
 """Tests for health checks."""
 import pytest
-from src.observability.health_checks import HealthStatus, ComponentHealth, HealthChecker
+
+from src.observability.health_checks import ComponentHealth, HealthChecker, HealthStatus
 
 
 class TestHealthChecks:

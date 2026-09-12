@@ -1,6 +1,7 @@
 """Tests for VaRCalculator."""
 import numpy as np
 import pytest
+
 from src.risk.var import VaRCalculator, VaRResult
 
 

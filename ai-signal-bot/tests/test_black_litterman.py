@@ -1,6 +1,7 @@
 """Tests for Black-Litterman model."""
 import numpy as np
 import pytest
+
 from src.portfolio.black_litterman import BlackLittermanModel, View
 
 

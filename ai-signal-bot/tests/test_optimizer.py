@@ -36,7 +36,7 @@ class TestStrategyOptimizer:
             candles=candles,
             warmup=50,
         )
-        assert len(results) > 0
+        assert len(results) == 4  # 2 ema_fast × 2 ema_slow × 1 adx_threshold
         assert all(hasattr(r, "fitness") for r in results)
         # Results should be sorted by fitness descending
         for i in range(len(results) - 1):

@@ -1,5 +1,6 @@
 """Tests for KellyPositionSizer."""
 import pytest
+
 from src.risk.kelly import KellyPositionSizer, KellyResult
 
 

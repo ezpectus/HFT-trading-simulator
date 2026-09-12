@@ -72,8 +72,9 @@ class TestSimulatorAdapter:
     async def test_get_balance(self):
         adapter = SimulatorAdapter()
         balances = await adapter.get_balance()
-        assert len(balances) > 0
-        assert "asset" in balances[0]
+        assert len(balances) == 1  # offline stub returns a single USDT balance
+        assert balances[0]["asset"] == "USDT"
+        assert balances[0]["total"] == 100000
 
     @pytest.mark.asyncio
     async def test_get_positions(self):

@@ -1,7 +1,8 @@
 """Tests for MeanReversionStrategy."""
 import pytest
-from src.strategies.strategies import MeanReversionStrategy
+
 from src.strategies.signal import Signal, SignalDirection
+from src.strategies.strategies import MeanReversionStrategy
 
 
 def make_candles(n, start_price=65000, volatility=0.002):

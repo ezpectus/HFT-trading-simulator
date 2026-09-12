@@ -97,5 +97,6 @@ class TestBacktestPlotter:
             results = {"Strategy A": mock_result}
             plotter.save_all(results, tmpdir)
             files = os.listdir(tmpdir)
-            assert len(files) > 0
-            assert any(f.endswith(".png") for f in files)
+            # 1 strategy → equity + pnl, plus comparison_equity + comparison_radar
+            assert len(files) == 4
+            assert all(f.endswith(".png") for f in files)

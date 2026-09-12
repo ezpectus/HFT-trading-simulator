@@ -1,7 +1,8 @@
 """Tests for TrendFollowingStrategy."""
 import pytest
-from src.strategies.strategies import TrendFollowingStrategy
+
 from src.strategies.signal import Signal, SignalDirection
+from src.strategies.strategies import TrendFollowingStrategy
 
 
 def make_candles(n, start_price=65000, trend=0.001):

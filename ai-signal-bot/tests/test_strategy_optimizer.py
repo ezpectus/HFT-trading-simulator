@@ -1,6 +1,7 @@
 """Tests for StrategyOptimizer."""
 import pytest
-from src.backtesting.optimizer import StrategyOptimizer, OptimizationResult
+
+from src.backtesting.optimizer import OptimizationResult, StrategyOptimizer
 
 
 class TestStrategyOptimizer:
