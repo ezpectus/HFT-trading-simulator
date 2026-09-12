@@ -13,13 +13,22 @@ from src.utils.bot_helpers import (
     load_candles_from_csv,
 )
 
+_CFG_SURFACE = [
+    'trend_enabled', 'trend_ema_fast', 'trend_ema_slow', 'trend_adx_threshold',
+    'meanrev_enabled', 'meanrev_rsi_oversold', 'meanrev_rsi_overbought',
+    'meanrev_bb_period', 'meanrev_bb_std', 'fft_enabled', 'sentiment_enabled',
+    'market_making_enabled', 'ml_ensemble_enabled', 'statarb_enabled', 'symbols',
+]
+_BOT_SURFACE = ['stat_arb', 'exchange', 'config', 'signal_publisher', 'llm_engine']
+_SIGNAL_SURFACE = ['direction', 'entry_price', 'reason', 'assert_not_called']
+
 # ─── Fixtures ───
 
 
 @pytest.fixture
 def mock_config():
     """Minimal mock config for build_strategies."""
-    cfg = MagicMock()
+    cfg = MagicMock(spec=_CFG_SURFACE)
     cfg.trend_enabled = True
     cfg.trend_ema_fast = 9
     cfg.trend_ema_slow = 21
@@ -99,7 +108,7 @@ def test_build_stat_arb_enabled_returns_instance(mock_config) -> None:
 @pytest.mark.asyncio
 async def test_stat_arb_signals_no_stat_arb() -> None:
     """generate_stat_arb_signals with no stat_arb should return early."""
-    bot = MagicMock()
+    bot = MagicMock(spec=_BOT_SURFACE)
     bot.stat_arb = None
     await generate_stat_arb_signals(bot, 12345)
     bot.exchange.candle_history.get.assert_not_called()
@@ -108,8 +117,8 @@ async def test_stat_arb_signals_no_stat_arb() -> None:
 @pytest.mark.asyncio
 async def test_stat_arb_signals_insufficient_data() -> None:
     """generate_stat_arb_signals with insufficient candles should skip."""
-    bot = MagicMock()
-    bot.stat_arb = MagicMock()
+    bot = MagicMock(spec=_BOT_SURFACE)
+    bot.stat_arb = MagicMock(spec=['should_close', 'positions'])
     bot.config.symbols = ["BTC/USDT", "ETH/USDT"]
     bot.config.statarb_min_data = 100
     bot.exchange.candle_history.get.return_value = []
@@ -123,9 +132,9 @@ async def test_stat_arb_signals_insufficient_data() -> None:
 @pytest.mark.asyncio
 async def test_llm_explanation_success() -> None:
     """generate_llm_explanation should return LLM response on success."""
-    bot = MagicMock()
+    bot = MagicMock(spec=_BOT_SURFACE)
     bot.llm_engine.explain_signal = AsyncMock(return_value="Bullish trend detected")
-    signal = MagicMock()
+    signal = MagicMock(spec=_SIGNAL_SURFACE)
     signal.direction.value = "LONG"
     signal.entry_price = 50000
     signal.reason = "EMA crossover"
@@ -137,9 +146,9 @@ async def test_llm_explanation_success() -> None:
 @pytest.mark.asyncio
 async def test_llm_explanation_fallback_on_error() -> None:
     """generate_llm_explanation should fallback to signal.reason on error."""
-    bot = MagicMock()
+    bot = MagicMock(spec=_BOT_SURFACE)
     bot.llm_engine.explain_signal = AsyncMock(side_effect=RuntimeError("LLM unavailable"))
-    signal = MagicMock()
+    signal = MagicMock(spec=_SIGNAL_SURFACE)
     signal.direction.value = "LONG"
     signal.entry_price = 50000
     signal.reason = "EMA crossover"

@@ -5,14 +5,24 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from websockets.asyncio.server import ServerConnection
 
-from exchange_simulator.models import OrderType, Side
+from exchange_simulator.models import Account, OrderBookLevel, OrderType, Side
+
+# spec-by-names: instance attrs aren't in dir(Class) — list catches method-name typos
+_MARKET_SURFACE = [
+    '_candle_count', '_volatility', 'candles_to_next_funding', 'current_timestamp',
+    'exchanges', 'generate_order_book', 'get_all_prices', 'get_funding_rates',
+    'get_latest_candles', 'get_news_event', 'get_price', 'is_weekend_mode',
+    'next_candle', 'symbols',
+]
+_EXCHANGE_SURFACE = ['account', 'fee_pct', 'slippage_bps', 'get_account_status', 'submit_order', '_order_history', 'cancel_order', 'get_positions']
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 
 
 @pytest.fixture
 def mock_market():
-    market = MagicMock()
+    market = MagicMock(spec=_MARKET_SURFACE)
     market.symbols = ["BTC/USDT", "ETH/USDT"]
     market.exchanges = ["binance", "bybit", "okx"]
     market.current_timestamp = 1000000
@@ -21,8 +31,9 @@ def mock_market():
     market.get_latest_candles.return_value = []
     market.get_all_prices.return_value = {"binance": {"BTC/USDT": 65000}}
     market.generate_order_book.return_value = MagicMock(
-        bids=[MagicMock(price=64900, quantity=0.5)],
-        asks=[MagicMock(price=65100, quantity=0.3)],
+        spec=['bids', 'asks'],
+        bids=[OrderBookLevel(price=64900, quantity=0.5)],
+        asks=[OrderBookLevel(price=65100, quantity=0.3)],
     )
     market.get_funding_rates.return_value = {"binance": 0.0001}
     market.candles_to_next_funding = 50
@@ -34,10 +45,10 @@ def mock_market():
 
 @pytest.fixture
 def mock_exchange():
-    ex = MagicMock()
+    ex = MagicMock(spec=_EXCHANGE_SURFACE)
     ex.fee_pct = 0.075
     ex.slippage_bps = 5.0
-    ex.account = MagicMock()
+    ex.account = MagicMock(spec=Account)
     ex.account.balance = 100000.0
     ex.account.equity = 100000.0
     ex.account.total_pnl = 0.0
@@ -78,14 +89,14 @@ class TestServerInit:
 class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_ping_responds_pong(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "ping"})
         sent = ws.send.call_args[0][0]
         assert json.loads(sent)["type"] == "pong"
 
     @pytest.mark.asyncio
     async def test_unknown_exchange_error(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "nonexistent",
@@ -100,7 +111,7 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_missing_order_fields(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -114,7 +125,7 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_subscribe_sends_snapshot(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "subscribe"})
         assert ws.send.called
         sent = ws.send.call_args[0][0]
@@ -123,7 +134,7 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_set_speed(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "set_speed", "speed": 2})
         assert server._tick_interval == 0.5
         sent = ws.send.call_args[0][0]
@@ -133,14 +144,14 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_set_speed_pause(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "set_speed", "speed": 0})
         assert server._replay_paused is True
         assert server._speed_event.is_set() is False
 
     @pytest.mark.asyncio
     async def test_replay_pause(self, server):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "replay", "action": "pause"})
         assert server._replay_paused is True
         sent = ws.send.call_args[0][0]
@@ -151,14 +162,14 @@ class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_replay_resume(self, server):
         server._replay_paused = True
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "replay", "action": "resume"})
         assert server._replay_paused is False
         assert server._replay_offset == 0
 
     @pytest.mark.asyncio
     async def test_update_config_volatility(self, server, mock_market):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "update_config",
             "updates": {"volatility": {"BTC/USDT": 1.5}},
@@ -170,7 +181,7 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_update_config_fees(self, server, mock_exchange):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "update_config",
             "updates": {"fees": {"binance": 0.05}},
@@ -179,7 +190,7 @@ class TestHandleMessage:
 
     @pytest.mark.asyncio
     async def test_update_config_slippage(self, server, mock_exchange):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "update_config",
             "updates": {"slippage": {"binance": 10}},
@@ -189,7 +200,7 @@ class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_start_trading(self, server):
         server._trading_active = False
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "start_trading"})
         assert server._trading_active is True
         sent = ws.send.call_args[0][0]
@@ -200,7 +211,7 @@ class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_stop_trading(self, server):
         assert server._trading_active is True
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "stop_trading"})
         assert server._trading_active is False
         sent = ws.send.call_args[0][0]
@@ -211,7 +222,7 @@ class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_order_rejected_when_trading_stopped(self, server, mock_exchange):
         server._trading_active = False
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -228,7 +239,7 @@ class TestHandleMessage:
     @pytest.mark.asyncio
     async def test_close_position_rejected_when_trading_stopped(self, server):
         server._trading_active = False
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "close_position",
             "exchange": "binance",
@@ -279,7 +290,7 @@ class TestBroadcastLoop:
     async def test_no_clients_skips(self, server, mock_market):
         server._running = True
         # Should skip immediately with no clients
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch('asyncio.sleep', autospec=True):
             task = asyncio.create_task(server._broadcast_loop())
             await asyncio.sleep(0.01)
             task.cancel()
@@ -293,8 +304,8 @@ class TestBroadcastLoop:
     async def test_paused_skips(self, server, mock_market):
         server._running = True
         server._replay_paused = True
-        server.clients.add(AsyncMock())
-        with patch('asyncio.sleep', new_callable=AsyncMock):
+        server.clients.add(AsyncMock(spec=ServerConnection))
+        with patch('asyncio.sleep', autospec=True):
             task = asyncio.create_task(server._broadcast_loop())
             await asyncio.sleep(0.01)
             task.cancel()
@@ -400,7 +411,7 @@ class TestSequenceNumbers:
         server._running = True
         server._tick_interval = 0.01
 
-        client = AsyncMock()
+        client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: set(mock_market.symbols)}
 
@@ -417,7 +428,7 @@ class TestSequenceNumbers:
         mock_market.next_candle.return_value = []
         server._running = True
 
-        client = AsyncMock()
+        client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: set(mock_market.symbols)}
 
@@ -449,7 +460,7 @@ class TestSubscriptionFiltering:
         )
         mock_market.next_candle.return_value = [candle_btc, candle_eth]
 
-        client = AsyncMock()
+        client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: {"BTC/USDT"}}
 
@@ -478,7 +489,7 @@ class TestSubscriptionFiltering:
             exchange="binance",
         )
 
-        client = AsyncMock()
+        client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: set(mock_market.symbols)}
 
@@ -498,7 +509,7 @@ class TestSubscriptionFiltering:
             "binance|ETH/USDT": {"exchange": "binance", "symbol": "ETH/USDT", "bids": [], "asks": []},
         }
 
-        client = AsyncMock()
+        client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: {"BTC/USDT"}}
 
@@ -516,7 +527,7 @@ class TestUnsubscribeHandler:
     @pytest.mark.asyncio
     async def test_unsubscribe_removes_symbols(self, server):
         """Test that unsubscribe removes symbols from client subscription."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         server._client_subscriptions[ws] = {"BTC/USDT", "ETH/USDT", "SOL/USDT"}
 
         await server._handle_unsubscribe(ws, {
@@ -530,7 +541,7 @@ class TestUnsubscribeHandler:
     @pytest.mark.asyncio
     async def test_unsubscribe_empty_symbols(self, server):
         """Test that unsubscribe with no symbols is a no-op."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         server._client_subscriptions[ws] = {"BTC/USDT", "ETH/USDT"}
 
         await server._handle_unsubscribe(ws, {
@@ -543,7 +554,7 @@ class TestUnsubscribeHandler:
     @pytest.mark.asyncio
     async def test_unsubscribe_not_subscribed(self, server):
         """Test that unsubscribing non-subscribed symbols is safe."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         server._client_subscriptions[ws] = {"BTC/USDT"}
 
         await server._handle_unsubscribe(ws, {

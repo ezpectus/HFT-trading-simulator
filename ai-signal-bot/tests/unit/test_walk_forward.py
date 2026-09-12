@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from src.backtesting.backtest_engine import BacktestConfig, BacktestResult
+from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine, BacktestResult
 from src.backtesting.walk_forward import (
     WalkForwardAnalyzer,
     WalkForwardResult,
@@ -142,7 +142,7 @@ class TestWalkForwardRun:
         candles = self._make_candles(100)
 
         # Mock BacktestEngine.run to return predictable results
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(1.5, 2.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -161,7 +161,7 @@ class TestWalkForwardRun:
         )
         candles = self._make_candles(150)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(2.0, 1.5)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -184,7 +184,7 @@ class TestWalkForwardRun:
 
         # First param gives sharpe 1.0, second gives 3.0
         results = [self._make_mock_result(1.0), self._make_mock_result(3.0)]
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.side_effect = results * 10  # repeat for multiple calls
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -217,7 +217,7 @@ class TestWalkForwardRun:
             else:
                 return self._make_mock_result(1.0, 0.5)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.side_effect = mock_run
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -236,7 +236,7 @@ class TestWalkForwardRun:
         )
         candles = self._make_candles(100)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(2.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -253,7 +253,7 @@ class TestWalkForwardRun:
         )
         candles = self._make_candles(200)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(1.5, 3.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -270,7 +270,7 @@ class TestWalkForwardRun:
         )
         candles = self._make_candles(100)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(2.5, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -286,7 +286,7 @@ class TestWalkForwardRun:
         )
         candles = self._make_candles(200)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(1.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -318,7 +318,7 @@ class TestWalkForwardRun:
         is_result = self._make_mock_result(2.0, 1.0)
         oos_result = self._make_mock_result(1.5, 0.5)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.side_effect = [is_result, oos_result]
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine):
@@ -337,7 +337,7 @@ class TestWalkForwardRun:
         candles = self._make_candles(100)
         config = BacktestConfig(initial_capital=50000, fee_rate=0.001)
 
-        mock_engine = MagicMock()
+        mock_engine = MagicMock(spec=BacktestEngine)
         mock_engine.run.return_value = self._make_mock_result(1.0, 1.0)
 
         with patch("src.backtesting.walk_forward.BacktestEngine", return_value=mock_engine) as mock_cls:

@@ -11,15 +11,25 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from websockets.asyncio.server import ServerConnection
 
-from exchange_simulator.models import OrderType, Side
+from exchange_simulator.models import Account, OrderBookLevel, OrderType, Side
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
+
+_MARKET_SURFACE = [
+    '_candle_count', '_volatility', 'candles_to_next_funding', 'current_timestamp',
+    'exchanges', 'generate_order_book', 'get_all_prices', 'get_funding_rates',
+    'get_latest_candles', 'get_news_event', 'get_price', 'is_weekend_mode',
+    'next_candle', 'symbols',
+]
+_EXCHANGE_SURFACE = ['account', 'fee_pct', 'slippage_bps', 'get_account_status',
+                     'submit_order', '_order_history', 'cancel_order', 'get_positions']
 from exchange_simulator.ws_constants import _sanitize_log
 
 
 @pytest.fixture
 def mock_market():
-    market = MagicMock()
+    market = MagicMock(spec=_MARKET_SURFACE)
     market.symbols = ["BTC/USDT", "ETH/USDT"]
     market.exchanges = ["binance", "bybit", "okx"]
     market.current_timestamp = 1000000
@@ -28,8 +38,9 @@ def mock_market():
     market.get_latest_candles.return_value = []
     market.get_all_prices.return_value = {"binance": {"BTC/USDT": 65000}}
     market.generate_order_book.return_value = MagicMock(
-        bids=[MagicMock(price=64900, quantity=0.5)],
-        asks=[MagicMock(price=65100, quantity=0.3)],
+        spec=['bids', 'asks'],
+        bids=[OrderBookLevel(price=64900, quantity=0.5)],
+        asks=[OrderBookLevel(price=65100, quantity=0.3)],
     )
     market.get_funding_rates.return_value = {"binance": 0.0001}
     market.candles_to_next_funding = 50
@@ -41,10 +52,10 @@ def mock_market():
 
 @pytest.fixture
 def mock_exchange():
-    ex = MagicMock()
+    ex = MagicMock(spec=_EXCHANGE_SURFACE)
     ex.fee_pct = 0.075
     ex.slippage_bps = 5.0
-    ex.account = MagicMock()
+    ex.account = MagicMock(spec=Account)
     ex.account.balance = 100000.0
     ex.account.equity = 100000.0
     ex.account.total_pnl = 0.0
@@ -55,7 +66,10 @@ def mock_exchange():
     ex.account.positions = []
     ex.get_account_status.return_value = {"balance": 100000, "equity": 100000}
     # Configure submit_order to return a serializable mock order
-    fill_order = MagicMock()
+    fill_order = MagicMock(spec=[
+        'id', 'symbol', 'exchange', 'side', 'order_type', 'quantity', 'price',
+        'status', 'filled_price', 'filled_quantity', 'fee', 'to_dict',
+    ])
     fill_order.to_dict.return_value = {"id": "test_fill", "status": "FILLED", "symbol": "BTC/USDT", "side": "BUY", "quantity": 1.0, "price": 65000.0, "filled_price": 65000.0, "fee": 0.0}
     fill_order.status.value = "FILLED"
     fill_order.filled_price = 65000.0
@@ -104,7 +118,7 @@ class TestOrderValidation:
     @pytest.mark.asyncio
     async def test_negative_quantity_rejected(self, server):
         """Orders with negative quantity must be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -119,7 +133,7 @@ class TestOrderValidation:
     @pytest.mark.asyncio
     async def test_zero_quantity_rejected(self, server):
         """Orders with zero quantity must be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -134,7 +148,7 @@ class TestOrderValidation:
     @pytest.mark.asyncio
     async def test_nonexistent_exchange_rejected(self, server):
         """Orders to non-existent exchanges must be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "fake_exchange",
@@ -150,7 +164,7 @@ class TestOrderValidation:
     @pytest.mark.asyncio
     async def test_missing_required_fields_rejected(self, server):
         """Orders missing required fields must be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -163,7 +177,7 @@ class TestOrderValidation:
     @pytest.mark.asyncio
     async def test_invalid_side_rejected(self, server):
         """Orders with invalid side must be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -182,19 +196,19 @@ class TestMessageValidation:
     @pytest.mark.asyncio
     async def test_unknown_message_type_ignored(self, server):
         """Unknown message types should not crash the server."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"type": "exploit_attempt"})
 
     @pytest.mark.asyncio
     async def test_missing_type_field_ignored(self, server):
         """Messages without a type field should be handled gracefully."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {"data": "malicious"})
 
     @pytest.mark.asyncio
     async def test_type_confusion_string_vs_dict(self, server):
         """Type confusion attacks (string where dict expected) should be safe."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -213,7 +227,7 @@ class TestNumericOverflow:
     @pytest.mark.asyncio
     async def test_extremely_large_quantity(self, server):
         """Extremely large quantities should be handled without overflow."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -226,7 +240,7 @@ class TestNumericOverflow:
     @pytest.mark.asyncio
     async def test_nan_quantity(self, server):
         """NaN quantities should be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -241,7 +255,7 @@ class TestNumericOverflow:
     @pytest.mark.asyncio
     async def test_infinity_quantity(self, server):
         """Infinity quantities should be rejected."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "order",
             "exchange": "binance",
@@ -260,7 +274,7 @@ class TestSubscriptionSecurity:
     @pytest.mark.asyncio
     async def test_subscribe_with_invalid_symbols(self, server):
         """Subscribing with invalid symbol names should not crash."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         await server._handle_message(ws, {
             "type": "subscribe",
             "symbols": ["'; DROP TABLE--", "../../../etc/passwd", "<script>alert(1)</script>"],
@@ -270,7 +284,7 @@ class TestSubscriptionSecurity:
     @pytest.mark.asyncio
     async def test_unsubscribe_with_empty_list_safe(self, server):
         """Unsubscribing with empty list should be a safe no-op."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         server._client_subscriptions[ws] = {"BTC/USDT"}
         await server._handle_unsubscribe(ws, {"type": "unsubscribe", "symbols": []})
         assert server._client_subscriptions[ws] == {"BTC/USDT"}
@@ -278,7 +292,7 @@ class TestSubscriptionSecurity:
     @pytest.mark.asyncio
     async def test_unsubscribe_all_symbols(self, server):
         """Unsubscribing all symbols should result in empty set."""
-        ws = AsyncMock()
+        ws = AsyncMock(spec=ServerConnection)
         server._client_subscriptions[ws] = {"BTC/USDT", "ETH/USDT"}
         await server._handle_unsubscribe(ws, {
             "type": "unsubscribe",
