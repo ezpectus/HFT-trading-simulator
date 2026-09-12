@@ -28,7 +28,7 @@ class PositionManager {
                 return;
             }
         }
-        Position                    pos;
+        Position pos;
         pos.symbol      = signal.symbol;
         pos.exchange    = exchange;
         pos.side        = signal.side();

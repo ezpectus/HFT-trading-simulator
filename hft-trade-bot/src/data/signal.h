@@ -26,7 +26,8 @@ struct Signal {
     Side side() const {
         if (is_long()) return Side::BUY;
         if (is_short()) return Side::SELL;
-        throw std::logic_error("Signal::side() called on NEUTRAL signal — check is_actionable() first");
+        throw std::logic_error(
+            "Signal::side() called on NEUTRAL signal — check is_actionable() first");
     }
 
     double rr_ratio() const {

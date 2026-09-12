@@ -72,13 +72,13 @@ struct BotContext {
     SPSCQueue<Signal, 16> ai_signal_queue;
     std::mutex            ai_signal_queue_mtx;
 
-    std::atomic<double>      balance{10000.0};
-    std::atomic<bool>        has_arb_opportunity{false};
-    ArbOpportunity           latest_arb{};
-    Spinlock                 arb_lock;
+    std::atomic<double> balance{10000.0};
+    std::atomic<bool>   has_arb_opportunity{false};
+    ArbOpportunity      latest_arb{};
+    Spinlock            arb_lock;
 
     std::unordered_map<std::string, double> prices_cache;
-    Spinlock                                 prices_cache_lock;
+    Spinlock                                prices_cache_lock;
     std::vector<Candle>                     candles_buf;
     OrderBook                               ob_buf;
     std::vector<SymbolEntry>                symbol_entries;

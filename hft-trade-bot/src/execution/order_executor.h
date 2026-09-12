@@ -41,8 +41,8 @@ class OrderExecutor {
             client_->init_asio();
 
             client_->set_open_handler([this](websocketpp::connection_hdl hdl) {
-                connection_      = hdl;
-                connected_       = true;
+                connection_ = hdl;
+                connected_  = true;
                 reconnect_delay_.store(1000, std::memory_order_relaxed);
                 spdlog::info("OrderExecutor connected to {}", ws_url_);
             });
@@ -225,11 +225,11 @@ class OrderExecutor {
         auto unwind_buy_leg = [&](const char* reason) {
             spdlog::warn("Arb sell leg failed ({}), unwinding buy leg: SELL {} {:.4f} on {}",
                          reason, symbol, quantity, buy_exchange);
-            char unwind_buf[384];
-            int  un = std::snprintf(unwind_buf, sizeof(unwind_buf),
-                                    "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                     "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-                                    buy_exchange.c_str(), symbol.c_str(), quantity);
+            char                         unwind_buf[384];
+            int                          un = std::snprintf(unwind_buf, sizeof(unwind_buf),
+                                                            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                                                                                     "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
+                                                            buy_exchange.c_str(), symbol.c_str(), quantity);
             websocketpp::lib::error_code uec;
             if (un > 0 && un < static_cast<int>(sizeof(unwind_buf))) {
                 client_->send(connection_, std::string(unwind_buf, static_cast<size_t>(un)),
@@ -270,7 +270,7 @@ class OrderExecutor {
     std::thread                 reconnect_thread_;
     std::atomic<bool>           connected_{false};
     std::atomic<bool>           should_reconnect_{false};
-    std::atomic<int>           reconnect_delay_{1000}; // ms, exponential backoff up to 30s
+    std::atomic<int>            reconnect_delay_{1000}; // ms, exponential backoff up to 30s
 };
 
 } // namespace hft

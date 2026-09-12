@@ -14,8 +14,8 @@
 #include "core/bot_loop.h"
 #include "core/bot_setup.h"
 
-#include <csignal>
 #include <chrono>
+#include <csignal>
 
 #include <spdlog/spdlog.h>
 
@@ -23,7 +23,7 @@ using namespace hft;
 
 int main(int argc, char* argv[]) {
     // Register signal handlers for graceful shutdown
-    std::signal(SIGINT,  [](int) { hft::set_running(false); });
+    std::signal(SIGINT, [](int) { hft::set_running(false); });
     std::signal(SIGTERM, [](int) { hft::set_running(false); });
 
     BotContext ctx{Config{}};
@@ -44,8 +44,9 @@ int main(int argc, char* argv[]) {
 
         while (is_running()) {
             ScopedLatency loop_timer(ctx.total_loop_hist);
-            const double current_balance = ctx.balance.load(std::memory_order_relaxed);
-            const bool   can_trade = ctx.receiver->is_trading_active() && ctx.kill_switch->can_trade();
+            const double  current_balance = ctx.balance.load(std::memory_order_relaxed);
+            const bool    can_trade =
+                ctx.receiver->is_trading_active() && ctx.kill_switch->can_trade();
 
             process_sl_tp(ctx, current_balance);
             process_arbitrage(ctx, can_trade);

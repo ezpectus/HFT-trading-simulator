@@ -130,4 +130,5 @@ async def retry_with_backoff(
                 break
             await asyncio.sleep(delay)
             delay = min(delay * 2, max_delay)
-    raise last_exc  # type: ignore[misc]
+    assert last_exc is not None  # loop only exits after a caught exception
+    raise last_exc

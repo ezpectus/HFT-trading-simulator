@@ -47,9 +47,15 @@ class SignalReceiverData {
 
     size_t get_candles_by_id(uint16_t id, size_t n, std::vector<Candle>& out) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        if (id >= candles_by_id_.size()) { out.clear(); return 0; }
+        if (id >= candles_by_id_.size()) {
+            out.clear();
+            return 0;
+        }
         const auto& hist = candles_by_id_[id];
-        if (hist.empty()) { out.clear(); return 0; }
+        if (hist.empty()) {
+            out.clear();
+            return 0;
+        }
         size_t start = hist.size() >= n ? hist.size() - n : 0;
         out.assign(hist.begin() + start, hist.end());
         return out.size();
@@ -63,8 +69,8 @@ class SignalReceiverData {
         return true;
     }
 
-    void inject_snapshot_impl(uint16_t symbol_id, double bid, double ask,
-                              double /*last*/, double volume) {
+    void inject_snapshot_impl(uint16_t symbol_id, double bid, double ask, double /*last*/,
+                              double volume) {
         if (symbol_id >= id_to_symbol_.size()) return;
         const auto& sym = id_to_symbol_[symbol_id];
         double      mid = (bid + ask) / 2.0;
@@ -72,9 +78,9 @@ class SignalReceiverData {
             std::lock_guard<Spinlock> lock(data_lock_);
             prices_[sym]             = mid;
             prices_by_id_[symbol_id] = mid;
-            OrderBook& ob = obs_by_id_[symbol_id];
-            ob.symbol     = sym;
-            ob.exchange   = "shm";
+            OrderBook& ob            = obs_by_id_[symbol_id];
+            ob.symbol                = sym;
+            ob.exchange              = "shm";
             if (ob.bids.empty()) ob.bids.resize(1);
             if (ob.asks.empty()) ob.asks.resize(1);
             ob.bids[0]        = {bid, volume * 0.1};
@@ -88,41 +94,43 @@ class SignalReceiverData {
 
     double get_price_impl(const std::string& symbol) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = prices_.find(symbol);
+        auto                      it = prices_.find(symbol);
         return it != prices_.end() ? it->second : 0.0;
     }
 
     double get_best_bid_impl(const std::string& symbol) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         if (it == order_books_.end() || it->second.bids.empty()) return 0.0;
         return it->second.bids[0].price;
     }
 
     double get_best_ask_impl(const std::string& symbol) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         if (it == order_books_.end() || it->second.asks.empty()) return 0.0;
         return it->second.asks[0].price;
     }
 
     double get_bid_depth_impl(const std::string& symbol, int levels) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         if (it == order_books_.end()) return 0.0;
         double depth = 0.0;
-        int n = std::min(levels, static_cast<int>(it->second.bids.size()));
-        for (int i = 0; i < n; ++i) depth += it->second.bids[i].quantity;
+        int    n     = std::min(levels, static_cast<int>(it->second.bids.size()));
+        for (int i = 0; i < n; ++i)
+            depth += it->second.bids[i].quantity;
         return depth;
     }
 
     double get_ask_depth_impl(const std::string& symbol, int levels) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         if (it == order_books_.end()) return 0.0;
         double depth = 0.0;
-        int n = std::min(levels, static_cast<int>(it->second.asks.size()));
-        for (int i = 0; i < n; ++i) depth += it->second.asks[i].quantity;
+        int    n     = std::min(levels, static_cast<int>(it->second.asks.size()));
+        for (int i = 0; i < n; ++i)
+            depth += it->second.asks[i].quantity;
         return depth;
     }
 
@@ -139,31 +147,35 @@ class SignalReceiverData {
 
     std::vector<Candle> get_candles_impl(const std::string& symbol, size_t n = 100) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = candle_history_.find(symbol);
+        auto                      it = candle_history_.find(symbol);
         if (it == candle_history_.end()) return {};
         const auto& hist = it->second;
         return hist.size() <= n ? hist : std::vector<Candle>(hist.end() - n, hist.end());
     }
 
-    size_t get_candles_into_impl(const std::string& symbol, size_t n, std::vector<Candle>& out) const {
+    size_t get_candles_into_impl(const std::string& symbol, size_t n,
+                                 std::vector<Candle>& out) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = candle_history_.find(symbol);
-        if (it == candle_history_.end()) { out.clear(); return 0; }
-        const auto& hist = it->second;
-        size_t count = std::min(n, hist.size());
+        auto                      it = candle_history_.find(symbol);
+        if (it == candle_history_.end()) {
+            out.clear();
+            return 0;
+        }
+        const auto& hist  = it->second;
+        size_t      count = std::min(n, hist.size());
         out.assign(hist.end() - count, hist.end());
         return count;
     }
 
     OrderBook get_order_book_impl(const std::string& symbol) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         return it != order_books_.end() ? it->second : OrderBook{};
     }
 
     bool get_order_book_into_impl(const std::string& symbol, OrderBook& out) const {
         std::lock_guard<Spinlock> lock(data_lock_);
-        auto it = order_books_.find(symbol);
+        auto                      it = order_books_.find(symbol);
         if (it == order_books_.end()) return false;
         out = it->second;
         return true;

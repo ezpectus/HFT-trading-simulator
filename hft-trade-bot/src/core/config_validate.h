@@ -69,7 +69,8 @@ inline void validate_production_limits(const Config& cfg) {
     if (cfg.daily_loss_limit <= 0)
         spdlog::warn("Config: daily_loss_limit={} should be positive", cfg.daily_loss_limit);
     if (cfg.max_orders_per_second <= 0)
-        spdlog::warn("Config: max_orders_per_second={} should be positive", cfg.max_orders_per_second);
+        spdlog::warn("Config: max_orders_per_second={} should be positive",
+                     cfg.max_orders_per_second);
     if (cfg.max_leverage < 1)
         spdlog::warn("Config: max_leverage={} should be >= 1", cfg.max_leverage);
     if (cfg.min_margin_ratio < 0 || cfg.min_margin_ratio > 1)
@@ -82,8 +83,8 @@ inline void validate_config(const Config& cfg) {
     if (cfg.is_production) {
         validate_production_limits(cfg);
     }
-    spdlog::info("Config validated: {} symbols, {}ms interval, max {} positions", cfg.symbols.size(),
-                 cfg.signal_interval_ms, cfg.max_open_positions);
+    spdlog::info("Config validated: {} symbols, {}ms interval, max {} positions",
+                 cfg.symbols.size(), cfg.signal_interval_ms, cfg.max_open_positions);
 }
 
 } // namespace hft::detail

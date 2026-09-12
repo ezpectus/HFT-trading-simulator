@@ -17,14 +17,14 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
-using socket_t = SOCKET;
+using socket_t                    = SOCKET;
 constexpr socket_t kInvalidSocket = INVALID_SOCKET;
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-using socket_t = int;
+using socket_t                    = int;
 constexpr socket_t kInvalidSocket = -1;
 #endif
 
@@ -138,18 +138,18 @@ class HealthServer {
                     body        = R"({"error":"not found"})";
                 }
 
-                std::string response = "HTTP/1.1 " + status_line +
-                                       "\r\n"
-                                       "Content-Type: " +
-                                       (is_metrics ? "text/plain; version=0.0.4"
-                                                   : "application/json") +
-                                       "\r\n"
-                                       "Content-Length: " +
-                                       std::to_string(body.size()) +
-                                       "\r\n"
-                                       "Connection: close\r\n"
-                                       "\r\n" +
-                                       body;
+                std::string response =
+                    "HTTP/1.1 " + status_line +
+                    "\r\n"
+                    "Content-Type: " +
+                    (is_metrics ? "text/plain; version=0.0.4" : "application/json") +
+                    "\r\n"
+                    "Content-Length: " +
+                    std::to_string(body.size()) +
+                    "\r\n"
+                    "Connection: close\r\n"
+                    "\r\n" +
+                    body;
 
 #ifdef _WIN32
                 ::send(client, response.c_str(), (int)response.size(), 0);

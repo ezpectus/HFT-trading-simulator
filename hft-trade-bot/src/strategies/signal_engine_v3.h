@@ -153,8 +153,8 @@ class OnlineHMM {
             return RegimeState::RANGING;
         }
 
-        double log_ret = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
-        vol_ewma_ = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
+        double log_ret   = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
+        vol_ewma_        = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
         double vol_proxy = std::sqrt(vol_ewma_ * 252.0);
 
         prev_price_ = price;
@@ -173,7 +173,7 @@ class OnlineHMM {
     // ── Forward recursion: update log_alpha with new observation ──
     void forward_recursion(double log_ret, double vol_proxy) noexcept {
         StateLogProbs new_alpha{};
-        double trans_sum[N_STATES][N_STATES];
+        double        trans_sum[N_STATES][N_STATES];
         for (int j = 0; j < N_STATES; ++j) {
             double emit_lp = log_gaussian(log_ret, emit_mean_[j][0], emit_var_[j][0]) +
                              log_gaussian(vol_proxy, emit_mean_[j][1], emit_var_[j][1]);
@@ -297,12 +297,12 @@ class SignalEngineV3 {
         FastSignal base = v2_engine_.analyze(symbol, candles, n, ob, pressure, timestamp_ns);
         if (n == 0) return base;
 
-        HMMState& state = get_or_create_hmm_state(symbol);
-        double current_price = candles[n - 1].close;
+        HMMState& state         = get_or_create_hmm_state(symbol);
+        double    current_price = candles[n - 1].close;
         update_hmm_state(state, current_price);
 
-        RegimeState regime = state.hmm.most_likely_state();
-        double regime_conf = state.hmm.state_probability(regime);
+        RegimeState regime      = state.hmm.most_likely_state();
+        double      regime_conf = state.hmm.state_probability(regime);
         if (regime_conf < params_.min_regime_confidence) return base;
 
         apply_regime_gating(base, regime);
@@ -318,12 +318,12 @@ class SignalEngineV3 {
             v2_engine_.analyze_incremental(symbol, candles, n, ob, pressure, timestamp_ns);
         if (n == 0) return base;
 
-        HMMState& state = get_or_create_hmm_state(symbol);
-        double current_price = candles[n - 1].close;
+        HMMState& state         = get_or_create_hmm_state(symbol);
+        double    current_price = candles[n - 1].close;
         update_hmm_state(state, current_price);
 
-        RegimeState regime = state.hmm.most_likely_state();
-        double regime_conf = state.hmm.state_probability(regime);
+        RegimeState regime      = state.hmm.most_likely_state();
+        double      regime_conf = state.hmm.state_probability(regime);
         if (regime_conf < params_.min_regime_confidence) return base;
 
         apply_regime_gating(base, regime);
@@ -383,14 +383,16 @@ class SignalEngineV3 {
         switch (regime) {
         case RegimeState::TRENDING_UP:
             if (base.direction == FastSignal::Direction::LONG) {
-                base.confidence = std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
+                base.confidence =
+                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
             } else if (base.direction == FastSignal::Direction::SHORT) {
                 base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
             }
             break;
         case RegimeState::TRENDING_DOWN:
             if (base.direction == FastSignal::Direction::SHORT) {
-                base.confidence = std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
+                base.confidence =
+                    std::min(100u, static_cast<unsigned>(base.confidence * params_.trend_boost));
             } else if (base.direction == FastSignal::Direction::LONG) {
                 base.confidence = static_cast<unsigned>(base.confidence * params_.trend_dampen);
             }
@@ -404,40 +406,52 @@ class SignalEngineV3 {
             if (base.stop_loss > 0 && base.entry_price > 0) {
                 double sl_dist = std::abs(base.entry_price - base.stop_loss);
                 base.stop_loss = base.entry_price + (base.stop_loss > base.entry_price
-                    ? sl_dist * params_.volatile_stop_mult : -sl_dist * params_.volatile_stop_mult);
+                                                         ? sl_dist * params_.volatile_stop_mult
+                                                         : -sl_dist * params_.volatile_stop_mult);
             }
             if (base.take_profit > 0 && base.entry_price > 0) {
-                double tp_dist = std::abs(base.take_profit - base.entry_price);
+                double tp_dist   = std::abs(base.take_profit - base.entry_price);
                 base.take_profit = base.entry_price + (base.take_profit > base.entry_price
-                    ? tp_dist * params_.volatile_stop_mult : -tp_dist * params_.volatile_stop_mult);
+                                                           ? tp_dist * params_.volatile_stop_mult
+                                                           : -tp_dist * params_.volatile_stop_mult);
             }
-            base.leverage = std::max(1u, static_cast<unsigned>(base.leverage * params_.volatile_leverage_mult));
+            base.leverage =
+                std::max(1u, static_cast<unsigned>(base.leverage * params_.volatile_leverage_mult));
             break;
         case RegimeState::NUM_STATES:
             break;
         }
     }
 
-    inline void append_regime_reason(FastSignal& base, RegimeState regime, double regime_conf) const noexcept {
-        const char* rname = regime_name(regime);
-        int reason_len = 0;
-        while (base.reason[reason_len] && reason_len < 47) ++reason_len;
+    inline void append_regime_reason(FastSignal& base, RegimeState regime,
+                                     double regime_conf) const noexcept {
+        const char* rname      = regime_name(regime);
+        int         reason_len = 0;
+        while (base.reason[reason_len] && reason_len < 47)
+            ++reason_len;
         if (reason_len >= 40) return;
-        base.reason[reason_len] = '|'; base.reason[reason_len + 1] = ' ';
+        base.reason[reason_len]     = '|';
+        base.reason[reason_len + 1] = ' ';
         reason_len += 2;
         int i = 0;
-        while (rname[i] && reason_len + i < 44) { base.reason[reason_len + i] = rname[i]; ++i; }
+        while (rname[i] && reason_len + i < 44) {
+            base.reason[reason_len + i] = rname[i];
+            ++i;
+        }
         reason_len += i;
         if (reason_len < 44) {
             base.reason[reason_len] = ' ';
-            int conf_int = static_cast<int>(regime_conf * 100);
+            int conf_int            = static_cast<int>(regime_conf * 100);
             if (conf_int > 99) conf_int = 99;
             base.reason[reason_len + 1] = '0' + (conf_int / 10);
             base.reason[reason_len + 2] = '0' + (conf_int % 10);
             base.reason[reason_len + 3] = '%';
             reason_len += 4;
         }
-        while (reason_len < 48) { base.reason[reason_len] = '\0'; ++reason_len; }
+        while (reason_len < 48) {
+            base.reason[reason_len] = '\0';
+            ++reason_len;
+        }
     }
 };
 

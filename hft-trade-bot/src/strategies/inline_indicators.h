@@ -84,8 +84,8 @@ class InlineRSI {
         }
 
         double change = close - prev_close_;
-        double gain = std::fmax(change, 0.0);
-        double loss = std::fmax(-change, 0.0);
+        double gain   = std::fmax(change, 0.0);
+        double loss   = std::fmax(-change, 0.0);
 
         if (count_ < period_) [[unlikely]] {
             avg_gain_ += gain;
@@ -207,7 +207,7 @@ class InlineADX {
 class InlineVWAP {
   public:
     inline void update(double high, double low, double close, double volume) noexcept {
-        double tp = (high + low + close) / 3.0;
+        double tp        = (high + low + close) / 3.0;
         double prev_mean = cum_v_ > 0 ? cum_pv_ / cum_v_ : tp;
         cum_pv_ += tp * volume;
         cum_v_ += volume;

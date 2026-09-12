@@ -25,7 +25,9 @@ inline std::string expand_env(const std::string& s) {
             }
             std::string var_name = s.substr(i + 2, end - i - 2);
             const char* val      = std::getenv(var_name.c_str());
-            if (val) { result += val; }
+            if (val) {
+                result += val;
+            }
             i = end + 1;
         } else {
             result += s[i++];
@@ -42,21 +44,27 @@ inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
     if (auto t = root["trading"]) {
         if (t["symbols"]) {
             cfg.symbols.clear();
-            for (const auto& s : t["symbols"]) cfg.symbols.push_back(s.as<std::string>());
+            for (const auto& s : t["symbols"])
+                cfg.symbols.push_back(s.as<std::string>());
         }
         if (t["signal_interval_ms"]) cfg.signal_interval_ms = t["signal_interval_ms"].as<int>();
-        if (t["signal_interval_seconds"]) cfg.signal_interval_ms = t["signal_interval_seconds"].as<int>() * 1000; // backwards compat
+        if (t["signal_interval_seconds"])
+            cfg.signal_interval_ms =
+                t["signal_interval_seconds"].as<int>() * 1000; // backwards compat
         if (t["max_open_positions"]) cfg.max_open_positions = t["max_open_positions"].as<int>();
         if (t["paper_trading"]) cfg.paper_trading = t["paper_trading"].as<bool>();
     }
     if (auto r = root["risk"]) {
-        if (r["max_risk_per_trade_pct"]) cfg.max_risk_per_trade_pct = r["max_risk_per_trade_pct"].as<double>();
-        if (r["max_daily_drawdown_pct"]) cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
+        if (r["max_risk_per_trade_pct"])
+            cfg.max_risk_per_trade_pct = r["max_risk_per_trade_pct"].as<double>();
+        if (r["max_daily_drawdown_pct"])
+            cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
         if (r["min_confidence"]) cfg.min_confidence = r["min_confidence"].as<double>();
         if (r["min_rr_ratio"]) cfg.min_rr_ratio = r["min_rr_ratio"].as<double>();
         if (r["stop_loss_pct"]) cfg.stop_loss_pct = r["stop_loss_pct"].as<double>();
         if (r["take_profit_pct"]) cfg.take_profit_pct = r["take_profit_pct"].as<double>();
-        if (r["max_position_size_pct"]) cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
+        if (r["max_position_size_pct"])
+            cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
     }
     if (auto s = root["hft_strategies"]) {
         if (s["fast_ema_enabled"]) cfg.fast_ema_enabled = s["fast_ema_enabled"].as<bool>();
@@ -64,7 +72,8 @@ inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
         if (s["slow_ema_period"]) cfg.slow_ema_period = s["slow_ema_period"].as<int>();
         if (s["obi_enabled"]) cfg.obi_enabled = s["obi_enabled"].as<bool>();
         if (s["vwap_enabled"]) cfg.vwap_enabled = s["vwap_enabled"].as<bool>();
-        if (s["pressure_model_enabled"]) cfg.pressure_model_enabled = s["pressure_model_enabled"].as<bool>();
+        if (s["pressure_model_enabled"])
+            cfg.pressure_model_enabled = s["pressure_model_enabled"].as<bool>();
         if (s["fft_enabled"]) cfg.fft_enabled = s["fft_enabled"].as<bool>();
         if (s["fft_min_candles"]) cfg.fft_min_candles = s["fft_min_candles"].as<int>();
     }
@@ -80,8 +89,10 @@ inline void parse_v2_dev(Config& cfg, const YAML::Node& root) {
         if (v2["rsi_overbought"]) cfg.v2_rsi_overbought = v2["rsi_overbought"].as<double>();
         if (v2["rsi_oversold"]) cfg.v2_rsi_oversold = v2["rsi_oversold"].as<double>();
         if (v2["adx_period"]) cfg.v2_adx_period = v2["adx_period"].as<int>();
-        if (v2["adx_trend_threshold"]) cfg.v2_adx_trend_threshold = v2["adx_trend_threshold"].as<double>();
-        if (v2["adx_strong_threshold"]) cfg.v2_adx_strong_threshold = v2["adx_strong_threshold"].as<double>();
+        if (v2["adx_trend_threshold"])
+            cfg.v2_adx_trend_threshold = v2["adx_trend_threshold"].as<double>();
+        if (v2["adx_strong_threshold"])
+            cfg.v2_adx_strong_threshold = v2["adx_strong_threshold"].as<double>();
         if (v2["obi_levels_5"]) cfg.v2_obi_levels_5 = v2["obi_levels_5"].as<int>();
         if (v2["obi_levels_10"]) cfg.v2_obi_levels_10 = v2["obi_levels_10"].as<int>();
         if (v2["obi_levels_20"]) cfg.v2_obi_levels_20 = v2["obi_levels_20"].as<int>();
@@ -91,23 +102,32 @@ inline void parse_v2_dev(Config& cfg, const YAML::Node& root) {
         if (v2["cooldown_ms"]) cfg.v2_cooldown_ms = v2["cooldown_ms"].as<int64_t>();
         if (v2["buy_threshold"]) cfg.v2_buy_threshold = v2["buy_threshold"].as<double>();
         if (v2["sell_threshold"]) cfg.v2_sell_threshold = v2["sell_threshold"].as<double>();
-        if (v2["min_confidence"]) cfg.v2_min_confidence = static_cast<uint8_t>(v2["min_confidence"].as<int>());
+        if (v2["min_confidence"])
+            cfg.v2_min_confidence = static_cast<uint8_t>(v2["min_confidence"].as<int>());
         if (v2["vwap_band_mult"]) cfg.v2_vwap_band_mult = v2["vwap_band_mult"].as<double>();
-        if (v2["vwap_dev_threshold"]) cfg.v2_vwap_dev_threshold = v2["vwap_dev_threshold"].as<double>();
+        if (v2["vwap_dev_threshold"])
+            cfg.v2_vwap_dev_threshold = v2["vwap_dev_threshold"].as<double>();
         if (v2["dynamic_leverage"]) cfg.v2_dynamic_leverage = v2["dynamic_leverage"].as<bool>();
-        if (v2["max_leverage"]) cfg.v2_max_leverage = static_cast<uint8_t>(v2["max_leverage"].as<int>());
+        if (v2["max_leverage"])
+            cfg.v2_max_leverage = static_cast<uint8_t>(v2["max_leverage"].as<int>());
         if (v2["high_confidence_leverage"])
-            cfg.v2_high_confidence_leverage = static_cast<uint8_t>(v2["high_confidence_leverage"].as<int>());
+            cfg.v2_high_confidence_leverage =
+                static_cast<uint8_t>(v2["high_confidence_leverage"].as<int>());
         if (v2["emergency_confidence_threshold"])
-            cfg.v2_emergency_confidence_threshold = static_cast<uint8_t>(v2["emergency_confidence_threshold"].as<int>());
-        if (v2["emergency_adx_threshold"]) cfg.v2_emergency_adx_threshold = v2["emergency_adx_threshold"].as<double>();
+            cfg.v2_emergency_confidence_threshold =
+                static_cast<uint8_t>(v2["emergency_confidence_threshold"].as<int>());
+        if (v2["emergency_adx_threshold"])
+            cfg.v2_emergency_adx_threshold = v2["emergency_adx_threshold"].as<double>();
     }
     if (auto pm = root["pressure_model"]) {
-        if (pm["toxic_size_threshold"]) cfg.v2_toxic_size_threshold = pm["toxic_size_threshold"].as<double>();
+        if (pm["toxic_size_threshold"])
+            cfg.v2_toxic_size_threshold = pm["toxic_size_threshold"].as<double>();
         if (pm["obi_threshold"]) cfg.v2_obi_threshold = pm["obi_threshold"].as<double>();
-        if (pm["pressure_threshold"]) cfg.v2_pressure_threshold = pm["pressure_threshold"].as<double>();
+        if (pm["pressure_threshold"])
+            cfg.v2_pressure_threshold = pm["pressure_threshold"].as<double>();
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
-        if (pm["body_direction_lookback"]) cfg.v2_body_direction_lookback = pm["body_direction_lookback"].as<int>();
+        if (pm["body_direction_lookback"])
+            cfg.v2_body_direction_lookback = pm["body_direction_lookback"].as<int>();
     }
 }
 
@@ -117,15 +137,21 @@ inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
     }
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
-        if (ao["high_confidence"]) cfg.adaptive_high_confidence = static_cast<uint8_t>(ao["high_confidence"].as<int>());
-        if (ao["low_confidence"]) cfg.adaptive_low_confidence = static_cast<uint8_t>(ao["low_confidence"].as<int>());
-        if (ao["emergency_confidence"]) cfg.adaptive_emergency_confidence = static_cast<uint8_t>(ao["emergency_confidence"].as<int>());
+        if (ao["high_confidence"])
+            cfg.adaptive_high_confidence = static_cast<uint8_t>(ao["high_confidence"].as<int>());
+        if (ao["low_confidence"])
+            cfg.adaptive_low_confidence = static_cast<uint8_t>(ao["low_confidence"].as<int>());
+        if (ao["emergency_confidence"])
+            cfg.adaptive_emergency_confidence =
+                static_cast<uint8_t>(ao["emergency_confidence"].as<int>());
         if (ao["gtd_seconds"]) cfg.adaptive_gtd_seconds = ao["gtd_seconds"].as<int>();
     }
     if (auto lo = root["latency_optimization"]) {
-        if (lo["thread_pinning_enabled"]) cfg.thread_pinning_enabled = lo["thread_pinning_enabled"].as<bool>();
+        if (lo["thread_pinning_enabled"])
+            cfg.thread_pinning_enabled = lo["thread_pinning_enabled"].as<bool>();
         if (lo["execution_core_id"]) cfg.execution_core_id = lo["execution_core_id"].as<int>();
-        if (lo["latency_histogram_enabled"]) cfg.latency_histogram_enabled = lo["latency_histogram_enabled"].as<bool>();
+        if (lo["latency_histogram_enabled"])
+            cfg.latency_histogram_enabled = lo["latency_histogram_enabled"].as<bool>();
     }
     if (auto l = root["logging"]) {
         if (l["level"]) cfg.log_level = l["level"].as<std::string>();
@@ -140,9 +166,9 @@ inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
 inline void parse_prod_system(Config& cfg, const YAML::Node& root) {
     if (!root["system"]) return;
     cfg.is_production = true;
-    auto sys = root["system"];
+    auto sys          = root["system"];
     if (sys["mode"]) {
-        std::string mode = sys["mode"].as<std::string>();
+        std::string mode  = sys["mode"].as<std::string>();
         cfg.paper_trading = (mode != "production");
     }
     if (sys["version"]) cfg.system_version = sys["version"].as<std::string>();
@@ -155,12 +181,14 @@ inline void parse_prod_exchanges(Config& cfg, const YAML::Node& root) {
     if (auto ex = root["exchange"]) {
         if (ex["active"]) {
             cfg.active_exchanges.clear();
-            for (const auto& name : ex["active"]) cfg.active_exchanges.push_back(name.as<std::string>());
+            for (const auto& name : ex["active"])
+                cfg.active_exchanges.push_back(name.as<std::string>());
         }
-        if (ex["fallback_to_simulator"]) cfg.fallback_to_simulator = ex["fallback_to_simulator"].as<bool>();
+        if (ex["fallback_to_simulator"])
+            cfg.fallback_to_simulator = ex["fallback_to_simulator"].as<bool>();
         if (ex["simulator_ws_url"]) {
             cfg.simulator_ws_url = ex["simulator_ws_url"].as<std::string>();
-            cfg.ws_url = cfg.simulator_ws_url;
+            cfg.ws_url           = cfg.simulator_ws_url;
         }
         if (!cfg.active_exchanges.empty()) cfg.default_exchange = cfg.active_exchanges[0];
     }
@@ -182,8 +210,10 @@ inline void parse_prod_ipc(Config& cfg, const YAML::Node& root) {
             if (md["max_symbols"]) cfg.ipc_market_data_max_symbols = md["max_symbols"].as<int>();
         }
         if (auto ks = ipc["kill_switch"]) {
-            if (ks["trigger_file"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
-            if (ks["poll_interval_ms"]) cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
+            if (ks["trigger_file"])
+                cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+            if (ks["poll_interval_ms"])
+                cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
         }
     }
 }
@@ -200,7 +230,8 @@ inline void parse_prod_v2_weights(Config& cfg, const YAML::Node& root) {
             if (w["pressure"]) cfg.v2_weight_pressure = w["pressure"].as<double>();
         }
         if (auto th = v2["thresholds"]) {
-            if (th["min_confidence"]) cfg.v2_min_confidence = static_cast<uint8_t>(th["min_confidence"].as<int>());
+            if (th["min_confidence"])
+                cfg.v2_min_confidence = static_cast<uint8_t>(th["min_confidence"].as<int>());
             if (th["min_composite"]) cfg.v2_min_composite = th["min_composite"].as<double>();
         }
         if (auto p = v2["periods"]) {
@@ -219,28 +250,34 @@ inline void parse_prod_engines(Config& cfg, const YAML::Node& root) {
     }
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
-        if (ao["gtd_timeout_ms"]) cfg.adaptive_gtd_seconds = (ao["gtd_timeout_ms"].as<int>() + 999) / 1000;
+        if (ao["gtd_timeout_ms"])
+            cfg.adaptive_gtd_seconds = (ao["gtd_timeout_ms"].as<int>() + 999) / 1000;
         if (ao["gtd_seconds"]) cfg.adaptive_gtd_seconds = ao["gtd_seconds"].as<int>();
     }
 }
 
 inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
     if (auto r = root["risk"]) {
-        if (r["max_risk_per_trade_pct"]) cfg.max_risk_per_trade_pct = r["max_risk_per_trade_pct"].as<double>();
-        if (r["max_daily_drawdown_pct"]) cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
+        if (r["max_risk_per_trade_pct"])
+            cfg.max_risk_per_trade_pct = r["max_risk_per_trade_pct"].as<double>();
+        if (r["max_daily_drawdown_pct"])
+            cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
         if (r["min_confidence"]) cfg.min_confidence = r["min_confidence"].as<double>();
         if (r["min_rr_ratio"]) cfg.min_rr_ratio = r["min_rr_ratio"].as<double>();
-        if (r["max_position_size_pct"]) cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
+        if (r["max_position_size_pct"])
+            cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
         if (r["max_open_positions"]) cfg.max_open_positions = r["max_open_positions"].as<int>();
         if (r["max_position_qty"]) cfg.max_position_qty = r["max_position_qty"].as<double>();
         if (r["max_total_exposure"]) cfg.max_total_exposure = r["max_total_exposure"].as<double>();
         if (r["daily_loss_limit"]) cfg.daily_loss_limit = r["daily_loss_limit"].as<double>();
         if (r["max_drawdown_pct"]) cfg.max_drawdown_pct = r["max_drawdown_pct"].as<double>();
-        if (r["max_orders_per_second"]) cfg.max_orders_per_second = r["max_orders_per_second"].as<int>();
+        if (r["max_orders_per_second"])
+            cfg.max_orders_per_second = r["max_orders_per_second"].as<int>();
         if (r["min_margin_ratio"]) cfg.min_margin_ratio = r["min_margin_ratio"].as<double>();
         if (r["max_leverage"]) cfg.max_leverage = r["max_leverage"].as<int>();
         if (auto ks = r["kill_switch"]) {
-            if (ks["trigger_file"]) cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+            if (ks["trigger_file"])
+                cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
         }
     }
 }
@@ -248,7 +285,8 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
 inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
-        if (pm["toxicity_threshold"]) cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
+        if (pm["toxicity_threshold"])
+            cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
     }
     if (auto db = root["database"]) {
@@ -273,12 +311,14 @@ inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
     if (auto syms = root["symbols"]) {
         if (syms.IsSequence() && syms.size() > 0 && syms[0]["name"]) {
             cfg.symbols.clear();
-            for (const auto& s : syms) cfg.symbols.push_back(s["name"].as<std::string>());
+            for (const auto& s : syms)
+                cfg.symbols.push_back(s["name"].as<std::string>());
         }
     }
     if (auto lo = root["latency_optimization"]) {
         if (lo["thread_pinning"]) cfg.thread_pinning_enabled = lo["thread_pinning"].as<bool>();
-        if (lo["execution_thread_core"]) cfg.execution_core_id = lo["execution_thread_core"].as<int>();
+        if (lo["execution_thread_core"])
+            cfg.execution_core_id = lo["execution_thread_core"].as<int>();
     }
 }
 

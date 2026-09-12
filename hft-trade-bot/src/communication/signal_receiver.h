@@ -79,7 +79,8 @@ class SignalReceiver : private SignalReceiverData {
                 connection_      = hdl;
                 reconnect_delay_ = 1000;
                 spdlog::info("SignalReceiver connected to {}", ws_url_);
-                json sub = {{"type", "subscribe"}, {"protocol_version", 2}, {"encoding", "msgpack"}};
+                json sub = {
+                    {"type", "subscribe"}, {"protocol_version", 2}, {"encoding", "msgpack"}};
                 client_->send(hdl, sub.dump(), websocketpp::frame::opcode::text);
             });
             client_->set_close_handler([this](websocketpp::connection_hdl) {
@@ -87,7 +88,7 @@ class SignalReceiver : private SignalReceiverData {
                 spdlog::warn("SignalReceiver disconnected");
                 if (should_reconnect_) {
                     spdlog::info("Reconnecting in {}ms...", reconnect_delay_);
-                    auto delay = reconnect_delay_;
+                    auto delay       = reconnect_delay_;
                     reconnect_delay_ = std::min(reconnect_delay_ * 2, 30000);
                     std::thread([this, delay]() {
                         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
@@ -101,15 +102,15 @@ class SignalReceiver : private SignalReceiverData {
             client_->set_message_handler(
                 [this](websocketpp::connection_hdl, WSClient::message_ptr msg) {
                     if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
-                        const auto& bin = msg->get_payload();
-                        auto data = json::from_msgpack(bin);
+                        const auto& bin  = msg->get_payload();
+                        auto        data = json::from_msgpack(bin);
                         handle_message_json(data);
                     } else {
                         handle_message(msg->get_payload());
                     }
                 });
             websocketpp::lib::error_code ec;
-            auto con = client_->get_connection(ws_url_, ec);
+            auto                         con = client_->get_connection(ws_url_, ec);
             if (ec) {
                 spdlog::error("SignalReceiver connect error: {}", ec.message());
                 return false;
@@ -139,10 +140,16 @@ class SignalReceiver : private SignalReceiverData {
 
     bool wait_for_data(int timeout_ms = 1000) {
         std::unique_lock<std::mutex> lk(mutex_);
-        if (has_new_data_) { has_new_data_ = false; return true; }
+        if (has_new_data_) {
+            has_new_data_ = false;
+            return true;
+        }
         cv_.wait_for(lk, std::chrono::milliseconds(timeout_ms),
                      [this] { return has_new_data_.load(); });
-        if (has_new_data_) { has_new_data_ = false; return true; }
+        if (has_new_data_) {
+            has_new_data_ = false;
+            return true;
+        }
         return false;
     }
 
@@ -169,9 +176,7 @@ class SignalReceiver : private SignalReceiverData {
         return get_all_prices_into_impl(out);
     }
 
-    std::unordered_map<std::string, double> get_all_prices() const {
-        return get_all_prices_impl();
-    }
+    std::unordered_map<std::string, double> get_all_prices() const { return get_all_prices_impl(); }
 
     std::vector<Candle> get_candles(const std::string& symbol, size_t n = 100) const {
         return get_candles_impl(symbol, n);

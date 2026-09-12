@@ -36,7 +36,8 @@ Config Config::load(const std::string& path) {
     // ─── Production: pressure model ───
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
-        if (pm["toxicity_threshold"]) cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
+        if (pm["toxicity_threshold"])
+            cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
     }
 

@@ -16,16 +16,19 @@ void process_sl_tp(BotContext& ctx, double current_balance) {
     ctx.pos_mgr.update_all_pnl(ctx.prices_cache);
     auto triggers = ctx.pos_mgr.check_sl_tp(ctx.prices_cache);
     for (const auto& trigger : triggers) {
-        spdlog::info("SL/TP triggered: {} @ {:.2f} ({})", trigger.symbol, trigger.price, trigger.reason);
+        spdlog::info("SL/TP triggered: {} @ {:.2f} ({})", trigger.symbol, trigger.price,
+                     trigger.reason);
         if (ctx.executor->close_position(trigger.symbol)) {
             auto closed = ctx.pos_mgr.close_position(trigger.symbol, trigger.price);
             if (closed) {
                 ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed);
                 ctx.risk_mgr->update_pnl(closed->unrealized_pnl);
-                spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol, closed->unrealized_pnl);
+                spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol,
+                             closed->unrealized_pnl);
             }
         } else {
-            spdlog::warn("SL/TP close request not sent — keeping local position: {}", trigger.symbol);
+            spdlog::warn("SL/TP close request not sent — keeping local position: {}",
+                         trigger.symbol);
         }
     }
 }
@@ -41,8 +44,8 @@ void process_arbitrage(BotContext& ctx, bool can_trade) {
     }
     if (ctx.executor->is_connected() && arb.max_quantity > 0.001) {
         double qty = std::min(arb.max_quantity, 0.5);
-        if (ctx.executor->execute_arbitrage(arb.symbol, arb.buy_exchange, arb.sell_exchange,
-                                            qty, arb.buy_price, arb.sell_price)) {
+        if (ctx.executor->execute_arbitrage(arb.symbol, arb.buy_exchange, arb.sell_exchange, qty,
+                                            arb.buy_price, arb.sell_price)) {
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT, 2);
         }
     }
@@ -53,21 +56,22 @@ void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade)
     while (true) {
         Signal ai_sig;
         if (!ctx.ai_signal_queue.pop(ai_sig)) break;
-        auto risk_result = ctx.risk_mgr->check_signal(ai_sig, current_balance,
-                                                       ctx.pos_mgr.position_count());
+        auto risk_result =
+            ctx.risk_mgr->check_signal(ai_sig, current_balance, ctx.pos_mgr.position_count());
         if (risk_result.passed && !ctx.pos_mgr.has_position(ai_sig.symbol)) {
             double qty = ctx.risk_mgr->calculate_position_size(ai_sig, current_balance);
             if (qty > 0) {
                 spdlog::info("AI Signal execution: {} {} conf={:.1f} entry={:.2f} ({})",
-                             ai_sig.direction, ai_sig.symbol, ai_sig.confidence,
-                             ai_sig.entry_price, ai_sig.reason);
+                             ai_sig.direction, ai_sig.symbol, ai_sig.confidence, ai_sig.entry_price,
+                             ai_sig.reason);
                 if (ctx.executor->is_connected() &&
                     ctx.executor->submit_order(ai_sig, qty,
                                                ctx.receiver->get_order_book(ai_sig.symbol))) {
                     ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
                     ctx.pos_mgr.open_position(ai_sig, qty, ctx.config.default_exchange);
                 } else {
-                    spdlog::warn("Order not sent — local position NOT opened for {}", ai_sig.symbol);
+                    spdlog::warn("Order not sent — local position NOT opened for {}",
+                                 ai_sig.symbol);
                 }
                 ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
             }
@@ -86,7 +90,8 @@ static void prepare_order_book(BotContext& ctx, uint16_t sym_id, const std::stri
     if (!synthetic_warned) {
         spdlog::warn("Generating synthetic order book for {} — no real order book data available. "
                      "Using fake 10-level book with 1bp spacing and 1.0 qty. "
-                     "Results are unrealistic for production trading.", symbol);
+                     "Results are unrealistic for production trading.",
+                     symbol);
         synthetic_warned = true;
     }
     ctx.ob_buf.symbol   = symbol;
@@ -99,9 +104,8 @@ static void prepare_order_book(BotContext& ctx, uint16_t sym_id, const std::stri
     }
 }
 
-static FastSignal generate_signal(BotContext& ctx, const char* sym_cstr,
-                                  const Candle* candles, size_t n,
-                                  const OrderBook& ob, int64_t now_ns) {
+static FastSignal generate_signal(BotContext& ctx, const char* sym_cstr, const Candle* candles,
+                                  size_t n, const OrderBook& ob, int64_t now_ns) {
     auto pressure = ctx.pressure_model->analyze(ob);
     if (ctx.engine_v3) {
         return ctx.engine_v3->analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
@@ -135,28 +139,29 @@ struct OrderSelection {
 };
 
 static OrderSelection select_order_kind(BotContext& ctx, const FastSignal& fast_sig,
-                                        const OrderBook& ob, double qty,
-                                        double mid, double spread_bps, int64_t now_ns) {
+                                        const OrderBook& ob, double qty, double mid,
+                                        double spread_bps, int64_t now_ns) {
     if (!ctx.config.adaptive_order_enabled) return {FastOrder::OrderKind::MARKET, 0.0, "default"};
     auto pressure = ctx.pressure_model->analyze(ob);
-    auto sel = ctx.adaptive_selector->select(
-        fast_sig.confidence, fast_sig.is_long(), mid, spread_bps,
-        pressure.obi_weighted, pressure.toxic_score, qty, 0.0, now_ns);
+    auto sel      = ctx.adaptive_selector->select(fast_sig.confidence, fast_sig.is_long(), mid,
+                                                  spread_bps, pressure.obi_weighted,
+                                                  pressure.toxic_score, qty, 0.0, now_ns);
     return {sel.kind, sel.limit_price, sel.reason};
 }
 
 static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSignal& fast_sig,
                              const OrderBook& ob, double qty, int64_t now_ns) {
-    double mid = ob.mid_price();
+    double mid        = ob.mid_price();
     double spread_bps = mid > 0 ? ob.spread() / mid * 10000.0 : 999.0;
-    auto os = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns);
+    auto   os         = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns);
     spdlog::info("HFT v2 Signal: {} {} conf={} entry={:.2f} kind={} spread={:.1f}bps ({})",
                  fast_sig.dir_str(), sig.symbol, static_cast<int>(fast_sig.confidence),
                  fast_sig.entry_price,
                  os.kind == FastOrder::OrderKind::MARKET      ? "MKT"
                  : os.kind == FastOrder::OrderKind::LIMIT_IOC ? "IOC"
                  : os.kind == FastOrder::OrderKind::LIMIT_FOK ? "FOK"
-                 : os.kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD" : "POST",
+                 : os.kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD"
+                                                              : "POST",
                  spread_bps, os.reason);
     bool sent = false;
     if (ctx.executor->is_connected()) {
@@ -185,17 +190,19 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
     if (!ctx.config.signal_engine_v2_enabled || !can_trade) return;
     for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
         ScopedLatency signal_timer(ctx.signal_latency_hist);
-        auto candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
+        auto          candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
         if (candles_count < 30) continue;
         prepare_order_book(ctx, sym_id, symbol);
         if (ctx.ob_buf.bids.empty() || ctx.ob_buf.asks.empty()) continue;
-        int64_t now_ns = FastSignal::now_ns();
-        auto fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
-                                        ctx.candles_buf.size(), ctx.ob_buf, now_ns);
-        if (!fast_sig.is_actionable() || fast_sig.confidence < ctx.config.v2_min_confidence) continue;
-        auto sig = convert_fast_signal(ctx, fast_sig);
+        int64_t now_ns   = FastSignal::now_ns();
+        auto    fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
+                                           ctx.candles_buf.size(), ctx.ob_buf, now_ns);
+        if (!fast_sig.is_actionable() || fast_sig.confidence < ctx.config.v2_min_confidence)
+            continue;
+        auto          sig = convert_fast_signal(ctx, fast_sig);
         ScopedLatency risk_timer(ctx.risk_check_hist);
-        auto risk_result = ctx.risk_mgr->check_signal(sig, current_balance, ctx.pos_mgr.position_count());
+        auto          risk_result =
+            ctx.risk_mgr->check_signal(sig, current_balance, ctx.pos_mgr.position_count());
         if (!risk_result.passed || ctx.pos_mgr.has_position(symbol)) continue;
         double qty = ctx.risk_mgr->calculate_position_size(sig, current_balance);
         if (qty <= 0) continue;
@@ -216,7 +223,8 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
             if (!synthetic_warned) {
                 spdlog::warn("Generating synthetic order book (v1 fallback) for {} — no real order "
                              "book data available. Using fake 10-level book with 1bp spacing and "
-                             "1.0 qty. Results are unrealistic for production trading.", symbol);
+                             "1.0 qty. Results are unrealistic for production trading.",
+                             symbol);
                 synthetic_warned = true;
             }
             ob.symbol   = symbol;
@@ -227,18 +235,23 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
             }
         }
         auto fast_sig = ctx.engine_v1->analyze(symbol, candles, ob);
-        if (fast_sig.direction == "NEUTRAL" || fast_sig.confidence < ctx.config.min_confidence) continue;
+        if (fast_sig.direction == "NEUTRAL" || fast_sig.confidence < ctx.config.min_confidence)
+            continue;
         Signal sig;
-        sig.symbol = fast_sig.symbol; sig.direction = fast_sig.direction;
-        sig.confidence = fast_sig.confidence; sig.strategy = "hft_signal_engine";
-        sig.entry_price = fast_sig.entry_price; sig.stop_loss = fast_sig.stop_loss;
-        sig.take_profit = fast_sig.take_profit; sig.reason = fast_sig.reason;
+        sig.symbol      = fast_sig.symbol;
+        sig.direction   = fast_sig.direction;
+        sig.confidence  = fast_sig.confidence;
+        sig.strategy    = "hft_signal_engine";
+        sig.entry_price = fast_sig.entry_price;
+        sig.stop_loss   = fast_sig.stop_loss;
+        sig.take_profit = fast_sig.take_profit;
+        sig.reason      = fast_sig.reason;
         auto rr = ctx.risk_mgr->check_signal(sig, current_balance, ctx.pos_mgr.position_count());
         if (!rr.passed || ctx.pos_mgr.has_position(symbol)) continue;
         double qty = ctx.risk_mgr->calculate_position_size(sig, current_balance);
         if (qty <= 0) continue;
-        spdlog::info("HFT v1 Signal: {} {} conf={:.1f} entry={:.2f} ({})",
-                     sig.direction, sig.symbol, sig.confidence, sig.entry_price, sig.reason);
+        spdlog::info("HFT v1 Signal: {} {} conf={:.1f} entry={:.2f} ({})", sig.direction,
+                     sig.symbol, sig.confidence, sig.entry_price, sig.reason);
         if (ctx.executor->is_connected() && ctx.executor->submit_order(sig, qty, ob)) {
             ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
         } else {
@@ -248,14 +261,14 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
 }
 
 void print_status(BotContext& ctx) {
-    auto positions  = ctx.pos_mgr.get_positions();
+    auto   positions  = ctx.pos_mgr.get_positions();
     double unrealized = ctx.pos_mgr.total_unrealized_pnl();
-    spdlog::info("Status: balance={:.2f} equity={:.2f} positions={} unrealized={:+.2f} trading={} kill={}",
-                 ctx.balance.load(std::memory_order_relaxed),
-                 ctx.balance.load(std::memory_order_relaxed) + unrealized,
-                 positions.size(), unrealized,
-                 ctx.receiver->is_trading_active() ? "ACTIVE" : "STOPPED",
-                 ctx.kill_switch->is_active() ? "TRIGGERED" : "ARMED");
+    spdlog::info(
+        "Status: balance={:.2f} equity={:.2f} positions={} unrealized={:+.2f} trading={} kill={}",
+        ctx.balance.load(std::memory_order_relaxed),
+        ctx.balance.load(std::memory_order_relaxed) + unrealized, positions.size(), unrealized,
+        ctx.receiver->is_trading_active() ? "ACTIVE" : "STOPPED",
+        ctx.kill_switch->is_active() ? "TRIGGERED" : "ARMED");
     if (ctx.config.latency_histogram_enabled) {
         spdlog::info("  Latency — signal: [{}] risk: [{}] exec: [{}] loop: [{}]",
                      ctx.signal_latency_hist.format_stats(), ctx.risk_check_hist.format_stats(),
@@ -264,9 +277,8 @@ void print_status(BotContext& ctx) {
     auto snap = ctx.sys_monitor.snapshot();
     spdlog::info("  Monitor — orders: sent={} filled={} rejected={} | signals: recv={} "
                  "proc={} | errors={} uptime={}s fill_rate={:.1f}%",
-                 snap.orders_sent, snap.orders_filled, snap.orders_rejected,
-                 snap.signals_received, snap.signals_processed, snap.errors,
-                 snap.uptime_seconds, snap.fill_rate * 100.0);
+                 snap.orders_sent, snap.orders_filled, snap.orders_rejected, snap.signals_received,
+                 snap.signals_processed, snap.errors, snap.uptime_seconds, snap.fill_rate * 100.0);
 }
 
 void poll_shm_market_data(BotContext& ctx) {

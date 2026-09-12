@@ -167,7 +167,7 @@ class TestMetricsServer:
     async def test_start_creates_server(self):
         mc = MetricsCollector()
         server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = MagicMock()
+        mock_server = MagicMock(spec=asyncio.Server)
         mock_server.wait_closed = AsyncMock()
         with patch("asyncio.start_server", new_callable=AsyncMock, return_value=mock_server):
             await server.start()
@@ -177,7 +177,7 @@ class TestMetricsServer:
     async def test_stop_closes_server(self):
         mc = MetricsCollector()
         server = MetricsServer(mc, host="127.0.0.1", port=0)
-        mock_server = MagicMock()
+        mock_server = MagicMock(spec=asyncio.Server)
         mock_server.wait_closed = AsyncMock()
         server._server = mock_server
         await server.stop()
@@ -197,8 +197,8 @@ class TestMetricsServer:
         mc.record_signal_sent()
         server = MetricsServer(mc)
 
-        reader = AsyncMock()
-        writer = MagicMock()
+        reader = AsyncMock(spec=asyncio.StreamReader)
+        writer = MagicMock(spec=asyncio.StreamWriter)
         writer.drain = AsyncMock()
         writer.wait_closed = AsyncMock()
         # Simulate HTTP request: "GET /metrics HTTP/1.1\r\n\r\n"
@@ -221,8 +221,8 @@ class TestMetricsServer:
         mc = MetricsCollector()
         server = MetricsServer(mc)
 
-        reader = AsyncMock()
-        writer = MagicMock()
+        reader = AsyncMock(spec=asyncio.StreamReader)
+        writer = MagicMock(spec=asyncio.StreamWriter)
         writer.drain = AsyncMock()
         writer.wait_closed = AsyncMock()
         reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]
@@ -236,8 +236,8 @@ class TestMetricsServer:
         mc = MetricsCollector()
         server = MetricsServer(mc)
 
-        reader = AsyncMock()
-        writer = MagicMock()
+        reader = AsyncMock(spec=asyncio.StreamReader)
+        writer = MagicMock(spec=asyncio.StreamWriter)
         writer.drain = AsyncMock()
         writer.wait_closed = AsyncMock()
         reader.readline.side_effect = [b"GET /metrics HTTP/1.1\r\n", b"\r\n"]

@@ -10,12 +10,18 @@ namespace hft {
 
 static std::atomic<bool> g_running{true};
 
-static void signal_handler(int) { g_running = false; }
+static void signal_handler(int) {
+    g_running = false;
+}
 static void init_shm_signal_consumer(BotContext& ctx);
 static void init_shm_market_data(BotContext& ctx);
 
-bool is_running() { return g_running.load(); }
-void set_running(bool v) { g_running.store(v); }
+bool is_running() {
+    return g_running.load();
+}
+void set_running(bool v) {
+    g_running.store(v);
+}
 
 static void log_banner(const Config& c) {
     spdlog::info("=" + std::string(60, '='));
@@ -29,9 +35,8 @@ static void log_banner(const Config& c) {
     spdlog::info("  Adaptive Orders: {}", c.adaptive_order_enabled);
     spdlog::info("  Thread Pinning: {}", c.thread_pinning_enabled);
     if (c.is_production) {
-        spdlog::info("  IPC: {} | DB: {} | Redis: {} | Metrics: {}",
-                     c.ipc_enabled, !c.db_dsn.empty(),
-                     c.redis_enabled, c.metrics_enabled);
+        spdlog::info("  IPC: {} | DB: {} | Redis: {} | Metrics: {}", c.ipc_enabled,
+                     !c.db_dsn.empty(), c.redis_enabled, c.metrics_enabled);
     }
     spdlog::info("=" + std::string(60, '='));
 }
@@ -69,13 +74,21 @@ void init_core_components(BotContext& ctx) {
         ctx.ai_signal_receiver = std::make_unique<SignalReceiver>(ctx.config.ai_signal_ws_url);
     }
     ctx.risk_mgr = std::make_unique<RiskManager>(RiskManager::Params{
-        ctx.config.max_risk_per_trade_pct, ctx.config.max_daily_drawdown_pct,
-        ctx.config.min_confidence, ctx.config.min_rr_ratio,
-        ctx.config.max_position_size_pct, ctx.config.max_open_positions,
-        ctx.config.max_position_qty, ctx.config.max_total_exposure,
-        ctx.config.daily_loss_limit, ctx.config.max_drawdown_pct,
-        ctx.config.max_orders_per_second, ctx.config.min_margin_ratio,
-        static_cast<double>(ctx.config.max_leverage), {}, {},
+        ctx.config.max_risk_per_trade_pct,
+        ctx.config.max_daily_drawdown_pct,
+        ctx.config.min_confidence,
+        ctx.config.min_rr_ratio,
+        ctx.config.max_position_size_pct,
+        ctx.config.max_open_positions,
+        ctx.config.max_position_qty,
+        ctx.config.max_total_exposure,
+        ctx.config.daily_loss_limit,
+        ctx.config.max_drawdown_pct,
+        ctx.config.max_orders_per_second,
+        ctx.config.min_margin_ratio,
+        static_cast<double>(ctx.config.max_leverage),
+        {},
+        {},
     });
     ctx.executor = std::make_unique<OrderExecutor>(ctx.config.ws_url, ctx.config.default_exchange);
 }
@@ -136,14 +149,14 @@ bool init_signal_engines(BotContext& ctx) {
     }
     PressureModel::Params pp;
     pp.toxic_size_threshold = ctx.config.v2_toxic_size_threshold;
-    ctx.pressure_model = std::make_unique<PressureModel>(pp);
+    ctx.pressure_model      = std::make_unique<PressureModel>(pp);
     SignalEngine::Params ep;
     ep.fast_ema_period  = ctx.config.fast_ema_period;
     ep.slow_ema_period  = ctx.config.slow_ema_period;
     ep.obi_enabled      = ctx.config.obi_enabled;
     ep.vwap_enabled     = ctx.config.vwap_enabled;
     ep.pressure_enabled = ctx.config.pressure_model_enabled;
-    ctx.engine_v1 = std::make_unique<SignalEngine>(ep);
+    ctx.engine_v1       = std::make_unique<SignalEngine>(ep);
     return true;
 }
 
@@ -157,10 +170,10 @@ void init_order_routing(BotContext& ctx) {
 }
 
 void init_kill_switch(BotContext& ctx) {
-    ctx.kill_switch = std::make_unique<KillSwitch>(ctx.config.kill_switch_trigger_file, "/hft_kill_switch");
-    ctx.kill_switch->set_cancel_all_callback([&]() {
-        spdlog::warn("KILL SWITCH: Cancelling all open orders...");
-    });
+    ctx.kill_switch =
+        std::make_unique<KillSwitch>(ctx.config.kill_switch_trigger_file, "/hft_kill_switch");
+    ctx.kill_switch->set_cancel_all_callback(
+        [&]() { spdlog::warn("KILL SWITCH: Cancelling all open orders..."); });
     ctx.kill_switch->set_close_all_callback([&]() {
         spdlog::warn("KILL SWITCH: Closing all positions at market...");
         auto positions = ctx.pos_mgr.get_positions();
@@ -169,7 +182,8 @@ void init_kill_switch(BotContext& ctx) {
                 ctx.pos_mgr.close_position(pos.symbol, ctx.receiver->get_price(pos.symbol));
             } else {
                 spdlog::error("KILL SWITCH: close request not sent for {} — position still open "
-                              "locally and on exchange", pos.symbol);
+                              "locally and on exchange",
+                              pos.symbol);
             }
         }
     });
@@ -185,15 +199,15 @@ void init_kill_switch(BotContext& ctx) {
 }
 
 void init_monitoring(BotContext& ctx) {
-    ctx.health_server = std::make_unique<HealthServer>(
-        ctx.config.is_production ? ctx.config.metrics_port : 9091);
+    ctx.health_server =
+        std::make_unique<HealthServer>(ctx.config.is_production ? ctx.config.metrics_port : 9091);
     ctx.health_server->start(&ctx.sys_monitor);
 }
 
 void init_ipc(BotContext& ctx) {
     if (!ctx.config.ipc_enabled) return;
-    ctx.shm_fill_producer = std::make_unique<ipc::ShmFillProducer>(
-        ctx.config.ipc_fills_shm, ctx.config.ipc_fills_capacity);
+    ctx.shm_fill_producer = std::make_unique<ipc::ShmFillProducer>(ctx.config.ipc_fills_shm,
+                                                                   ctx.config.ipc_fills_capacity);
     if (ctx.shm_fill_producer->init()) {
         spdlog::info("SHM IPC: fill producer ready (shm={})", ctx.config.ipc_fills_shm);
     } else {
@@ -210,8 +224,9 @@ static void init_shm_signal_consumer(BotContext& ctx) {
     try {
         ctx.shm_signal_consumer->start([&](const ipc::SignalMsg& msg) {
             Signal sig;
-            sig.symbol = (msg.symbol_id < ctx.config.symbols.size())
-                             ? ctx.config.symbols[msg.symbol_id] : "UNKNOWN";
+            sig.symbol      = (msg.symbol_id < ctx.config.symbols.size())
+                                  ? ctx.config.symbols[msg.symbol_id]
+                                  : "UNKNOWN";
             sig.direction   = (msg.action == 1) ? "LONG" : (msg.action == 2) ? "SHORT" : "NEUTRAL";
             sig.confidence  = msg.confidence * 100.0f;
             sig.entry_price = msg.price;

@@ -119,7 +119,7 @@ risk:
 
         auto cfg = hft::Config::load(path);
         CHECK(cfg.signal_interval_ms == 1);
-        CHECK(cfg.signal_interval_ms < 1000);  // Sub-second
+        CHECK(cfg.signal_interval_ms < 1000); // Sub-second
         CHECK(cfg.paper_trading == true);
         CHECK(cfg.symbols.size() == 2);
         std::filesystem::remove(path);

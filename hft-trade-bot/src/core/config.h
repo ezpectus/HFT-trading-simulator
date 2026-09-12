@@ -12,14 +12,14 @@ namespace hft {
 
 struct Config {
     // Connection
-    std::string ws_url;  // Set via config file — no localhost default (breaks Docker/K8s)
+    std::string ws_url; // Set via config file — no localhost default (breaks Docker/K8s)
     std::string default_exchange{"binance"};
 
     // Trading
     std::vector<std::string> symbols{"BTC/USDT", "ETH/USDT", "SOL/USDT"};
-    int                      signal_interval_ms{1};   // Loop poll interval (0 = no wait, 1 = sub-ms HFT)
-    int                      max_open_positions{3};
-    bool                     paper_trading{true};
+    int  signal_interval_ms{1}; // Loop poll interval (0 = no wait, 1 = sub-ms HFT)
+    int  max_open_positions{3};
+    bool paper_trading{true};
 
     // Risk
     double max_risk_per_trade_pct{2.0};

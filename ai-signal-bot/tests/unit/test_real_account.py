@@ -10,6 +10,17 @@ from src.data_collection.real_account import (
     RealAccountManager,
 )
 
+# ccxt isn't installed in test env — spec by the exact method surface
+# real_account.py calls, so a renamed/wrong method fails the test.
+_CCXT_SURFACE = [
+    "cancel_all_orders", "cancel_order", "close", "create_order",
+    "fetch_balance", "fetch_my_trades", "fetch_open_orders",
+    "fetch_positions", "load_markets", "set_leverage",
+    "set_margin_mode", "set_sandbox_mode", "watch_orders",
+]
+
+
+
 
 class TestAssetBalance:
     def test_dataclass(self):
@@ -177,7 +188,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_get_balance_with_mock(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.fetch_balance = AsyncMock(return_value={
             "total": {"USDT": 50000, "BTC": 0.5},
             "free": {"USDT": 45000, "BTC": 0.5},
@@ -193,7 +204,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_get_positions_with_mock(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.fetch_positions = AsyncMock(return_value=[
             {"symbol": "BTC/USDT", "side": "long", "contracts": 0.5,
              "entryPrice": 65000, "markPrice": 65500, "unrealizedPnl": 250,
@@ -214,7 +225,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_place_order_with_mock(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.set_leverage = AsyncMock()
         mock_ex.create_order = AsyncMock(return_value={
             "id": "order123", "status": "open",
@@ -228,7 +239,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_cancel_order_with_mock(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.cancel_order = AsyncMock()
         mgr._exchange = mock_ex
         result = await mgr.cancel_order("order123", "BTC/USDT")
@@ -237,7 +248,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_get_health_connected(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.fetch_balance = AsyncMock(return_value={"total": {"USDT": 1000}})
         mgr._exchange = mock_ex
         health = await mgr.get_health()
@@ -247,7 +258,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_get_health_error(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.fetch_balance = AsyncMock(side_effect=Exception("API error"))
         mgr._exchange = mock_ex
         health = await mgr.get_health()
@@ -257,7 +268,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_get_balance_error_returns_empty(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.fetch_balance = AsyncMock(side_effect=Exception("Network error"))
         mgr._exchange = mock_ex
         result = await mgr.get_balance()
@@ -266,7 +277,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_set_leverage_success(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.set_leverage = AsyncMock()
         mgr._exchange = mock_ex
         result = await mgr.set_leverage("BTC/USDT", 20)
@@ -275,7 +286,7 @@ class TestRealAccountManagerWithMockExchange:
     @pytest.mark.asyncio
     async def test_set_leverage_error(self):
         mgr = RealAccountManager()
-        mock_ex = MagicMock()
+        mock_ex = MagicMock(spec=_CCXT_SURFACE)
         mock_ex.set_leverage = AsyncMock(side_effect=Exception("Not supported"))
         mgr._exchange = mock_ex
         result = await mgr.set_leverage("BTC/USDT", 20)

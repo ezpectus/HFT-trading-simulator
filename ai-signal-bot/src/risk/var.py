@@ -4,15 +4,17 @@
 # with support for multiple confidence levels and time horizons.
 
 from dataclasses import dataclass
+from types import ModuleType
 
 import numpy as np
 
+stats: ModuleType | None
 try:
-    from scipy import stats
+    from scipy import stats  # noqa: F811 — rebinds the ModuleType|None declaration
     _HAS_SCIPY = True
 except ImportError:
     _HAS_SCIPY = False
-    stats = None  # type: ignore[assignment]
+    stats = None
 
 
 def _norm_ppf(p: float) -> float:
