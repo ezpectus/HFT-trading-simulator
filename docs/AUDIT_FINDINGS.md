@@ -881,3 +881,19 @@ Rotation target: the remaining Python core — backtesting, risk, portfolio, ml,
 - risk/ modules live through backtester + signal_publisher (VaR/CVaR/Kelly/stress/position_sizing/risk_manager all imported)
 - Live loop does its own position sizing (run.py:299-306) + SignalValidator checks — honest architecture, no fake risk gate
 - backtester/optimizer/walk_forward/plotter/backtest_engine/pnl_calculator/comparison all reachable
+
+## Round 16 — audit branch: advanced orders + quant-model library wiring
+
+Rotation target: advanced-order trigger path (stop-limit/trailing/iceberg) + technical_analysis + research module consumption.
+
+### New findings S094–S095
+
+**S094 — Advanced orders register but NEVER fire.** `check_advanced_orders()` (exchange_advanced_orders.py:14) has zero callers — not the WS loop, not `__main__`, not even tests. Stop-limit, trailing-stop and iceberg orders land in `_pending_*` dicts as PENDING and hang there forever: the API accepts them, reports PENDING, and they silently never execute. Combined with S083 (OCO fully dead): the entire advertised "advanced order types" surface is decorative — 4/4 types don't work end-to-end.
+
+**S095 — The "52 quant models" library feeds nothing: ~11.5k dead lines.** `src/research/` — all 34 modules (7578 lines: koopman, malliavin, pontryagin, rmt, transfer_entropy…) have zero non-test callers. `src/technical_analysis/` — 20 of 25 modules dead (bayesian_*, copula, garch, kalman, wavelet…); only `indicators`, `fft_analysis`, `hawkes_funcs`, `hawkes_model` are wired into strategies. The actual trading loop uses EMA/RSI/ADX/FFT. ~118 test files test this dead code — the biggest test-to-nowhere ratio in the repo. README's "52 quant models in trading logic" is false.
+
+### ЧИСТО
+
+- `check_stop_loss_take_profit` is called from main-loop + ws_broadcast — the SL/TP path is live
+- indicators/fft/hawkes are the only wired TA modules — the ones actually used are real
+- `_execute_limit_order`/`_execute_trailing`/`_execute_iceberg` are implemented — unreachable, not stubbed

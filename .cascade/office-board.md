@@ -106,6 +106,8 @@
 | **S091** | App.jsx монтирует real + mock hooks безусловно | `App.jsx:89-93` — `useExchangeData()` и `useMockExchangeData()` оба вызываются всегда: в real-режиме mock-таймеры тикают впустую, в mock-режиме реальный WS коннектится к :8765/:8766 и сыплет reconnect-логи. | Low | [ ] Open |
 | **S092** | `src/ml/` — весь пакет мёртв (2848 строк, 10 модулей) | autoencoder (375), automl (219), environment (163), feature_store (220), model_registry (310), price_predictor (385), rkhs (241), rl_trader (408), svm_signal (181), vae (346) — импортируются ТОЛЬКО собственными тестами (10+ тест-файлов тестируют мёртвый код). `ml/__init__.py` пустой. `MLEnsembleStrategy` (wired) использует `strategies/ml_features.py` + sklearn напрямую — ничего из `src/ml/`. README честно пишет "models not trained", но занижает: пакет не просто необучен — он не вызывается нигде. | High | [ ] Open |
 | **S093** | `backtesting/order_book_replay.py` — мёртвые 262 строки | `OrderBookBacktester`/`OrderBookReplay`/`ReplayOrderBook` — только реэкспорт в `__init__.py`, 0 вызовов. Остальное в backtesting/ живое (backtester/optimizer/walk_forward/plotter — через run_backtest.py + run.py + nightly). | Medium | [ ] Open |
+| **S094** | Advanced-ордера регистрируются, но НИКОГДА не срабатывают | `check_advanced_orders()` (`exchange_advanced_orders.py:14`) имеет **0 вызовов** — ни ws-loop, ни __main__, ни даже тесты. Stop-limit/trailing-stop/iceberg ордера попадают в `_pending_*` dict'ы как PENDING и висят там вечно — API принимает их, отдаёт PENDING, и они молча никогда не исполняются. Вместе с S083 (OCO): вся рекламируемая advanced-order поверхность декоративна — 4/4 типа не работают end-to-end. | High | [ ] Open |
+| **S095** | `src/research/` — ВСЕ 34 модуля мёртвы (7578 строк) + `technical_analysis/` 20/25 мёртвы | README: "52 quant models in trading logic". Реальность: research/ 34 модуля (affine_arithmetic, koopman, malliavin, pontryagin, rmt…) — **0 не-тестовых вызовов у всех**; technical_analysis/ 25 модулей — проводятся только `indicators`, `fft_analysis`, `hawkes_funcs`, `hawkes_model`; остальные 20 (bayesian_*, copula, garch, kalman, wavelet…) мертвы. ~11.5k строк квант-математики не кормят ничего — торговый цикл использует EMA/RSI/ADX/FFT. ~118 тест-файлов тестируют этот мёртвый код. | High | [ ] Open |
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
@@ -188,6 +190,9 @@
 - live-цикл делает собственный sizing (run.py:299-306) + validator (confidence/RR/drawdown/maxpos/dup) — честная архитектура
 - backtesting/: backtester/optimizer/walk_forward/plotter/backtest_engine/pnl_calculator/comparison — живы через run.py/run_backtest.py/nightly
 - README "models not trained" дисклеймер существует (но занижает — ml/ вообще не вызывается)
+- `check_stop_loss_take_profit` вызывается из main-loop/ws_broadcast — живой путь SL/TP
+- `indicators`/`fft_analysis`/`hawkes_funcs`/`hawkes_model` — единственные 4 wired-модуля technical_analysis
+- `_execute_limit_order`/`_execute_trailing`/`_execute_iceberg` реализованы — но недостижимы (S094)
 
 ---
 
