@@ -13,7 +13,7 @@ describe('VirtualList', () => {
     const { container } = render(
       <VirtualList items={items} itemHeight={28} maxHeight={300} renderItem={renderItem} />
     )
-    expect(container).toBeTruthy()
+    expect(container.firstChild).not.toBeNull()
   })
 
   it('shows "No items" for empty list', () => {
@@ -43,7 +43,7 @@ describe('VirtualList', () => {
       <VirtualList items={items} itemHeight={28} maxHeight={300} renderItem={renderItem} />
     )
     const scrollContainer = container.querySelector('[class*="overflow-y-auto"]')
-    expect(scrollContainer).toBeTruthy()
+    expect(scrollContainer).not.toBeNull()
     // Simulate scroll
     fireEvent.scroll(scrollContainer, { target: { scrollTop: 500 } })
     // After scrolling 500px with itemHeight=28, first visible index ~17
@@ -64,9 +64,8 @@ describe('VirtualList', () => {
         keyExtractor={keyExtractor}
       />
     )
-    const firstItem = container.querySelector('[key^="custom-"]')
-    // Just verify it doesn't crash with custom keyExtractor
-    expect(container).toBeTruthy()
+    // React keys aren't DOM attributes — verify the list still renders items
+    expect(screen.getByText('Item 0')).toBeInTheDocument()
   })
 
   it('respects custom itemHeight', () => {
@@ -75,7 +74,7 @@ describe('VirtualList', () => {
     )
     const innerDiv = container.querySelector('[style*="height: 5000px"]')
     // totalHeight = 100 * 50 = 5000
-    expect(innerDiv).toBeTruthy()
+    expect(innerDiv).not.toBeNull()
     expect(innerDiv.style.height).toBe('5000px')
   })
 })

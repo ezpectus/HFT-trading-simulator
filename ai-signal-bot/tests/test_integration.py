@@ -136,7 +136,7 @@ class TestExchangeClient:
                 exchange="binance",
             )
             # If we get here without exception, order was sent
-            assert True
+            assert client.connected
         finally:
             await client.disconnect()
 

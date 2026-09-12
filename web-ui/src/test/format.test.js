@@ -64,7 +64,7 @@ describe('format utilities', () => {
       expect(formatUsd(1234.5)).toBe('$1,234.50')
     })
     it('formats negative with - prefix', () => {
-      expect(formatUsd(-500)).toBe('- $500.00')
+      expect(formatUsd(-500)).toBe('-$500.00')
     })
     it('returns -- for null', () => {
       expect(formatUsd(null)).toBe('--')

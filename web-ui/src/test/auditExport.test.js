@@ -11,13 +11,10 @@ const mockLogs = [
 describe('auditExport', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.spyOn(document, 'createElement').mockReturnValue({
-      href: '', download: '', click: vi.fn(),
-    })
-    vi.spyOn(document.body, 'appendChild').mockImplementation(() => {})
-    vi.spyOn(document.body, 'removeChild').mockImplementation(() => {})
-    global.URL = { createObjectURL: vi.fn(() => 'blob:mock'), revokeObjectURL: vi.fn() }
-    global.Blob = vi.fn(() => ({}))
+    // happy-dom provides real Blob/createElement; only URL.createObjectURL is missing
+    global.URL.createObjectURL = vi.fn(() => 'blob:mock')
+    global.URL.revokeObjectURL = vi.fn()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
   })
 
   describe('getAuditLogStatistics', () => {
@@ -65,17 +62,19 @@ describe('auditExport', () => {
     })
 
     it('creates CSV blob for non-empty logs', () => {
+      const blobSpy = vi.spyOn(global, 'Blob')
       exportAuditLogsToCSV(mockLogs)
-      expect(global.Blob).toHaveBeenCalled()
       expect(global.URL.createObjectURL).toHaveBeenCalled()
+      expect(global.URL.revokeObjectURL).toHaveBeenCalled()
+      blobSpy.mockRestore?.()
     })
   })
 
   describe('exportAuditLogsToJSON', () => {
     it('creates JSON blob', () => {
       exportAuditLogsToJSON(mockLogs)
-      expect(global.Blob).toHaveBeenCalled()
       expect(global.URL.createObjectURL).toHaveBeenCalled()
+      expect(global.URL.revokeObjectURL).toHaveBeenCalled()
     })
   })
 })

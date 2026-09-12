@@ -94,6 +94,6 @@ describe('App', () => {
   it('renders without crashing', async () => {
     const App = (await import('../App')).default
     const { container } = render(<App />)
-    expect(container).toBeTruthy()
+    expect(container.firstChild).not.toBeNull()
   })
 })

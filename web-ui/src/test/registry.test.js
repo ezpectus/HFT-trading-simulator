@@ -12,13 +12,13 @@ describe('Registry Structure', () => {
 
   it('every panel has id, name, category, component, props', () => {
     for (const panel of PANELS) {
-      expect(panel.id).toBeTruthy()
       expect(typeof panel.id).toBe('string')
-      expect(panel.name).toBeTruthy()
+      expect(panel.id.length).toBeGreaterThan(0)
       expect(typeof panel.name).toBe('string')
-      expect(panel.category).toBeTruthy()
+      expect(panel.name.length).toBeGreaterThan(0)
       expect(typeof panel.category).toBe('string')
-      expect(panel.component).toBeTruthy()
+      expect(panel.category.length).toBeGreaterThan(0)
+      expect(panel.component).toBeDefined()
       expect(typeof panel.props).toBe('function')
     }
   })
@@ -38,8 +38,10 @@ describe('Registry Structure', () => {
 
   it('CATEGORIES have id, label, order', () => {
     for (const cat of CATEGORIES) {
-      expect(cat.id).toBeTruthy()
-      expect(cat.label).toBeTruthy()
+      expect(typeof cat.id).toBe('string')
+      expect(cat.id.length).toBeGreaterThan(0)
+      expect(typeof cat.label).toBe('string')
+      expect(cat.label.length).toBeGreaterThan(0)
       expect(typeof cat.order).toBe('number')
     }
   })
@@ -72,8 +74,8 @@ describe('Registry Structure', () => {
     // React.lazy components have a _payload property
     for (const panel of PANELS) {
       const cmp = panel.component
-      // In React 18, lazy components are objects with _payload
-      expect(cmp).toBeTruthy()
+      // In React 18, lazy components are objects with $$typeof
+      expect(cmp).toBeDefined()
       // Check it's not a plain function (class component) — it should be a lazy wrapper
       const isLazy = typeof cmp === 'object' && cmp !== null && '$$typeof' in cmp
       expect(isLazy).toBe(true)

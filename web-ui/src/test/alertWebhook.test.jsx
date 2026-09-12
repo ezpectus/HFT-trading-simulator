@@ -53,8 +53,11 @@ describe('AlertWebhook', () => {
     const urlInput = screen.getByPlaceholderText(/Webhook URL/i)
     fireEvent.change(urlInput, { target: { value: 'https://discord.com/api/webhooks/test' } })
     fireEvent.click(screen.getByText('Add Webhook'))
-    const toggleBtn = screen.getByLabelText(/Enable webhook/i)
+    // New webhooks start enabled — label says "Disable webhook"
+    const toggleBtn = screen.getByLabelText(/Disable webhook/i)
     fireEvent.click(toggleBtn)
+    expect(screen.getByLabelText(/Enable webhook/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText(/Enable webhook/i))
     expect(screen.getByLabelText(/Disable webhook/i)).toBeInTheDocument()
   })
 

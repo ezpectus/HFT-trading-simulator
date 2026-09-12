@@ -313,7 +313,7 @@ class TestRebalancingStrategy:
             last_rebalance, interval, current_time
         )
 
-        assert should_rebalance == True
+        assert should_rebalance is True
 
     def test_should_rebalance_drift_based(self):
         """Test drift-based rebalancing trigger."""
@@ -338,7 +338,7 @@ class TestRebalancingStrategy:
             max_volatility_drift=0.1
         )
 
-        assert should_rebalance == True
+        assert should_rebalance is True
 
     def test_generate_rebalance_orders(self):
         """Test rebalancing order generation."""
