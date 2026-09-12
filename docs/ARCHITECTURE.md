@@ -250,15 +250,14 @@ The system implements production-grade observability across all components:
 - `src/communication/ws_client.py` — WebSocket client for exchange
 - `src/communication/signal_publisher.py` — WebSocket server for signals + backtest endpoint
 - `src/communication/circuit_breaker.py` — Signal protection with CLOSED/OPEN/HALF_OPEN states, failure threshold, cooldown
-- `src/communication/metrics_server.py` — Prometheus metrics endpoint on `:9091/metrics`
-- `src/communication/health_check.py` — Aggregated health endpoint on `:9092/health`
+- `src/communication/metrics_server.py` — `MetricsCollector` in-memory metrics sink (Prometheus scrape path is `src/monitoring/metrics.py` → `MetricsExporter`, `metrics.*` config keys)
 - `src/communication/shm_ring_buffer.py` — Lock-free SPSC shared memory ring buffer for Python ↔ C++ IPC
 - `src/communication/shm_signal_producer.py` — SHM producer for signal messages to C++
 - `src/communication/shm_fill_consumer.py` — SHM consumer for fill messages from C++
 - `src/communication/shm_market_data_writer.py` — SHM writer for market data snapshots
-- `src/communication/fix_client.py` — FIX 4.2 protocol client for order execution
 - `src/database/db.py` — SQLite storage (WAL mode)
 - `src/monitoring/tracker.py` — Performance tracking and dashboard
+- `src/monitoring/health_server.py` — Aggregated liveness/readiness endpoint on `:8080`
 - `src/risk/risk_manager.py` — Trailing stop, breakeven, partial TP, max hold time
 - `src/risk/kelly.py` — Kelly Criterion position sizing
 - `src/backtesting/backtester.py` — Backtesting engine with fee/slippage modeling

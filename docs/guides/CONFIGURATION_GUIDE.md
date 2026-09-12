@@ -162,10 +162,17 @@ exchanges:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `trading.timeframe` | `5m` | Candle interval (must match exchange simulator) |
-| `trading.signal_interval_ms` | `1` | Loop poll interval in ms (0 = no wait, 1 = sub-ms HFT) |
+| `trading.signal_interval_seconds` | `60` | Signal analysis loop interval |
 | `trading.max_open_positions` | `10` | Concurrent positions |
 | `trading.paper_trading` | `true` | If true, no real orders are sent |
+
+### Network
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `network.ws_connect_timeout` | `10` | WebSocket connect timeout (seconds) |
+| `network.ws_recv_timeout` | `30` | WebSocket recv/idle watchdog (seconds) |
+| `network.rest_timeout` | `15` | REST API timeout (seconds, ccxt) |
 
 ### Risk Management
 
@@ -175,8 +182,6 @@ exchanges:
 | `risk.max_daily_drawdown_pct` | `8.0` | Stop trading if daily loss exceeds this |
 | `risk.min_confidence` | `65` | Minimum signal confidence (0-100) |
 | `risk.min_rr_ratio` | `1.5` | Minimum risk:reward ratio |
-| `risk.stop_loss_pct` | `2.0` | Default stop loss percentage |
-| `risk.take_profit_pct` | `4.0` | Default take profit percentage |
 | `risk.max_position_size_pct` | `10.0` | Max position size as % of equity |
 
 ### Strategy Configuration
@@ -242,9 +247,6 @@ strategies:
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `indicators.rsi_period` | `14` | RSI lookback period |
-| `indicators.macd_fast` | `12` | MACD fast EMA period |
-| `indicators.macd_slow` | `26` | MACD slow EMA period |
-| `indicators.macd_signal` | `9` | MACD signal line EMA period |
 | `indicators.atr_period` | `14` | ATR period (used for SL/TP sizing) |
 | `indicators.adx_period` | `14` | ADX trend strength period |
 
@@ -269,9 +271,9 @@ logging:
 
 ```yaml
 metrics:
-  enabled: false                 # Enable with --metrics flag
-  port: 8080
-  host: "localhost"
+  enabled: false                 # --metrics flag or this key enables
+  port: 9090                     # Prometheus scrape port (helm aiSignalBot.ports.metrics)
+  host: "localhost"              # AI_BOT_BIND_HOST env overrides
 ```
 
 ---
@@ -428,9 +430,8 @@ VITE_SIGNAL_WS_URL=wss://api.example.com/signal
 cp .env.prod.example .env.prod
 
 # Key variables to set:
-POSTGRES_PASSWORD=your_secure_password
-REDIS_PASSWORD=your_secure_password
-GRAFANA_ADMIN_PASSWORD=your_secure_password
+GRAFANA_PASSWORD=your_secure_password
+GRAFANA_USER=admin
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=alerts@example.com

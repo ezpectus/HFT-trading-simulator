@@ -53,13 +53,6 @@ spec:
                   name: {{ .Release.Name }}-api-keys
                   key: openai-api-key
             {{- end }}
-            - name: POSTGRES_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Release.Name }}-postgres
-                  key: POSTGRES_DSN
-            - name: REDIS_URL
-              value: {{ printf "redis://%s-redis:6379/0" .Release.Name | quote }}
           ports:
             - containerPort: {{ .Values.aiSignalBot.ports.ws }}
               name: ws

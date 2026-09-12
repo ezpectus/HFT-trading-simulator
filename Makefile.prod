@@ -2,10 +2,10 @@
 # Usage: make prod-up, make prod-down, make prod-logs, etc.
 
 DOCKER_COMPOSE = docker compose -f docker-compose.prod.yml
-SERVICES = exchange-simulator ai-signal-bot hft-trade-bot web-ui postgres redis prometheus grafana
+SERVICES = exchange-simulator ai-signal-bot hft-trade-bot web-ui prometheus grafana
 
 .PHONY: prod-up prod-down prod-build prod-rebuild prod-logs prod-ps prod-restart \
-        prod-db-migrate prod-db-backup prod-monitor prod-health prod-clean prod-stats
+        prod-monitor prod-health prod-clean prod-stats
 
 # ── Start / Stop ──
 
@@ -42,48 +42,6 @@ prod-restart:
 
 prod-restart-%:
 	$(DOCKER_COMPOSE) restart $*
-
-# ── Database ──
-
-prod-db-migrate:
-	@echo "Running database migrations..."
-	$(DOCKER_COMPOSE) exec ai-signal-bot python -c "
-import asyncio, asyncpg, os, glob
-async def main():
-    conn = await asyncpg.connect(os.environ.get('POSTGRES_DSN', os.environ.get('DATABASE_URL', 'postgresql://trader:trader@postgres:5432/trading')))
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS schema_migrations (
-            filename TEXT PRIMARY KEY,
-            applied_at TIMESTAMPTZ DEFAULT NOW()
-        )
-    ''')
-    applied = {r[0] for r in await conn.fetch('SELECT filename FROM schema_migrations')}
-    for f in sorted(glob.glob('src/database/migrations/*.sql')):
-        name = os.path.basename(f)
-        if name in applied:
-            print(f'  Skipped (already applied): {name}')
-            continue
-        with open(f) as fh:
-            sql = fh.read()
-        async with conn.transaction():
-            await conn.execute(sql)
-            await conn.execute('INSERT INTO schema_migrations (filename) VALUES ($$1)', name)
-        print(f'  Applied: {name}')
-    await conn.close()
-asyncio.run(main())
-"
-
-prod-db-backup:
-	@timestamp=$$(date +%Y%m%d_%H%M%S); \
-	echo "Backing up database to backup_$$timestamp.sql..."; \
-	$(DOCKER_COMPOSE) exec -T postgres pg_dump -U $$(grep POSTGRES_USER .env.prod 2>/dev/null | cut -d= -f2 || echo trader) $$(grep POSTGRES_DB .env.prod 2>/dev/null | cut -d= -f2 || echo trading) > backup_$$timestamp.sql; \
-	echo "Backup complete: backup_$$timestamp.sql"
-
-prod-db-restore:
-	@test -f $(file) || (echo "Usage: make prod-db-restore file=backup_YYYYMMDD_HHMMSS.sql" && exit 1); \
-	echo "Restoring from $(file)..."; \
-	$(DOCKER_COMPOSE) exec -T postgres psql -U $$(grep POSTGRES_USER .env.prod 2>/dev/null | cut -d= -f2 || echo trader) $$(grep POSTGRES_DB .env.prod 2>/dev/null | cut -d= -f2 || echo trading) < $(file); \
-	echo "Restore complete"
 
 # ── Health & Monitoring ──
 
@@ -127,8 +85,6 @@ help:
 	@echo "  make prod-logs-SERVICE - Follow specific service logs"
 	@echo "  make prod-ps          - Show container status"
 	@echo "  make prod-restart     - Restart all services"
-	@echo "  make prod-db-migrate  - Run database migrations"
-	@echo "  make prod-db-backup   - Backup database"
 	@echo "  make prod-monitor     - Open Grafana dashboard"
 	@echo "  make prod-health      - Check all health endpoints"
 	@echo "  make prod-clean       - Remove all containers and volumes"

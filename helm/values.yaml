@@ -8,39 +8,6 @@ global:
   logLevel: INFO
   shmSize: 1Gi
 
-# ── PostgreSQL ──
-postgres:
-  enabled: true
-  image: postgres:16-alpine
-  database: trading
-  user: trader
-  password: "changeme"  # REQUIRED — override via --set postgres.password=... or use existingSecret
-  storage: 10Gi
-  storageClassName: ""
-  resources:
-    requests:
-      memory: 256Mi
-      cpu: 250m
-    limits:
-      memory: 512Mi
-      cpu: "1"
-
-# ── Redis ──
-redis:
-  enabled: true
-  image: redis:7-alpine
-  maxmemory: 256mb
-  password: "changeme"  # REQUIRED — override via --set redis.password=... (enables AUTH)
-  storage: 1Gi
-  storageClassName: ""
-  resources:
-    requests:
-      memory: 128Mi
-      cpu: 100m
-    limits:
-      memory: 256Mi
-      cpu: 500m
-
 # ── Exchange Simulator ──
 exchangeSimulator:
   enabled: true

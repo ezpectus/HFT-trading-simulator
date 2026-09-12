@@ -77,7 +77,7 @@ trading-system-lite/
 │   │   ├── monitoring/     # Metrics, alerting, health
 │   │   ├── observability/  # Tracing, logging
 │   │   ├── llm_engine/     # LLM for signal explanations
-│   │   ├── database/       # SQLite, models, migrations
+│   │   ├── database/       # SQLite persistence (signals, trades, equity)
 │   │   └── ...
 │   ├── tests/              # 88 test files
 │   ├── config/
@@ -103,7 +103,7 @@ trading-system-lite/
 │   └── package.json
 ├── monitoring/             # Prometheus, Grafana, alerts, eBPF
 ├── helm/                   # Kubernetes Helm chart
-├── terraform/              # AWS infrastructure (EKS, RDS, ElastiCache)
+├── terraform/              # AWS infrastructure (EKS, S3)
 ├── docs/                   # Documentation (this folder)
 ├── scripts/                # Utility scripts
 └── shared_config.yaml      # Global shared configuration

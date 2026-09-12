@@ -3,8 +3,6 @@
 Provisions cloud infrastructure for the HFT trading system:
 - VPC with public/private subnets
 - EKS cluster for Kubernetes workloads
-- RDS PostgreSQL for trading data
-- ElastiCache Redis for caching
 - S3 bucket for state and logs
 - CloudWatch log groups
 
@@ -24,8 +22,6 @@ terraform/
 ├── modules/
 │   ├── vpc/          — VPC, subnets, NAT gateway
 │   ├── eks/          — EKS cluster, node groups
-│   ├── rds/          — PostgreSQL RDS instance
-│   ├── elasticache/  — Redis cluster
 │   └── s3/           — S3 bucket for state/logs
 ├── environments/
 │   ├── dev/          — Development environment

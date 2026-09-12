@@ -2,60 +2,6 @@
 # Usage: docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 services:
-  # ── PostgreSQL — trades, signals, positions, candles persistence ──
-  postgres:
-    image: postgres:16-alpine
-    container_name: trading-postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-trading}
-      POSTGRES_USER: ${POSTGRES_USER:-trader}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.prod}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - pg-data:/var/lib/postgresql/data
-    expose:
-      - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-trader} -d ${POSTGRES_DB:-trading}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-    networks:
-      - backend
-      - monitoring
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1'
-
-  # ── Redis — hot state caching, session state, rate limiting ──
-  redis:
-    image: redis:7-alpine
-    container_name: trading-redis
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
-    volumes:
-      - redis-data:/data
-    expose:
-      - "6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
-    restart: unless-stopped
-    networks:
-      - backend
-      - monitoring
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
   # ── Prometheus — metrics scraping ──
   prometheus:
     image: prom/prometheus:v3.0.0
@@ -89,7 +35,6 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?GRAFANA_PASSWORD must be set in .env.prod}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/trading-overview.json
-      GF_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env.prod}
     volumes:
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
@@ -149,10 +94,6 @@ services:
       dockerfile: Dockerfile.prod
     container_name: trading-ai-signal-bot
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
       exchange-simulator:
         condition: service_healthy
     ports:
@@ -161,8 +102,6 @@ services:
     env_file:
       - .env.prod
     environment:
-      - POSTGRES_DSN=postgresql://${POSTGRES_USER:-trader}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-trading}
-      - REDIS_URL=redis://redis:6379/0
       - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
       - LOG_FORMAT=json
     volumes:
@@ -259,8 +198,6 @@ services:
           cpus: '0.5'
 
 volumes:
-  pg-data:
-  redis-data:
   prom-data:
   grafana-data:
   sim-data:

@@ -320,8 +320,6 @@ risk:
   max_daily_drawdown_pct: 8.0    # 8% daily drawdown limit
   min_confidence: 65             # 65% minimum signal confidence
   min_rr_ratio: 1.5              # 1.5 minimum risk:reward
-  stop_loss_pct: 2.0             # 2% stop-loss
-  take_profit_pct: 4.0           # 4% take-profit
   max_position_size_pct: 10.0    # 10% max position
 ```
 

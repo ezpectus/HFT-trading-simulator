@@ -23,13 +23,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-# Variables
-variable "db_password" {
-  description = "RDS master password (MUST be provided via -var or tfvars)"
-  type        = string
-  sensitive   = true
-}
-
 # Modules
 module "vpc" {
   source             = "../../modules/vpc"
@@ -51,26 +44,6 @@ module "eks" {
   node_max_size      = 4
 }
 
-module "rds" {
-  source              = "../../modules/rds"
-  name_prefix         = "hft-dev"
-  environment         = "dev"
-  vpc_id              = module.vpc.vpc_id
-  subnet_ids          = module.vpc.private_subnet_ids
-  db_instance_class   = "db.t3.small"
-  db_allocated_storage = 20
-  db_password         = var.db_password
-}
-
-module "elasticache" {
-  source      = "../../modules/elasticache"
-  name_prefix = "hft-dev"
-  environment = "dev"
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.private_subnet_ids
-  node_type   = "cache.t3.micro"
-}
-
 module "s3" {
   source      = "../../modules/s3"
   name_prefix = "hft-dev"
@@ -81,14 +54,6 @@ module "s3" {
 # Outputs
 output "cluster_endpoint" {
   value = module.eks.cluster_endpoint
-}
-
-output "rds_endpoint" {
-  value = module.rds.rds_endpoint
-}
-
-output "redis_endpoint" {
-  value = module.elasticache.redis_endpoint
 }
 
 output "s3_bucket" {

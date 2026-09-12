@@ -176,3 +176,21 @@ class TestGetRecentTrades:
         trades = db.get_recent_trades(limit=3)
         assert len(trades) == 3
         assert trades[0]["symbol"] == "COIN9/USDT"
+
+
+class TestPurgeOldRecords:
+    def test_purges_only_old_rows(self, db):
+        old_ts = int(time.time()) - 100 * 86400  # 100 days ago
+        db.save_signal(make_signal())
+        conn = db._get_conn()
+        conn.execute(
+            "INSERT INTO signals (timestamp, symbol, direction, confidence, strategy, entry_price, stop_loss, take_profit)"
+            " VALUES (?, 'OLD/USDT', 'LONG', 80, 'test', 65000, 63000, 67000)",
+            (old_ts,),
+        )
+        conn.commit()
+        deleted = db.purge_old_records(max_age_days=90)
+        assert deleted["signals"] == 1
+        remaining = db.get_recent_signals(limit=10)
+        assert len(remaining) == 1
+        assert remaining[0]["symbol"] == "BTC/USDT"

@@ -7,16 +7,3 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
-
-  - name: PostgreSQL
-    type: postgres
-    access: proxy
-    url: postgres:5432
-    database: trading
-    user: trader
-    secureJsonData:
-      password: ${GF_POSTGRES_PASSWORD}
-    jsonData:
-      sslmode: disable
-      postgresVersion: 1600
-    editable: false

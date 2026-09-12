@@ -268,8 +268,6 @@ Key values:
 | `aiSignalBot.enabled` | true | Enable AI signal bot |
 | `hftTradeBot.enabled` | true | Enable HFT trade bot |
 | `webUi.enabled` | true | Enable web UI |
-| `postgresql.enabled` | true | Enable PostgreSQL (prod) |
-| `redis.enabled` | true | Enable Redis (feature store) |
 | `prometheus.enabled` | true | Enable Prometheus |
 | `grafana.enabled` | true | Enable Grafana |
 
