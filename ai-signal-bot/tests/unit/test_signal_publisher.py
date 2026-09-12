@@ -4,6 +4,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import websockets
 
 from src.communication.signal_publisher import SignalPublisher
 
@@ -38,8 +39,8 @@ class TestBroadcastSignal:
 
     @pytest.mark.asyncio
     async def test_broadcast_to_clients(self, publisher):
-        ws1 = AsyncMock()
-        ws2 = AsyncMock()
+        ws1 = AsyncMock(spec=websockets.WebSocketServerProtocol)
+        ws2 = AsyncMock(spec=websockets.WebSocketServerProtocol)
         publisher._clients.add(ws1)
         publisher._clients.add(ws2)
 
@@ -56,8 +57,8 @@ class TestBroadcastSignal:
 
     @pytest.mark.asyncio
     async def test_broadcast_removes_disconnected(self, publisher):
-        ws_good = AsyncMock()
-        ws_bad = AsyncMock()
+        ws_good = AsyncMock(spec=websockets.WebSocketServerProtocol)
+        ws_bad = AsyncMock(spec=websockets.WebSocketServerProtocol)
         ws_bad.send.side_effect = Exception("Connection closed")
         publisher._clients.add(ws_good)
         publisher._clients.add(ws_bad)
@@ -139,7 +140,7 @@ class TestBroadcastMarketRegime:
 
     @pytest.mark.asyncio
     async def test_broadcast_to_clients(self, publisher):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=websockets.WebSocketServerProtocol)
         publisher._clients.add(ws)
         await publisher.broadcast_market_regime("BTC/USDT", "trending", 0.85, 0.62)
         msg = json.loads(ws.send.call_args[0][0])
@@ -151,7 +152,7 @@ class TestBroadcastMarketRegime:
 
     @pytest.mark.asyncio
     async def test_removes_disconnected(self, publisher):
-        ws = AsyncMock()
+        ws = AsyncMock(spec=websockets.WebSocketServerProtocol)
         ws.send.side_effect = Exception("closed")
         publisher._clients.add(ws)
         await publisher.broadcast_market_regime("BTC/USDT", "ranging", 0.2, 0.3)
@@ -161,7 +162,7 @@ class TestBroadcastMarketRegime:
 class TestHandleClient:
     @pytest.mark.asyncio
     async def test_client_added_on_connect(self, publisher):
-        ws = MagicMock()
+        ws = MagicMock(spec=websockets.WebSocketServerProtocol)
         ws.remote_address = ("127.0.0.1", 12345)
         ws.send = AsyncMock()
 
@@ -176,7 +177,7 @@ class TestHandleClient:
 
     @pytest.mark.asyncio
     async def test_subscribe_message(self, publisher):
-        ws = MagicMock()
+        ws = MagicMock(spec=websockets.WebSocketServerProtocol)
         ws.remote_address = ("127.0.0.1", 12345)
         ws.send = AsyncMock()
 
@@ -189,7 +190,7 @@ class TestHandleClient:
 
     @pytest.mark.asyncio
     async def test_invalid_json_handled(self, publisher):
-        ws = MagicMock()
+        ws = MagicMock(spec=websockets.WebSocketServerProtocol)
         ws.remote_address = ("127.0.0.1", 12345)
         ws.send = AsyncMock()
 
@@ -203,7 +204,7 @@ class TestHandleClient:
     @pytest.mark.asyncio
     async def test_signal_history_sent_on_connect(self, publisher):
         publisher._signal_history = [{"symbol": "BTC", "direction": "LONG"}]
-        ws = MagicMock()
+        ws = MagicMock(spec=websockets.WebSocketServerProtocol)
         ws.remote_address = ("127.0.0.1", 12345)
         ws.send = AsyncMock()
 
@@ -221,7 +222,7 @@ class TestStartStop:
     @pytest.mark.asyncio
     async def test_start(self, publisher):
         with patch('websockets.serve', new_callable=AsyncMock) as mock_serve:
-            mock_server = MagicMock()
+            mock_server = MagicMock(spec=websockets.WebSocketServer)
             mock_serve.return_value = mock_server
             await publisher.start()
             assert publisher._running is True
@@ -229,7 +230,7 @@ class TestStartStop:
 
     @pytest.mark.asyncio
     async def test_stop(self, publisher):
-        publisher._server = MagicMock()
+        publisher._server = MagicMock(spec=websockets.WebSocketServer)
         publisher._server.close = MagicMock()
         publisher._server.wait_closed = AsyncMock()
         await publisher.stop()
