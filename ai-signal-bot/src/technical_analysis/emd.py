@@ -125,11 +125,11 @@ def sift(signal: list[float], max_iter: int = DEFAULT_MAX_ITER, sd_threshold: fl
 
         upper = [cubic_spline(max_x, max_y, i) for i in range(len(h))]
         lower = [cubic_spline(min_x, min_y, i) for i in range(len(h))]
-        mean = [(upper[i] + lower[i]) / 2 for i in range(len(h))]
+        mean = [(u + lo) / 2 for u, lo in zip(upper, lower, strict=False)]
 
-        h = [h[i] - mean[i] for i in range(len(h))]
+        h = [hv - m for hv, m in zip(h, mean, strict=False)]
 
-        sd = sum((prev_h[i] - h[i]) ** 2 / (prev_h[i] ** 2 + 1e-10) for i in range(len(h))) / len(h)
+        sd = sum((ph - hv) ** 2 / (ph ** 2 + 1e-10) for ph, hv in zip(prev_h, h, strict=False)) / len(h)
         if sd < sd_threshold:
             break
         prev_h = h[:]
@@ -145,7 +145,7 @@ def emd(signal: list[float], max_imfs: int = DEFAULT_MAX_IMFS, max_iter: int = D
     for _ in range(max_imfs):
         imf = sift(residue, max_iter)
         imfs.append(imf)
-        residue = [residue[i] - imf[i] for i in range(len(residue))]
+        residue = [r - im for r, im in zip(residue, imf, strict=False)]
 
         maxima = _find_maxima(residue)
         minima = _find_minima(residue)
@@ -255,7 +255,7 @@ def emd_analysis(
         valid = [f for f in h["frequency"] if f > 0 and math.isfinite(f)]
         mean_freqs.append(sum(valid) / len(valid) if valid else 0.0)
 
-    dominant_idx = max(range(len(energies)), key=lambda i: energies[i])
+    dominant_idx = max(enumerate(energies), key=lambda p: p[1])[0]
     dom_imf = imfs[dominant_idx]
     dom_slope = dom_imf[-1] - dom_imf[-2] if len(dom_imf) > 1 else 0.0
     trend_slope = residue[-1] - residue[-2] if len(residue) > 1 else 0.0

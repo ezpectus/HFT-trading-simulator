@@ -113,13 +113,10 @@ def leapfrog(
     grad = grad_fn(q)
 
     for _ in range(n_steps):
-        for j in range(len(q)):
-            p[j] -= 0.5 * step_size * grad[j]
-        for j in range(len(q)):
-            q[j] += step_size * p[j] / mass[j]
+        p = [pj - 0.5 * step_size * g for pj, g in zip(p, grad, strict=False)]
+        q = [qj + step_size * pj / mj for qj, pj, mj in zip(q, p, mass, strict=False)]
         grad = grad_fn(q)
-        for j in range(len(q)):
-            p[j] -= 0.5 * step_size * grad[j]
+        p = [pj - 0.5 * step_size * g for pj, g in zip(p, grad, strict=False)]
 
     return q, p
 
@@ -142,16 +139,16 @@ def hmc(
     log_post_history: list[float] = []
 
     for _ in range(n_samples):
-        p = [rng.gauss(0, 1) * math.sqrt(mass[i]) for i in range(len(q))]
+        p = [rng.gauss(0, 1) * math.sqrt(m) for _, m in zip(q, mass, strict=False)]
 
         current_log_post = log_post_fn(q)
-        current_k = 0.5 * sum(p[i] * p[i] / mass[i] for i in range(len(q)))
+        current_k = 0.5 * sum(pi * pi / mi for pi, mi in zip(p, mass, strict=False))
         current_h = -current_log_post + current_k
 
         new_q, new_p = leapfrog(q, p, grad_fn, step_size, n_leapfrog, mass)
 
         new_log_post = log_post_fn(new_q)
-        new_k = 0.5 * sum(new_p[i] * new_p[i] / mass[i] for i in range(len(q)))
+        new_k = 0.5 * sum(pi * pi / mi for pi, mi in zip(new_p, mass, strict=False))
         new_h = -new_log_post + new_k
 
         accept_prob = min(1.0, math.exp(current_h - new_h))

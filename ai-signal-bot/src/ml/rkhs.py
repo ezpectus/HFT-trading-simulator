@@ -52,13 +52,13 @@ class RKHSResult:
 
 def rbf_kernel(x: list[float], y: list[float], sigma: float) -> float:
     """RBF (Gaussian) kernel."""
-    dist2 = sum((x[i] - y[i]) ** 2 for i in range(len(x)))
+    dist2 = sum((a - b) ** 2 for a, b in zip(x, y, strict=False))
     return math.exp(-dist2 / (2 * sigma * sigma))
 
 
 def laplacian_kernel(x: list[float], y: list[float], sigma: float) -> float:
     """Laplacian kernel."""
-    dist = sum(abs(x[i] - y[i]) for i in range(len(x)))
+    dist = sum(abs(a - b) for a, b in zip(x, y, strict=False))
     return math.exp(-dist / sigma)
 
 
@@ -99,9 +99,9 @@ def compute_mmd(x: list[list[float]], y: list[list[float]], kernel, sigma: float
     """Maximum Mean Discrepancy between two sample sets."""
     n = len(x)
     m = len(y)
-    sum_xx = sum(kernel(x[i], x[j], sigma) for i in range(n) for j in range(n))
-    sum_yy = sum(kernel(y[i], y[j], sigma) for i in range(m) for j in range(m))
-    sum_xy = sum(kernel(x[i], y[j], sigma) for i in range(n) for j in range(m))
+    sum_xx = sum(kernel(xi, xj, sigma) for xi in x for xj in x)
+    sum_yy = sum(kernel(yi, yj, sigma) for yi in y for yj in y)
+    sum_xy = sum(kernel(xi, yj, sigma) for xi in x for yj in y)
     return math.sqrt(max(0.0, sum_xx / (n * n) + sum_yy / (m * m) - 2 * sum_xy / (n * m)))
 
 
@@ -148,7 +148,7 @@ def predict_krr(
     sigma: float,
 ) -> float:
     """KRR prediction: f(x) = sum alpha_i * k(x_i, x)."""
-    return sum(alpha[i] * kernel(x_train[i], x_new, sigma) for i in range(len(x_train)))
+    return sum(a * kernel(xt, x_new, sigma) for a, xt in zip(alpha, x_train, strict=False))
 
 
 def rkhs_signal(current_pred: float, mmd: float) -> tuple[str, str]:
@@ -193,17 +193,17 @@ def rkhs_analysis(
     kc = center_kernel(k)
     eig = jacobi_eig(kc, 50)
 
-    sorted_idx = sorted(range(len(eig["eigenvalues"])), key=lambda i: eig["eigenvalues"][i], reverse=True)
+    sorted_idx = [i for i, _ in sorted(enumerate(eig["eigenvalues"]), key=lambda p: p[1], reverse=True)]
     top_eigs = [
         {"eigenvalue": eig["eigenvalues"][i], "eigenvector": eig["eigenvectors"][i]}
         for i in sorted_idx[:n_components]
     ]
 
     projections = []
-    for i in range(len(x)):
+    for k_row in k:
         pcs = []
         for eig_comp in top_eigs:
-            proj = sum(eig_comp["eigenvector"][j] * k[i][j] for j in range(len(x)))
+            proj = sum(e * kj for e, kj in zip(eig_comp["eigenvector"], k_row, strict=False))
             pcs.append(proj / math.sqrt(max(1e-10, eig_comp["eigenvalue"])))
         projections.append(pcs)
 
@@ -219,7 +219,7 @@ def rkhs_analysis(
     predictions = [predict_krr(alpha, x_krr, x_val, kernel, sigma) for x_val in x_krr]
     actual_next = y_krr
 
-    mse = sum((predictions[i] - actual_next[i]) ** 2 for i in range(len(predictions))) / len(predictions)
+    mse = sum((p - a) ** 2 for p, a in zip(predictions, actual_next, strict=False)) / len(predictions)
     y_var = sum((v - mean) ** 2 for v in y_krr) / len(y_krr)
     r2 = 1 - mse / (y_var + 1e-10)
 

@@ -63,9 +63,9 @@ def log_gaussian(x: float, mu: float, sigma2: float) -> float:
 def compute_free_energy(observations: list[float], beliefs: list[float], precisions: list[float]) -> float:
     """Variational free energy for Gaussian model."""
     f = 0.0
-    for i in range(len(observations)):
-        pe = (observations[i] - beliefs[i]) ** 2 * precisions[i] / 2
-        complexity = 0.5 * math.log(2 * math.pi / precisions[i])
+    for o, b, p in zip(observations, beliefs, precisions, strict=False):
+        pe = (o - b) ** 2 * p / 2
+        complexity = 0.5 * math.log(2 * math.pi / p)
         f += pe + complexity
     return f
 
@@ -89,13 +89,13 @@ def update_beliefs(
         f = 0.0
         grad = [0.0] * len(mu)
 
-        for i in range(len(observations)):
-            grad[i] = -(observations[i] - mu[i]) / precisions[i]
-            f += (observations[i] - mu[i]) ** 2 / (2 * precisions[i]) + 0.5 * math.log(2 * math.pi * precisions[i])
+        for i, (o, m, p) in enumerate(zip(observations, mu, precisions, strict=False)):
+            grad[i] = -(o - m) / p
+            f += (o - m) ** 2 / (2 * p) + 0.5 * math.log(2 * math.pi * p)
 
-        for i in range(len(mu)):
-            step = min(lr, CONVERGENCE_CLAMP * precisions[i])
-            mu[i] -= step * grad[i]
+        for i, (p, g) in enumerate(zip(precisions, grad, strict=False)):
+            step = min(lr, CONVERGENCE_CLAMP * p)
+            mu[i] -= step * g
 
         history.append({"iter": len(history), "F": f, "mu": mu[:]})
 
@@ -110,12 +110,12 @@ def expected_free_energy(
 ) -> float:
     """Expected free energy: risk (KL) + ambiguity (entropy)."""
     risk = 0.0
-    for i in range(len(predicted_obs)):
-        risk += (predicted_obs[i] - preferences[i]) ** 2 / (2 * precisions[i])
+    for po, pref, p in zip(predicted_obs, preferences, precisions, strict=False):
+        risk += (po - pref) ** 2 / (2 * p)
 
     ambiguity = 0.0
-    for i in range(len(precisions)):
-        ambiguity += 0.5 * math.log(2 * math.pi * math.e * precisions[i])
+    for p in precisions:
+        ambiguity += 0.5 * math.log(2 * math.pi * math.e * p)
 
     return risk + ambiguity
 
@@ -192,7 +192,7 @@ def fe_analysis(
 
     fe_history = [h["F"] for h in history]
     belief_history = [h["mu"][-1] for h in history[-N_OBSERVATIONS:]]
-    prediction_errors = [observations[i] - mu[i] for i in range(len(observations))]
+    prediction_errors = [o - m for o, m in zip(observations, mu, strict=False)]
 
     return FeResult(
         observations=observations,
