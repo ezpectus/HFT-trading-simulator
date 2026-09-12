@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback, lazy, Suspense, memo } from 'react'
+import { useEffect, useCallback, lazy, Suspense, memo } from 'react'
 import PropTypes from 'prop-types'
 import { Activity, Radio, TrendingUp, AlertTriangle, BarChart3, FlaskConical, History, ArrowRightLeft, Bot, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useExchangeData, useSignalData } from './hooks/useExchangeData'
@@ -17,13 +17,15 @@ import StatusBar from './components/StatusBar'
 import PanelContainer from './panels/PanelContainer'
 import { useDetachablePanels } from './hooks/useDetachablePanels'
 import { useIsMobile, useIsTablet } from './hooks/useMediaQuery'
-import { aggregateCandles, TIMEFRAMES } from './utils/timeframes'
+import { TIMEFRAMES } from './utils/timeframes'
 import { useSoundAlerts } from './hooks/useSoundAlerts'
 import { useTheme } from './hooks/useTheme'
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useNotifications } from './hooks/useNotifications'
+import { useAppShortcuts } from './hooks/useAppShortcuts'
+import { useChartCandles } from './hooks/useChartCandles'
+import { useTradingStoreSync } from './hooks/useTradingStoreSync'
+import { useDetachedPanelSync } from './hooks/useDetachedPanelSync'
 import { useUIStore } from './stores/useUIStore'
-import { useTradingStore } from './stores/useTradingStore'
 import { useToastStore } from './stores/useToastStore'
 
 const AccountPanel = lazy(() => import('./components/AccountPanel'))
@@ -100,74 +102,13 @@ export default function App() {
   const { theme, toggleTheme } = useTheme()
 
   // Sync exchange + signals data to Zustand trading store
-  const setExchangeData = useTradingStore((s) => s.setExchangeData)
-  const setSignalData = useTradingStore((s) => s.setSignalData)
-  const setDerivedData = useTradingStore((s) => s.setDerivedData)
-
-  useEffect(() => {
-    setExchangeData({
-      candles: exchange.candles,
-      prices: exchange.prices,
-      accounts: exchange.accounts,
-      arbitrage: exchange.arbitrage,
-      fills: exchange.fills,
-      orderbooks: exchange.orderbooks,
-      fundingRates: exchange.fundingRates,
-      candlesToFunding: exchange.candlesToFunding,
-      newsEvent: exchange.newsEvent,
-      weekendMode: exchange.weekendMode,
-      replayPaused: exchange.replayPaused,
-      tradingActive: exchange.tradingActive,
-      optionsChain: exchange.optionsChain,
-      exchangeConnected: exchange.connected,
-      exchangeLatency: exchange.latency,
-      submitOrder: exchange.submitOrder,
-      closePosition: exchange.closePosition,
-      requestOptionsChain: exchange.requestOptionsChain,
-      sendSpeedChange: exchange.sendSpeedChange,
-      sendConfigUpdate: exchange.sendConfigUpdate,
-      toggleReplay: exchange.toggleReplay,
-      scrubReplay: exchange.scrubReplay,
-      startTrading: exchange.startTrading,
-      stopTrading: exchange.stopTrading,
-    })
-  }, [exchange, setExchangeData])
-
-  useEffect(() => {
-    setSignalData({
-      signals: signals.signals,
-      regime: signals.regime,
-      backtestResult: signals.backtestResult,
-      circuitBreaker: signals.circuitBreaker,
-      signalConnected: signals.connected,
-      signalLatency: signals.latency,
-      sendSignalMessage: signals.sendSignalMessage,
-    })
-  }, [signals, setSignalData])
+  useTradingStoreSync(exchange, signals)
 
   // Centralized notification effects (connection, fills, signals, news)
   useNotifications({ exchange, signals, addToast, playSound })
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    '1': () => setSelectedExchange(EXCHANGES[0]),
-    '2': () => setSelectedExchange(EXCHANGES[1]),
-    '3': () => setSelectedExchange(EXCHANGES[2]),
-    'q': () => setSelectedSymbol(SYMBOLS[0]),
-    'w': () => setSelectedSymbol(SYMBOLS[1]),
-    'e': () => setSelectedSymbol(SYMBOLS[2]),
-    ' ': () => useUIStore.getState().setSimSpeed(useUIStore.getState().simSpeed === 0 ? 1 : 0),
-    'a': () => setActiveTab('account'),
-    'b': () => setActiveTab('bots'),
-    's': () => setActiveTab('signals'),
-    'r': () => setActiveTab('arbitrage'),
-    'p': () => setActiveTab('prices'),
-    'f': () => setActiveTab('fills'),
-    'h': () => setActiveTab('history'),
-    't': () => setActiveTab('performance'),
-    'shift+\\': () => useUIStore.getState().setSidebarCollapsed(!useUIStore.getState().sidebarCollapsed),
-    'shift+|': () => useUIStore.getState().setSidebarCollapsed(!useUIStore.getState().sidebarCollapsed),
-  })
+  useAppShortcuts()
 
   // Handle sim speed change
   const handleSpeedChange = useCallback((speed) => {
@@ -184,78 +125,17 @@ export default function App() {
     }
   }, [exchange.replayPaused, simSpeed])
 
-  // Filter candles for selected exchange + symbol, then aggregate by timeframe
-  const chartCandles = useMemo(() => {
-    const raw = exchange.candles
-      .filter(c => c.exchange === selectedExchange && c.symbol === selectedSymbol)
-      .map(c => ({
-        time: c.timestamp,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-        volume: c.volume,
-      }))
-    return aggregateCandles(raw, timeframe.factor)
-  }, [exchange.candles, selectedExchange, selectedSymbol, timeframe])
+  // Filter candles for selected exchange + symbol, aggregate by timeframe,
+  // derive currentPrice/priceChange, sync to store
+  const { chartCandles, currentPrice, priceChange } = useChartCandles(
+    exchange, selectedExchange, selectedSymbol, timeframe
+  )
 
-  const currentPrice = exchange.prices[selectedExchange]?.[selectedSymbol] || 0
-
-  // Calculate price change from recent candles
-  const priceChange = (() => {
-    const candles = chartCandles
-    if (candles.length < 2) return 0
-    const first = candles[0].close
-    const last = candles[candles.length - 1].close
-    if (first === 0) return 0
-    return ((last - first) / first) * 100
-  })()
-
-  // Sync derived data to Zustand store (for PanelContainer + registry)
-  useEffect(() => {
-    setDerivedData({ chartCandles, currentPrice, priceChange })
-  }, [chartCandles, currentPrice, priceChange, setDerivedData])
-
-  // Update detached panels with live data
-  useEffect(() => {
-    if (isDetached('orderbook')) {
-      updateDetached('orderbook', {
-        orderbookData: exchange.orderbooks[`${selectedExchange}|${selectedSymbol}`],
-        currentPrice,
-      })
-    }
-    if (isDetached('account')) {
-      updateDetached('account', { account: exchange.accounts[selectedExchange] })
-    }
-    if (isDetached('signals')) {
-      updateDetached('signals', { signals: signals.signals })
-    }
-    if (isDetached('arbitrage')) {
-      updateDetached('arbitrage', { arbitrage: exchange.arbitrage })
-    }
-    if (isDetached('chart')) {
-      updateDetached('chart', {
-        candles: chartCandles.slice(-50),
-        symbol: selectedSymbol,
-        exchange: selectedExchange,
-      })
-    }
-  }, [exchange, signals, chartCandles, currentPrice, selectedExchange, selectedSymbol, isDetached, updateDetached])
-
-  const handleDetach = useCallback((panelId) => {
-    if (isDetached(panelId)) return
-    const dataMap = {
-      orderbook: {
-        orderbookData: exchange.orderbooks[`${selectedExchange}|${selectedSymbol}`],
-        currentPrice,
-      },
-      account: { account: exchange.accounts[selectedExchange] },
-      signals: { signals: signals.signals },
-      arbitrage: { arbitrage: exchange.arbitrage },
-      chart: { candles: chartCandles.slice(-50), symbol: selectedSymbol, exchange: selectedExchange },
-    }
-    detachPanel(panelId, dataMap[panelId])
-  }, [exchange, signals, chartCandles, currentPrice, selectedExchange, selectedSymbol, isDetached, detachPanel])
+  // Keep detached (floating) panels fed with live data
+  const handleDetach = useDetachedPanelSync({
+    exchange, signals, chartCandles, currentPrice,
+    selectedExchange, selectedSymbol, isDetached, updateDetached, detachPanel,
+  })
 
   return (
     <div className="h-screen flex flex-col bg-bg-900 overflow-hidden">

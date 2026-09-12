@@ -1,17 +1,11 @@
-import { memo, useState, useEffect, useRef, useMemo } from 'react'
-import { createChart, ColorType } from 'lightweight-charts'
+import { memo, useState, useEffect, useMemo } from 'react'
 import { Play, Loader2, Settings, TrendingUp, BarChart3, Save, Trash2, GitCompare, Download, Share2 } from 'lucide-react'
-
-const STRATEGIES = [
-  { id: 'all', label: 'All Strategies' },
-  { id: 'trend', label: 'Trend Following' },
-  { id: 'mean_reversion', label: 'Mean Reversion' },
-  { id: 'fft', label: 'FFT Cycle' },
-  { id: 'ensemble', label: 'Ensemble' },
-]
-
-const COLORS = ['#3b82f6', '#f0b90b', '#a855f7', '#0ecb81', '#f6465d']
-const SAVED_KEY = 'trading-sim-saved-backtests'
+import { STRATEGIES, COLORS } from './backtest/constants'
+import Metric from './backtest/Metric'
+import ComparisonChart from './backtest/ComparisonChart'
+import { useSavedBacktests } from '../hooks/useSavedBacktests'
+import { useBacktestChart } from '../hooks/useBacktestChart'
+import { exportBacktestCSV, buildShareLink } from '../utils/backtestExport'
 
 function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }) {
   const [config, setConfig] = useState({
@@ -26,212 +20,28 @@ function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }
   const [running, setRunning] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [savedBacktests, setSavedBacktests] = useState([])
-  const [showCompare, setShowCompare] = useState(false)
-  const [comparisonResult, setComparisonResult] = useState(null)
-  const [selectedForCompare, setSelectedForCompare] = useState(new Set())
-  const [compareLoading, setCompareLoading] = useState(false)
-
-  // Load saved backtests from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SAVED_KEY)
-      if (saved) setSavedBacktests(JSON.parse(saved))
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  const handleSaveBacktest = () => {
-    if (!result || result.error) return
-    const entry = {
-      id: Date.now(),
-      label: `${config.strategy} | ${config.candles}c | vol=${config.volatility}${config.trailing_stop ? ' | TS' : ''}${config.breakeven ? ' | BE' : ''}`,
-      config: { ...config },
-      results: result.results,
-      timestamp: new Date().toISOString().slice(0, 19),
-    }
-    const next = [...savedBacktests, entry].slice(-10) // keep last 10
-    setSavedBacktests(next)
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next))
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleDeleteSaved = (id) => {
-    const next = savedBacktests.filter(b => b.id !== id)
-    setSavedBacktests(next)
-    try {
-      localStorage.setItem(SAVED_KEY, JSON.stringify(next))
-    } catch {
-      // ignore
-    }
-  }
-
-  const handleExportCSV = () => {
-    if (!result?.results) return
-    const rows = [['Strategy', 'Return%', 'Trades', 'WinRate%', 'ProfitFactor', 'MaxDD%', 'Sharpe', 'FinalBalance']]
-    for (const [name, r] of Object.entries(result.results)) {
-      rows.push([name, r.total_return_pct, r.total_trades, r.win_rate, r.profit_factor, r.max_drawdown_pct, r.sharpe_ratio, r.final_balance])
-    }
-    const csv = rows.map(r => r.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `backtest_${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
   const [shareLink, setShareLink] = useState('')
 
+  const {
+    savedBacktests, showCompare, setShowCompare,
+    comparisonResult, compareLoading, selectedForCompare,
+    handleSaveBacktest, handleDeleteSaved,
+    toggleSelectForCompare, handleRunComparison, handleComparisonMessage,
+  } = useSavedBacktests({ sendSignalMessage, setError })
+
+  const chartContainerRef = useBacktestChart(result)
+
   const handleShareLink = () => {
-    if (!result?.results) return
-    const summary = {
-      v: 1,
-      sym: symbol,
-      cfg: { s: config.strategy, c: config.candles, b: config.balance },
-      res: Object.entries(result.results).map(([name, r]) => ({
-        n: name,
-        ret: r.total_return_pct,
-        tr: r.total_trades,
-        wr: r.win_rate,
-        pf: r.profit_factor,
-        dd: r.max_drawdown_pct,
-        sh: r.sharpe_ratio,
-        fb: r.final_balance,
-      })),
-    }
-    try {
-      const encoded = btoa(JSON.stringify(summary))
-      const link = `${window.location.origin}${window.location.pathname}#bt=${encoded}`
-      navigator.clipboard.writeText(link).then(() => {
-        setShareLink(link)
-        setTimeout(() => setShareLink(''), 3000)
-      }).catch(() => {
-        setShareLink(link)
-        setTimeout(() => setShareLink(''), 5000)
-      })
-    } catch {
-      setError('Failed to generate share link')
-    }
-  }
-
-  const toggleSelectForCompare = (id) => {
-    setSelectedForCompare(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+    const link = buildShareLink(result, symbol, config)
+    if (!link) return
+    navigator.clipboard.writeText(link).then(() => {
+      setShareLink(link)
+      setTimeout(() => setShareLink(''), 3000)
+    }).catch(() => {
+      setShareLink(link)
+      setTimeout(() => setShareLink(''), 5000)
     })
   }
-
-  const handleRunComparison = () => {
-    const selected = savedBacktests.filter(bt => selectedForCompare.has(bt.id))
-    if (selected.length < 2) return
-
-    setCompareLoading(true)
-    setComparisonResult(null)
-
-    sendSignalMessage({
-      type: 'compare_backtests',
-      backtests: selected.map(bt => ({
-        name: bt.label,
-        results: bt.results,
-      })),
-    })
-
-    setTimeout(() => {
-      setCompareLoading(prev => {
-        if (prev) {
-          setError('Comparison timed out — no response from server')
-          return false
-        }
-        return prev
-      })
-    }, 15000)
-  }
-
-  const chartContainerRef = useRef(null)
-  const chartRef = useRef(null)
-  const seriesRef = useRef({})
-
-  // Create equity curve chart
-  useEffect(() => {
-    if (!chartContainerRef.current) return
-
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0f1521' },
-        textColor: '#8b95a7',
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: '#161b26' },
-        horzLines: { color: '#161b26' },
-      },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433' },
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
-    })
-
-    chartRef.current = chart
-
-    const ro = new ResizeObserver(() => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
-        })
-      }
-    })
-    ro.observe(chartContainerRef.current)
-
-    return () => {
-      ro.disconnect()
-      chart.remove()
-      chartRef.current = null
-      seriesRef.current = {}
-    }
-  }, [])
-
-  // Update chart when results change
-  useEffect(() => {
-    if (!chartRef.current || !result || result.error) return
-
-    // Clear previous series
-    for (const key of Object.keys(seriesRef.current)) {
-      try {
-        chartRef.current.removeSeries(seriesRef.current[key])
-      } catch {
-        // series already removed
-      }
-    }
-    seriesRef.current = {}
-
-    const entries = Object.entries(result.results || {})
-    entries.forEach(([name, data], idx) => {
-      const color = COLORS[idx % COLORS.length]
-      const series = chartRef.current.addLineSeries({
-        color,
-        lineWidth: 2,
-        priceLineVisible: false,
-        lastValueVisible: true,
-        title: name,
-      })
-      const equityData = (data.equity_curve || []).map((v, i) => ({
-        time: i,
-        value: v,
-      }))
-      series.setData(equityData)
-      seriesRef.current[name] = series
-    })
-  }, [result])
 
   const handleRun = () => {
     if (!sendSignalMessage) {
@@ -270,19 +80,12 @@ function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }
   // Listen for backtest_result or comparison_result from props
   useEffect(() => {
     if (backtestResult) {
-      if (backtestResult.type === 'comparison_result') {
-        setComparisonResult(backtestResult)
-        setCompareLoading(false)
-        if (backtestResult.error) setError(backtestResult.error)
-        else setError(null)
-      } else {
-        setResult(backtestResult)
-        setRunning(false)
-        if (backtestResult.error) setError(backtestResult.error)
-        else setError(null)
-      }
+      if (handleComparisonMessage(backtestResult)) return
+      setResult(backtestResult)
+      setRunning(false)
+      setError(backtestResult.error ? backtestResult.error : null)
     }
-  }, [backtestResult])
+  }, [backtestResult, handleComparisonMessage])
 
   const sortedResults = useMemo(() => {
     if (!result?.results) return []
@@ -414,14 +217,14 @@ function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }
           {/* Action buttons */}
           <div className="flex gap-1">
             <button
-              onClick={handleSaveBacktest}
+              onClick={() => handleSaveBacktest(result, config)}
               className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-accent-green/20 text-accent-green hover:bg-accent-green/30 transition-colors"
             >
               <Save size={10} />
               Save
             </button>
             <button
-              onClick={handleExportCSV}
+              onClick={() => exportBacktestCSV(result)}
               className="flex items-center gap-1 px-2 py-1 text-[10px]  bg-bg-600 text-gray-400 hover:bg-bg-500 transition-colors"
             >
               <Download size={10} />
@@ -714,72 +517,3 @@ function BacktestRunner({ symbol, connected, sendSignalMessage, backtestResult }
 }
 
 export default memo(BacktestRunner)
-
-function Metric({ label, value, color = 'text-gray-200' }) {
-  return (
-    <div>
-      <div className="text-gray-500">{label}</div>
-      <div className={`font-medium ${color}`}>{value}</div>
-    </div>
-  )
-}
-
-function ComparisonChart({ curves }) {
-  const containerRef = useRef(null)
-  const chartRef = useRef(null)
-  const seriesRef = useRef({})
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const chart = createChart(containerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0f1521' },
-        textColor: '#8b95a7',
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10,
-      },
-      grid: {
-        vertLines: { color: '#161b26' },
-        horzLines: { color: '#161b26' },
-      },
-      rightPriceScale: { borderColor: '#1e2433' },
-      timeScale: { borderColor: '#1e2433' },
-      width: containerRef.current.clientWidth,
-      height: 120,
-    })
-    chartRef.current = chart
-
-    const ro = new ResizeObserver(() => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: containerRef.current.clientWidth })
-      }
-    })
-    ro.observe(containerRef.current)
-
-    return () => {
-      ro.disconnect()
-      chart.remove()
-      chartRef.current = null
-      seriesRef.current = {}
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!chartRef.current || !curves) return
-    for (const key of Object.keys(seriesRef.current)) {
-      try { chartRef.current.removeSeries(seriesRef.current[key]) } catch { /* */ }
-    }
-    seriesRef.current = {}
-
-    Object.entries(curves).forEach(([name, data], idx) => {
-      const color = COLORS[idx % COLORS.length]
-      const series = chartRef.current.addLineSeries({
-        color, lineWidth: 2, priceLineVisible: false, lastValueVisible: true, title: name,
-      })
-      series.setData((data || []).map((v, i) => ({ time: i, value: v })))
-      seriesRef.current[name] = series
-    })
-  }, [curves])
-
-  return <div ref={containerRef} className="h-[120px]" />
-}
