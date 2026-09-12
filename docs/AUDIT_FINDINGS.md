@@ -1225,3 +1225,13 @@ Board сведён к god-file rows → AUDIT branch. Прошёл непокр�
 - 3 теста скармливали 60 свечей при warmup = ema_slow(50)+ema_signal(9)+2 = 61 → "Insufficient data". Бамп до 70.
 
 **Verified:** 4 новых бинаря 60/60 green; `test_doctest_cpp_optimizations` 8/8 (SPSC capacity + histogram регрессии покрыты); clang-format прогнан; original монолит воспроизводил те же 7 фейлов до сплита.
+
+---
+
+## Round 31b — S014/S015 god-file splits (часть)
+
+**S014 — Partial.** `strategies.py` (515 строк) разрезан на 4 доменных модуля по классам (trend_following/mean_reversion/ensemble/fft_cycle) — `strategies.py` стал re-export shim, ни один из 9 импорт-сайтов не потребовал правок. `real_market_data.py` (551) → `market_data_types.py` (Normalized* dataclass'ы) + `market_data_feed.py` (WS feed) + `market_data_manager.py` (pull-cache) + shim. Сплит вскрыл мелочь: `RealMarketDataManager` использовал module-level `logger`/`asyncio` — импорты докинуты.
+
+**S015 — Partial.** `PerformanceDashboard.jsx` 522→166: PDF-report генератор (80 строк HTML-строк) → `utils/performanceReport.js`; два идентичных lightweight-charts эффекта → `components/performance/PerfAreaChart.jsx`. Параллельно: `BacktestRunner.jsx` резан другой сессией.
+
+**Verified:** pytest 1381 green, vitest 998/998 (129 файлов), eslint clean на тронутых.

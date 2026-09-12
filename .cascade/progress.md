@@ -719,3 +719,8 @@ R28: S102 Done (SimulatorAdapter был фейком — никогда не п�
 - **S103-остаток:** local-only theory/project_architecture_en.md — удалён presents-as-current осадок (дерево с 4 мёртвыми пакетами, фабрикованный settings.yaml "Complete" ~150 строк, выдуманный Component Tree) → реальная panel-структура.
 - **S006-tail + S032-контракты (мои незакоммиченные):** shm_fill_consumer/shm_signal_producer/ws_message_handler spec'd (56 тестов green), AccountHealth + ComponentHealth/HealthReport TypedDicts на real_account/health_server.
 - Open: S014/S015 god-файлы (крупные рефакторинги — следующий раунд).
+
+## Round 31b — 2026-04-24 (FIX, god-files)
+
+- **S014 → Partial:** strategies.py → 4 модуля + shim (96 тестов green); real_market_data.py → 3 модуля + shim (полный suite 1381 green). Остаток: signal_publisher.py (496), engine.py (440); backtester.py режет параллельная сессия.
+- **S015 → Partial:** PerformanceDashboard.jsx 522→166 (performanceReport.js + PerfAreaChart.jsx + smoke-test). Остаток: App.jsx (514), CopulaModel.jsx (498), EDM (455); BacktestRunner — параллельная сессия.
