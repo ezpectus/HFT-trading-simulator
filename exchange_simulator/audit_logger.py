@@ -31,7 +31,9 @@ class AuditLogger:
         log_file_path: str | None = None,
         enable_file_logging: bool = True,
         enable_callbacks: bool = True,
+        enabled: bool = True,
     ):
+        self.enabled = enabled
         self.max_memory_entries = max_memory_entries
         self.log_file_path = Path(log_file_path) if log_file_path else Path("logs/audit.log")
         self.enable_file_logging = enable_file_logging
@@ -65,8 +67,10 @@ class AuditLogger:
         metadata: dict | None = None,
         ip_address: str = "",
         user_agent: str = "",
-    ) -> AuditLog:
-        """Create and store an audit log entry."""
+    ) -> AuditLog | None:
+        """Create and store an audit log entry. No-op when disabled."""
+        if not self.enabled:
+            return None
         log_id = str(uuid.uuid4())
 
         audit_log = AuditLog(
@@ -121,7 +125,8 @@ class AuditLogger:
     def register_callback(self, callback: Callable[[AuditLog], None]) -> None:
         """Register a callback for real-time audit log notifications."""
         with self._lock:
-            self._callbacks.append(callback)
+            if callback not in self._callbacks:
+                self._callbacks.append(callback)
 
     def unregister_callback(self, callback: Callable[[AuditLog], None]) -> None:
         """Unregister a callback."""

@@ -15,6 +15,7 @@ export function useExchangeData() {
   const [accounts, setAccounts] = useState({})
   const [arbitrage, setArbitrage] = useState(null)
   const [fills, setFills] = useState([])
+  const [auditLogs, setAuditLogs] = useState([])
   const [orderbooks, setOrderbooks] = useState({})
   const [fundingRates, setFundingRates] = useState({})
   const [candlesToFunding, setCandlesToFunding] = useState(null)
@@ -23,6 +24,7 @@ export function useExchangeData() {
   const [replayPaused, setReplayPaused] = useState(false)
   const [tradingActive, setTradingActive] = useState(true)
   const [optionsChain, setOptionsChain] = useState(null)
+  const [lastError, setLastError] = useState(null)
   const lastTimestampRef = useRef(0)
   const candleMap = useRef(new Map())
 
@@ -106,6 +108,21 @@ export function useExchangeData() {
         setFills(prev => [{ ...data.order, received_at: Date.now() }, ...prev].slice(0, 50))
         break
       }
+      case 'fills_batch': {
+        // Engine-generated fills (SL/TP, liquidations, arb executions) arrive
+        // batched — without this case they were silently dropped by `default:`.
+        if (Array.isArray(data.orders) && data.orders.length) {
+          const now = Date.now()
+          setFills(prev => [...data.orders.map(o => ({ ...o, received_at: now })), ...prev].slice(0, 50))
+        }
+        break
+      }
+      case 'error': {
+        // Server rejections (rate-limit, trading-stopped, bad order fields) —
+        // surfaced via lastError → useNotifications toast.
+        setLastError({ message: data.message || 'Exchange error', at: Date.now() })
+        break
+      }
       case 'arbitrage_scan': {
         setArbitrage(data)
         break
@@ -131,6 +148,12 @@ export function useExchangeData() {
           const all = Array.from(candleMap.current.values())
             .sort((a, b) => a.timestamp - b.timestamp)
           setCandles(all.slice(-500))
+        }
+        break
+      }
+      case 'audit_logs': {
+        if (Array.isArray(data.logs) && data.logs.length) {
+          setAuditLogs(prev => [...data.logs, ...prev].slice(0, 200))
         }
         break
       }
@@ -192,6 +215,7 @@ export function useExchangeData() {
     accounts,
     arbitrage,
     fills,
+    auditLogs,
     orderbooks,
     fundingRates,
     candlesToFunding,
@@ -200,6 +224,7 @@ export function useExchangeData() {
     replayPaused,
     tradingActive,
     optionsChain,
+    lastError,
     connected: exchangeConnected,
     latency: exchangeLatency,
     reconnects: exchangeReconnects,

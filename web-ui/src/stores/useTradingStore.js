@@ -16,6 +16,8 @@ export const useTradingStore = create((set) => ({
   accounts: {},
   arbitrage: null,
   fills: [],
+  auditLogs: [],
+  lastError: null,
   orderbooks: {},
   fundingRates: {},
   candlesToFunding: null,

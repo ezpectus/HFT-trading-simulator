@@ -96,6 +96,48 @@ describe('useExchangeData', () => {
     expect(result.current.fills[0].id).toBe(54)
   })
 
+  it('handles fills_batch by prepending all engine-generated fills', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'manual-1', status: 'FILLED' } })
+    })
+    act(() => {
+      mockOnMessage({
+        type: 'fills_batch',
+        orders: [
+          { id: 'sl-9', status: 'FILLED', side: 'SELL' },
+          { id: 'arb-2', status: 'FILLED', side: 'BUY' },
+        ],
+      })
+    })
+    expect(result.current.fills).toHaveLength(3)
+    expect(result.current.fills.map(f => f.id)).toEqual(['sl-9', 'arb-2', 'manual-1'])
+    expect(result.current.fills[0].received_at).toBeDefined()
+  })
+
+  it('ignores fills_batch with empty or missing orders', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fills_batch', orders: [] })
+      mockOnMessage({ type: 'fills_batch' })
+    })
+    expect(result.current.fills).toEqual([])
+  })
+
+  it('captures server error messages into lastError', () => {
+    const { result } = renderHook(() => useExchangeData())
+    expect(result.current.lastError).toBeNull()
+    act(() => {
+      mockOnMessage({ type: 'error', message: 'Trading is stopped — send start_trading to enable orders' })
+    })
+    expect(result.current.lastError.message).toContain('Trading is stopped')
+    expect(result.current.lastError.at).toBeDefined()
+    act(() => {
+      mockOnMessage({ type: 'error', message: 'Rate limit exceeded' })
+    })
+    expect(result.current.lastError.message).toBe('Rate limit exceeded')
+  })
+
   it('handles arbitrage_scan message', () => {
     const { result } = renderHook(() => useExchangeData())
     act(() => {
@@ -257,6 +299,56 @@ describe('useExchangeData', () => {
     // State should remain unchanged
     expect(result.current.candles).toEqual([])
     expect(result.current.fills).toEqual([])
+  })
+
+  it('starts with empty auditLogs', () => {
+    const { result } = renderHook(() => useExchangeData())
+    expect(result.current.auditLogs).toEqual([])
+  })
+
+  it('handles audit_logs message by prepending entries', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({
+        type: 'audit_logs',
+        logs: [
+          { id: 'a1', event_type: 'ORDER_FILLED', exchange: 'binance', symbol: 'BTC/USDT', timestamp: 100 },
+        ],
+      })
+    })
+    expect(result.current.auditLogs).toHaveLength(1)
+    expect(result.current.auditLogs[0].id).toBe('a1')
+    expect(result.current.auditLogs[0].event_type).toBe('ORDER_FILLED')
+  })
+
+  it('prepends newer audit batches ahead of older ones', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'audit_logs', logs: [{ id: 'old', event_type: 'ORDER_FILLED', timestamp: 1 }] })
+    })
+    act(() => {
+      mockOnMessage({ type: 'audit_logs', logs: [{ id: 'new', event_type: 'ORDER_CANCELLED', timestamp: 2 }] })
+    })
+    expect(result.current.auditLogs[0].id).toBe('new')
+    expect(result.current.auditLogs[1].id).toBe('old')
+  })
+
+  it('bounds audit log history at 200 entries', () => {
+    const { result } = renderHook(() => useExchangeData())
+    const logs = Array.from({ length: 250 }, (_, i) => ({ id: `e${i}`, event_type: 'ORDER_FILLED', timestamp: i }))
+    act(() => {
+      mockOnMessage({ type: 'audit_logs', logs })
+    })
+    expect(result.current.auditLogs).toHaveLength(200)
+    expect(result.current.auditLogs[0].id).toBe('e0')
+  })
+
+  it('ignores audit_logs message with empty logs array', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'audit_logs', logs: [] })
+    })
+    expect(result.current.auditLogs).toEqual([])
   })
 })
 

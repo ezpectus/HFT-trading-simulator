@@ -221,6 +221,29 @@ class BroadcastMixin:
             self._publish_shm_snapshot(int(time.time_ns()))
 
             await self._broadcast_market_data(candles, orderbooks, orderbook_deltas, arb_data)
+            await self._broadcast_audit_events()
+
+    async def _broadcast_audit_events(self) -> None:
+        """Drain queued audit-log events and push them to all clients."""
+        if not self._audit_pending:
+            return
+        logs = []
+        while self._audit_pending:
+            logs.append(self._audit_pending.popleft())
+        if _HAS_ORJSON:
+            payload = orjson.dumps({"type": "audit_logs", "logs": logs})
+        else:
+            payload = json.dumps({"type": "audit_logs", "logs": logs}, separators=(',', ':'))
+        disconnected = set()
+
+        async def _send(client):
+            try:
+                await client.send(payload)
+            except websockets.ConnectionClosed:
+                disconnected.add(client)
+
+        await asyncio.gather(*[_send(c) for c in self.clients], return_exceptions=True)
+        self.clients -= disconnected
 
     async def _process_exchange_events(self) -> None:
         """Check SL/TP, update positions, charge funding, broadcast fills."""

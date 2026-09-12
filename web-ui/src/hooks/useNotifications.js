@@ -16,6 +16,7 @@ export function useNotifications({ exchange, signals, addToast, playSound }) {
   const prevFillCount = useRef(0)
   const prevSignalCount = useRef(0)
   const prevNewsRef = useRef(null)
+  const prevErrorRef = useRef(null)
 
   // Connection change notifications
   useEffect(() => {
@@ -52,6 +53,16 @@ export function useNotifications({ exchange, signals, addToast, playSound }) {
     }
     prevFillCount.current = exchange.fills.length
   }, [exchange.fills, addToast])
+
+  // Surface server-side rejections (rate-limit, trading-stopped, bad fields)
+  useEffect(() => {
+    const err = exchange.lastError
+    if (err && err.at !== prevErrorRef.current) {
+      addToast('error', err.message, 5000)
+      playSound('disconnect')
+    }
+    prevErrorRef.current = err ? err.at : prevErrorRef.current
+  }, [exchange.lastError, addToast, playSound])
 
   // Notify on strong AI signals
   useEffect(() => {

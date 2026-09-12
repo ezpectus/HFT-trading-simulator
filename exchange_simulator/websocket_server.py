@@ -10,10 +10,12 @@ import asyncio
 import os
 import struct
 import sys
+from collections import deque
 
 import websockets
 
 from exchange_simulator.arbitrage import ArbitrageDetector
+from exchange_simulator.audit_logger import get_audit_logger
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
 from exchange_simulator.ws_broadcast import BroadcastMixin
@@ -84,6 +86,8 @@ class ExchangeWebSocketServer(
         self._total_connections: int = 0
         self._total_disconnections: int = 0
         self._sequence_number: int = 0
+        self._audit_pending: deque = deque(maxlen=500)
+        self._audit_logger = get_audit_logger()
         if self.trade_logger is not None:
             logger.info("Trade CSV log: %s", self.trade_logger.path)
 
@@ -154,6 +158,17 @@ class ExchangeWebSocketServer(
         except (OSError, ValueError, TypeError, BufferError, struct.error):
             logger.warning("SHM snapshot write failed", exc_info=True)
 
+    def _on_audit_event(self, audit_log) -> None:
+        """AuditLogger callback — queue the event for the next broadcast tick.
+
+        Runs synchronously inside the engine; deque.append is atomic, and the
+        asyncio broadcast loop drains the queue — no cross-loop calls needed.
+        """
+        try:
+            self._audit_pending.append(audit_log.to_dict())
+        except (TypeError, ValueError, AttributeError):
+            logger.debug("Audit event serialization failed", exc_info=True)
+
     async def start(self) -> None:
         """Start the WebSocket server."""
         self._running = True
@@ -162,7 +177,6 @@ class ExchangeWebSocketServer(
         # Start Prometheus metrics HTTP server on port+10
         # (port+1=8766 conflicts with AI Signal Bot WebSocket)
         metrics_port = self.port + 10
-        metrics_task = asyncio.create_task(self._run_metrics_server(metrics_port))
 
         async with websockets.asyncio.server.serve(
             self._handle_client, self.host, self.port,
@@ -172,9 +186,14 @@ class ExchangeWebSocketServer(
         ):
             # Start market data broadcast loop
             broadcast_task = asyncio.create_task(self._broadcast_loop())
-            await self._shutdown_event  # Run until shutdown requested
-            broadcast_task.cancel()
-            metrics_task.cancel()
+            metrics_task = asyncio.create_task(self._run_metrics_server(metrics_port))
+            self._audit_logger.register_callback(self._on_audit_event)
+            try:
+                await self._shutdown_event.wait()  # Run until shutdown requested
+            finally:
+                broadcast_task.cancel()
+                metrics_task.cancel()
+                self._audit_logger.unregister_callback(self._on_audit_event)
 
     async def _run_metrics_server(self, port: int) -> None:
         """Run a simple HTTP server for Prometheus metrics scraping."""
@@ -214,7 +233,7 @@ class ExchangeWebSocketServer(
         site = web.TCPSite(runner, self.host, port)
         await site.start()
         logger.info("Health/metrics endpoints on http://%s:%s/health, /live, /ready, /metrics", self.host, port)
-        await self._shutdown_event  # Run until shutdown requested
+        await self._shutdown_event.wait()  # Run until shutdown requested
 
     async def stop(self) -> None:
         self._running = False

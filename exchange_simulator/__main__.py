@@ -28,6 +28,7 @@ except ImportError:
     setup_run_logging = None
 
 from exchange_simulator.arbitrage import ArbitrageDetector  # noqa: E402
+from exchange_simulator.audit_logger import AuditLogger, set_audit_logger  # noqa: E402
 from exchange_simulator.config_validator import validate_or_exit  # noqa: E402
 from exchange_simulator.data_export import DataExporter  # noqa: E402
 from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
@@ -194,6 +195,17 @@ def main():
     config = load_config(args.config)
     config = validate_or_exit(config)
     logger, log_path = setup_logging(args.log_level)
+
+    # Configure the global audit logger before exchanges bind to it
+    audit_cfg = config.get("audit", {})
+    audit_enabled = audit_cfg.get("enabled", True)
+    set_audit_logger(AuditLogger(
+        enabled=audit_enabled,
+        max_memory_entries=audit_cfg.get("max_memory_entries", 10000),
+        log_file_path=audit_cfg.get("log_file_path"),
+        enable_file_logging=audit_enabled and audit_cfg.get("enable_file_logging", True),
+        enable_callbacks=audit_cfg.get("enable_callbacks", True),
+    ))
 
     exchanges, market = build_exchanges(config)
 

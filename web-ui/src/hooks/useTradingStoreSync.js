@@ -14,6 +14,8 @@ export function useTradingStoreSync(exchange, signals) {
       accounts: exchange.accounts,
       arbitrage: exchange.arbitrage,
       fills: exchange.fills,
+      auditLogs: exchange.auditLogs,
+      lastError: exchange.lastError,
       orderbooks: exchange.orderbooks,
       fundingRates: exchange.fundingRates,
       candlesToFunding: exchange.candlesToFunding,
