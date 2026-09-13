@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react'
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { selectCandles } from '../utils/candles'
 
 // ─── Hawkes Process (Self-Exciting Point Process) ───────────────────────────
@@ -145,7 +145,8 @@ function HawkesProcess({ candles, symbol, exchange, sendSignalMessage, hawkesRes
     setBackendPending(false)
   }, [hawkesResult, backendPending])
 
-  useEffect(() => () => clearTimeout(window.__hawkesTimeout), [])
+  const timeoutRef = useRef(null)
+  useEffect(() => () => clearTimeout(timeoutRef.current), [])
 
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)
@@ -290,8 +291,8 @@ function HawkesProcess({ candles, symbol, exchange, sendSignalMessage, hawkesRes
               if (!signalsConnected || backendPending) return
               setBackend(null)
               setBackendPending(true)
-              clearTimeout(window.__hawkesTimeout)
-              window.__hawkesTimeout = setTimeout(() => {
+              clearTimeout(timeoutRef.current)
+              timeoutRef.current = setTimeout(() => {
                 setBackendPending(p => { if (p) setBackend({ error: 'timeout — no hawkes_result in 30s' }); return false })
               }, 30000)
               sendSignalMessage({ type: 'hawkes_fit', events: data.events })
