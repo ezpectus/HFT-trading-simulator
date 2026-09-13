@@ -1505,3 +1505,16 @@ Findings:
 Clean: hft scrape via shared pod service correct; vendored helm files byte-identical; probe ports real; web-ui fail-fast on ws URLs; grafana provisioning correct; S3 module solid; e2e in required CI gate.
 
 Commit: (below)
+
+## R108 — 2026-09-15 — audit: repo-root + build/config leaf-sweep — 3 findings (S207–S209)
+
+Target: repo root (env, scripts, Makefiles, residue dirs) + Dockerfiles/CMake/nginx/pre-commit + gitignore boundary.
+
+Findings:
+- S207 (High): `run.py:31` hard-imports gitignored `run_logger.py` — fresh clone crashes, both Dockerfile CMDs crash-loop, CI collection fails on 2 unit tests; sim guards the same import, ai-bot doesn't.
+- S208 (Low): `Makefile` test-cpp `ctest || echo` swallows real C++ test failures (can't-fail gate).
+- S209 (Info): ARCHITECTURE/WEB_UI docs name gitignored run_logger/error_monitor/price_monitor as system components.
+
+Clean: env files properly ignored; vendored dep dirs have CMake fallback; bat/sh helpers real; pre-commit config delegates to canonical hook; sops template untracked; nginx.conf honest; prod VITE_WS args required-guarded.
+
+Commit: (below)
