@@ -960,3 +960,8 @@ Reverse props direction: компоненты деструктурируют т�
 - Fix: runner+dashboard wired к правильным ctx-полям; IndicatorBuilder → CandleChart overlay channel через useUIStore.customIndicators (user: wire to chart overlay).
 - FP-фильтрация: _underscore-алиасы и rename-деструктурирование (exchange: selectedExchange) — чисто.
 - +6 тестов (CandleChart overlay 3, useUIStore 2, registry contract 1). 23 vitest green в touched area.
+
+## Round 56 — 2026-09-13 — slop-fix: S131 metrics drift → emitters extended
+- **S131 (Medium)**: ~29 dead dashboard queries — dashboards queried metrics no emitter produced (exchange_simulator_* prefix drift, missing cpu/mem/pnl/sharpe/shm-depth/latency).
+- **Fix** (extend emitters): hft runtime gauges + real `hft_latency_us` histogram from LatencyHistogram buckets + realized-PnL accumulator; ai-bot cpu/rss at-scrape sampling + equity-curve Sharpe; sim `LatencyHistogram` + errors/price-updates/order·feed·ws latency instrumentation + process metrics; dashboard repoints for name-equivalents; unreachable strategy-labeled panel collapsed.
+- **Verify**: every dashboard expr resolves to an emitted metric; +6 py-tests +7 doctests; pre-commit gate 7/7 green.
