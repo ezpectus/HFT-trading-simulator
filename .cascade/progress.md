@@ -1586,3 +1586,16 @@ Findings:
 Clean: build.py honest CMake wrapper; hft Dockerfiles ABI-matched bookworm + pinned libs + non-root + real healthcheck; .dockerignore x5 sane; .env.example accurate (VITE_SIGNAL_TOKEN verified end-to-end: useExchangeData:457 -> signal_publisher:137-143; EXCHANGE_TOKEN -> _handle_auth:503); fpga_orderbook.vhd never claimed live; __init__ markers honest.
 
 Commit: (below)
+
+## R114 — 2026-09-15 — audit: ai-signal-bot src/ under-covered subdirs + factory wiring — 2 findings (S228–S229)
+
+Target: ai-signal-bot/src/ zero-finding subdirs (data_collection x7, llm_engine x4, observability x3, signal_validation, technical_analysis headers) + run.py live-order path.
+
+Findings:
+- S228 (Medium): live/testnet order path green-but-dead — paper_trading:false shipped in settings.testnet.yaml:32 + documented CONFIGURATION_GUIDE:417, but ccxt absent from requirements/Dockerfiles/CI -> RealAccountManager.initialize raises RuntimeError per signal -> zero live orders, health green; one missing dep kills both adapter legs (market-data feed is ccxt-free but dies with account init).
+- S229 (Low): SimulatorAdapter._pending_orders FIFO resolves on ANY fill/error/order_cancelled on the shared socket — sim broadcasts every fill to all other clients (ws_message_handler:272 exclude=originator) -> concurrent fills misattribute; place_order returns another client's order dict. Latent (prod paper path uses ws_client.submit_order).
+- S227 extended: +2 stale .gitkeep (src/data_collection, src/llm_engine — populated dirs).
+
+Clean: real_account.py honest ccxt wrapper (clientOrderId idempotency, retries); exchange_factory SimulatorAdapter real (S102/S148 hold); llm_engine real provider payloads + rule-based fallback w/ schema-clamp; tracing guarded OTel + NoopTracer; health_checks wired + honest "not configured"; SignalValidator in signal path (run.py:498); market_data_feed real binance/okx/bybit + backpressure + gap-fill cb.
+
+Commit: (below)
