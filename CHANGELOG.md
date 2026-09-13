@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] — 2026-09-13 (Slop-loop audit — contract drift, dead config, docs refresh)
+
+### Added
+- `ai-signal-bot/src/communication/shm_kill_switch_consumer.py` — C++ kill-switch SHM ring (`/hft_kill_switch`) now consumed: latch + `trading_kill_switch_active` gauge + CRITICAL alert + signal-push gate (S132)
+- `ai-signal-bot`: `sharpe_ratio` metric computed from the real `equity_curve` series; process `cpu_usage_percent`/`memory_usage_bytes` sampled at scrape (S131)
+- `hft-trade-bot`: real Prometheus emitters — `hft_active_positions`, `hft_pnl_unrealized`/`hft_pnl_total`, `hft_memory_usage_mb`, `hft_shm_*_queue_depth`, `hft_latency_us_bucket{le}` histogram (S131)
+- `exchange_simulator`: `LatencyHistogram` + `errors_total`/`price_updates_total`/latency histograms (S131)
+- `docs/WEBSOCKET_PROTOCOL.md`: documented 5 previously-undocumented sent message types (`speed_set`, `replay_state`, `replay_candles`, `audit_logs`, `circuit_breaker_status`) — all 41 sent types now covered (S133)
+- `docs/ARCHITECTURE.md`: verified Mermaid `erDiagram` of the real SQLite schema; README architecture section now a verified `flowchart`
+- README: **Feature Status** table (working / opt-in / demo / dormant / removed)
+
+### Fixed
+- Health probes repointed to the real `HealthServer` on `:8080` (`/live` + `/ready`); all compose files publish 8080; Helm gained `ports.health: 8080` (S134)
+- `deploy.yml` post-deploy checks: `:9092/health` stub → `:8080/ready`; added missing web-ui `:3000/health` (S137)
+- `docker-compose.yml` no longer injects the 4 dead `VITE_ENABLE_*` flags (S135)
+- `test_config_consistency.py`: fixed cp1251 crash + stale `price_feed` assertion; wired into `pre-commit-check.py` as `config: consistency` (S136)
+- Grafana dashboards: every query now resolves to an emitted metric (S131)
+- Makefile `ci-test`/`ci-quick` repointed from deleted `ci-test.sh` to `pre-commit-check.py` (S139)
+
+### Removed
+- `shared_config.yaml` container mounts (zero production readers) — file kept as canonical reference enforced by the consistency check (S136)
+- `scripts/load_test_50_symbols.py` — diverged duplicate of the `exchange_simulator/tests/` copy (S138)
+- `cachetools` pin from `exchange_simulator/requirements.txt` — never imported (S140)
+
+### Documentation
+- Full docs refresh: real ports/endpoints/env vars only; removed phantom PostgreSQL/Redis/Alertmanager claims; corrected all test/component counts; dormant ccxt live-trading path disclosed
+
 ## [Unreleased] — 2026-08-28 (Version sync + test count updates)
 
 ### Changed

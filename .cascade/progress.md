@@ -997,3 +997,14 @@ Reverse props direction: компоненты деструктурируют т�
 - **Diagrams**: README ASCII → verified mermaid flowchart (WS :8765/:8766 + SHM rings + orders); ARCHITECTURE.md + erDiagram (real SQLite schema: signals/trades/equity_curve, logical signal_id).
 - **Feature Status table** (README): working / opt-in (SHM, ccxt live path) / demo (math panels, mock mode) / removed.
 - **New findings recorded**: S141 (env drift — BINANCE_API_KEY etc. unread; code reads EXCHANGE_API_KEY), S142 (Alertmanager documented but absent — no service/config/`alerting:` section anywhere).
+
+## Round 61 — 2026-09-13 — slop-verify: 10 свежих claims проверены против кода
+- **Verified**: S132 (kill-switch SHM e2e — consumer+latch+push-gate+alert+config), S113 (`.wait()` fix), S107 (exporter swap), S116 (auth e2e env→yaml→UI), S134/S137 (8080/ready во всех compose+helm+deploy.yml), S131 (queried = emitted по всем 3 стекам метрик), S112 (audit_logs канал), S122 (smoke ports), S136 (config-gate wired).
+- **S143 (Medium) — NEW, Open**: `deploy.sh:202,210` + `deploy.bat:172,180` curl'ят `8765/health`+`8766/health` — чистые WS-порты, HTTP health на 8775/8080. S122-класс, deploy-скрипты пропущены при фиксе.
+- Note: 10 doc-файлов (docs-refresh R60) остались незакоммичены — работа параллельной сессии.
+
+## Round 62 — 2026-09-13 — board hygiene: миграция Done → done-log
+- Перенесены 33 `[x] Done` строки с доски в `done-log.md` (секция «Раунды R31–R60»); на доске остались только Open: S143 (deploy-скрипты), S141 (env-drift), S142 (alertmanager).
+- Шапка/СВОДКА/ПРИОРИТЕТЫ доски обновлены: ~143 находки, 140 закрыто, 3 открыто.
+- `bug_log.md`: +4 записи (#233 pending = S143; #234–236 = реальные баги из R35/R38/R50, залогированы задним числом); сводка 188→255 (реальный подсчёт записей).
+- `CHANGELOG.md`: консолидированная запись за slop-loop раунды R44–R60 (S125–S142 + docs-refresh).
