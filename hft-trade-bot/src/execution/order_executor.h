@@ -1,12 +1,15 @@
 // Order executor — sends orders to the exchange simulator via WebSocket
 #pragma once
 
+#include "../data/aligned_types.h"
 #include "../data/signal.h"
 #include "../data/types.h"
+#include "../network/watchdog.h"
 #include "order_type_selector.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -31,18 +34,26 @@ class OrderExecutor {
 
     bool connect() {
         should_reconnect_ = true;
+        watchdog_stop_.store(false, std::memory_order_relaxed);
+        if (!watchdog_thread_.joinable()) {
+            watchdog_thread_ = std::thread([this]() { watchdog_loop(); });
+        }
         return do_connect();
     }
 
     bool do_connect() {
         try {
-            // Recreate client on each connect — websocketpp init_asio() must not be called twice
-            client_ = std::make_unique<WSClient>();
-            client_->init_asio();
+            // Recreate client on each connect — websocketpp init_asio() must not
+            // be called twice. Stored atomically: submit/watchdog threads take
+            // lock-free snapshots, so a swap can never dangle a live deref.
+            set_client(std::make_shared<WSClient>());
+            client_snapshot()->init_asio();
 
-            client_->set_open_handler([this](websocketpp::connection_hdl hdl) {
+            auto ep = client_snapshot();
+            ep->set_open_handler([this](websocketpp::connection_hdl hdl) {
                 connection_ = hdl;
                 connected_  = true;
+                activity_watchdog_.feed();
                 reconnect_delay_.store(1000, std::memory_order_relaxed);
                 spdlog::info("OrderExecutor connected to {}", ws_url_);
                 // Control-plane auth must precede order sends — the sim gates
@@ -53,8 +64,8 @@ class OrderExecutor {
                                            "{\"type\":\"auth\",\"token\":\"%s\"}", tok);
                     if (m > 0 && m < static_cast<int>(sizeof(auth_buf))) {
                         websocketpp::lib::error_code auth_ec;
-                        client_->send(connection_, std::string(auth_buf, m),
-                                      websocketpp::frame::opcode::text, auth_ec);
+                        client_snapshot()->send(connection_, std::string(auth_buf, m),
+                                                websocketpp::frame::opcode::text, auth_ec);
                         if (auth_ec) {
                             spdlog::error("Failed to send auth frame: {}", auth_ec.message());
                         }
@@ -62,35 +73,32 @@ class OrderExecutor {
                 }
             });
 
-            client_->set_close_handler([this](websocketpp::connection_hdl) {
+            ep->set_close_handler([this](websocketpp::connection_hdl) {
                 connected_ = false;
                 spdlog::warn("OrderExecutor disconnected");
-                if (should_reconnect_) {
-                    int delay = reconnect_delay_.load(std::memory_order_relaxed);
-                    spdlog::info("Reconnecting in {}ms...", delay);
-                    reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
-                    if (reconnect_thread_.joinable()) reconnect_thread_.join();
-                    reconnect_thread_ = std::thread([this, delay]() {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-                        if (should_reconnect_) {
-                            if (ws_thread_.joinable()) ws_thread_.join();
-                            do_connect();
-                        }
-                    });
-                }
+                schedule_reconnect();
             });
 
+            // This socket carries no inbound data stream — protocol pings from
+            // the server (10s cadence) are the only liveness signal.
+            ep->set_ping_handler([this](websocketpp::connection_hdl, std::string) {
+                activity_watchdog_.feed();
+                return true;
+            });
+            ep->set_pong_handler(
+                [this](websocketpp::connection_hdl, std::string) { activity_watchdog_.feed(); });
+
             websocketpp::lib::error_code ec;
-            auto                         con = client_->get_connection(ws_url_, ec);
+            auto                         con = ep->get_connection(ws_url_, ec);
             if (ec) {
                 spdlog::error("WebSocket connect error: {}", ec.message());
                 return false;
             }
 
-            client_->connect(con);
+            ep->connect(con);
 
             // Run client in background thread
-            ws_thread_ = std::thread([this]() { client_->run(); });
+            ws_thread_ = std::thread([this]() { client_snapshot()->run(); });
             return true;
         } catch (const std::exception& e) {
             spdlog::error("OrderExecutor connect failed: {}", e.what());
@@ -100,11 +108,20 @@ class OrderExecutor {
 
     void disconnect() {
         should_reconnect_ = false;
-        if (connected_) {
-            client_->close(connection_, websocketpp::close::status::normal, "shutdown");
+        watchdog_stop_.store(true, std::memory_order_relaxed);
+        {
+            // Cancel + join any in-flight reconnect sleeper BEFORE tearing the
+            // socket down — it must not touch `this` after destruction.
+            std::lock_guard<std::mutex> lk(reconnect_mtx_);
+            reconnect_cancel_.store(true, std::memory_order_relaxed);
+            reconnect_cv_.notify_all();
+            if (reconnect_thread_.joinable()) reconnect_thread_.join();
         }
-        if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        if (connected_) {
+            client_snapshot()->close(connection_, websocketpp::close::status::normal, "shutdown");
+        }
         if (ws_thread_.joinable()) ws_thread_.join();
+        if (watchdog_thread_.joinable()) watchdog_thread_.join();
         connected_ = false;
     }
 
@@ -157,14 +174,73 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
-                      websocketpp::frame::opcode::text, ec);
+        client_snapshot()->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                                websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
             return false;
         }
         spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f}", signal.is_long() ? "BUY" : "SELL",
                      signal.symbol, quantity, exchange_id_, signal.entry_price);
+        return true;
+    }
+
+    // Submit with an explicit adaptive kind — the selector's TIF/expiry/post-only
+    // intent is serialized onto the wire (S154). The sim honours IOC/FOK
+    // (cancel if not marketable), GTD (rest until expire_ms) and post_only
+    // (reject if marketable).
+    bool submit_order(const Signal& signal, double quantity, const OrderBook& ob,
+                      FastOrder::OrderKind kind, double limit_price, int64_t expire_ns) {
+        if (kind == FastOrder::OrderKind::MARKET) {
+            return submit_order(signal, quantity, ob);
+        }
+        if (!connected_) [[unlikely]] {
+            spdlog::warn("Cannot submit order — not connected");
+            return false;
+        }
+        if (!signal.is_actionable()) [[unlikely]] {
+            return false;
+        }
+        const char*  tif       = kind == FastOrder::OrderKind::LIMIT_IOC   ? "IOC"
+                                 : kind == FastOrder::OrderKind::LIMIT_FOK ? "FOK"
+                                 : kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD"
+                                                                           : "GTC";
+        const bool   post_only = (kind == FastOrder::OrderKind::POST_ONLY);
+        const double price     = limit_price > 0 ? limit_price : signal.entry_price;
+
+        char buf[640];
+        int  n = std::snprintf(
+            buf, sizeof(buf),
+            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+             "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"LIMIT\",\"price\":%.2f,"
+             "\"stop_loss\":%.2f,\"take_profit\":%.2f,\"time_in_force\":\"%s\","
+             "\"post_only\":%s,\"client_order_id\":\"hft_%s_%lld\"",
+            exchange_id_.c_str(), signal.symbol.c_str(), signal.is_long() ? "BUY" : "SELL",
+            quantity, price, signal.stop_loss, signal.take_profit, tif,
+            post_only ? "true" : "false", signal.symbol.c_str(),
+            static_cast<long long>(signal.timestamp));
+        if (kind == FastOrder::OrderKind::LIMIT_GTD && expire_ns > 0 && n > 0 &&
+            n < static_cast<int>(sizeof(buf) - 32)) {
+            n += std::snprintf(buf + n, sizeof(buf) - n, ",\"expire_ms\":%lld",
+                               static_cast<long long>(expire_ns / 1000000LL));
+        }
+        if (n <= 0 || n >= static_cast<int>(sizeof(buf) - 2)) [[unlikely]] {
+            spdlog::error("Order JSON serialization/truncation failed for {}", signal.symbol);
+            return false;
+        }
+        buf[n++] = '}';
+        buf[n]   = '\0';
+
+        websocketpp::lib::error_code ec;
+        client_snapshot()->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                                websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
+            spdlog::error("Failed to send order: {}", ec.message());
+            return false;
+        }
+        spdlog::info("Order sent: {} {} {:.4f} {} @ {:.2f} tif={}{}",
+                     signal.is_long() ? "BUY" : "SELL", signal.symbol, quantity, exchange_id_,
+                     price, tif, post_only ? " post_only" : "");
         return true;
     }
 
@@ -187,8 +263,8 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
-                      websocketpp::frame::opcode::text, ec);
+        client_snapshot()->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                                websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send close request for {}: {}", symbol, ec.message());
             return false;
@@ -216,8 +292,8 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
-                      websocketpp::frame::opcode::text, ec);
+        client_snapshot()->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                                websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send cancel-all: {}", ec.message());
             return false;
@@ -258,8 +334,8 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_->send(connection_, std::string(buy_buf, static_cast<size_t>(bn)),
-                      websocketpp::frame::opcode::text, ec);
+        client_snapshot()->send(connection_, std::string(buy_buf, static_cast<size_t>(bn)),
+                                websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
             return false;
@@ -277,8 +353,9 @@ class OrderExecutor {
                                                             buy_exchange.c_str(), symbol.c_str(), quantity);
             websocketpp::lib::error_code uec;
             if (un > 0 && un < static_cast<int>(sizeof(unwind_buf))) {
-                client_->send(connection_, std::string(unwind_buf, static_cast<size_t>(un)),
-                              websocketpp::frame::opcode::text, uec);
+                client_snapshot()->send(connection_,
+                                        std::string(unwind_buf, static_cast<size_t>(un)),
+                                        websocketpp::frame::opcode::text, uec);
             }
             if (un <= 0 || uec) {
                 spdlog::critical("ARB UNWIND FAILED — NAKED LONG POSITION: {} {:.4f} on {} "
@@ -292,8 +369,8 @@ class OrderExecutor {
             return false;
         }
 
-        client_->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)),
-                      websocketpp::frame::opcode::text, ec);
+        client_snapshot()->send(connection_, std::string(sell_buf, static_cast<size_t>(sn)),
+                                websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             unwind_buy_leg(ec.message().c_str());
             return false;
@@ -307,15 +384,90 @@ class OrderExecutor {
     }
 
   private:
+    // Snapshot/replace the client under the mutex — do_connect can swap it
+    // while watchdog/send threads hold a live shared_ptr to the old one.
+    std::shared_ptr<WSClient> client_snapshot() {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        return client_;
+    }
+    void set_client(std::shared_ptr<WSClient> c) {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        client_ = std::move(c);
+    }
+
+    void schedule_reconnect() {
+        if (!should_reconnect_) return;
+        // Callable from the asio close-handler AND the watchdog thread — the
+        // mutex serializes reconnect_thread_ join/assign.
+        std::lock_guard<std::mutex> lk(reconnect_mtx_);
+        int                         delay = reconnect_delay_.load(std::memory_order_relaxed);
+        spdlog::info("Reconnecting in {}ms...", delay);
+        reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
+        // A newer schedule supersedes an in-flight sleeper: cancel wakes it so
+        // the join doesn't stall the caller for the whole backoff window.
+        // Joined in disconnect() too — no sleeper outlives this object.
+        reconnect_cancel_.store(true, std::memory_order_relaxed);
+        reconnect_cv_.notify_all();
+        if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        reconnect_cancel_.store(false, std::memory_order_relaxed);
+        reconnect_thread_ = std::thread([this, delay]() {
+            std::unique_lock<std::mutex> clk(reconnect_cv_mtx_);
+            reconnect_cv_.wait_for(clk, std::chrono::milliseconds(delay),
+                                   [this] { return reconnect_cancel_.load(); });
+            clk.unlock();
+            if (should_reconnect_ && !reconnect_cancel_.load(std::memory_order_relaxed)) {
+                if (ws_thread_.joinable()) ws_thread_.join();
+                do_connect();
+            }
+        });
+    }
+
+    // Stale-connection watchdog: a dead TCP peer sends no close frame — 15s
+    // without any inbound frame (server pings every 10s) means the socket is
+    // silently dead. terminate() fires the normal close→schedule_reconnect path.
+    void watchdog_loop() {
+        while (!watchdog_stop_.load(std::memory_order_relaxed)) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            if (watchdog_stop_.load(std::memory_order_relaxed)) break;
+            if (!connected_.load(std::memory_order_relaxed)) continue;
+            if (!activity_watchdog_.is_alive()) {
+                spdlog::warn("OrderExecutor stale ({}ms silent) — forcing reconnect",
+                             activity_watchdog_.idle_ms());
+                activity_watchdog_.feed(); // don't re-trip while teardown runs
+                websocketpp::lib::error_code ec;
+                auto con = client_snapshot()->get_con_from_hdl(connection_, ec);
+                if (ec) {
+                    connected_ = false;
+                    schedule_reconnect();
+                } else {
+                    con->terminate(ec);
+                    if (ec) {
+                        spdlog::warn("Stale terminate failed: {}", ec.message());
+                        connected_ = false;
+                        schedule_reconnect();
+                    }
+                }
+            }
+        }
+    }
+
     std::string                 ws_url_;
     std::string                 exchange_id_;
-    std::unique_ptr<WSClient>   client_;
+    std::shared_ptr<WSClient>   client_; // guarded by client_mtx_
+    std::mutex                  client_mtx_;
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;
     std::thread                 reconnect_thread_;
+    std::thread                 watchdog_thread_;
+    std::atomic<bool>           watchdog_stop_{false};
+    net::Watchdog               activity_watchdog_{15000};
     std::atomic<bool>           connected_{false};
     std::atomic<bool>           should_reconnect_{false};
     std::atomic<int>            reconnect_delay_{1000}; // ms, exponential backoff up to 30s
+    std::mutex                  reconnect_mtx_;
+    std::atomic<bool>           reconnect_cancel_{false};
+    std::mutex                  reconnect_cv_mtx_;
+    std::condition_variable     reconnect_cv_;
 };
 
 } // namespace hft

@@ -359,8 +359,8 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 - `src/ipc/shm_ring_buffer.h` — SPSC lock-free ring buffer with bulk push/pop (2-memcpy optimization for wrap-around)
 - `src/ipc/shm_fill_producer.h` / `shm_signal_consumer.h` — SHM producers/consumers for fills and signals
 - `src/ipc/shm_market_data.h` — Latest-snapshot-wins market data with 8-byte num_slots header, seq-guarded reads
-- `src/communication/signal_receiver.h` (+ `_data`/`_handlers`) — WebSocket client (dual: 8765 + 8766)
-- `src/network/ws_client.h` — Native WebSocket client
+- `src/communication/signal_receiver.h` (+ `_data`/`_handlers`) — WebSocket client (dual: 8765 + 8766), activity-watchdog stale-conn detection
+- `src/network/watchdog.h` — Connection activity watchdog wired into SignalReceiver/OrderExecutor
 - `src/risk/risk_manager.h` — Pre-trade risk checks, position sizing
 - `src/risk/kill_switch.h` — Emergency stop (file trigger, manual, daily loss), SHM notification, order blocking
 - `src/position/position_manager.h` — Thread-safe position tracking and SL/TP

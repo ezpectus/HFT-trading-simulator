@@ -8,6 +8,7 @@
 #include "../data/signal.h"
 #include "../data/types.h"
 #include "../ipc/shm_fill_producer.h"
+#include "../network/watchdog.h"
 #include "../utils/low_latency.h"
 #include "signal_receiver_data.h"
 #include <atomic>
@@ -76,56 +77,58 @@ class SignalReceiver : private SignalReceiverData {
 
     bool connect() {
         should_reconnect_ = true;
+        watchdog_stop_.store(false, std::memory_order_relaxed);
+        if (!watchdog_thread_.joinable()) {
+            watchdog_thread_ = std::thread([this]() { watchdog_loop(); });
+        }
         return do_connect();
     }
 
     bool do_connect() {
         try {
-            client_ = std::make_unique<WSClient>();
-            client_->init_asio();
-            client_->set_open_handler([this](websocketpp::connection_hdl hdl) {
+            set_client(std::make_shared<WSClient>());
+            auto ep = client_snapshot();
+            ep->init_asio();
+            ep->set_open_handler([this](websocketpp::connection_hdl hdl) {
                 connected_       = true;
                 connection_      = hdl;
                 reconnect_delay_ = 1000;
+                activity_watchdog_.feed();
                 spdlog::info("SignalReceiver connected to {}", ws_url_);
                 json sub = {
                     {"type", "subscribe"}, {"protocol_version", 2}, {"encoding", "msgpack"}};
-                client_->send(hdl, sub.dump(), websocketpp::frame::opcode::text);
+                client_snapshot()->send(hdl, sub.dump(), websocketpp::frame::opcode::text);
             });
-            client_->set_close_handler([this](websocketpp::connection_hdl) {
+            ep->set_close_handler([this](websocketpp::connection_hdl) {
                 connected_ = false;
                 spdlog::warn("SignalReceiver disconnected");
-                if (should_reconnect_) {
-                    spdlog::info("Reconnecting in {}ms...", reconnect_delay_);
-                    auto delay       = reconnect_delay_;
-                    reconnect_delay_ = std::min(reconnect_delay_ * 2, 30000);
-                    std::thread([this, delay]() {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-                        if (should_reconnect_) {
-                            if (ws_thread_.joinable()) ws_thread_.join();
-                            do_connect();
-                        }
-                    }).detach();
+                schedule_reconnect();
+            });
+            // Any inbound frame counts as liveness — data or protocol ping/pong.
+            ep->set_ping_handler([this](websocketpp::connection_hdl, std::string) {
+                activity_watchdog_.feed();
+                return true; // still auto-pong
+            });
+            ep->set_pong_handler(
+                [this](websocketpp::connection_hdl, std::string) { activity_watchdog_.feed(); });
+            ep->set_message_handler([this](websocketpp::connection_hdl, WSClient::message_ptr msg) {
+                activity_watchdog_.feed();
+                if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
+                    const auto& bin  = msg->get_payload();
+                    auto        data = json::from_msgpack(bin);
+                    handle_message_json(data);
+                } else {
+                    handle_message(msg->get_payload());
                 }
             });
-            client_->set_message_handler(
-                [this](websocketpp::connection_hdl, WSClient::message_ptr msg) {
-                    if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
-                        const auto& bin  = msg->get_payload();
-                        auto        data = json::from_msgpack(bin);
-                        handle_message_json(data);
-                    } else {
-                        handle_message(msg->get_payload());
-                    }
-                });
             websocketpp::lib::error_code ec;
-            auto                         con = client_->get_connection(ws_url_, ec);
+            auto                         con = ep->get_connection(ws_url_, ec);
             if (ec) {
                 spdlog::error("SignalReceiver connect error: {}", ec.message());
                 return false;
             }
-            client_->connect(con);
-            ws_thread_ = std::thread([this]() { client_->run(); });
+            ep->connect(con);
+            ws_thread_ = std::thread([this]() { client_snapshot()->run(); });
             return true;
         } catch (const std::exception& e) {
             spdlog::error("SignalReceiver connect failed: {}", e.what());
@@ -135,8 +138,20 @@ class SignalReceiver : private SignalReceiverData {
 
     void disconnect() {
         should_reconnect_ = false;
-        if (connected_) client_->close(connection_, websocketpp::close::status::normal, "shutdown");
+        watchdog_stop_.store(true, std::memory_order_relaxed);
+        {
+            // Cancel + join any in-flight reconnect sleeper BEFORE tearing the
+            // socket down — it must not touch `this` after destruction.
+            std::lock_guard<std::mutex> lk(reconnect_mtx_);
+            reconnect_cancel_.store(true, std::memory_order_relaxed);
+            reconnect_cv_.notify_all();
+            if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        }
+        if (connected_) {
+            client_snapshot()->close(connection_, websocketpp::close::status::normal, "shutdown");
+        }
         if (ws_thread_.joinable()) ws_thread_.join();
+        if (watchdog_thread_.joinable()) watchdog_thread_.join();
         connected_ = false;
     }
 
@@ -212,14 +227,94 @@ class SignalReceiver : private SignalReceiverData {
   private:
 #include "signal_receiver_handlers.h"
 
+    // Snapshot/replace the client under the mutex — do_connect can swap it
+    // while watchdog/send threads hold a live shared_ptr to the old one.
+    std::shared_ptr<WSClient> client_snapshot() {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        return client_;
+    }
+    void set_client(std::shared_ptr<WSClient> c) {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        client_ = std::move(c);
+    }
+
+    void schedule_reconnect() {
+        if (!should_reconnect_) return;
+        // Callable from the asio close-handler AND the watchdog thread — the
+        // mutex serializes delay-computation so two events can't double-schedule.
+        std::lock_guard<std::mutex> lk(reconnect_mtx_);
+        int                         delay = reconnect_delay_.load(std::memory_order_relaxed);
+        spdlog::info("Reconnecting in {}ms...", delay);
+        reconnect_delay_.store(std::min(delay * 2, 30000), std::memory_order_relaxed);
+        // A newer schedule supersedes an in-flight sleeper: cancel wakes it,
+        // join before reassigning (assignment over a joinable thread is
+        // std::terminate). Joined in disconnect() too — no detached thread
+        // can outlive this object.
+        reconnect_cancel_.store(true, std::memory_order_relaxed);
+        reconnect_cv_.notify_all();
+        if (reconnect_thread_.joinable()) reconnect_thread_.join();
+        reconnect_cancel_.store(false, std::memory_order_relaxed);
+        reconnect_thread_ = std::thread([this, delay]() {
+            std::unique_lock<std::mutex> clk(reconnect_cv_mtx_);
+            reconnect_cv_.wait_for(clk, std::chrono::milliseconds(delay),
+                                   [this] { return reconnect_cancel_.load(); });
+            clk.unlock();
+            if (should_reconnect_ && !reconnect_cancel_.load(std::memory_order_relaxed)) {
+                if (ws_thread_.joinable()) ws_thread_.join();
+                do_connect();
+            }
+        });
+    }
+
+    // Stale-connection watchdog: the sim pings every 10s and broadcasts every
+    // 1s — 15s without ANY inbound frame means a dead TCP peer (no close frame).
+    // terminate() tears the socket down, which fires the normal
+    // close→schedule_reconnect path above.
+    void watchdog_loop() {
+        while (!watchdog_stop_.load(std::memory_order_relaxed)) {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            if (watchdog_stop_.load(std::memory_order_relaxed)) break;
+            if (!connected_.load(std::memory_order_relaxed)) continue;
+            if (!activity_watchdog_.is_alive()) {
+                spdlog::warn("SignalReceiver stale ({}ms silent) — forcing reconnect",
+                             activity_watchdog_.idle_ms());
+                activity_watchdog_.feed(); // don't re-trip while teardown runs
+                websocketpp::lib::error_code ec;
+                auto con = client_snapshot()->get_con_from_hdl(connection_, ec);
+                if (ec) {
+                    // Handle already dead — no close event will fire; drive
+                    // the reconnect ourselves.
+                    connected_ = false;
+                    schedule_reconnect();
+                } else {
+                    con->terminate(ec);
+                    if (ec) {
+                        spdlog::warn("Stale terminate failed: {}", ec.message());
+                        connected_ = false;
+                        schedule_reconnect();
+                    }
+                }
+            }
+        }
+    }
+
     std::string                 ws_url_;
-    std::unique_ptr<WSClient>   client_;
+    std::shared_ptr<WSClient>   client_; // guarded by client_mtx_
+    std::mutex                  client_mtx_;
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;
+    std::thread                 watchdog_thread_;
+    std::atomic<bool>           watchdog_stop_{false};
+    net::Watchdog               activity_watchdog_{15000};
     std::atomic<bool>           connected_{false};
     std::atomic<bool>           trading_active_{true};
     std::atomic<bool>           should_reconnect_{false};
-    int                         reconnect_delay_{1000};
+    std::atomic<int>            reconnect_delay_{1000};
+    std::mutex                  reconnect_mtx_;
+    std::thread                 reconnect_thread_;
+    std::atomic<bool>           reconnect_cancel_{false};
+    std::mutex                  reconnect_cv_mtx_;
+    std::condition_variable     reconnect_cv_;
 
     SignalCallback         signal_cb_;
     CandleCallback         candle_cb_;
