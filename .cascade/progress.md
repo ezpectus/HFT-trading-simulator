@@ -1425,3 +1425,11 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - **S193** (Low) — AuditEventType: 5/13 членов никогда не эмитятся (CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING/POSITION_MODIFIED) — update_config и shutdown мимо audit-stream.
 
 ЧИСТО: conftest-шимы, ws_constants флаги, arbitrage/audit/data_export/run/monitor/run_backtest/models — живые end-to-end; кеши bounded; hft-executor crate отсутствует в дереве.
+
+## R99 — slop-fix — R98 находки закрыты (S191/S192/S193), доска пуста
+
+- **S191** — удалён dead options cluster ~1014 строк (options_pricing/options_strategies/test_options_pricing); живой путь options_simulator нетронут.
+- **S192** — `email_smtp` удалён из AlertSystem.__init__ + docstring исправлен.
+- **S193** — audit допаян: CONFIG_CHANGE (update_config), SYSTEM_STOP (start finally), ERROR (handler except), WARNING (bad-parse); POSITION_MODIFIED удалён (нет доменного события).
+
+**Verifications:** sim 394 pass (−22 shadow-теста), alerting 41 pass, ruff clean, runtime-smoke CONFIG_CHANGE emit OK.

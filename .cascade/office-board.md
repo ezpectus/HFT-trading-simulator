@@ -13,9 +13,9 @@
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
 | Всего находок | ~193 (S001–S193) |
 | Закрыто | 155 |
-| Открыто | **3** — R98 audit: S191/S192/S193 |
+| Открыто | **0** — доска пуста (S191/S192/S193 закрыты в R99) |
 
-**Текущее состояние:** R98 audit — `exchange_simulator/` periphery (arbitrage/audit_logger/config_validator/data_export/options_*/visualizer×3/ws_constants/ws_metrics/ws_prometheus/__main__/conftest) + `ai-signal-bot` root (run.py/monitor.py/run_backtest.py/conftest.py) — **3 находки**: S191 (dead options cluster ~1014 строк: options_pricing deprecated-shim + options_strategies с нулём прод-импортёров + их shadow-test), S192 (alerting.py `email_smtp` — принимается/хранится/не используется; docstring рекламирует email-канал которого нет), S193 (AuditEventType — 5/13 членов никогда не эмитятся: POSITION_MODIFIED/CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING — update_config и shutdown уходят мимо audit-stream). Остальная периферия живая — arbitrage/audit/data_export/ws_*/models/run.py прослежены end-to-end. Ранее: R97 fix-раунд закрыл последние 4 находки — доска была пуста.
+**Текущее состояние:** R99 fix-раунд закрыл все 3 находки R98 — доска снова пуста. **S191** — dead options cluster удалён (~1014 строк: options_pricing deprecated-shim + options_strategies 0 прод-импортёров + test_options_pricing shadow-test; живой путь options_simulator имеет свой тест). **S192** — `email_smtp` параметр удалён из AlertSystem.__init__, docstring исправлен (email-канала никогда не было). **S193** — audit-stream допаян: CONFIG_CHANGE эмитится в `_handle_update_config` (update_config менял leverage мимо аудита), SYSTEM_STOP в `start()` finally (SIGTERM/SIGINT путь), ERROR в message-handler except, WARNING в invalid-json/msgpack парсах; POSITION_MODIFIED удалён из enum (доменного события не существует); docstring audit_logger приведён к факту. Проверено: sim 394 pass, alerting 41 pass, runtime-smoke CONFIG_CHANGE эмитится с metadata. Ранее: R98 audit — 3 находки на sim-периферии + ai-bot root. Ранее: R97 fix — последние 4 находки старой доски.
 
 ---
 
@@ -23,9 +23,6 @@
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
-| **S191** | Dead options cluster: deprecated `options_pricing` + test-only `options_strategies` | `options_pricing.py` (428 строк) — deprecated с module-level `DeprecationWarning` (:15), единственные импортёры — `options_strategies.py` и его же тест. `options_strategies.py` (306 строк) — **0 прод-импортёров**, читается только `test_options_pricing.py` (280 строк — shadow-test мёртвого кода). Живой путь — `options_simulator.py` (ws_message_handler:546,560). ~1014 строки мёртвого кода + тестового театра; `run_all_tests.py:104` держит ссылку. | Low | [ ] Open |
-| **S192** | `alerting.py` — мёртвый `email_smtp` + docstring рекламирует email-канал | `AlertSystem.__init__` принимает `email_smtp` (:56) и хранит (:61), но `_send_email` не существует — `_send_alert` (:152-157) ветвит только discord/telegram/webhook. Docstring :3 обещает «Channels: log, webhook (Discord/Telegram), email». run.py:377-382 передаёт только 4 живых канала — email молча невозможен. Мёртвый параметр + ложный docstring. | Info | [ ] Open |
-| **S193** | `AuditEventType` — 5/13 членов никогда не эмитятся; audit-trail неполон | Enum рекламирует POSITION_MODIFIED/CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING, audit_logger docstring — «Configuration changes, System events (start, stop, errors, warnings)». Фактически эмитятся 8 членов; `ws_message_handler.py` содержит **0** audit-вызовов — `_handle_update_config` меняет leverage мимо audit-stream, graceful shutdown не пишет SYSTEM_STOP. Аudit-лог не ловит именно те ops-события, для которых он существует. | Low | [ ] Open |
 
 ---
 
