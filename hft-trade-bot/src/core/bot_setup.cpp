@@ -176,8 +176,8 @@ void init_order_routing(BotContext& ctx) {
 }
 
 void init_kill_switch(BotContext& ctx) {
-    ctx.kill_switch =
-        std::make_unique<KillSwitch>(ctx.config.kill_switch_trigger_file, "/hft_kill_switch");
+    ctx.kill_switch = std::make_unique<KillSwitch>(ctx.config.kill_switch_trigger_file,
+                                                   ctx.config.kill_switch_shm_name);
     ctx.kill_switch->set_cancel_all_callback([&]() {
         if (ctx.executor && ctx.executor->cancel_all_orders()) {
             spdlog::warn("KILL SWITCH: cancel-all-orders request sent to exchange");

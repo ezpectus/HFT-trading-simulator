@@ -216,6 +216,7 @@ inline void parse_prod_ipc(Config& cfg, const YAML::Node& root) {
             if (md["max_symbols"]) cfg.ipc_market_data_max_symbols = md["max_symbols"].as<int>();
         }
         if (auto ks = ipc["kill_switch"]) {
+            if (ks["shm_name"]) cfg.kill_switch_shm_name = ks["shm_name"].as<std::string>();
             if (ks["trigger_file"])
                 cfg.kill_switch_trigger_file = expand_env(ks["trigger_file"].as<std::string>());
             if (ks["poll_interval_ms"])
@@ -285,10 +286,8 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
         if (r["min_margin_ratio"]) cfg.min_margin_ratio = r["min_margin_ratio"].as<double>();
         if (r["max_leverage"]) cfg.max_leverage = r["max_leverage"].as<int>();
         if (r["initial_balance"]) cfg.initial_balance = r["initial_balance"].as<double>();
-        if (auto ks = r["kill_switch"]) {
-            if (ks["trigger_file"])
-                cfg.kill_switch_trigger_file = expand_env(ks["trigger_file"].as<std::string>());
-        }
+        // kill_switch is configured under `ipc.kill_switch` only — a second
+        // block here would shadow the env-aware trigger_file (S196).
     }
 }
 

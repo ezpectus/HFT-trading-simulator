@@ -119,9 +119,8 @@ risk:
 
   blacklisted_symbols: []                  # Symbols to never trade
 
-  # Kill switch — emergency stop (always armed; there is no enable flag)
-  kill_switch:
-    trigger_file: "/tmp/kill_switch"       # Touch this file to trigger
+# Kill switch lives under `ipc.kill_switch` — a single home; a second
+# `risk.kill_switch` block would shadow the env-aware trigger_file.
 
 # ── Metrics endpoint ──
 # Health + /metrics HTTP server (enabled gates /metrics)

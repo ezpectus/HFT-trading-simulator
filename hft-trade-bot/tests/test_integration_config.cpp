@@ -58,9 +58,6 @@ risk:
   max_risk_per_trade_pct: 1.0
   daily_loss_limit_pct: 3.0
   max_drawdown_pct: 10.0
-  kill_switch:
-    daily_loss_trigger: 3.0
-    max_drawdown_trigger: 10.0
 symbols:
   - name: "BTC/USDT"
     min_qty: 0.001

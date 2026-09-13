@@ -121,6 +121,7 @@ struct Config {
     int         ipc_market_data_max_symbols{10};
     std::string kill_switch_trigger_file{"logs/kill_switch_trigger"};
     int         kill_switch_poll_interval_ms{250};
+    std::string kill_switch_shm_name{"/hft_kill_switch"};
 
     // Prometheus metrics
     bool        metrics_enabled{false};
