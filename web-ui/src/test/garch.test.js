@@ -1,9 +1,11 @@
 // @vitest-environment node
 /**
  * Tests for GARCH(1,1) volatility model.
- * Tests the core algorithm extracted from GARCHVolatility.jsx.
+ * Exercises the production implementation in src/utils/garchMath.js
+ * (imported by GARCHVolatility.jsx).
  */
 import { describe, it, expect } from 'vitest'
+import { calcLogReturns, calcGARCH, calcEWMAVol, calcParkinsonVol } from '../utils/garchMath'
 
 // Seeded PRNG for deterministic tests (mulberry32)
 function seededRandom(seed) {
@@ -16,47 +18,6 @@ function seededRandom(seed) {
 }
 const _rng = seededRandom(42)
 const rand = () => _rng()
-
-// Extracted from GARCHVolatility.jsx
-function calcLogReturns(closes) {
-  const returns = []
-  for (let i = 1; i < closes.length; i++) {
-    if (closes[i - 1] > 0 && closes[i] > 0) {
-      returns.push(Math.log(closes[i] / closes[i - 1]))
-    }
-  }
-  return returns
-}
-
-function calcGARCH(returns, maxIter = 100) {
-  if (returns.length < 30) return null
-  const n = returns.length
-  const mean = returns.reduce((s, r) => s + r, 0) / n
-  const centered = returns.map(r => r - mean)
-  const variance0 = centered.reduce((s, r) => s + r * r, 0) / n
-
-  const omega = variance0 * 0.1
-  const alpha = 0.1
-  const beta = 0.85
-  const condVar = new Array(n).fill(variance0)
-
-  for (let iter = 0; iter < maxIter; iter++) {
-    for (let i = 1; i < n; i++) {
-      const prevVar = condVar[i - 1]
-      const prevRet2 = centered[i - 1] * centered[i - 1]
-      condVar[i] = omega + alpha * prevRet2 + beta * prevVar
-      if (condVar[i] < 1e-10) condVar[i] = 1e-10
-    }
-  }
-
-  const forecast = omega + alpha * centered[n - 1] * centered[n - 1] + beta * condVar[n - 1]
-  const persistence = alpha + beta
-  const halfLife = persistence > 0 && persistence < 1
-    ? Math.log(0.5) / Math.log(persistence) : Infinity
-  const unconditionalVar = omega / (1 - alpha - beta)
-
-  return { omega, alpha, beta, forecast, persistence, halfLife, unconditionalVar, condVar }
-}
 
 describe('GARCH(1,1)', () => {
   // Generate synthetic price data with known volatility
@@ -75,6 +36,13 @@ describe('GARCH(1,1)', () => {
     expect(returns.length).toBe(2)
     expect(returns[0]).toBeCloseTo(Math.log(110 / 100), 8)
     expect(returns[1]).toBeCloseTo(Math.log(105 / 110), 8)
+  })
+
+  it('skips non-positive prices', () => {
+    const returns = calcLogReturns([100, 0, 105, 110])
+    // 0 → 105 and 100 → 0 transitions dropped
+    expect(returns.length).toBe(1)
+    expect(returns[0]).toBeCloseTo(Math.log(110 / 105), 8)
   })
 
   it('returns null for insufficient data (< 30)', () => {
@@ -107,11 +75,11 @@ describe('GARCH(1,1)', () => {
     expect(result.halfLife).toBeLessThan(Infinity)
   })
 
-  it('forecast is positive (variance is always positive)', () => {
+  it('forecast volatility is positive', () => {
     const prices = generatePrices(200, 100, 0.02)
     const returns = calcLogReturns(prices)
     const result = calcGARCH(returns)
-    expect(result.forecast).toBeGreaterThan(0)
+    expect(result.forecastVol).toBeGreaterThan(0)
   })
 
   it('unconditional variance is positive for stationary process', () => {
@@ -121,10 +89,44 @@ describe('GARCH(1,1)', () => {
     expect(result.unconditionalVar).toBeGreaterThan(0)
   })
 
-  it('conditional variance array has correct length', () => {
+  it('volatility series has correct length', () => {
     const prices = generatePrices(100, 100, 0.02)
     const returns = calcLogReturns(prices)
     const result = calcGARCH(returns)
-    expect(result.condVar.length).toBe(returns.length)
+    expect(result.volSeries.length).toBe(returns.length)
+  })
+})
+
+describe('EWMA Volatility', () => {
+  it('returns null for insufficient data', () => {
+    expect(calcEWMAVol([0.01, 0.02, 0.01])).toBeNull()
+  })
+
+  it('produces a vol series matching input length', () => {
+    const returns = Array.from({ length: 60 }, () => (rand() - 0.5) * 0.04)
+    const result = calcEWMAVol(returns, 0.94)
+    expect(result.volSeries.length).toBe(60)
+    expect(result.currentVol).toBe(result.volSeries[59])
+    expect(result.lambda).toBe(0.94)
+  })
+
+  it('volatility is always non-negative', () => {
+    const returns = Array.from({ length: 60 }, () => (rand() - 0.5) * 0.06)
+    const result = calcEWMAVol(returns)
+    result.volSeries.forEach(v => expect(v).toBeGreaterThanOrEqual(0))
+  })
+})
+
+describe('Parkinson Volatility', () => {
+  it('returns null when fewer highs than period', () => {
+    expect(calcParkinsonVol([1, 2, 3], [1, 2, 3], 20)).toBeNull()
+  })
+
+  it('produces n - period + 1 vol points', () => {
+    const highs = Array.from({ length: 50 }, (_, i) => 100 + i + rand())
+    const lows = highs.map(h => h - 1 - rand())
+    const result = calcParkinsonVol(highs, lows, 20)
+    expect(result.volSeries.length).toBe(50 - 20 + 1)
+    expect(result.currentVol).toBeGreaterThan(0)
   })
 })

@@ -1,9 +1,11 @@
 // @vitest-environment node
 /**
  * Tests for Kalman Filter (1D and 2D).
- * Tests the core algorithm extracted from KalmanFilterPrice.jsx.
+ * Exercises the production implementation in src/utils/kalmanMath.js
+ * (imported by KalmanFilterPrice.jsx).
  */
 import { describe, it, expect, beforeEach } from 'vitest'
+import { KalmanFilter1D, KalmanFilter2D } from '../utils/kalmanMath'
 
 // Seeded random for reproducible stochastic tests
 let seed = 12345
@@ -13,71 +15,6 @@ function seededRandom() {
 }
 
 beforeEach(() => { seed = 12345 })
-
-// 1D Kalman Filter — extracted from KalmanFilterPrice.jsx
-class KalmanFilter1D {
-  constructor({ processNoise = 1e-5, measurementNoise = 1e-3, initialEstimate = 0, initialVariance = 1 } = {}) {
-    this.x = initialEstimate
-    this.p = initialVariance
-    this.q = processNoise
-    this.r = measurementNoise
-    this.k = 0
-    this.gainHistory = []
-    this.estimateHistory = []
-    this.varianceHistory = []
-  }
-  update(measurement) {
-    this.p = this.p + this.q
-    this.k = this.p / (this.p + this.r)
-    this.x = this.x + this.k * (measurement - this.x)
-    this.p = (1 - this.k) * this.p
-    this.gainHistory.push(this.k)
-    this.estimateHistory.push(this.x)
-    this.varianceHistory.push(this.p)
-    return this.x
-  }
-}
-
-// 2D Kalman Filter — extracted from KalmanFilterPrice.jsx
-class KalmanFilter2D {
-  constructor({ processNoise = 1e-5, measurementNoise = 1e-3, dt = 1 } = {}) {
-    this.x = [0, 0]
-    this.P = [[1, 0], [0, 1]]
-    this.Q = [[processNoise * dt, 0], [0, processNoise * dt]]
-    this.R = [[measurementNoise, 0], [0, measurementNoise]]
-    this.F = [[1, dt], [0, 1]]
-    this.H = [[1, 0]]
-    this.estimateHistory = []
-    this.velocityHistory = []
-  }
-  update(measurement) {
-    this.x = [
-      this.F[0][0] * this.x[0] + this.F[0][1] * this.x[1],
-      this.F[1][0] * this.x[0] + this.F[1][1] * this.x[1],
-    ]
-    // Predict: P = F*P*F^T + Q
-    const dt = this.F[0][1]
-    const p00 = this.P[0][0], p01 = this.P[0][1], p10 = this.P[1][0], p11 = this.P[1][1]
-    this.P = [
-      [p00 + dt*p10 + dt*(p01 + dt*p11) + this.Q[0][0], p01 + dt*p11 + this.Q[0][1]],
-      [p10 + dt*p11 + this.Q[1][0], p11 + this.Q[1][1]],
-    ]
-    const S = this.H[0][0] * this.P[0][0] * this.H[0][0] + this.R[0][0]
-    const K = [this.P[0][0] * this.H[0][0] / S, this.P[1][0] * this.H[0][0] / S]
-    const innovation = measurement - (this.H[0][0] * this.x[0])
-    this.x[0] += K[0] * innovation
-    this.x[1] += K[1] * innovation
-    this.P = [
-      [this.P[0][0] - K[0] * this.H[0][0] * this.P[0][0],
-       this.P[0][1] - K[0] * this.H[0][0] * this.P[0][1]],
-      [this.P[1][0] - K[1] * this.H[0][0] * this.P[0][0],
-       this.P[1][1] - K[1] * this.H[0][0] * this.P[0][1]],
-    ]
-    this.estimateHistory.push(this.x[0])
-    this.velocityHistory.push(this.x[1])
-    return this.x[0]
-  }
-}
 
 describe('KalmanFilter1D', () => {
   it('initializes with given parameters', () => {
@@ -136,6 +73,14 @@ describe('KalmanFilter1D', () => {
     expect(Math.abs(lastEstimate - lastTrue)).toBeLessThan(5)
   })
 
+  it('history is capped at 200 entries', () => {
+    const kf = new KalmanFilter1D()
+    for (let i = 0; i < 250; i++) kf.update(100)
+    expect(kf.gainHistory.length).toBe(200)
+    expect(kf.estimateHistory.length).toBe(200)
+    expect(kf.varianceHistory.length).toBe(200)
+  })
+
   it('residuals are approximately white (uncorrelated) for correct model', () => {
     const kf = new KalmanFilter1D({ initialEstimate: 100, processNoise: 0.01, measurementNoise: 1 })
     const measurements = Array.from({ length: 500 }, () => 100 + (seededRandom() - 0.5) * 2)
@@ -184,9 +129,16 @@ describe('KalmanFilter2D', () => {
     expect(Math.abs(kf.x[1] - velocity)).toBeLessThan(1) // Close to true velocity
   })
 
-  it('velocity history has correct length', () => {
+  it('returns { estimate, velocity } per update', () => {
     const kf = new KalmanFilter2D()
-    for (let i = 0; i < 50; i++) kf.update(i * 1.5)
-    expect(kf.velocityHistory.length).toBe(50)
+    const out = kf.update(100)
+    expect(out).toHaveProperty('estimate')
+    expect(out).toHaveProperty('velocity')
+  })
+
+  it('velocity history is capped at 200 entries', () => {
+    const kf = new KalmanFilter2D()
+    for (let i = 0; i < 250; i++) kf.update(i * 1.5)
+    expect(kf.velocityHistory.length).toBe(200)
   })
 })
