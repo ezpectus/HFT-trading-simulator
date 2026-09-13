@@ -24,6 +24,7 @@ class PressureModel {
         double toxic_size_threshold{5.0};   // Multiplier of median level size
         int    trade_flow_lookback{20};     // Number of recent trades
         double large_order_percentile{0.9}; // Top 10% = large
+        bool   microprice_enabled{true};    // Include microprice-dev in impact score
     };
 
     PressureModel() : PressureModel(Params{}) {}
@@ -99,7 +100,7 @@ class PressureModel {
         result.toxic_score = compute_toxicity(ob, trades, n_trades);
 
         // ── Microprice deviation ──
-        result.microprice_dev = compute_microprice_dev(ob);
+        result.microprice_dev = params_.microprice_enabled ? compute_microprice_dev(ob) : 0.0;
 
         // ── Queue position estimation ──
         result.queue_pos_bid = estimate_queue_position(ob, true);

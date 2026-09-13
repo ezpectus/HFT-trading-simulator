@@ -150,10 +150,17 @@ bool init_signal_engines(BotContext& ctx) {
     }
     PressureModel::Params pp;
     pp.toxic_size_threshold = ctx.config.v2_toxic_size_threshold;
+    pp.obi_levels_5         = ctx.config.v2_obi_levels_5;
+    pp.obi_levels_10        = ctx.config.v2_obi_levels_10;
+    pp.obi_levels_20        = ctx.config.v2_obi_levels_20;
+    pp.microprice_enabled   = ctx.config.pressure_microprice_enabled;
     ctx.pressure_model      = std::make_unique<PressureModel>(pp);
     SignalEngine::Params ep;
     ep.fast_ema_period  = ctx.config.fast_ema_period;
     ep.slow_ema_period  = ctx.config.slow_ema_period;
+    ep.fast_ema_enabled = ctx.config.fast_ema_enabled;
+    ep.fft_enabled      = ctx.config.fft_enabled;
+    ep.fft_min_candles  = ctx.config.fft_min_candles;
     ep.obi_enabled      = ctx.config.obi_enabled;
     ep.vwap_enabled     = ctx.config.vwap_enabled;
     ep.pressure_enabled = ctx.config.pressure_model_enabled;
@@ -207,7 +214,7 @@ void init_kill_switch(BotContext& ctx) {
 
 void init_monitoring(BotContext& ctx) {
     ctx.health_server = std::make_unique<HealthServer>(
-        ctx.config.is_production ? ctx.config.metrics_port : 9091, ctx.config.metrics_host);
+        ctx.config.metrics_port, ctx.config.metrics_host, ctx.config.metrics_enabled);
     ctx.health_server->start(&ctx.sys_monitor);
 }
 

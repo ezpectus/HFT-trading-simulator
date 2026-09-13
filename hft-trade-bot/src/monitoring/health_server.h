@@ -33,8 +33,8 @@ namespace hft {
 
 class HealthServer {
   public:
-    HealthServer(uint16_t port = 9091, std::string host = "0.0.0.0")
-        : port_(port), host_(std::move(host)) {}
+    HealthServer(uint16_t port = 9091, std::string host = "0.0.0.0", bool metrics_enabled = true)
+        : port_(port), host_(std::move(host)), metrics_enabled_(metrics_enabled) {}
 
     ~HealthServer() { stop(); }
 
@@ -148,7 +148,8 @@ class HealthServer {
 
                 bool is_health = (req.find("GET /health") != std::string_view::npos) ||
                                  (req.find("GET / ") != std::string_view::npos);
-                bool is_metrics = (req.find("GET /metrics") != std::string_view::npos);
+                bool is_metrics =
+                    metrics_enabled_ && (req.find("GET /metrics") != std::string_view::npos);
 
                 std::string body;
                 std::string status_line;
@@ -209,6 +210,7 @@ class HealthServer {
 
     uint16_t          port_;
     std::string       host_;
+    bool              metrics_enabled_{true};
     socket_t          server_sock_{kInvalidSocket};
     std::thread       thread_;
     std::atomic<bool> running_{false};

@@ -79,6 +79,9 @@ signal_engine_v2:
     rsi_period: 14                         # RSI lookback
     adx_period: 14                         # ADX lookback
     vwap_window: 60                        # VWAP calculation window
+  obi_levels_5: 5                          # OBI depth snapshot levels (also feed PressureModel)
+  obi_levels_10: 10
+  obi_levels_20: 20
 
 # ── Signal engine v3 (HMM regime detection, optional) ──
 # Extends V2 with Hidden Markov Model regime detection.
@@ -90,9 +93,8 @@ signal_engine_v3:
 # L2 microstructure toxicity detection
 pressure_model:
   enabled: true
-  obi_levels: [5, 10, 20]                  # Order book depth levels for OBI
   toxicity_threshold: 0.7                  # Toxicity score above this = toxic
-  microprice_enabled: true                 # Calculate microprice from L2
+  microprice_enabled: true                 # Include microprice-dev in impact score
 
 # ── Adaptive order selector ──
 # Dynamically selects order type based on confidence + spread

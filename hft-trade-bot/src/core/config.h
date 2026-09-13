@@ -37,6 +37,7 @@ struct Config {
     bool obi_enabled{true}; // Order Book Imbalance
     bool vwap_enabled{true};
     bool pressure_model_enabled{true};
+    bool pressure_microprice_enabled{true};
 
     // HFT v2 — native signal engine
     bool    signal_engine_v2_enabled{true};
@@ -143,7 +144,7 @@ struct Config {
 
     // Prometheus metrics
     bool        metrics_enabled{false};
-    int         metrics_port{9090};
+    int         metrics_port{9091};
     std::string metrics_host{"0.0.0.0"};
 
     // Account seed — used until the first account broadcast arrives; the

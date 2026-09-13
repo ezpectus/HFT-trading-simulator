@@ -167,6 +167,11 @@ inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
         if (l["level"]) cfg.log_level = l["level"].as<std::string>();
         if (l["file"]) cfg.log_file = l["file"].as<std::string>();
     }
+    if (auto m = root["metrics"]) {
+        if (m["enabled"]) cfg.metrics_enabled = m["enabled"].as<bool>();
+        if (m["port"]) cfg.metrics_port = m["port"].as<int>();
+        if (m["host"]) cfg.metrics_host = m["host"].as<std::string>();
+    }
     if (auto ai = root["ai_signal_bot"]) {
         if (ai["enabled"]) cfg.ai_signal_enabled = ai["enabled"].as<bool>();
         if (ai["websocket_url"]) cfg.ai_signal_ws_url = ai["websocket_url"].as<std::string>();
@@ -251,6 +256,11 @@ inline void parse_prod_v2_weights(Config& cfg, const YAML::Node& root) {
             if (p["adx_period"]) cfg.v2_adx_period = p["adx_period"].as<int>();
             if (p["vwap_window"]) cfg.v2_vwap_window = p["vwap_window"].as<int>();
         }
+        // Multi-level OBI depths — same flat keys as the dev parser; they feed
+        // both SignalEngineV2 and PressureModel via bot_setup.
+        if (v2["obi_levels_5"]) cfg.v2_obi_levels_5 = v2["obi_levels_5"].as<int>();
+        if (v2["obi_levels_10"]) cfg.v2_obi_levels_10 = v2["obi_levels_10"].as<int>();
+        if (v2["obi_levels_20"]) cfg.v2_obi_levels_20 = v2["obi_levels_20"].as<int>();
     }
 }
 
@@ -299,6 +309,8 @@ inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
         if (pm["toxicity_threshold"])
             cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
+        if (pm["microprice_enabled"])
+            cfg.pressure_microprice_enabled = pm["microprice_enabled"].as<bool>();
     }
     if (auto db = root["database"]) {
         if (db["dsn"]) cfg.db_dsn = expand_env(db["dsn"].as<std::string>());

@@ -222,9 +222,12 @@ class SignalEngine {
     struct Params {
         int    fast_ema_period{9};
         int    slow_ema_period{21};
+        bool   fast_ema_enabled{true};
         bool   obi_enabled{true};
         bool   vwap_enabled{true};
         bool   pressure_enabled{true};
+        bool   fft_enabled{true};
+        int    fft_min_candles{64};
         double obi_threshold{0.3};      // |OBI| > 0.3 = significant
         double pressure_threshold{0.3}; // |pressure| > 0.3 = significant
     };
@@ -262,11 +265,14 @@ class SignalEngine {
         double current_price = closes.back();
 
         // EMA crossover
-        auto ema_fast = compute_ema(closes, params_.fast_ema_period);
-        auto ema_slow = compute_ema(closes, params_.slow_ema_period);
-
-        bool bullish = ema_fast.back() > ema_slow.back();
-        bool bearish = ema_fast.back() < ema_slow.back();
+        bool bullish = false;
+        bool bearish = false;
+        if (params_.fast_ema_enabled) {
+            auto ema_fast = compute_ema(closes, params_.fast_ema_period);
+            auto ema_slow = compute_ema(closes, params_.slow_ema_period);
+            bullish       = ema_fast.back() > ema_slow.back();
+            bearish       = ema_fast.back() < ema_slow.back();
+        }
 
         // OBI
         double obi = params_.obi_enabled ? compute_obi(ob) : 0.0;
@@ -294,7 +300,7 @@ class SignalEngine {
         if (current_price < vwap) short_votes++;
 
         // FFT spectral trend score
-        if (closes.size() >= 64u) {
+        if (params_.fft_enabled && closes.size() >= static_cast<size_t>(params_.fft_min_candles)) {
             double fft_trend = spectral_trend_score(closes);
             if (fft_trend > 0.2)
                 long_votes++;

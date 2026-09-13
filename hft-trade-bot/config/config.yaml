@@ -108,7 +108,9 @@ signal_engine_v2:
   ema_slow_period: 50           # Slow EMA for crossover signals
   rsi_period: 14                # RSI lookback period
   adx_period: 14                # ADX trend strength lookback
-  obi_levels: 20                # Order book levels for OBI calculation
+  obi_levels_5: 5               # OBI depth snapshot levels (also feed PressureModel)
+  obi_levels_10: 10
+  obi_levels_20: 20
   atr_period: 14                # ATR for volatility-based SL/TP
   sl_atr_mult: 1.5              # Stop loss = entry - 1.5×ATR (long)
   tp_atr_mult: 3.0              # Take profit = entry + 3.0×ATR (long)
@@ -146,9 +148,9 @@ latency_optimization:
 
 # ─── Metrics (Prometheus) ───
 metrics:
-  enabled: false                # Off by default in dev (enable for monitoring)
+  enabled: true                 # Gates /metrics route only — /health stays always-on
   port: 9091                    # Metrics HTTP server port
-  host: "localhost"             # Bind address
+  host: "0.0.0.0"               # Bind address (0.0.0.0 required for container port-publish)
 
 logging:
   level: "info"                 # debug | info | warn | error
