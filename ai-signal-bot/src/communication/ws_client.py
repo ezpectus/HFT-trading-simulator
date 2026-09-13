@@ -265,6 +265,37 @@ class ExchangeClient:
             await self._ws.send(json.dumps(msg, separators=(',', ':')))
         logger.info("Close position request: %s on %s", symbol, exchange)
 
+    async def cancel_order(self, order_id: str, symbol: str,
+                           exchange: str = "binance") -> None:
+        """Cancel a resting order — sim replies order_cancelled (or error)."""
+        if not self._ws:
+            return
+        msg = {
+            "type": "cancel_order",
+            "exchange": exchange,
+            "order_id": order_id,
+            "symbol": symbol,
+        }
+        if _HAS_ORJSON:
+            await self._ws.send(orjson.dumps(msg))
+        else:
+            await self._ws.send(json.dumps(msg, separators=(',', ':')))
+        logger.info("Cancel request: %s %s on %s", order_id, symbol, exchange)
+
+    async def cancel_all_orders(self, exchange: str = "binance",
+                                symbol: str | None = None) -> None:
+        """Cancel every resting order — sim broadcasts orders_cancelled."""
+        if not self._ws:
+            return
+        msg = {"type": "cancel_all_orders", "exchange": exchange}
+        if symbol:
+            msg["symbol"] = symbol
+        if _HAS_ORJSON:
+            await self._ws.send(orjson.dumps(msg))
+        else:
+            await self._ws.send(json.dumps(msg, separators=(',', ':')))
+        logger.info("Cancel-all request: %s on %s", symbol or "ALL", exchange)
+
     async def reconnect(self) -> bool:
         """Attempt to reconnect with exponential backoff."""
         await self.disconnect()

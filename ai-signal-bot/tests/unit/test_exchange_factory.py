@@ -185,10 +185,41 @@ class TestSimulatorAdapter:
         assert order is None
 
     @pytest.mark.asyncio
-    async def test_cancel_order_unsupported(self, fake_ws):
+    async def test_cancel_order_disconnected(self, fake_ws):
         adapter = SimulatorAdapter()
-        # Sim protocol has no cancel message — must not fake success
+        # No connection — must not fake success
         assert await adapter.cancel_order("ord_1", "BTC/USDT") is False
+
+    @pytest.mark.asyncio
+    async def test_cancel_order_round_trip(self, fake_ws):
+        """cancel_order sends the protocol message and resolves on
+        order_cancelled via the in-order response FIFO."""
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)  # sets _default_exchange
+        fake_ws.push({"type": "order_cancelled", "order_id": "ord_9",
+                      "symbol": "BTC/USDT"})
+        assert await adapter.cancel_order("ord_9", "BTC/USDT") is True
+        sent = fake_ws.sent[0]
+        assert sent["type"] == "cancel_order"
+        assert sent["order_id"] == "ord_9"
+        assert sent["exchange"] == "binance"
+        await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_place_order_sends_client_order_id(self, fake_ws):
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
+        fake_ws.push({"type": "fill", "order": {
+            "id": "ord_2", "symbol": "BTC/USDT", "side": "BUY",
+            "status": "FILLED", "filled_price": 65000.0,
+            "filled_quantity": 0.1, "fee": 0.0,
+        }})
+        await adapter.place_order("BTC/USDT", "BUY", 0.1,
+                                  client_order_id="sig_42")
+        assert fake_ws.sent[0]["client_order_id"] == "sig_42"
+        await adapter.close()
 
     @pytest.mark.asyncio
     async def test_get_balance(self, fake_ws):

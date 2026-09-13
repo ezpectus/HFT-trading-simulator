@@ -279,6 +279,7 @@ class RealAccountManager:
         leverage: int = 1, stop_loss: float | None = None,
         take_profit: float | None = None,
         max_retries: int = 3,
+        client_order_id: str | None = None,
     ) -> dict | None:
         """Place an order on the exchange with retry on transient errors."""
         if not self._exchange:
@@ -295,6 +296,10 @@ class RealAccountManager:
             params["stopLossPrice"] = stop_loss
         if take_profit:
             params["takeProfitPrice"] = take_profit
+        if client_order_id:
+            # Idempotency key — a retry after a timeout-after-fill must not
+            # open a second real order.
+            params["clientOrderId"] = client_order_id
 
         for attempt in range(max_retries):
             try:

@@ -112,6 +112,10 @@ class AISignalBot:
         # Ops alerting (only if config.alerting.enabled)
         self._alert_system = None
         self._day_start_balance: float | None = None
+        # Live-order adapter — created lazily once, reused across signals
+        # (a fresh ExchangeFactory per order pays load_markets per signal).
+        self._live_factory = None
+        self._live_adapter = None
 
         # Strategies
         self.strategies = build_strategies(config)
@@ -249,6 +253,8 @@ class AISignalBot:
             if metrics_server:
                 await metrics_server.stop()
             await self.llm_engine.close()
+            if self._live_factory is not None:
+                await self._live_factory.close()
             await self.exchange.disconnect()
             self.logger.info("AI Signal Bot stopped")
 
@@ -277,7 +283,8 @@ class AISignalBot:
         if not self._shm_producer.init():
             self._shm_producer = None
         self._shm_market = ShmMarketDataWriter(
-            name=self.config.shm_market_name, max_symbols=len(self._symbol_names))
+            name=self.config.shm_market_name,
+            max_symbols=self.config.shm_max_symbols or len(self._symbol_names))
         if not self._shm_market.init():
             self._shm_market = None
         self._shm_fills = ShmFillConsumer(
@@ -559,18 +566,30 @@ class AISignalBot:
             f"  Order: {side} {quantity:.4f} {signal.symbol} @ {signal.entry_price:.2f}"
         )
 
-    async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
-        """Execute a live order via ExchangeFactory → RealExchangeAdapter."""
+    async def _live_exec_adapter(self):
+        """Lazily create + cache the real-exchange adapter.
+
+        A fresh ExchangeFactory per signal pays a full exchange handshake
+        (load_markets, market-data init) in the hot path — create once, reuse.
+        A failed create leaves _live_adapter None so the next signal retries.
+        """
         from src.data_collection.exchange_factory import ExchangeFactory, ExchangeMode
 
-        factory = ExchangeFactory(
-            mode=ExchangeMode.REAL,
-            exchange=self.config.default_exchange,
-            symbols=self.config.symbols,
-            rest_timeout=self.config.rest_timeout,
-        )
+        if self._live_factory is None:
+            self._live_factory = ExchangeFactory(
+                mode=ExchangeMode.REAL,
+                exchange=self.config.default_exchange,
+                symbols=self.config.symbols,
+                rest_timeout=self.config.rest_timeout,
+            )
+        if self._live_adapter is None:
+            self._live_adapter = await self._live_factory.create()
+        return self._live_adapter
+
+    async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
+        """Execute a live order via the cached real-exchange adapter."""
         try:
-            adapter = await factory.create()
+            adapter = await self._live_exec_adapter()
             side = "buy" if signal.direction == SignalDirection.LONG else "sell"
             quantity = signal.position_size if hasattr(signal, "position_size") else 0.0
             if quantity <= 0:
@@ -582,6 +601,9 @@ class AISignalBot:
                 qty=quantity,
                 order_type="market",
                 price=signal.entry_price,
+                # Same dedup key the paper path uses — a retry after a
+                # timeout-after-fill must not open a second real order.
+                client_order_id=f"sig_{signal_id}",
             )
             if result:
                 self.logger.info(
@@ -592,8 +614,6 @@ class AISignalBot:
                 self.logger.error("  Live order failed for %s", signal.symbol)
         except (ConnectionError, OSError, RuntimeError, ValueError) as e:
             self.logger.error("  Live order error: %s", e)
-        finally:
-            await factory.close()
 
     def _snapshot_equity(self) -> None:
         """Persist an equity-curve point each signal tick (real account state)."""

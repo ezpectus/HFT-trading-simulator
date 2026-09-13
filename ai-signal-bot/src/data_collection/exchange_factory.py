@@ -128,7 +128,7 @@ class SimulatorAdapter:
                 msg_type = msg.get("type")
                 if msg_type == "candles":
                     self._update_market_cache(msg)
-                elif msg_type in ("fill", "error") and self._pending_orders:
+                elif msg_type in ("fill", "error", "order_cancelled") and self._pending_orders:
                     fut = self._pending_orders.pop(0)
                     if not fut.done():
                         fut.set_result(msg)
@@ -197,7 +197,8 @@ class SimulatorAdapter:
         return list(self._candles.get(self._key(symbol), []))[-limit:]
 
     async def place_order(self, symbol: str, side: str, qty: float,
-                          order_type: str = "market", price: float | None = None) -> dict | None:
+                          order_type: str = "market", price: float | None = None,
+                          client_order_id: str | None = None) -> dict | None:
         if self._ws is None or not self._connected:
             return None
         fut = asyncio.get_running_loop().create_future()
@@ -212,6 +213,9 @@ class SimulatorAdapter:
         }
         if price is not None:
             order["price"] = price
+        if client_order_id is not None:
+            # Sim dedups on this key — resubmits return the original fill.
+            order["client_order_id"] = client_order_id
         try:
             await self._ws.send(json.dumps(order))
             msg = await asyncio.wait_for(fut, timeout=10.0)
@@ -225,8 +229,26 @@ class SimulatorAdapter:
         return msg["order"]
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
-        # The simulator protocol has no cancel message — report honestly.
-        return False
+        # Protocol gained cancel_order in the S148 fix — replies arrive
+        # in-order on the same socket, resolved via the pending FIFO.
+        if self._ws is None or not self._connected:
+            return False
+        fut = asyncio.get_running_loop().create_future()
+        self._pending_orders.append(fut)
+        try:
+            await self._ws.send(json.dumps({
+                "type": "cancel_order",
+                "exchange": self._default_exchange or "binance",
+                "order_id": order_id,
+                "symbol": symbol,
+            }))
+            msg = await asyncio.wait_for(fut, timeout=10.0)
+        except (OSError, websockets.ConnectionClosed, asyncio.TimeoutError) as e:
+            logger.warning("[SimulatorAdapter] Cancel failed: %s", e)
+            if fut in self._pending_orders:
+                self._pending_orders.remove(fut)
+            return False
+        return bool(msg and msg.get("type") == "order_cancelled")
 
     async def get_balance(self) -> list[dict]:
         status = self._accounts.get(self._default_exchange or "", {})
@@ -304,10 +326,12 @@ class RealExchangeAdapter:
         return await self._market_data.get_candles(symbol, timeframe, limit)
 
     async def place_order(self, symbol: str, side: str, qty: float,
-                          order_type: str = "market", price: float | None = None) -> dict | None:
+                          order_type: str = "market", price: float | None = None,
+                          client_order_id: str | None = None) -> dict | None:
         if not self._account:
             return None
-        return await self._account.place_order(symbol, side, qty, order_type, price)
+        return await self._account.place_order(symbol, side, qty, order_type, price,
+                                               client_order_id=client_order_id)
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
         if not self._account:
