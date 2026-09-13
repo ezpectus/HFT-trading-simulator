@@ -40,6 +40,14 @@ class SignalReceiver : private SignalReceiverData {
         std::function<void(const std::string& symbol, const std::string& buy_exchange,
                            const std::string& sell_exchange, double buy_price, double sell_price,
                            double spread_bps, double max_quantity)>;
+    // Fired for every order update: status is PENDING/FILLED/REJECTED/CANCELLED.
+    using FillCallback =
+        std::function<void(const std::string& symbol, const std::string& side,
+                           const std::string& status, double qty, double price, double fee)>;
+    // Fired with the raw "accounts" map ({exchange_id: account}) on every broadcast.
+    using AccountCallback = std::function<void(const json& accounts)>;
+    // Fired on order_cancelled (symbol) and orders_cancelled (empty = all symbols).
+    using OrderCancelledCallback = std::function<void(const std::string& symbol)>;
 
     explicit SignalReceiver(const std::string& ws_url)
         : ws_url_(ws_url), client_(std::make_unique<WSClient>()) {}
@@ -135,6 +143,9 @@ class SignalReceiver : private SignalReceiverData {
     void on_signal(SignalCallback cb) { signal_cb_ = std::move(cb); }
     void on_candles(CandleCallback cb) { candle_cb_ = std::move(cb); }
     void on_arbitrage(ArbitrageCallback cb) { arb_cb_ = std::move(cb); }
+    void on_fill(FillCallback cb) { fill_cb_ = std::move(cb); }
+    void on_account(AccountCallback cb) { account_cb_ = std::move(cb); }
+    void on_order_cancelled(OrderCancelledCallback cb) { order_cancelled_cb_ = std::move(cb); }
 
     // Non-owning — producer lives in BotContext (bot_setup wires it after init).
     void set_fill_producer(ipc::ShmFillProducer* p) { fill_producer_ = p; }
@@ -210,9 +221,12 @@ class SignalReceiver : private SignalReceiverData {
     std::atomic<bool>           should_reconnect_{false};
     int                         reconnect_delay_{1000};
 
-    SignalCallback    signal_cb_;
-    CandleCallback    candle_cb_;
-    ArbitrageCallback arb_cb_;
+    SignalCallback         signal_cb_;
+    CandleCallback         candle_cb_;
+    ArbitrageCallback      arb_cb_;
+    FillCallback           fill_cb_;
+    AccountCallback        account_cb_;
+    OrderCancelledCallback order_cancelled_cb_;
 
     ipc::ShmFillProducer* fill_producer_{nullptr};
 };

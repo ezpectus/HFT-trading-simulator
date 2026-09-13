@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <ctime>
 
 #ifdef _WIN32
 #include <psapi.h>
@@ -55,7 +56,8 @@ void process_sl_tp(BotContext& ctx, double current_balance) {
             auto closed = ctx.pos_mgr.close_position(trigger.symbol, trigger.price);
             if (closed) {
                 ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed);
-                ctx.risk_mgr->update_pnl(closed->unrealized_pnl);
+                // daily_pnl_ is owned by update_pnl_v2 in update_risk_state —
+                // no per-close update_pnl here (it double-counts realized).
                 spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol,
                              closed->unrealized_pnl);
             }
@@ -84,6 +86,22 @@ void process_arbitrage(BotContext& ctx, bool can_trade) {
     }
 }
 
+// V2 pre-trade gate (S178): blacklist, leverage, per-symbol qty, total
+// exposure, daily-loss, peak-drawdown, rate throttle, margin. Runs before
+// every order submission — this is the production safety layer.
+static bool precheck_order(BotContext& ctx, const Signal& sig, double qty, double price) {
+    const double bal    = ctx.balance.load(std::memory_order_relaxed);
+    const double equity = bal + ctx.pos_mgr.total_unrealized_pnl();
+    auto check = ctx.risk_mgr->check_order(sig.symbol, sig.is_long() ? "BUY" : "SELL", qty, price,
+                                           std::max<int>(1, static_cast<int>(sig.leverage)), equity,
+                                           bal, ctx.pos_mgr.position_qty(sig.symbol));
+    if (!check.passed) {
+        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
+        spdlog::debug("Pre-trade risk rejected {}: {}", sig.symbol, check.reason);
+    }
+    return check.passed;
+}
+
 void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade) {
     if (!can_trade) return;
     while (true) {
@@ -97,14 +115,18 @@ void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade)
                 spdlog::info("AI Signal execution: {} {} conf={:.1f} entry={:.2f} ({})",
                              ai_sig.direction, ai_sig.symbol, ai_sig.confidence, ai_sig.entry_price,
                              ai_sig.reason);
-                if (ctx.executor->is_connected() &&
-                    ctx.executor->submit_order(ai_sig, qty,
-                                               ctx.receiver->get_order_book(ai_sig.symbol))) {
-                    ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
-                    ctx.pos_mgr.open_position(ai_sig, qty, ctx.config.default_exchange);
-                } else {
-                    spdlog::warn("Order not sent — local position NOT opened for {}",
-                                 ai_sig.symbol);
+                if (precheck_order(ctx, ai_sig, qty, ai_sig.entry_price)) {
+                    if (ctx.executor->is_connected() &&
+                        ctx.executor->submit_order(ai_sig, qty,
+                                                   ctx.receiver->get_order_book(ai_sig.symbol))) {
+                        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
+                        // Book on fill, not on send — a send ack is not a
+                        // position (S179).
+                        ctx.pos_mgr.add_pending_order(ai_sig, qty, ctx.config.default_exchange);
+                    } else {
+                        spdlog::warn("Order not sent — no local order recorded for {}",
+                                     ai_sig.symbol);
+                    }
                 }
                 ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
             }
@@ -198,6 +220,11 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
                  spread_bps, os.reason);
     bool sent = false;
     if (ctx.executor->is_connected()) {
+        const double order_price = (os.limit_price > 0) ? os.limit_price : mid;
+        if (!precheck_order(ctx, sig, qty, order_price)) {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
+            return;
+        }
         if (os.kind == FastOrder::OrderKind::MARKET) {
             sent = ctx.executor->submit_order(sig, qty, ob);
         } else {
@@ -213,10 +240,12 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
         if (sent)
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
         else
-            spdlog::warn("Order not sent — local position NOT opened for {}", sig.symbol);
+            spdlog::warn("Order not sent — no local order recorded for {}", sig.symbol);
     }
     ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
-    if (sent) ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
+    // Book on fill, not on send — resting LIMITs (GTD/POST/IOC leftovers)
+    // must not appear as positions before the exchange confirms them (S179).
+    if (sent) ctx.pos_mgr.add_pending_order(sig, qty, ctx.config.default_exchange);
 }
 
 void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade) {
@@ -285,11 +314,50 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
         if (qty <= 0) continue;
         spdlog::info("HFT v1 Signal: {} {} conf={:.1f} entry={:.2f} ({})", sig.direction,
                      sig.symbol, sig.confidence, sig.entry_price, sig.reason);
-        if (ctx.executor->is_connected() && ctx.executor->submit_order(sig, qty, ob)) {
-            ctx.pos_mgr.open_position(sig, qty, ctx.config.default_exchange);
-        } else {
-            spdlog::warn("Order not sent — local position NOT opened for {}", sig.symbol);
+        if (precheck_order(ctx, sig, qty, sig.entry_price)) {
+            if (ctx.executor->is_connected() && ctx.executor->submit_order(sig, qty, ob)) {
+                ctx.pos_mgr.add_pending_order(sig, qty, ctx.config.default_exchange);
+            } else {
+                spdlog::warn("Order not sent — no local order recorded for {}", sig.symbol);
+            }
         }
+    }
+}
+
+// Feeds the V2 risk trackers every loop tick (S178): UTC-day rollover resets
+// daily counters, mark-to-market updates daily PnL + peak equity, and the
+// daily-loss / max-drawdown limits trip the kill switch (the file trigger was
+// previously the only live path — activate() had zero callers).
+void update_risk_state(BotContext& ctx, double current_balance) {
+    static int        last_day_key = -1;
+    const std::time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm           tm_utc{};
+#ifdef _WIN32
+    gmtime_s(&tm_utc, &tt);
+#else
+    gmtime_r(&tt, &tm_utc);
+#endif
+    const int day_key = tm_utc.tm_year * 1000 + tm_utc.tm_yday;
+    if (day_key != last_day_key) {
+        last_day_key                = day_key;
+        ctx.daily_realized_baseline = ctx.pos_mgr.total_realized_pnl();
+        ctx.risk_mgr->reset_daily();
+    }
+
+    const double unrealized     = ctx.pos_mgr.total_unrealized_pnl();
+    const double realized_today = ctx.pos_mgr.total_realized_pnl() - ctx.daily_realized_baseline;
+    const double equity         = current_balance + unrealized;
+    ctx.risk_mgr->update_pnl_v2(realized_today, unrealized, equity);
+
+    if (ctx.risk_mgr->daily_pnl() < -ctx.config.daily_loss_limit) {
+        spdlog::critical("Daily loss limit breached: {:.2f} < -{:.2f}", ctx.risk_mgr->daily_pnl(),
+                         ctx.config.daily_loss_limit);
+        ctx.kill_switch->activate(KillSwitch::Reason::DAILY_LOSS);
+    }
+    const double peak = ctx.risk_mgr->peak_equity();
+    if (peak > 0.0 && (1.0 - equity / peak) > ctx.config.max_drawdown_pct) {
+        spdlog::critical("Max drawdown breached: equity={:.2f} peak={:.2f}", equity, peak);
+        ctx.kill_switch->activate(KillSwitch::Reason::MAX_DRAWDOWN);
     }
 }
 

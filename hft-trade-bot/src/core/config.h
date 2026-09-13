@@ -146,6 +146,10 @@ struct Config {
     int         metrics_port{9090};
     std::string metrics_host{"0.0.0.0"};
 
+    // Account seed — used until the first account broadcast arrives; the
+    // exchange's accounts[exchange].balance is authoritative after that.
+    double initial_balance{10000.0};
+
     // Production risk limits
     double max_position_qty{100.0};
     double max_total_exposure{100000.0};

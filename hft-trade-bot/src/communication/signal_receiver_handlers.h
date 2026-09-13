@@ -29,10 +29,17 @@ void handle_message_json(const json& data) {
         if (data.value("paused", false)) spdlog::info("Simulation PAUSED");
     } else if (type == "fill") {
         if (data.contains("order")) {
-            auto& o = data["order"];
-            spdlog::info("Order filled: {} {} {:.4f} @ {:.2f}", o.value("side", ""),
-                         o.value("symbol", ""), o.value("filled_quantity", 0.0),
-                         o.value("filled_price", 0.0));
+            auto&             o       = data["order"];
+            const std::string fside   = o.value("side", "");
+            const std::string fsymbol = o.value("symbol", "");
+            const std::string fstatus = o.value("status", "FILLED");
+            const double      fqty    = o.value("filled_quantity", 0.0);
+            const double      fprice  = o.value("filled_price", 0.0);
+            const double      ffee    = o.value("fee", 0.0);
+            spdlog::info("Order {}: {} {} {:.4f} @ {:.2f}", fstatus, fside, fsymbol, fqty, fprice);
+            // Reconcile the local position book — fills are the exchange's
+            // source of truth (S179).
+            if (fill_cb_) fill_cb_(fsymbol, fside, fstatus, fqty, fprice, ffee);
             // Share the fill with the Python side over SHM (ipc.fills ring).
             if (fill_producer_) {
                 const auto sid = symbol_id_impl(o.value("symbol", ""));
@@ -74,6 +81,13 @@ void handle_message_json(const json& data) {
                      data.value("trading_active", true) ? "ACTIVE" : "STOPPED");
     } else if (type == "arbitrage_scan") {
         handle_arbitrage_msg(data);
+    } else if (type == "order_cancelled") {
+        if (order_cancelled_cb_ && data.contains("order")) {
+            order_cancelled_cb_(data["order"].value("symbol", ""));
+        }
+    } else if (type == "orders_cancelled") {
+        // Cancel-all carries order_ids only — clear every pending order.
+        if (order_cancelled_cb_) order_cancelled_cb_("");
     }
 }
 
@@ -85,6 +99,9 @@ void handle_market_data(const json& data) {
     cv_.notify_one();
 
     if (data.contains("prices")) update_prices(data["prices"], data);
+    // Account snapshot (balance/equity/positions) rides every broadcast — the
+    // exchange is the source of truth for account state (S180).
+    if (data.contains("accounts") && account_cb_) account_cb_(data["accounts"]);
     if (data.contains("orderbooks")) update_orderbooks(data, data.value("timestamp", 0));
     if (data.contains("orderbook_deltas"))
         update_orderbook_deltas(data, data.value("timestamp", 0));

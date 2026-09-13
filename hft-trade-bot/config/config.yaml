@@ -85,6 +85,8 @@ risk:
   stop_loss_pct: 2.0            # Default SL distance from entry % (rec: 1-5)
   take_profit_pct: 4.0          # Default TP distance from entry % (rec: 2-10)
   max_position_size_pct: 10.0   # Max notional per position as % of balance
+  initial_balance: 10000.0      # Seed balance until the exchange's account
+                                # broadcast arrives (authoritative after that)
 
 # V1 Strategy toggles (fallback when signal_engine_v2.enabled = false)
 hft_strategies:

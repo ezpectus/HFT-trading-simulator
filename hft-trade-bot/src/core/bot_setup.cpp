@@ -91,6 +91,7 @@ void init_core_components(BotContext& ctx) {
         {},
     });
     ctx.executor = std::make_unique<OrderExecutor>(ctx.config.ws_url, ctx.config.default_exchange);
+    ctx.balance.store(ctx.config.initial_balance, std::memory_order_relaxed);
 }
 
 static SignalEngineV2::Params make_v2_params(const Config& c) {
@@ -289,6 +290,56 @@ void init_callbacks(BotContext& ctx) {
         ctx.latest_arb = {symbol, buy_ex, sell_ex, buy_p, sell_p, spread_bps, max_qty};
         ctx.arb_lock.unlock();
         ctx.has_arb_opportunity = true;
+    });
+    // Fills are the exchange's source of truth — reconcile the position book
+    // and feed the risk trackers from them (S178/S179).
+    ctx.receiver->on_fill([&](const std::string& sym, const std::string& side,
+                              const std::string& status, double qty, double price, double fee) {
+        auto res = ctx.pos_mgr.apply_fill(sym, side, qty, price, fee, status);
+        if (status == "FILLED") {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_FILLED);
+            if (res.effect == PositionManager::FillEffect::OPENED ||
+                res.effect == PositionManager::FillEffect::INCREASED) {
+                ctx.risk_mgr->on_fill(sym, side, qty, price, fee);
+            } else if (res.effect == PositionManager::FillEffect::REDUCED ||
+                       res.effect == PositionManager::FillEffect::CLOSED) {
+                ctx.risk_mgr->reduce_exposure(res.notional);
+            }
+            if (res.realized_pnl != 0.0) {
+                ctx.balance.fetch_add(res.realized_pnl, std::memory_order_relaxed);
+                spdlog::info("Position {} {} by fill: realized {:+.2f}", sym,
+                             res.effect == PositionManager::FillEffect::CLOSED ? "closed"
+                                                                               : "reduced",
+                             res.realized_pnl);
+            }
+        } else if (status == "REJECTED" || status == "CANCELLED") {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
+        }
+    });
+    // Account broadcast is the authoritative balance — the hardcoded seed is
+    // only a pre-connect placeholder (S180). Also reconciles exchange-side
+    // positions into the local book.
+    ctx.receiver->on_account([&](const json& accounts) {
+        auto it = accounts.find(ctx.config.default_exchange);
+        if (it == accounts.end() || !it->is_object()) return;
+        const double bal = it->value("balance", 0.0);
+        if (bal > 0.0) ctx.balance.store(bal, std::memory_order_relaxed);
+        if (it->contains("positions") && (*it)["positions"].is_array()) {
+            for (const auto& p : (*it)["positions"]) {
+                ctx.pos_mgr.sync_position(p.value("symbol", ""), p.value("side", "") == "BUY",
+                                          p.value("quantity", 0.0), p.value("entry_price", 0.0),
+                                          p.value("stop_loss", 0.0), p.value("take_profit", 0.0),
+                                          ctx.config.default_exchange);
+            }
+        }
+    });
+    // Exchange-side cancels release the pending-order slot so the symbol can
+    // be traded again.
+    ctx.receiver->on_order_cancelled([&](const std::string& sym) {
+        if (sym.empty())
+            ctx.pos_mgr.clear_pending_orders();
+        else
+            ctx.pos_mgr.cancel_pending(sym);
     });
 }
 

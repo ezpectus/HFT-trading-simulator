@@ -72,10 +72,15 @@ struct BotContext {
     SPSCQueue<Signal, 16> ai_signal_queue;
     std::mutex            ai_signal_queue_mtx;
 
+    // Initialized from config.initial_balance; kept in sync with the
+    // exchange's account broadcast (accounts[exchange].balance) — S180.
     std::atomic<double> balance{10000.0};
-    std::atomic<bool>   has_arb_opportunity{false};
-    ArbOpportunity      latest_arb{};
-    Spinlock            arb_lock;
+    // Snapshot of total_realized_pnl() at the last UTC-day rollover — daily
+    // realized PnL = total_realized_pnl() - daily_realized_baseline.
+    double            daily_realized_baseline{0.0};
+    std::atomic<bool> has_arb_opportunity{false};
+    ArbOpportunity    latest_arb{};
+    Spinlock          arb_lock;
 
     std::unordered_map<std::string, double> prices_cache;
     Spinlock                                prices_cache_lock;

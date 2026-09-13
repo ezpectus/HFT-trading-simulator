@@ -275,6 +275,7 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
             cfg.max_orders_per_second = r["max_orders_per_second"].as<int>();
         if (r["min_margin_ratio"]) cfg.min_margin_ratio = r["min_margin_ratio"].as<double>();
         if (r["max_leverage"]) cfg.max_leverage = r["max_leverage"].as<int>();
+        if (r["initial_balance"]) cfg.initial_balance = r["initial_balance"].as<double>();
         if (auto ks = r["kill_switch"]) {
             if (ks["trigger_file"])
                 cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();

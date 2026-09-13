@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
             const bool    can_trade =
                 ctx.receiver->is_trading_active() && ctx.kill_switch->can_trade();
 
+            update_risk_state(ctx, current_balance);
             process_sl_tp(ctx, current_balance);
             process_arbitrage(ctx, can_trade);
             process_ai_signals(ctx, current_balance, can_trade);

@@ -167,7 +167,8 @@ TEST_CASE("Max drawdown rejected") {
     RiskManager::Params params;
     params.max_drawdown_pct = 0.10; // 10%
     RiskManager rm(params);
-    rm.update_pnl_v2(0, -2000, 8000); // peak=10000, equity=8000 → 20% drawdown
+    rm.update_pnl_v2(0, 0, 10000);    // establish peak=10000 first
+    rm.update_pnl_v2(0, -2000, 8000); // equity=8000 → 20% drawdown from peak
     auto result = rm.check_order("BTC/USDT", "BUY", 0.1, 50000, 5, 8000, 4000, 0);
     CHECK_FALSE(result.passed);
     CHECK(result.code == 3);
