@@ -82,8 +82,9 @@ class TestConfigValidator:
     def test_missing_symbols_in_prices(self):
         cfg = valid_config()
         cfg["exchanges"]["binance"]["symbols"].append("SOL/USDT")
-        errors, _ = validate_config(cfg)
-        assert any("initial_prices" in e for e in errors)
+        # Listings are optional subsets — an unpriced listing warns, not errors
+        _, warnings = validate_config(cfg)
+        assert any("no initial price" in w for w in warnings)
 
     def test_missing_symbols_in_volatility(self):
         cfg = valid_config()

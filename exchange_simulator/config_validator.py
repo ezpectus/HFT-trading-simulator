@@ -43,9 +43,12 @@ def validate_config(config: dict) -> tuple[list[str], list[str]]:
     if errors:
         return errors, warnings
 
-    all_symbols = _validate_exchanges(config, errors, warnings)
+    _validate_exchanges(config, errors, warnings)
     initial_prices = _validate_initial_prices(config, errors)
     volatility = _validate_volatility(config, errors, warnings)
+    # The runtime universe is initial_prices — per-exchange symbol lists are
+    # optional restrictions, so cross-reference prices↔volatility, not listings
+    all_symbols = set(initial_prices.keys())
     _validate_cross_references(all_symbols, initial_prices, volatility, errors, warnings)
     _validate_market(config, errors, warnings)
     _validate_account(config, errors, warnings)
@@ -87,10 +90,17 @@ def _validate_exchanges(config: dict, errors: list[str], warnings: list[str]) ->
         elif slip < 0 or slip > 100:
             warnings.append(f"Exchange '{ex_id}' slippage_bps={slip} is unusually high")
 
-        symbols = ex_cfg.get("symbols", [])
-        if not symbols:
-            warnings.append(f"Exchange '{ex_id}' has no symbols defined")
-        all_symbols.update(symbols)
+        # Per-exchange symbol lists are optional: runtime trades the shared
+        # market universe (initial_prices). When present, they must be a subset.
+        listed = ex_cfg.get("symbols")
+        if listed:
+            known = set(config.get("initial_prices", {}).keys())
+            unknown = set(listed) - known
+            if unknown:
+                warnings.append(
+                    f"Exchange '{ex_id}' lists symbols with no initial price: {sorted(unknown)}"
+                )
+            all_symbols.update(listed)
     return all_symbols
 
 

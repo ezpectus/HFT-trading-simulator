@@ -63,11 +63,17 @@ class ExchangeWebSocketServer(
         port: int = 8765,
         arb_detector: ArbitrageDetector | None = None,
         control_token: str | None = None,
+        metrics_enabled: bool = True,
+        metrics_port: int | None = None,
+        metrics_host: str | None = None,
     ):
         self.exchanges = exchanges
         self.market = market
         self.host = host
         self.port = port
+        self._metrics_enabled = metrics_enabled
+        self._metrics_port = metrics_port
+        self._metrics_host = metrics_host
         self.arb_detector = arb_detector
         self._control_token = control_token
         self._authed_sockets: set = set()
@@ -181,9 +187,9 @@ class ExchangeWebSocketServer(
         self._running = True
         logger.info("WebSocket server starting on %s:%s", self.host, self.port)
 
-        # Start Prometheus metrics HTTP server on port+10
+        # Metrics HTTP server: configured port, else ws_port+10
         # (port+1=8766 conflicts with AI Signal Bot WebSocket)
-        metrics_port = self.port + 10
+        metrics_port = self._metrics_port or self.port + 10
 
         async with websockets.asyncio.server.serve(
             self._handle_client, self.host, self.port,
@@ -193,13 +199,18 @@ class ExchangeWebSocketServer(
         ):
             # Start market data broadcast loop
             broadcast_task = asyncio.create_task(self._broadcast_loop())
-            metrics_task = asyncio.create_task(self._run_metrics_server(metrics_port))
+            metrics_task = (
+                asyncio.create_task(self._run_metrics_server(metrics_port))
+                if self._metrics_enabled
+                else None
+            )
             self._audit_logger.register_callback(self._on_audit_event)
             try:
                 await self._shutdown_event.wait()  # Run until shutdown requested
             finally:
                 broadcast_task.cancel()
-                metrics_task.cancel()
+                if metrics_task:
+                    metrics_task.cancel()
                 self._audit_logger.unregister_callback(self._on_audit_event)
 
     async def _run_metrics_server(self, port: int) -> None:
@@ -237,9 +248,10 @@ class ExchangeWebSocketServer(
         app.router.add_get("/ready", ready_handler)
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, self.host, port)
+        metrics_host = self._metrics_host or self.host
+        site = web.TCPSite(runner, metrics_host, port)
         await site.start()
-        logger.info("Health/metrics endpoints on http://%s:%s/health, /live, /ready, /metrics", self.host, port)
+        logger.info("Health/metrics endpoints on http://%s:%s/health, /live, /ready, /metrics", metrics_host, port)
         await self._shutdown_event.wait()  # Run until shutdown requested
 
     async def stop(self) -> None:

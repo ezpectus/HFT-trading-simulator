@@ -29,7 +29,7 @@ except ImportError:
 
 from exchange_simulator.arbitrage import ArbitrageDetector  # noqa: E402
 from exchange_simulator.audit_logger import AuditLogger, set_audit_logger  # noqa: E402
-from exchange_simulator.config_validator import validate_or_exit  # noqa: E402
+from exchange_simulator.config_validator import TIMEFRAME_SECONDS, validate_or_exit  # noqa: E402
 from exchange_simulator.data_export import DataExporter  # noqa: E402
 from exchange_simulator.exchange import SimulatedExchange  # noqa: E402
 from exchange_simulator.market_simulator import MarketSimulator  # noqa: E402
@@ -65,7 +65,9 @@ def build_exchanges(config: dict) -> tuple[dict[str, SimulatedExchange], MarketS
         exchanges=exchange_ids,
         initial_prices=config["initial_prices"],
         volatility=config["volatility"],
-        timeframe_seconds=config["market"]["timeframe_seconds"],
+        # timeframe_seconds wins; else map the named timeframe (both validated)
+        timeframe_seconds=config["market"].get("timeframe_seconds")
+        or TIMEFRAME_SECONDS[config["market"]["timeframe"]],
         drift=config["market"]["drift"],
         seed=config["market"].get("seed"),
         warmup_candles=config["market"]["warmup_candles"],
@@ -82,6 +84,7 @@ def build_exchanges(config: dict) -> tuple[dict[str, SimulatedExchange], MarketS
             market=market,
             initial_balance=config["account"]["initial_balance"],
             leverage=config["account"]["leverage"],
+            currency=config["account"].get("currency", "USDT"),
         )
 
     return exchanges, market
@@ -121,6 +124,7 @@ async def run_websocket_server(
     """Run the WebSocket server with graceful shutdown support."""
     ws_cfg = config.get("websocket", {})
     arb_cfg = config.get("arbitrage", {})
+    metrics_cfg = config.get("metrics", {})
 
     arb_detector = ArbitrageDetector(
         exchanges=exchanges,
@@ -148,6 +152,9 @@ async def run_websocket_server(
         port=ws_cfg.get("port", 8765),
         arb_detector=arb_detector,
         control_token=control_token,
+        metrics_enabled=bool(metrics_cfg.get("enabled", True)),
+        metrics_port=metrics_cfg.get("port"),
+        metrics_host=metrics_cfg.get("host"),
     )
 
     # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C)
@@ -252,7 +259,8 @@ def main():
         run_headless(exchanges, market, config, logger)
         return
 
-    if not args.no_visualizer:
+    # CLI --no-visualizer is the override; yaml visualizer.enabled is the base gate
+    if not args.no_visualizer and config.get("visualizer", {}).get("enabled", True):
         run_visualizer_thread(exchanges, config, logger)
         logger.info("Terminal visualizer started")
 

@@ -34,11 +34,14 @@ def test_symbol_consistency():
     # Get symbol lists
     shared_symbols = set(shared_config["symbols"])
     
-    # Get symbols from exchange config (all exchanges should have same symbols)
+    # Get symbols from exchange config. Per-exchange lists are optional — the
+    # runtime universe is initial_prices, so fall back to it when absent.
     exchange_symbols = set()
     for exchange in exchange_config["exchanges"].values():
         if "symbols" in exchange:
             exchange_symbols.update(exchange["symbols"])
+    if not exchange_symbols:
+        exchange_symbols = set(exchange_config.get("initial_prices", {}).keys())
     
     ai_symbols = set(ai_config["trading"]["symbols"])
     hft_symbols = set(hft_config["trading"]["symbols"])

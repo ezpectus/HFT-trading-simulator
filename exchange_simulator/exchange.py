@@ -47,6 +47,7 @@ class SimulatedExchange(
         market: MarketSimulator,
         initial_balance: float = 10000.0,
         leverage: int = 10,
+        currency: str = "USDT",
     ):
         self.exchange_id = exchange_id
         self.name = name
@@ -57,6 +58,7 @@ class SimulatedExchange(
             exchange=exchange_id,
             balance=initial_balance,
             leverage=leverage,
+            currency=currency,
         )
         self._order_history: deque[Order] = deque(maxlen=10000)
         self._order_counter: int = 0

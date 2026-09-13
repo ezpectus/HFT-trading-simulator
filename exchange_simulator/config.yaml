@@ -20,166 +20,16 @@ exchanges:
     name: "Binance Futures"
     fee_pct: 0.04              # Trading fee as percentage (0.04 = 0.04%)
     slippage_bps: 2.0          # Simulated slippage in basis points (1 bps = 0.01%)
-    symbols:                   # Symbols available on this exchange
-      - BTC/USDT
-      - ETH/USDT
-      - SOL/USDT
-      - BNB/USDT
-      - XRP/USDT
-      - ADA/USDT
-      - DOGE/USDT
-      - DOT/USDT
-      - MATIC/USDT
-      - SHIB/USDT
-      - AVAX/USDT
-      - LINK/USDT
-      - UNI/USDT
-      - ATOM/USDT
-      - LTC/USDT
-      - NEAR/USDT
-      - XLM/USDT
-      - ALGO/USDT
-      - VET/USDT
-      - FIL/USDT
-      - APT/USDT
-      - INJ/USDT
-      - OP/USDT
-      - ARB/USDT
-      - QNT/USDT
-      - ETC/USDT
-      - HBAR/USDT
-      - ICP/USDT
-      - LDO/USDT
-      - GRT/USDT
-      - STX/USDT
-      - AAVE/USDT
-      - MKR/USDT
-      - COMP/USDT
-      - SUSHI/USDT
-      - CRV/USDT
-      - 1INCH/USDT
-      - SNX/USDT
-      - MANA/USDT
-      - SAND/USDT
-      - AXS/USDT
-      - ENJ/USDT
-      - FTM/USDT
-      - CRO/USDT
-      - GLM/USDT
-      - KAVA/USDT
-      - ROSE/USDT
-      - CELO/USDT
-      - MINA/USDT
 
   bybit:
     name: "Bybit Derivatives"
     fee_pct: 0.06              # Higher fee than Binance
     slippage_bps: 3.0          # More slippage = less favorable fills
-    symbols:
-      - BTC/USDT
-      - ETH/USDT
-      - SOL/USDT
-      - BNB/USDT
-      - XRP/USDT
-      - ADA/USDT
-      - DOGE/USDT
-      - DOT/USDT
-      - MATIC/USDT
-      - SHIB/USDT
-      - AVAX/USDT
-      - LINK/USDT
-      - UNI/USDT
-      - ATOM/USDT
-      - LTC/USDT
-      - NEAR/USDT
-      - XLM/USDT
-      - ALGO/USDT
-      - VET/USDT
-      - FIL/USDT
-      - APT/USDT
-      - INJ/USDT
-      - OP/USDT
-      - ARB/USDT
-      - QNT/USDT
-      - ETC/USDT
-      - HBAR/USDT
-      - ICP/USDT
-      - LDO/USDT
-      - GRT/USDT
-      - STX/USDT
-      - AAVE/USDT
-      - MKR/USDT
-      - COMP/USDT
-      - SUSHI/USDT
-      - CRV/USDT
-      - 1INCH/USDT
-      - SNX/USDT
-      - MANA/USDT
-      - SAND/USDT
-      - AXS/USDT
-      - ENJ/USDT
-      - FTM/USDT
-      - CRO/USDT
-      - GLM/USDT
-      - KAVA/USDT
-      - ROSE/USDT
-      - CELO/USDT
-      - MINA/USDT
 
   okx:
     name: "OKX Perpetual"
     fee_pct: 0.05
     slippage_bps: 2.5
-    symbols:
-      - BTC/USDT
-      - ETH/USDT
-      - SOL/USDT
-      - BNB/USDT
-      - XRP/USDT
-      - ADA/USDT
-      - DOGE/USDT
-      - DOT/USDT
-      - MATIC/USDT
-      - SHIB/USDT
-      - AVAX/USDT
-      - LINK/USDT
-      - UNI/USDT
-      - ATOM/USDT
-      - LTC/USDT
-      - NEAR/USDT
-      - XLM/USDT
-      - ALGO/USDT
-      - VET/USDT
-      - FIL/USDT
-      - APT/USDT
-      - INJ/USDT
-      - OP/USDT
-      - ARB/USDT
-      - QNT/USDT
-      - ETC/USDT
-      - HBAR/USDT
-      - ICP/USDT
-      - LDO/USDT
-      - GRT/USDT
-      - STX/USDT
-      - AAVE/USDT
-      - MKR/USDT
-      - COMP/USDT
-      - SUSHI/USDT
-      - CRV/USDT
-      - 1INCH/USDT
-      - SNX/USDT
-      - MANA/USDT
-      - SAND/USDT
-      - AXS/USDT
-      - ENJ/USDT
-      - FTM/USDT
-      - CRO/USDT
-      - GLM/USDT
-      - KAVA/USDT
-      - ROSE/USDT
-      - CELO/USDT
-      - MINA/USDT
 
 # Initial prices (USD) — starting reference prices for each symbol
 initial_prices:
@@ -315,9 +165,9 @@ websocket:
 
 # Prometheus metrics — optional monitoring endpoint
 metrics:
-  enabled: false              # Off by default (enable for monitoring)
+  enabled: true               # Health/metrics HTTP server (compose healthchecks use /health)
   port: 8775                  # Metrics HTTP server port (websocket port + 10)
-  host: "localhost"           # Bind address
+  host: "localhost"           # Bind address (falls back to websocket.host when unset)
 
 # Arbitrage detection — scans for cross-exchange price differences
 arbitrage:
