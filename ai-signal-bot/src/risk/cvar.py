@@ -4,11 +4,45 @@
 # tail risk analysis and extreme value theory support.
 
 from dataclasses import dataclass
+from types import ModuleType
 
 import numpy as np
-from scipy import stats
 
-from .var import VaRCalculator
+stats: ModuleType | None
+try:
+    from scipy import stats  # noqa: F811 — rebinds the ModuleType|None declaration
+    _HAS_SCIPY = True
+except ImportError:
+    _HAS_SCIPY = False
+    stats = None
+
+from .var import VaRCalculator, _norm_ppf  # noqa: E402 — after scipy guard
+
+
+def _norm_pdf(z: float) -> float:
+    """Standard normal PDF. Pure math — no scipy needed."""
+    import math
+    return math.exp(-0.5 * z * z) / math.sqrt(2.0 * math.pi)
+
+
+def _skew(returns: np.ndarray) -> float:
+    """Sample skewness (scipy.stats.skew-compatible, biased estimator)."""
+    if _HAS_SCIPY:
+        return float(stats.skew(returns))
+    std = float(np.std(returns))
+    if std == 0:
+        return 0.0
+    return float(np.mean(((returns - np.mean(returns)) / std) ** 3))
+
+
+def _kurtosis(returns: np.ndarray) -> float:
+    """Excess kurtosis (scipy.stats.kurtosis default fisher=True)."""
+    if _HAS_SCIPY:
+        return float(stats.kurtosis(returns))
+    std = float(np.std(returns))
+    if std == 0:
+        return 0.0
+    return float(np.mean(((returns - np.mean(returns)) / std) ** 4) - 3.0)
 
 
 @dataclass
@@ -78,8 +112,8 @@ class CVaRCalculator:
         """Parametric CVaR using normal distribution."""
         mean = np.mean(returns)
         std = np.std(returns)
-        z_score = stats.norm.ppf(1 - cl)
-        return mean * th - std * np.sqrt(th) * (stats.norm.pdf(z_score) / (1 - cl))
+        z_score = _norm_ppf(1 - cl)
+        return mean * th - std * np.sqrt(th) * (_norm_pdf(z_score) / (1 - cl))
 
     @staticmethod
     def _cvar_monte_carlo(returns: np.ndarray, var_result, th: float) -> float:
@@ -109,10 +143,10 @@ class CVaRCalculator:
         cvar_result = self.calculate_cvar(returns, cl)
 
         # Calculate skewness (measure of tail asymmetry)
-        skewness = stats.skew(returns)
+        skewness = _skew(returns)
 
         # Calculate kurtosis (measure of tail fatness)
-        kurtosis = stats.kurtosis(returns)
+        kurtosis = _kurtosis(returns)
 
         # Calculate tail index (extreme value theory)
         tail_index = self._calculate_tail_index(returns)

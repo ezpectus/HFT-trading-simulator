@@ -1038,3 +1038,7 @@ Board: **0 open**.
 ## R65 — slop-verify: выборочная QA done-log — все проверки прошли
 
 Sample 6 записей: S132 (kill-switch consumer — run.py:293-340 + metric живы), S136 (consistency-check wired pre-commit:481/902), S134 (helm probes /live+/ready:8080), S131 (`hft_active_positions` реальный эмиттер system_monitor.h:231), S130 (BacktestRunner получает `ctx.signals.connected`+sendSignalMessage+backtestResult — правильный сокет), S137 (deploy.yml → 8080/ready + 3000/health). 0 регрессий.
+
+## R66 — slop-audit + fix: S146 undeclared deps (closed)
+
+Reverse-dependency sweep (imports vs requirements.txt): **tabulate** — unguarded на startup-пути (run.py:38 → monitoring/__init__ → tracker.py:8), ноль транзитивных провайдеров, Docker-образ не мог стартовать. **scipy** — unguarded только в cvar.py (var/markowitz/vol_surface guarded) → `cvar_analysis` endpoint crash. Fix: tabulate declared; cvar.py получил var.py-конвенцию (`_HAS_SCIPY` + BSM `_norm_ppf` + `_norm_pdf` + numpy skew/kurt). Blocked-import verify: результаты идентичны ~1e-10. Clean: lightgbm/xgboost/sklearn (ml_ensemble — guarded), pyarrow, opentelemetry, psutil (tests only).
