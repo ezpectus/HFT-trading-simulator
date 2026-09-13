@@ -1766,3 +1766,25 @@ Scope: `exchange_simulator/` modules outside the R11/R12/R18/R71 clusters — `a
 **Fix:** real emit sites wired — `CONFIG_CHANGE` in `_handle_update_config` (metadata={keys}), `SYSTEM_STOP` in `start()`'s finally (covers SIGTERM/SIGINT), `ERROR` in `_process_message`'s handler except, `WARNING` in `_parse_message`'s invalid-json/msgpack paths. `POSITION_MODIFIED` removed from the enum — no domain event exists (positions mutate only via orders). `audit_logger` docstring corrected. Runtime-verified: CONFIG_CHANGE emits with applied-key metadata.
 
 **Verified clean this round:** both `conftest.py` files are legitimate sys.path shims; `ws_constants.py` flags all consumed; `arbitrage.py` live (detector→broadcast→auto-execute); `audit_logger` reaches `AuditLogViewer` via `audit_logs` broadcast; `data_export` wired to `--export` CLI; `monitor.py`/`run_backtest.py` documented CLIs with resolving imports; all 13 `models.py` classes consumed; caches bounded (deque maxlen / `_max_*` trims); `ws_metrics` exports all 9 counters; `hft-executor` Rust crate fully absent from the tree; `account.currency` now wired end-to-end (S159 fix confirmed at `__main__.py:87` → `exchange.py:50` → `models.py:414`).
+
+## Round 100 — 2026-09-15 — grafana/e2e/config-accessor sweep + stale-docs resweep: 2 open findings (S194–S195)
+
+Scope: `monitoring/grafana/` (5 dashboard JSONs + provisioning yml), `web-ui/e2e/` (4 specs + `dismiss-onboarding.js` + `playwright.config.js`), `ai-signal-bot/config/` (`__init__.py` 448-line accessor layer + `settings.testnet.yaml`), plus a docs-vs-deleted-code resweep after R97/R99 deletions. Recorded only; no source changes.
+
+**S194 (Medium) — Open.** `ai-signal-bot/config/settings.testnet.yaml` is a broken testnet path on four independent layers:
+
+1. **Validation rejects it standalone.** The file is a fragment containing only an `exchange:` section; `SignalBotConfig.load(validate=True)` raises `ValueError` with 5 errors (missing `trading`/`risk`/`strategies`/`indicators` sections + `exchange.websocket_url`/`default_exchange`). The documented command `python run.py --config config/settings.testnet.yaml` (`docs/theory/useful_info_en.md:151`) therefore dies at startup — verified by running it.
+2. **`testnet: true` never reaches the exchange layer.** Nothing reads `exchange.testnet` (or `mode`/`name`/`api_key`/`api_secret`/`symbols`) from config — `run.py:580-585` constructs `ExchangeFactory(mode=REAL, exchange=default_exchange, symbols, rest_timeout)` with no `testnet`/`api_key`/`api_secret`. Factory default `testnet=False` means a fixed config would still hit **real Binance, not the sandbox**.
+3. **Env-var names mismatch.** The yaml interpolates `${BINANCE_TESTNET_API_KEY}`/`${BINANCE_TESTNET_API_SECRET}`; `ExchangeFactory` reads `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` (`exchange_factory.py:371-372`).
+4. **`${VAR}` is never expanded.** `config/__init__.py:26` uses `yaml.safe_load` with no env-substitution — credentials would load as the literal string `"${BINANCE_TESTNET_API_KEY}"`.
+
+The file's own header also advertises CLI flags that don't exist (`--exchange-mode real --testnet --api-key/--api-secret` — `run.py` argparse has only `--config`/`--dashboard`/`--metrics`/`--backtest`). A sandbox-trading config that either crashes on load or silently routes to the live venue is exactly the failure mode a testnet preset exists to prevent.
+
+**S195 (Info) — Open.** Stale-doc cluster — documentation references modules deleted in R99 and config keys that never existed:
+
+- `docs/ARCHITECTURE.md:201` lists `options_strategies.py` / `options_pricing.py` as strategy helpers — both deleted in R99 (S191).
+- `docs/TESTING.md:129` lists `test_options_pricing` in the test inventory — deleted in R99.
+- `docs/theory/TECHNICAL_REFERENCE.md:1427-1428` lists both dead options files as live modules.
+- `docs/DEPLOYMENT.md:734-739` "HFT Trade Bot" tuning block shows `latency_optimization.enable_thread_pinning`, `enable_spinlocks`, `shm.ring_buffer_size` — **none are parsed**: the real keys are `thread_pinning`/`execution_thread_core` (prod names, `config_parser.h:317-319`) or `thread_pinning_enabled`/`execution_core_id` (dev names, `:157-159`), and SHM sizing lives at `ipc.signals.capacity`/`ipc.fills.capacity` (`:208,213`). Following the doc produces a config the parser silently ignores.
+
+**Verified clean this round:** all 70 `SignalBotConfig` accessors have live readers (only `__getattr__` fallback unused — legitimate); all 5 grafana dashboards are valid JSON with real panels (flat + `{"dashboard":…}` wrapped formats are both file-provisionable; 46 exprs across 4 files; `ai_signal_bot_metrics.json` flat-format, others wrapped — inconsistent but loadable); `dashboards.yml` provider `options.path` matches the compose mount; datasource `url: http://prometheus:9090` is correct container-to-container; `playwright.config.js` is wired (`dev:mock` script exists, baseURL/webServer agree); all 3 `dismiss-onboarding.js` exports imported; `monitoring/alerts/` is an empty untracked dir; `latency_optimization` dual key-names work because dev/prod yamls each use their own parser branch's names.

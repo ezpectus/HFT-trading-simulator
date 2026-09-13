@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~193 (S001–S193) |
+| Всего находок | ~195 (S001–S195) |
 | Закрыто | 155 |
-| Открыто | **0** — доска пуста (S191/S192/S193 закрыты в R99) |
+| Открыто | **2** — R100 audit: S194/S195 |
 
-**Текущее состояние:** R99 fix-раунд закрыл все 3 находки R98 — доска снова пуста. **S191** — dead options cluster удалён (~1014 строк: options_pricing deprecated-shim + options_strategies 0 прод-импортёров + test_options_pricing shadow-test; живой путь options_simulator имеет свой тест). **S192** — `email_smtp` параметр удалён из AlertSystem.__init__, docstring исправлен (email-канала никогда не было). **S193** — audit-stream допаян: CONFIG_CHANGE эмитится в `_handle_update_config` (update_config менял leverage мимо аудита), SYSTEM_STOP в `start()` finally (SIGTERM/SIGINT путь), ERROR в message-handler except, WARNING в invalid-json/msgpack парсах; POSITION_MODIFIED удалён из enum (доменного события не существует); docstring audit_logger приведён к факту. Проверено: sim 394 pass, alerting 41 pass, runtime-smoke CONFIG_CHANGE эмитится с metadata. Ранее: R98 audit — 3 находки на sim-периферии + ai-bot root. Ранее: R97 fix — последние 4 находки старой доски.
+**Текущее состояние:** R100 audit — `monitoring/grafana/` internals + `web-ui/e2e` config/helpers + `ai-signal-bot/config/` accessors + stale-docs resweep post-R97/R99 — **2 находки**: S194 (`settings.testnet.yaml` — сломан по 4 слоям: validation отвергает как standalone, `testnet: true` не доходит до ExchangeFactory → real Binance, env-имена не совпадают, `${VAR}` никогда не expand'ится; header рекламирует несуществующие флаги), S195 (stale-docs кластер: DEPLOYMENT tuning-блок с несуществующими ключами `enable_thread_pinning`/`enable_spinlocks`/`shm.ring_buffer_size`, ARCHITECTURE/TESTING/TECHNICAL_REFERENCE ссылаются на удалённые options_* файлы). Ранее: R99 fix-раунд закрыл все 3 находки R98 — доска была пуста. **S191** — dead options cluster удалён (~1014 строк: options_pricing deprecated-shim + options_strategies 0 прод-импортёров + test_options_pricing shadow-test; живой путь options_simulator имеет свой тест). **S192** — `email_smtp` параметр удалён из AlertSystem.__init__, docstring исправлен (email-канала никогда не было). **S193** — audit-stream допаян: CONFIG_CHANGE эмитится в `_handle_update_config` (update_config менял leverage мимо аудита), SYSTEM_STOP в `start()` finally (SIGTERM/SIGINT путь), ERROR в message-handler except, WARNING в invalid-json/msgpack парсах; POSITION_MODIFIED удалён из enum (доменного события не существует); docstring audit_logger приведён к факту. Проверено: sim 394 pass, alerting 41 pass, runtime-smoke CONFIG_CHANGE эмитится с metadata. Ранее: R98 audit — 3 находки на sim-периферии + ai-bot root. Ранее: R97 fix — последние 4 находки старой доски.
 
 ---
 
@@ -23,12 +23,15 @@
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
+| **S194** | `settings.testnet.yaml` — testnet-путь сломан по 4 слоям; документированная команда падает | Файл-фрагмент только с секцией `exchange:` — `SignalBotConfig.load(validate=True)` отвергает (5 ошибок: нет trading/risk/strategies/indicators + websocket_url/default_exchange) → документированный `python run.py --config config/settings.testnet.yaml` (docs/theory/useful_info_en.md:151) умирает на загрузке. Даже если бы грузился: `testnet: true` никем не читается — `run.py:580-585` строит `ExchangeFactory` без `testnet`/`api_key`/`api_secret` → `testnet=False` → **реальный Binance вместо песочницы**; env-имена не совпадают (`BINANCE_TESTNET_API_KEY` в yaml vs `EXCHANGE_API_KEY` который читает factory :371); `yaml.safe_load` никогда не expand'ит `${VAR}` — api_key загрузился бы литеральной строкой; header-комментарий рекламирует флаги `--exchange-mode/--testnet/--api-key` которых нет в run.py argparse. | Medium | [ ] Open |
+| **S195** | Stale-docs кластер: docs ссылаются на удалённые модули и несуществующие конфиг-ключи | `docs/ARCHITECTURE.md:201` — перечисляет `options_strategies.py`/`options_pricing.py` (удалены R99); `docs/TESTING.md:129` — `test_options_pricing` в инвентаре (удалён R99); `docs/theory/TECHNICAL_REFERENCE.md:1427-1428` — те же мёртвые файлы как живые модули; `docs/DEPLOYMENT.md:734-739` — tuning-блок `latency_optimization.enable_thread_pinning`/`enable_spinlocks`/`shm.ring_buffer_size` — **ни один ключ не существует в парсере** (реальные: `thread_pinning`/`thread_pinning_enabled`, `ipc.*.capacity`). | Info | [ ] Open |
 
 ---
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
 
 - R98: `exchange_simulator/conftest.py` + `ai-signal-bot/conftest.py` — легитимные sys.path-шимы; `ws_constants.py` — все флаги (`_HAS_SHM`/`_HAS_ORJSON`/`_HAS_MSGPACK`/`PROTOCOL_VERSION`/`_sanitize_log`) реально импортируются server/broadcast/handler
+- R100: `config/__init__.py` — все 70 property-accessors consumed (только `__getattr__`-fallback без читателей — легитимно); grafana dashboards — все 5 JSON валидны (flat+wrapped оба provisionable), 46 exprs, datasource `Prometheus` совпадает с datasources.yml, provider path ↔ compose mount согласованы; playwright.config — `dev:mock` script существует, baseURL/webServer согласованы; `dismiss-onboarding.js` helpers — все 3 export'а импортируются; `monitoring/alerts/` — пустая untracked-директория
 - R98: `arbitrage.py`/`audit_logger.py`/`data_export.py` — живые end-to-end (detector→broadcast→auto-execute; audit→`audit_logs`→AuditLogViewer; export→`--export` CLI); `monitor.py`/`run_backtest.py` — документированные CLI, импорты резолвятся; `models.py` — все 13 классов consumed; кеши/истории bounded (deque maxlen, _max_* trims); `ws_metrics` — все 9 счётчиков экспортируются; `hft-executor` Rust-crate полностью отсутствует в дереве
 
 - `TODO` — 0 в ai-signal-bot

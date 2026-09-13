@@ -1433,3 +1433,10 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - **S193** — audit допаян: CONFIG_CHANGE (update_config), SYSTEM_STOP (start finally), ERROR (handler except), WARNING (bad-parse); POSITION_MODIFIED удалён (нет доменного события).
 
 **Verifications:** sim 394 pass (−22 shadow-теста), alerting 41 pass, ruff clean, runtime-smoke CONFIG_CHANGE emit OK.
+
+## R100 — slop-audit — grafana/e2e/config-accessor sweep + stale-docs resweep (S194–S195)
+
+- **S194** (Medium) — `settings.testnet.yaml` сломан по 4 слоям: validation отвергает standalone (5 ошибок); `testnet:true` не доходит до ExchangeFactory (run.py:580 без testnet → real Binance); env-имена mismatch (BINANCE_TESTNET_* vs EXCHANGE_*); `${VAR}` не expand'ится safe_load'ом; header рекламирует несуществующие флаги.
+- **S195** (Info) — stale-docs кластер: ARCHITECTURE:201 + TESTING:129 + TECHNICAL_REFERENCE:1427 ссылаются на удалённые options_* (R99); DEPLOYMENT:734-739 tuning-блок — `enable_thread_pinning`/`enable_spinlocks`/`shm.ring_buffer_size` нигде не парсятся.
+
+ЧИСТО: 70/70 SignalBotConfig accessors consumed; все 5 grafana dashboards валидны (46 exprs, оба формата provisionable); provider path ↔ compose mount ок; playwright.config + dismiss-onboarding helpers живы; latency_optimization dual-names работают (dev/prod парсеры читают свои имена).
