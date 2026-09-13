@@ -1280,3 +1280,13 @@ Board: **35 open** — без изменений.
 Verify: expand_env standalone-тест 6/6 (env/unset/empty/mid-string/unterminated); test_auth_wiring + test_signal_publisher 18/18 incl. новый rate-limit round-trip; yaml-валидация values.yaml + config.prod.yaml OK; clang-format-18 clean. helm binary нет — шаблоны верифицированы инспекцией; полный C++-билд на CI.
 
 Board: **32 open** (S150–S190 минус S157/S158/S164/S178/S179/S180/S188).
+
+## R87 — slop-fix: S173 + S172 + S159 — 3 закрыты
+
+- **S173** — live-path: кешированный live-adapter (handshake один раз, не per-signal), `clientOrderId` в real-path retry (идемпотентность), `cancel_order`/`cancel_all_orders` на SimulatorAdapter+ExchangeClient через существующий WS-протокол.
+- **S172** — оба backtest-движка выровнены к sim Binance-модели (fee 0.04% / slippage 2bps); merge отложен (разные API).
+- **S159** — все ~16 dead-key заведены или удалены: sim `metrics.*`/`currency`/`visualizer.enabled`/`market.timeframe` wired + `exchanges.*.symbols` удалены (147 строк, валидатор → initial_prices universe); ai-bot `shm.max_symbols` wired (0=auto); hft `fast_ema_enabled`/`fft_*` → Params+гейты, `obi_levels` 4-way drift → split-keys везде + prod-parser + PressureModel wiring, бонус `microprice_enabled`, dev `metrics.*` — dev-parser + /metrics gate + port-default 9091 + host 0.0.0.0.
+
+Verify: sim 404 + shm 18 + exchange-factory 86 + backtest 87 green; validator shipped-config 0/0; clang-format clean; C++ — syntax-check где тулчейн позволяет (vendored-deps отсутствуют, CI компилит).
+
+Board: **30 open**.
