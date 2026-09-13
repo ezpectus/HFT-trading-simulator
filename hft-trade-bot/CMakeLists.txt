@@ -407,9 +407,30 @@ add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_
 # Signal Engine V3 doctest tests (HMM regime detection, state transitions, regime gating, multi-symbol)
 add_doctest_test(test_doctest_signal_engine_v3 tests/test_doctest_signal_engine_v3.cpp)
 
+# Low-latency infra doctest tests (LatencyHistogram, ScopedLatency, SPSCQueue, Spinlock, ThreadAffinity, CircuitBreaker)
+add_doctest_test(test_doctest_cpp_optimizations tests/test_doctest_cpp_optimizations.cpp)
+
+# HFT config doctest tests (signal_interval_ms, v2_cooldown_ms YAML parsing)
+add_doctest_test(test_doctest_hft_config tests/test_doctest_hft_config.cpp)
+target_sources(test_doctest_hft_config PRIVATE src/core/config.cpp)
+target_link_libraries(test_doctest_hft_config PRIVATE yaml-cpp::yaml-cpp fmt::fmt spdlog::spdlog)
+if(FMT_LIBRARY)
+    target_link_libraries(test_doctest_hft_config PRIVATE ${FMT_LIBRARY})
+endif()
+if(SPDLOG_LIBRARY)
+    target_link_libraries(test_doctest_hft_config PRIVATE ${SPDLOG_LIBRARY})
+endif()
+
 # ─── Integration tests (doctest-based) ───
 add_doctest_test(test_integration_config tests/test_integration_config.cpp)
-target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp)
+target_sources(test_integration_config PRIVATE src/core/config.cpp)
+target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp fmt::fmt spdlog::spdlog)
+if(FMT_LIBRARY)
+    target_link_libraries(test_integration_config PRIVATE ${FMT_LIBRARY})
+endif()
+if(SPDLOG_LIBRARY)
+    target_link_libraries(test_integration_config PRIVATE ${SPDLOG_LIBRARY})
+endif()
 
 add_doctest_test(test_integration_kill_switch_monitor tests/test_integration_kill_switch_monitor.cpp)
 target_link_libraries(test_integration_kill_switch_monitor PRIVATE fmt::fmt spdlog::spdlog)
