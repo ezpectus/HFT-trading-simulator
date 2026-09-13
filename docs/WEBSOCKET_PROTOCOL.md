@@ -146,6 +146,16 @@ Request to close an open position at market price.
 ```
 Set simulation speed. Valid values: `0` (pause), `1` (normal), `2` (2x), `5` (5x). All clients receive the speed change.
 
+#### Replay Control
+```json
+{
+  "type": "replay",
+  "action": "pause" | "resume" | "scrub",
+  "offset": 100
+}
+```
+Control market replay. `pause`/`resume` halt and resume the simulation (`offset` ignored). `scrub` rewinds `offset` candles and immediately replies with `replay_candles`.
+
 #### Config Update (hot-reload)
 ```json
 {
@@ -398,6 +408,62 @@ Broadcast to all clients when simulation speed changes. Speed: 0=paused, 1=norma
 }
 ```
 Broadcast to all clients when config is hot-reloaded.
+
+#### Speed Set (direct ack)
+```json
+{
+  "type": "speed_set",
+  "speed": 2
+}
+```
+Direct reply to the requesting client after a `set_speed` request. Other clients see the `speed_change` broadcast instead.
+
+#### Replay State
+```json
+{
+  "type": "replay_state",
+  "paused": true
+}
+```
+Sent after a `replay` `pause`/`resume` action reflects the new simulation state.
+
+#### Replay Candles
+```json
+{
+  "type": "replay_candles",
+  "candles": [ ... ],
+  "offset": 100,
+  "timestamp": 1704067500
+}
+```
+Historical candles returned in response to a `replay` `scrub` action.
+
+#### Audit Logs (broadcast)
+```json
+{
+  "type": "audit_logs",
+  "logs": [
+    {
+      "id": "evt_abc123",
+      "event_type": "order_submitted",
+      "timestamp": 1704067500,
+      "exchange": "binance",
+      "symbol": "BTC/USDT",
+      "user_id": "system",
+      "session_id": "",
+      "order_id": "ord_1",
+      "position_id": "",
+      "old_value": 0.0,
+      "new_value": 0.0,
+      "reason": "",
+      "metadata": {},
+      "ip_address": "",
+      "user_agent": ""
+    }
+  ]
+}
+```
+Queued audit-log events (see `AuditLog` in `exchange_simulator/models.py`) drained and broadcast each tick while events are pending.
 
 ---
 
@@ -756,6 +822,22 @@ On bad input: `{"type": "funding_arb_result", "error": "<reason>"}`.
 ```
 Answer to an `auth` frame.
 
+#### Circuit Breaker Status
+```json
+{
+  "type": "circuit_breaker_status",
+  "state": "CLOSED",
+  "consecutive_failures": 0,
+  "consecutive_successes": 3,
+  "total_trips": 2,
+  "total_blocks": 14,
+  "failure_threshold": 5,
+  "cooldown_seconds": 60,
+  "timestamp": 1704067500
+}
+```
+Pushed on connect and broadcast periodically while the publisher runs. `state` is `CLOSED` | `OPEN` | `HALF_OPEN`; `OPEN` means signals are being blocked.
+
 ---
 
 ## Message Type Summary
@@ -770,6 +852,7 @@ Answer to an `auth` frame.
 | 8765 | C→S | `config_update` | Hot-reload simulator parameters |
 | 8765 | C→S | `options_chain` | Request options chain with Greeks |
 | 8765 | C→S | `ping` | Latency measurement |
+| 8765 | C→S | `replay` | Replay control (pause/resume/scrub+offset) |
 | 8765 | S→C | `welcome` | Server info on connect |
 | 8765 | S→C | `snapshot` | Initial market state + order books + accounts |
 | 8765 | S→C | `candles` | Streaming candle + price + order book + account data |
@@ -781,6 +864,10 @@ Answer to an `auth` frame.
 | 8765 | S→C | `speed_change` | Simulation speed changed (broadcast) |
 | 8765 | S→C | `config_updated` | Config hot-reloaded (broadcast) |
 | 8765 | S→C | `options_chain` | Options chain with Greeks (response) |
+| 8765 | S→C | `speed_set` | Direct ack to `set_speed` request |
+| 8765 | S→C | `replay_state` | Replay paused/resumed state |
+| 8765 | S→C | `replay_candles` | Historical candles after `scrub` |
+| 8765 | S→C | `audit_logs` | Queued audit events (broadcast while pending) |
 | 8765 | S→C | `pong` | Latency response |
 | 8765 | S→C | `error` | Error message |
 | 8766 | C→S | `auth` | Token handshake (when `api.auth_token` configured) |
@@ -807,6 +894,7 @@ Answer to an `auth` frame.
 | 8766 | S→C | `position_size_result` | Size/value/risk/leverage (or `error`) |
 | 8766 | S→C | `hawkes_result` | Fitted params + intensity path (or `error`) |
 | 8766 | S→C | `funding_arb_result` | Arbitrage opportunities (or `error`) |
+| 8766 | S→C | `circuit_breaker_status` | Breaker state on connect + periodic |
 
 ---
 

@@ -969,3 +969,8 @@ Reverse props direction: компоненты деструктурируют т�
 ## Round 56b — 2026-09-13 — slop-audit+fix: SHM field drift → S132 → fixed
 - **Audit**: SHM wire-struct sweep — all SignalMsg/FillMsg/MarketSnapshotMsg fields consumed; `KillSwitchMsg` was write-only (C++ produced, nothing consumed) + ai-bot `record_kill_switch` had 0 callers — contract half-built on both sides.
 - **S132 (Medium)**: wired e2e — kill-switch consumer + latch + metric + CRITICAL alert + push-gate + config. +9 tests; gate 7/7 green.
+
+## Round 57 — 2026-09-13 — slop-fix: S133 WS protocol doc drift
+- **S133 (Low)**: 5 sent-but-undocumented message types — `audit_logs`/`replay_candles`/`replay_state`/`speed_set` (sim :8765) + `circuit_breaker_status` (bot :8766).
+- **Fix** (docs-only): accurate sections in WEBSOCKET_PROTOCOL.md — field sets verified against `AuditLog.to_dict` (models.py:463-480), `_handle_replay`/`_handle_set_speed` (ws_message_handler.py:315-357), `CircuitBreaker.get_status` (circuit_breaker.py:137-147) + publisher timestamp wrapper. Message Type Summary +6 rows.
+- **Verify**: producer-vs-doc scan clean — all 41 sent types documented; no new JSON-example parse failures.
