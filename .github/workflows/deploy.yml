@@ -29,6 +29,11 @@ jobs:
       - name: Build
         run: npm run build
         working-directory: web-ui
+        env:
+          # Public dashboard gets real WS endpoints; control/auth tokens are
+          # deliberately NOT baked into the public bundle (view-only site).
+          VITE_WS_EXCHANGE: ${{ vars.VITE_WS_EXCHANGE }}
+          VITE_WS_SIGNALS: ${{ vars.VITE_WS_SIGNALS }}
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
@@ -85,11 +90,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # web-ui needs VITE_WS_* build args (inlined into the bundle at build
-          # time). Other services ignore these args.
+          # web-ui needs VITE_WS_* + VITE_*_TOKEN build args (inlined into the
+          # bundle at build time). Other services ignore these args. Without
+          # the tokens the deployed UI gets auth_failed on every control
+          # command (S155 requires EXCHANGE_CONTROL_TOKEN in prod).
           build-args: |
             VITE_WS_EXCHANGE=${{ vars.VITE_WS_EXCHANGE }}
             VITE_WS_SIGNALS=${{ vars.VITE_WS_SIGNALS }}
+            VITE_SIGNAL_TOKEN=${{ secrets.VITE_SIGNAL_TOKEN }}
+            VITE_EXCHANGE_TOKEN=${{ secrets.VITE_EXCHANGE_TOKEN }}
 
   deploy:
     name: Deploy to Server
