@@ -1470,3 +1470,11 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - Legacy `submit_order` 3-arg — жив (v1 path + MARKET delegation), `order_type_selector.h` wired.
 - web-ui utils/stores — 17/17 файлов имеют импортёров.
 - Новое: S194's `testnet` доходит до ccxt sandbox; kill_switch — единый дом `ipc.kill_switch` (S196 fix проверен parse-tree'ом).
+
+## R105 — slop-audit — test leaf-sweep + consistency-gate internals (S197–S199)
+
+- **S197** (Info) — `test_config_consistency.py`: дублированный audit-check :209-214; `_shared_signal_ws` loaded-never-compared (signal-port drift = зелёный гейт); risk-check всегда True.
+- **S198** (Info) — AUDIT_FINDINGS статусный дрейф: 12 «— Open» на done+verified записях (S109/S116/S117/S155-158/S164/S178-180/S188).
+- **S199** (Info) — `tests/requirements.txt` мёртв+вреден: 0 refs, pytest>=7.0 без pytest-asyncio → silent-skip async-тестов.
+
+ЧИСТО: 127/127 test-импортов резолвятся; conftest'ы реальны; dep-gate skip'ы честные; гейт проводит реальные проверки (symbols/exchanges/ws) и может падать.
