@@ -13,7 +13,7 @@ function DrawdownAnalysis({ fills }) {
     const equityPoints = [{ t: 0, eq: equity, peak: equity }]
     let peak = equity
 
-    for (const f of fills.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) {
+    for (const f of [...fills].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) {
       const pnl = f.pnl || 0
       equity += pnl
       if (equity > peak) peak = equity
