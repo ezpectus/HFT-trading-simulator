@@ -6,6 +6,7 @@ import asyncio
 import json
 import os
 import random
+import time
 from collections import deque
 from collections.abc import Callable
 
@@ -54,6 +55,9 @@ class ExchangeClient:
         self._funding_rates: dict[str, float] = {}  # {exchange: rate}
         self._candles_to_funding: int = 0
         self._accounts: dict[str, dict] = {}
+        self._last_seq: int = 0            # broadcast seq — gap → request sync_state
+        self._last_msg_ts: int = 0         # last seen server timestamp (resync cursor)
+        self._last_resync_req: float = 0.0
 
     @property
     def connected(self) -> bool:
@@ -185,6 +189,17 @@ class ExchangeClient:
         msg_type = data.get("type")
 
         if msg_type in ("candles", "snapshot", "sync_state"):
+            seq = data.get("seq")
+            if seq is not None:
+                if self._last_seq and seq > self._last_seq + 1:
+                    logger.warning(
+                        "Broadcast seq gap (%s → %s) — requesting sync_state",
+                        self._last_seq, seq)
+                    self._request_resync()
+                self._last_seq = seq
+            ts = data.get("timestamp")
+            if ts:
+                self._last_msg_ts = max(self._last_msg_ts, ts)
             candles = data.get("candles")
             if candles:
                 for candle in candles:
@@ -213,7 +228,27 @@ class ExchangeClient:
         elif msg_type == "welcome":
             ver = data.get("protocol_version", 1)
             self._trading_active = data.get("trading_active", True)
+            self._last_seq = 0  # server-side counter resets — re-baseline
             logger.info("Server welcome: protocol v%s, trading=%s", ver, 'ACTIVE' if self._trading_active else 'STOPPED')
+
+    def _request_resync(self) -> None:
+        """Schedule a sync_state request (cooldown-guarded — resync is heavy)."""
+        now = time.monotonic()
+        if now - self._last_resync_req < 5.0:
+            return
+        self._last_resync_req = now
+        try:
+            asyncio.get_running_loop().create_task(self._send_resync(self._last_msg_ts))
+        except RuntimeError:
+            pass  # no running loop — next gap hit inside the recv loop will retry
+
+    async def _send_resync(self, last_ts: int) -> None:
+        # last_ts is captured at gap-detection time — the pre-gap cursor, so the
+        # server resends the dropped range (not just messages after the gap).
+        if self._ws and self._connected:
+            await self._ws.send(json.dumps(
+                {"type": "sync_state", "last_timestamp": last_ts},
+                separators=(',', ':')))
 
     async def submit_order(
         self,

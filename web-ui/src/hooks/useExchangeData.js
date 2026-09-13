@@ -36,6 +36,11 @@ export function useExchangeData() {
   const candleMap = useRef(new Map())
   // client_order_id -> {resolve, timer} for submitOrder ack correlation
   const pendingAcks = useRef(new Map())
+  // seq gap detection — a dropped broadcast leaves orderbook_deltas applying
+  // onto a stale book; on gap we request sync_state (S151)
+  const lastSeqRef = useRef(0)
+  const lastResyncReqRef = useRef(0)
+  const sendExchangeRef = useRef(null)
 
   const handleExchangeMessage = useCallback((data) => {
     // The sim's order ack is a `fill` message carrying order.status:
@@ -69,6 +74,22 @@ export function useExchangeData() {
       case 'snapshot':
       case 'candles':
       case 'sync_state': {
+        // Only `candles` broadcasts carry seq — on a gap, resync from the
+        // last *contiguous* timestamp (must run before the ts update below).
+        if (typeof data.seq === 'number') {
+          const last = lastSeqRef.current
+          if (last && data.seq > last + 1) {
+            const now = Date.now()
+            if (now - lastResyncReqRef.current > 5000) {
+              lastResyncReqRef.current = now
+              sendExchangeRef.current?.({
+                type: 'sync_state',
+                last_timestamp: lastTimestampRef.current,
+              })
+            }
+          }
+          lastSeqRef.current = data.seq
+        }
         if (data.timestamp) {
           lastTimestampRef.current = Math.max(lastTimestampRef.current, data.timestamp)
         }
@@ -238,10 +259,15 @@ export function useExchangeData() {
 
   const { connected: exchangeConnected, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
     onMessage: handleExchangeMessage,
+    onOpen: () => { lastSeqRef.current = 0 },  // server restarts its counter — reset baseline
     authToken: EXCHANGE_TOKEN || undefined,
     syncOnReconnect: true,
     getLastTimestamp: () => lastTimestampRef.current,
     autoConnect: !IS_MOCK,  // mock mode — never open the real socket
+  })
+
+  useEffect(() => {
+    sendExchangeRef.current = sendExchange
   })
 
   const submitOrder = useCallback((order) => {

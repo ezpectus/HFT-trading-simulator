@@ -196,3 +196,45 @@ class TestDisconnect:
     async def test_disconnect_no_ws(self, client):
         await client.disconnect()
         assert client._connected is False
+
+
+class TestSeqGapDetection:
+    """S151 — seq was write-only; a dropped broadcast must trigger sync_state."""
+
+    @pytest.mark.asyncio
+    async def test_seq_gap_requests_sync_state(self, client):
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
+        client._connected = True
+        client._process_message({"type": "candles", "seq": 5, "timestamp": 100,
+                                 "candles": []})
+        client._process_message({"type": "candles", "seq": 8, "timestamp": 110,
+                                 "candles": []})
+        await asyncio.sleep(0)
+        client._ws.send.assert_awaited_once()
+        sent = json.loads(client._ws.send.call_args[0][0])
+        assert sent["type"] == "sync_state"
+        # Cursor must be the pre-gap ts (100), not the gapped message's (110)
+        assert sent["last_timestamp"] == 100
+
+    @pytest.mark.asyncio
+    async def test_contiguous_seq_no_resync(self, client):
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
+        client._connected = True
+        for seq in (1, 2, 3):
+            client._process_message({"type": "candles", "seq": seq, "candles": []})
+        await asyncio.sleep(0)
+        client._ws.send.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_resync_cooldown(self, client):
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
+        client._connected = True
+        for seq in (1, 5, 10):  # two gaps inside the cooldown window
+            client._process_message({"type": "candles", "seq": seq, "candles": []})
+        await asyncio.sleep(0)
+        assert client._ws.send.await_count == 1
+
+    def test_welcome_resets_seq_baseline(self, client):
+        client._last_seq = 99
+        client._process_message({"type": "welcome", "protocol_version": 2})
+        assert client._last_seq == 0

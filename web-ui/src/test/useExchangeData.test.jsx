@@ -488,6 +488,45 @@ describe('useExchangeData', () => {
     })
     expect(mockSend).toHaveBeenCalledWith({ type: 'cancel_all_orders', exchange: 'binance', symbol: 'BTC/USDT' })
   })
+
+  it('requests sync_state on a broadcast seq gap', () => {
+    renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'candles', seq: 5, timestamp: 100, candles: [] })
+    })
+    act(() => {
+      mockOnMessage({ type: 'candles', seq: 8, timestamp: 110, candles: [] })
+    })
+    // Cursor must be the pre-gap ts (100) — not the gapped message's (110)
+    expect(mockSend).toHaveBeenCalledWith({ type: 'sync_state', last_timestamp: 100 })
+  })
+
+  it('does not resync on contiguous seq', () => {
+    renderHook(() => useExchangeData())
+    act(() => {
+      for (const seq of [1, 2, 3]) {
+        mockOnMessage({ type: 'candles', seq, candles: [] })
+      }
+    })
+    expect(mockSend).not.toHaveBeenCalled()
+  })
+
+  it('resets seq baseline when the socket re-opens', () => {
+    let capturedOnOpen
+    useWebSocket.mockImplementation((url, opts) => {
+      capturedOnOpen = opts.onOpen
+      mockOnMessage = opts.onMessage
+      return { connected: true, send: mockSend, latency: 50, reconnects: 0 }
+    })
+    renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'candles', seq: 50, candles: [] })
+      capturedOnOpen()                       // server restart → counter resets
+      mockOnMessage({ type: 'candles', seq: 1, candles: [] })
+      mockOnMessage({ type: 'candles', seq: 2, candles: [] })
+    })
+    expect(mockSend).not.toHaveBeenCalled()  // no spurious gap on 1 → 2
+  })
 })
 
 describe('useSignalData', () => {
