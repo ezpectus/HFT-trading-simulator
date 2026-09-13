@@ -1253,3 +1253,20 @@ Board: **39 open** (S150–S190).
 Verify: position_manager.h компилится clang++22 clean; doctest position_manager 22/22, risk_manager 24/24; clang-format-18 --Werror clean на всех тронутых файлах; yaml-валидация deploy.yml/config.yaml OK. Полный C++-билд невозможен локально (зависимости через vcpkg) — CI проверит.
 
 Board: **35 open** (S150–S190 минус S178/S179/S180/S188).
+
+## R85 — slop-verify: 11 done-claims проверены, 0 откатов
+
+Batch (recent + High): S148, S149, S155, S156 (R77-fix), S125 (R50 wire-all), S069 (hft Prom metrics), S062 (Critical, R48 — уже verified) + самопроверка R84: S178, S179, S180, S188.
+
+- **S148** ✅ — `cancel_order`/`cancel_all_orders` в диспетчере (ws_message_handler.py:184-187), в `_CONTROL_TYPES` за auth; executor шлёт `cancel_all_orders`, kill-switch callback в bot_setup.cpp.
+- **S149** ✅ — dedup-таблица `_order_dedup`+LRU (:229-252), idempotent resubmit → `deduplicated:true`; executor шлёт `client_order_id` (:137); протокол-док документирует (:145-147).
+- **S155** ✅ — `EXCHANGE_CONTROL_TOKEN`→`control_token` (__main__.py:133-150), startup-warn при unset, gate :158, `secrets.compare_digest` :481, `auth_failed`.
+- **S156** ✅ — `EXCHANGE_WS_HOST` env-override (__main__.py:147), compose ставит 0.0.0.0 (:43).
+- **S125** ✅ — 5 compute-эндпоинтов в диспетче (signal_publisher.py:186-188), SHM за `shm_enabled` (run.py:184,270-275), AlertSystem за `alerting_enabled` (:188,365-370). Дубликатная строка S125 в done-log — обе помечены.
+- **S069** ✅ — `format_prometheus()` (system_monitor.h:134) emits `_bucket{le=...}` lines (:270-276), `/metrics` роутит туда (health_server.h:134).
+- **S062** — уже `✅ verified R48`; R84 book-on-fill усилил claim (pending только после submit==true).
+- **S178/S179/S180/S188** ✅ — код на месте: precheck_order×3 (:118,224,317), update_risk_state (reset_daily/update_pnl_v2/activate :330-344), apply_fill+pending+sync_position (position_manager.h:66-105), deploy.yml build-args+Netlify env (:35-36,98-101).
+
+Вердикты: 11 VERIFIED, 0 WRONG, 0 ROTTED. Done-log остаётся честным.
+
+Board: **35 open** — без изменений.
