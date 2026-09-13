@@ -1415,3 +1415,13 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 **Verifications:** sim 416 pass (12 новых TIF), ws_client ai-bot 26 pass (+4 gap), useExchangeData 51 pass (+3 gap), adaptive_selector 17/17, network watchdog 2/2. C++ executor/signal_receiver — syntax-only (websocketpp/vcpkg локально нет; MSVC в CI). Ruff eslint clang-format green.
 
 **Gate notes:** WD_SKIP_COVERAGE=1 для test_signal_flow.cpp (test-file mapping by stem).
+
+## R98 — slop-audit — sim periphery + ai-bot root (S191–S193)
+
+Доска была пуста → audit-раунд. Scope: exchange_simulator периферия (arbitrage/audit_logger/config_validator/data_export/options_*/visualizer×3/ws_constants/ws_metrics/ws_prometheus/__main__/conftest/models) + ai-signal-bot root (run.py/run_backtest.py/monitor.py/conftest.py — R78 покрыл только src/).
+
+- **S191** (Low) — dead options cluster ~1014 строк: options_pricing (deprecated, импортёры = options_strategies + свой тест), options_strategies (0 прод-импортёров), test_options_pricing (shadow-test). Живой путь — options_simulator.
+- **S192** (Info) — alerting.py: email_smtp принимается/хранится, _send_email нет; docstring обещает email-канал.
+- **S193** (Low) — AuditEventType: 5/13 членов никогда не эмитятся (CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING/POSITION_MODIFIED) — update_config и shutdown мимо audit-stream.
+
+ЧИСТО: conftest-шимы, ws_constants флаги, arbitrage/audit/data_export/run/monitor/run_backtest/models — живые end-to-end; кеши bounded; hft-executor crate отсутствует в дереве.

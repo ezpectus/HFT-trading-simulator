@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~190 (S001–S190) |
+| Всего находок | ~193 (S001–S193) |
 | Закрыто | 155 |
-| Открыто | **0** — доска пуста (S150/S151/S152/S154 закрыты в R97) |
+| Открыто | **3** — R98 audit: S191/S192/S193 |
 
-**Текущее состояние:** R97 fix-раунд закрыл последние 4 находки — доска пуста. **S154** — adaptive order kind/TIF/expiry теперь доезжают до провода end-to-end: бот сериализует time_in_force/post_only/expire_ms (order_executor.h), хендлер парсит (ws_message_handler.py), сим честно исполняет семантику (IOC/FOK не отдыхают, post_only reject на кроссе, GTD истекает по expire_ts с broadcast терминальных событий — ws_broadcast теперь шлёт CANCELLED, не только FILLED); мёртвый exchange-mapping слой (7 функций ~100 строк) удалён вместе с тестами. **S151** — seq gap-detection заведена в обоих клиентах: useExchangeData + ws_client.py (ai-bot) детектят пропуск и шлют sync_state с pre-gap курсором, cooldown 5s. **S150** — ~33 мёртвых ключа config.prod.yaml удалены вместе с Config-полями/парсингом/валидацией/баннером (database.*, redis.*, fallback_to_simulator, paper_trading, sl/tp_pct, min_composite, vwap_window, kill_switch.{enabled,auto_*}, latency.{signal_thread_core,...}, symbols[].id/max_leverage); mode теперь гейтит is_production; попутно починен некомпилящийся test_integration_config (config.leverage не существовало). **S152** — ws_client.h стриплен до network/watchdog.h (единственный живой класс), Watchdog заведён в SignalReceiver + OrderExecutor: inbound ping/pong/message кормят, 15s тишины → terminate → штатный reconnect; client_ = shared_ptr+client_mtx_ snapshot (UAF убран), reconnect-sleeper стал joinable cv-interruptible (detached-UAF убран); протухший test_signal_flow починён (ShmRingBuffer signature + FastSignal/FastOrder поля). Ранее: R96 verify — 10/10 claims подтверждены, 0 откатов. R95 fix-раунд закрыл **S169** (мёртвые хуки + тесты ~674 строки), **S160** (manifest → 278 панелей), **S161** (CONFIGURATION_GUIDE §2 под реальную схему), **S165** (terraform vpc_id + Makefile .PHONY), **S168** (все stale-счётчики), **S162** (verify-close — doc совпадает с диспетчером). Ранее: R94 закрыл S177 (false-positive), S181 (v3-only gate), S182 (open_position удалён, тесты через apply_fill), S187 (e2e реальные assert).
+**Текущее состояние:** R98 audit — `exchange_simulator/` periphery (arbitrage/audit_logger/config_validator/data_export/options_*/visualizer×3/ws_constants/ws_metrics/ws_prometheus/__main__/conftest) + `ai-signal-bot` root (run.py/monitor.py/run_backtest.py/conftest.py) — **3 находки**: S191 (dead options cluster ~1014 строк: options_pricing deprecated-shim + options_strategies с нулём прод-импортёров + их shadow-test), S192 (alerting.py `email_smtp` — принимается/хранится/не используется; docstring рекламирует email-канал которого нет), S193 (AuditEventType — 5/13 членов никогда не эмитятся: POSITION_MODIFIED/CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING — update_config и shutdown уходят мимо audit-stream). Остальная периферия живая — arbitrage/audit/data_export/ws_*/models/run.py прослежены end-to-end. Ранее: R97 fix-раунд закрыл последние 4 находки — доска была пуста.
 
 ---
 
@@ -23,10 +23,16 @@
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
+| **S191** | Dead options cluster: deprecated `options_pricing` + test-only `options_strategies` | `options_pricing.py` (428 строк) — deprecated с module-level `DeprecationWarning` (:15), единственные импортёры — `options_strategies.py` и его же тест. `options_strategies.py` (306 строк) — **0 прод-импортёров**, читается только `test_options_pricing.py` (280 строк — shadow-test мёртвого кода). Живой путь — `options_simulator.py` (ws_message_handler:546,560). ~1014 строки мёртвого кода + тестового театра; `run_all_tests.py:104` держит ссылку. | Low | [ ] Open |
+| **S192** | `alerting.py` — мёртвый `email_smtp` + docstring рекламирует email-канал | `AlertSystem.__init__` принимает `email_smtp` (:56) и хранит (:61), но `_send_email` не существует — `_send_alert` (:152-157) ветвит только discord/telegram/webhook. Docstring :3 обещает «Channels: log, webhook (Discord/Telegram), email». run.py:377-382 передаёт только 4 живых канала — email молча невозможен. Мёртвый параметр + ложный docstring. | Info | [ ] Open |
+| **S193** | `AuditEventType` — 5/13 членов никогда не эмитятся; audit-trail неполон | Enum рекламирует POSITION_MODIFIED/CONFIG_CHANGE/SYSTEM_STOP/ERROR/WARNING, audit_logger docstring — «Configuration changes, System events (start, stop, errors, warnings)». Фактически эмитятся 8 членов; `ws_message_handler.py` содержит **0** audit-вызовов — `_handle_update_config` меняет leverage мимо audit-stream, graceful shutdown не пишет SYSTEM_STOP. Аudit-лог не ловит именно те ops-события, для которых он существует. | Low | [ ] Open |
 
 ---
 
 ## ЧИСТО (проверено индивидуально, 0 совпадений)
+
+- R98: `exchange_simulator/conftest.py` + `ai-signal-bot/conftest.py` — легитимные sys.path-шимы; `ws_constants.py` — все флаги (`_HAS_SHM`/`_HAS_ORJSON`/`_HAS_MSGPACK`/`PROTOCOL_VERSION`/`_sanitize_log`) реально импортируются server/broadcast/handler
+- R98: `arbitrage.py`/`audit_logger.py`/`data_export.py` — живые end-to-end (detector→broadcast→auto-execute; audit→`audit_logs`→AuditLogViewer; export→`--export` CLI); `monitor.py`/`run_backtest.py` — документированные CLI, импорты резолвятся; `models.py` — все 13 классов consumed; кеши/истории bounded (deque maxlen, _max_* trims); `ws_metrics` — все 9 счётчиков экспортируются; `hft-executor` Rust-crate полностью отсутствует в дереве
 
 - `TODO` — 0 в ai-signal-bot
 - `import *` — 0
