@@ -1206,3 +1206,14 @@ Board: **26 open** (S150–S177).
 ЧИСТО: `Position::update_pnl` корректна (fees+funding); `shm_ring_buffer` — честный SPSC (acquire/release, aligned head/tail, header-валидация); все JSON-доступы через `.value()` с дефолтами; kill-switch file-trigger + `can_trade()` live; `check_sl_tp`/`close_position` корректны; 0 TODO/stub; V1 `check_signal`/`calculate_position_size` — честная логика.
 
 Board: **31 open** (S150–S182).
+
+## R81 — slop-audit: web-ui/src/components per-file internals — 2 находки S183–S184
+
+Скоуп: `web-ui/src/components/` (296 файлов, 62.5k строк) — последняя крупная неохваченная ячейка. Bug-класс свипы: timer/listener leaks, dead setters, `[]`-deps читающие пропсы, структурные дубли (normalized-md5), fetch/axios, UI→sim WS-типы vs handler-таблица, sampling крупнейших math-панелей.
+
+- **S183 (Medium)** — UI дропает весь order-lifecycle: `useExchangeData.js` switch без case для `order`-ack (PENDING resting-limit ack), `order_cancelled`, `orders_cancelled` (R77-fix их добавил). `OrderForm:72` — «Order submitted» по send-success + 500ms фейк-спиннер; ни одной pending-orders панели нет, cancel UI отсутствует → resting LIMIT невидим и неотменяем из UI до филла. Зеркало S179.
+- **S184 (Low)** — `HawkesProcess.jsx:293` хранит pending-timeout в `window.__hawkesTimeout` — глобал вместо useRef: второй mount/ремоунт clearTimeout'ит чужой таймер → вечный «waiting» у первого инстанса.
+
+ЧИСТО: все 9 addEventListener с cleanup; все timers с clear; 0 dead useState-setter'ов; 0 `[]`-deps читающих пропсы; 0 структурных дублей; fetch только AlertWebhook; все UI→sim типы handled; ~60 exotic math-панелей — настоящие реализации (AffineArithmetic: корректный AA с Chebyshev exp + noise symbols на selectCandles); useDetachablePanels без innerHTML; stores — честный Zustand; CancelMonitor — honest NoDataFeed; BacktestRunner → live endpoint.
+
+Board: **33 open** (S150–S184).
