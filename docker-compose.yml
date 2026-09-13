@@ -38,7 +38,6 @@ services:
       - sim-audit:/app/logs/audit
     environment:
       - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=INFO
     command: python -m exchange_simulator --no-visualizer
     restart: unless-stopped
     deploy:
@@ -73,7 +72,6 @@ services:
       - ai-logs:/app/logs
     environment:
       - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=INFO
     command: python run.py --metrics
     restart: unless-stopped
     deploy:
@@ -105,8 +103,6 @@ services:
       - hft-logs:/app/logs
     ports:
       - "9091:9091"
-    environment:
-      - LOG_LEVEL=INFO
     command: ./build/hft_trade_bot config/config.yaml
     restart: unless-stopped
     deploy:

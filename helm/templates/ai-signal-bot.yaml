@@ -39,10 +39,6 @@ spec:
           env:
             - name: LOG_FORMAT
               value: {{ .Values.global.logFormat | quote }}
-            - name: LOG_LEVEL
-              value: {{ .Values.global.logLevel | quote }}
-            - name: EXCHANGE_MODE
-              value: {{ .Values.aiSignalBot.env.exchangeMode | quote }}
             {{- if .Values.aiSignalBot.env.openaiApiKey }}
             - name: OPENAI_API_KEY
               value: {{ .Values.aiSignalBot.env.openaiApiKey | quote }}
@@ -92,9 +88,6 @@ spec:
               drop:
                 - ALL
           command: ["/app/hft_trade_bot", {{ .Values.hftTradeBot.configPath | quote }}]
-          env:
-            - name: LOG_FORMAT
-              value: {{ .Values.global.logFormat | quote }}
           ports:
             - containerPort: 9091
               name: health

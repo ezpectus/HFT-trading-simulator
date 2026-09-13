@@ -103,7 +103,6 @@ services:
     env_file:
       - .env.prod
     environment:
-      - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
       - LOG_FORMAT=json
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
@@ -142,8 +141,6 @@ services:
       - "9091:9091"  # Health/metrics endpoint
     env_file:
       - .env.prod
-    environment:
-      - EXCHANGE_MODE=${EXCHANGE_MODE:-simulator}
     volumes:
       - ./hft-trade-bot/config:/app/config:ro
       - hft-logs:/app/logs

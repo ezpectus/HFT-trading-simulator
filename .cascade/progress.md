@@ -1009,3 +1009,10 @@ Reverse props direction: компоненты деструктурируют т�
 - `bug_log.md`: +4 записи (#233 pending = S143; #234–236 = реальные баги из R35/R38/R50, залогированы задним числом); сводка 188→255 (реальный подсчёт записей).
 - `CHANGELOG.md`: консолидированная запись за slop-loop раунды R44–R60 (S125–S142 + docs-refresh).
 - **R62 fix (пост-чистка)**: S143 закрыт — deploy.sh/.bat порты приведены к compose-канону (8775/health, 8080/ready, 3000/health). bug_log #233 → Fixed. Открытых на доске: 2 (S141, S142).
+## R62 — slop-fix: S143 + S141 (closed)
+
+**S143** — `deploy.sh`/`deploy.bat` курляли WS-порты `:8765/health` и `:8766/health` (HTTP там нет — `all_healthy` никогда не true → ложный deploy-fail). Repointed to real endpoints mirroring compose healthchecks: `8775/health` (sim), `8080/ready` (ai-bot), `3000/health` (web-ui). Commit `9075e20`.
+
+**S141** — exchange-credential env drift. Документированные `BINANCE_*`/`OKX_*`/`BYBIT_*`/`FIX_*`/`EXCHANGE_MODE`/`LOG_LEVEL` читались нулём кода; реальные имена `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET`/`ALERT_*`. Переписаны `.env.prod.example` (только читаемые vars + disclosure что live-path требует `paper_trading: false` + ccxt), `deploy/k8s/secrets.enc.yaml` (реальные имена, убран TimescaleDB secret — PG нет), helm (убраны dead `EXCHANGE_MODE`/`LOG_LEVEL`/`global.logLevel`/`env.exchangeMode`; `LOG_FORMAT` оставлен — читается run.py:58 и `__main__.py:50`), compose (dead env ×5). Все YAML валидны.
+
+Board: **1 open** — S142 (alertmanager product-решение).

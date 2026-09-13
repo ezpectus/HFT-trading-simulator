@@ -5,7 +5,6 @@
 global:
   imagePullPolicy: IfNotPresent
   logFormat: json
-  logLevel: INFO
   shmSize: 1Gi
 
 # ── Exchange Simulator ──
@@ -36,7 +35,6 @@ aiSignalBot:
     metrics: 9090
     health: 8080
   env:
-    exchangeMode: simulator
     openaiApiKey: ""
   resources:
     requests:

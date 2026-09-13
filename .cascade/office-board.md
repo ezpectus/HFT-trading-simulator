@@ -12,11 +12,10 @@
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
 | Всего находок | ~143 (S001–S143 + переименованные) |
-| Закрыто | 141 (S001–S143, перенесены в done-log) |
-| Открыто | **2** — см. таблицу ниже |
+| Закрыто | 142 (S001–S143, перенесены в done-log) |
+| Открыто | **1** — S142 (alertmanager — product-решение) |
 
-**Текущее состояние:** доска почищена в R60 — все `[x] Done` уехали в `done-log.md`. Осталось 3 открытых:
-- **S141 (Low)** — env-drift: `.env.prod.example`/k8s задают `BINANCE_API_KEY`/`FIX_*`/`EXCHANGE_MODE`, код читает `EXCHANGE_API_KEY`. Config-fix.
+**Текущее состояние:** доска почищена в R60 — все `[x] Done` уехали в `done-log.md`. S143 и S141 закрыты в R62. Осталась **1 открытая**:
 - **S142 (Low)** — Alertmanager задокументирован, но не существует (нет сервиса/конфига/`alerting:`-секции). Product-решение: ship alertmanager или принять rules-only.
 
 ---
@@ -26,7 +25,6 @@
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
 | **S142** | Alertmanager — документированный, но отсутствующий компонент | R60 docs-refresh sweep: MONITORING_GUIDE описывает `monitoring/alertmanager/config.yml`, envsubst `${SMTP_*}`, `docker run prom/alertmanager`, compose-сервис `alertmanager:` — **ни одного не существует**: нет alertmanager в prometheus.yml `alerting:` (секции нет), ни в одном compose, `monitoring/alerts/` пуст. Реальное: Prometheus сам эвалюирует 22 rules из `alerts.yml` — алерты никуда не роутятся. `test_alerts.py` валидирует только rules-файл. Fix = либо добавить alertmanager service+config (feature), либо принять rules-only. | Low | [ ] Open |
-| **S141** | Exchange-credential env drift — `.env.prod.example`/k8s задают `BINANCE_API_KEY/SECRET` (+OKX/BYBIT, `FIX_USERNAME`/`FIX_PASSWORD`, `EXCHANGE_MODE`), но код читает `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` (exchange_factory.py:347-348) | R60 docs-refresh sweep: live-path `paper_trading:false` → `_execute_live_order` → `RealExchangeAdapter` (ccxt, dynamic import — не в requirements, dormant). Cred-варнэймы нигде не маппятся — helm шаблонизирует только OPENAI_API_KEY; `EXCHANGE_MODE`/`LOG_LEVEL` из helm тоже не читаются Python-кодом; `FIX_*` имеют 0 code refs. Live-ордер path запустить через документированные env нельзя. Fix = config (rename env vars или добавить mapping) — не docs. | Low | [ ] Open |
 
 ---
 
@@ -143,6 +141,5 @@
 
 ## ПРИОРИТЕТЫ
 
-1. **S141 (Low)** — привести `.env.prod.example`/k8s к читаемым env-именам (`EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET`) или удалить мёртвые (`FIX_*`, `EXCHANGE_MODE`).
-2. **S142 (Low)** — product-решение: добавить alertmanager service+config или принять rules-only (доки уже честные).
-3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
+1. **S142 (Low)** — product-решение: добавить alertmanager service+config или принять rules-only (доки уже честные).
+2. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
