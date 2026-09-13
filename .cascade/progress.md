@@ -1387,3 +1387,18 @@ Board: **10 open**.
 Verify: vite build green; playwright не трогали этим раундом.
 
 Board: **4 open** (S150 config-theatre, S151 seq write-only, S152 dead watchdog toolkit, S154 order-types die before wire).
+
+## R96 — slop-verify: 10 claims из R94–R95 — все чисто, 0 reverts
+
+- **S177** — все 10 сайтов имеют enclosing try (12-line window) — invalidation стоит.
+- **S181** — gate `(!v2_enabled && !v3_enabled)` на месте (bot_loop.cpp:254).
+- **S182** — `open_position` отсутствует в src/ (остался только param `open_positions` в check_signal).
+- **S187** — 11 `expect(` в screenshots.spec.js.
+- **S169** — все 5 файлов отсутствуют на диске.
+- **S160** — manifest «278 panels» на месте.
+- **S165** — 0 `vpc_id` refs в eks module; .PHONY полон.
+- **S168** — 291/153/157 в ARCHITECTURE.md подтверждены.
+- **S161** — §2 указывает реальный config.yaml с реальной таблицей.
+- **S162** — doc-правки подтверждены в R95 при закрытии.
+
+Done-log помечен `✅ verified R96` на всех 10 строках.
