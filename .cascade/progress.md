@@ -1229,3 +1229,15 @@ Board: **33 open** (S150–S184).
 ЧИСТО: 0 tautology, 0 shadow-defs; настоящие e2e_pipeline/strategy_risk_backtest; честные dep-gate skip'ы; Playwright реальный и в required-гейте; doctest-таргеты все wired кроме 2 сирот; root-vs-unit дубли имён — разные предметы.
 
 Board: **36 open** (S150–S187).
+
+## R83 — slop-audit: CI/CD workflows + nginx + root-конфиги — 3 находки S188–S190
+
+Скоуп: `.github/workflows/` (ci.yml 623 + codeql 77 + deploy 180 + nightly-backtest 234 + release 127), web-ui nginx.conf/Dockerfile/netlify.toml/vite/vitest/tsconfig/package.json.
+
+- **S188 (High)** — deploy.yml печёт прод-бандл без auth/endpoint env: build-and-push передаёт только `VITE_WS_EXCHANGE`/`VITE_WS_SIGNALS` в build-args — `VITE_SIGNAL_TOKEN`/`VITE_EXCHANGE_TOKEN` (ARG в Dockerfile.prod) не задаются → задеплоенный UI auth_failed на control-командах (S155 требует токен в проде). deploy-web-ui (Netlify) — `npm run build` вообще без env → публичный бандл на ws://localhost:8765/8766.
+- **S189 (Medium)** — `ci.yml:42-43,140-141`: `wget -qO- llvm-snapshot.gpg.key` стримит в stdout — файл не создаётся → `gpg --dearmor < file` падает → llvm-repo не подписан → lint-cpp + clang-17 leg test-cpp мертвы при запуске.
+- **S190 (Low)** — codeql.yml C++ build `|| true` → пустая/частичная DB при зелёном чеке; python/js сканируются дважды (codeql.yml + ci.yml security-codeql).
+
+ЧИСТО: deploy health-check порты все валидны; docker-smoke реальный; nightly-backtest честный (Backtester + regression-gate + issue); release.yml честный; web-ui Dockerfile — prod nginx /health; netlify.toml корректен; vitest thresholds и скрипты живы.
+
+Board: **39 open** (S150–S190).
