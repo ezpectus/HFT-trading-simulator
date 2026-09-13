@@ -1452,3 +1452,8 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 
 - Перепроверены все unverified done-log записи (S150/S151/S152/S154 R97 + S191/S192/S193 R99 + S194/S195 R101) — все подтверждены кодом: удалённые файлы отсутствуют, emit/wiring на месте, тесты green (12 TIF + 26 ws_client + 4 vitest gap).
 - **S196** (Medium, verify-surfaced) — `config.prod.yaml`: `risk.kill_switch.trigger_file` shadow'ит env-aware `ipc.kill_switch.trigger_file` (parse order), `HFT_KILL_SWITCH_FILE` мёртв; `ipc.kill_switch.shm_name` не парсится (hardcoded bot_setup.cpp:180).
+
+## R103 — slop-fix — S196 закрыта, доска пуста
+
+- `kill_switch` → единый дом `ipc.kill_switch`: risk-shadow-блок удалён из yaml + parse-site удалён; `shm_name` заведён (config.h:124 → bot_setup.cpp:179); `HFT_KILL_SWITCH_FILE` env-override теперь работает. Dead fixture-ключи в test_integration_config вычищены.
+- Verified: yaml parse-tree (ipc.kill_switch full, risk.kill_switch None), clang-format clean, 0 asserts на удалённые ключи.
