@@ -1447,3 +1447,8 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - **S195** — 4 stale-doc сайта исправлены: options_*-ссылки убраны (ARCHITECTURE/TESTING/TECHNICAL_REFERENCE), DEPLOYMENT tuning-блок на реальных ключах парсера.
 
 **Verifications:** `SignalBotConfig.load(settings.testnet.yaml)` OK, testnet=True/paper_trading=False; 107 config/exchange-тестов pass; ruff clean.
+
+## R102 — slop-verify — 9/9 VERIFIED, 1 новый дефект (S196)
+
+- Перепроверены все unverified done-log записи (S150/S151/S152/S154 R97 + S191/S192/S193 R99 + S194/S195 R101) — все подтверждены кодом: удалённые файлы отсутствуют, emit/wiring на месте, тесты green (12 TIF + 26 ws_client + 4 vitest gap).
+- **S196** (Medium, verify-surfaced) — `config.prod.yaml`: `risk.kill_switch.trigger_file` shadow'ит env-aware `ipc.kill_switch.trigger_file` (parse order), `HFT_KILL_SWITCH_FILE` мёртв; `ipc.kill_switch.shm_name` не парсится (hardcoded bot_setup.cpp:180).
