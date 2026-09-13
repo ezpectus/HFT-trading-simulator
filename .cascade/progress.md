@@ -1166,3 +1166,16 @@ Board: **22 open** (S148–S169).
 Verified: pytest sim 387 green + e2e-скрипты новых путей; vitest 37 (test обновлён под новый payload — честная смена контракта); ai-bot 22; ruff чист; compose config -q ×4. C++ — inspection-verified, тулчейна локально нет → CI.
 
 Board: **18 open**. Done-log +4. Протокол-док синхронизирован (auth, cancel_*, client_order_id, deduplicated).
+
+## R78 — slop-audit: ai-signal-bot/src bounded-context leaf-sweep — 4 находки S170–S173
+
+Последняя крупная непокрытая ячейка ротации: 84 файла ~14.7k строк. Import-graph sweep всех 72 модулей + чтение подозрительных внутренностей.
+
+- **S170 (Medium)** — мёртвые модули: `cross_exchange_arb.py` (337 строк — полный execution-движок арбитража, 0 прод-импортеров, только свой тест), `marketplace.py` (259 строк — plugin-loader с install_from_git/archive = arbitrary-code поверхность, 0 импортеров; фича продублирована в web-ui как localStorage-only панель — оба конца висят), `utils/helpers.py` (142 строки, tests-only).
+- **S171 (Medium)** — `EnsembleVoter` в run.py:118 без `circuit_breaker=`/`strategies=` → strategies-side 87-строчный loss-streak breaker мёртв в проде (живой — communication-вариант у publisher'а); `EnsembleVoter.analyze()` мёртв (prod зовёт `vote()`), а `EnsembleVoterAdapter` переизобретает его инлайн.
+- **S172 (Medium)** — два backtest-движка: `Backtester` (fee 0.075%, slip 2bps — run_backtest) vs `BacktestEngine` (fee 0.04%, slip 1bp — compare/walk_forward). Разные ответы по разным кнопкам; два `BacktestResult` типа в `__init__`.
+- **S173 (Medium)** — `_execute_live_order` строит ExchangeFactory на каждый ордер (load_markets multi-REST + market-data init + teardown на сигнал); `place_order(max_retries=3)` без clientOrderId — ambiguous-timeout retry = двойной реальный ордер; `SimulatorAdapter.cancel_order` → stale `False` (протокол уже умеет с R77-fix), `ExchangeClient` cancel вообще не имеет.
+
+ЧИСТО: ml_ensemble — реальный sklearn pipeline (honest NEUTRAL fallbacks); database/signal_validation/monitoring/tracing wired в run.py; data_collection целиком живой; MetricsCollector — честный fallback; walk_forward/backtest_comparison/optimizer — живы через WS+CI; все `return []` — defensive, не маскировка.
+
+Board: **22 open** (S150–S173).
