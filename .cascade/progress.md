@@ -1054,3 +1054,14 @@ C++/Python SHM contract sweep: все 4 struct'а байт-в-байт совп�
 ## R69 — slop-audit: SHM/WS contract + C++ surface — чисто (кроме S147, закрыт в R68)
 
 Проверено: все 4 SHM struct'а байт-в-байт (C++ #pragma pack + static_asserts ↔ Python struct.Struct strings); kill-switch timestamp epoch-ns ✓; msgpack-контракт полный (C++ subscribe `encoding: msgpack` → binary frames → `json::from_msgpack`; sim хранит per-client encoding, fallback на JSON если msgpack не установлен); `fill` handler → S147 (fixed); positions в C++ — внутренний pos_mgr, не с WS (S041-класс не применим); `hft-skills/` — untracked локальный материал.
+
+## R70 — kept-features verify (user request): все «оставленные» фичи реально живые
+
+Проверены end-to-end kept-решения:
+- **S125 wiring** — 5 WS-эндпоинтов полный цикл: UI-кнопка → `sendSignalMessage` → dispatch в `signal_publisher` → handler → `*_result` ответ → `setXxxResult` → ctx-prop → панель. Registry-entries для всех 5 панелей передают `sendSignalMessage` + result-prop + `signalsConnected`. 163 backend-теста green.
+- **AlertSystem** — wired в `run.py:366-425` (ops-rules, loop start/stop, session cleanup); `alerting.enabled` gate.
+- **SHM** — 4 struct'а byte-exact, все пары producer↔consumer подключены (fills после S147); test_shm_* green.
+- **Alertmanager** — реальный конфиг + сервис в 3 compose (S142).
+- **ccxt live-path** — dormant opt-in, честно задокументирован.
+- **ebpf_monitor / mock-mode / scripts/ci / backtestEngine** — opt-in/gated/live как заявлено.
+- S126 kept-residue (ExchangeSelector/useInterval/usePerformance/auditExport/cn) — utility-library по решению, zero importers — documented.
