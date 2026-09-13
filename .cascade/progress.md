@@ -1300,3 +1300,17 @@ Board: **30 open**.
 Verify: ai-bot suite 1438 passed/10 skipped; web-ui drawdownAnalysis 18/18.
 
 Board: **26 open**.
+
+## R89 — slop-verify: R86–R88 done-log claims — 9/9 confirmed
+
+- **S164** — все 8 суб-фиксов на месте в helm templates (WS_URL:45, EXCHANGE_WS_HOST:43, rule_files:96/alerting:99, grafana provisioning mounts :55-60, netpol 443 egress :43, `${VAR:-default}` в expand_env :27, webUi fail-checks :2-6, secretKeyRefs).
+- **S157** — compare_digest на handshake :142 + Bearer :158, startup-warn :113, compute-window gate :209 с `_COMPUTE_MSG_TYPES` frozenset.
+- **S158** — SO_RCVTIMEO/SNDTIMEO :126-135 на client socket, host через inet_pton :94, /metrics gate :152.
+- **S173** — `_live_adapter` cache :586-588, clientOrderId real_account:302 + factory:218, cancel_order ws_client:268/285 + factory:231.
+- **S172** — backtester fee_pct=0.04 :47, backtest_engine slippage 2.0 :25.
+- **S159** — metrics params :66-76, obi_levels bot_setup:153-155, ema/fft gates :161-162, shm_max_symbols run.py:288.
+- **S170** — 4 файла отсутствуют на диске.
+- **S171** — circuit_breaker.py удалён, `strategies=self.strategies` run.py:125, 0 breaker-refs в strategies/.
+- **S175** — `[...fills].sort()` DrawdownAnalysis.jsx:16.
+
+Результат: **9/9 верифицированы, 0 reverts**. Done-log помечен `✅ verified R89`.
