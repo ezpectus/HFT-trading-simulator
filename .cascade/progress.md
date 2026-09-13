@@ -1128,3 +1128,15 @@ Board: **16 open** (S148–S163). Docs: WEBSOCKET_PROTOCOL.md §8765 попра�
 ЧИСТО: values.yaml — все ~44 ключа потребляются; alertmanager честно документирует «nothing sent until wired»; Makefile logs — все файлы реальны (`_latest` symlink'и/синки); Makefile targets → существующие файлы; terraform 10/11 vars; hft-trade-bot.yaml — честный comment-only sidecar-doc.
 
 Board: **18 open** (S148–S165).
+
+## R76 — slop-audit: test-honesty sweep (vitest + pytest + doctest + e2e) — 3 находки S166–S168
+
+Первый выделенный проход по качеству тест-сьютов: 157 vitest-файлов web-ui + 99 ai-bot + 29 sim pytest + 25 hft doctest-файлов + monitoring/tests + 4 e2e-спека. Паттерны: vacuous asserts, mock-theatre, shadow-copy тесты, orphan tests, CI-gating.
+
+- **S166 (Low)** — vitest placeholder-theatre: `exchange-ui.test.jsx` — 17× `expect(true).toBe(true)` с «This test would verify…» комментами (order-form themes, state persistence, stop-limit/trailing/iceberg, audit-log UI) + 27 fixture-self-asserts (`toHaveProperty` на локальные mock-константы, `mockX.not.toBe(mockY)`) — реальный `ExchangeProvider` трогают ~6/50 expect'ов. `performance.test.jsx` — 2 unconditional («manual chunks», «<2s load»). 34 зелёных «теста» за покрытие, которого нет.
+- **S167 (Medium)** — 5 math-тестов (`cointegration`/`garch`/`hmm`/`kalman`/`kmeans`.test.js, 85 expect'ов) импортируют только vitest: алгоритмы определены inline в тест-файлах как копии «extracted from». Продакшен-версии (`PairTradingSignals`/`GARCHVolatility`/`HiddenMarkovModel`/`KalmanFilterPrice`/`KMeansClustering`.jsx) тестами не вызываются — регрессия в продакшен-математике не сломает ни одного теста, копии расходятся свободно.
+- **S168 (Info)** — `ARCHITECTURE.md:422` «103 test files: 99 unit + 4 e2e» — застряло до ~58 добавленных файлов; фактически 157 unit + 4 e2e. README:121/:195 честны.
+
+ЧИСТО: python suites (ai-bot 99 + sim 29) — реальные asserts/mock-assertions, no-assert скан 0 истинных хитов (`test_run_equity.py` — false-positive); `monitoring/tests/test_alerts.py` — настоящая schema-валидация alerts.yml; e2e реальны и CI-gated (test-e2e без continue-on-error, в check_result); hft doctest 565 REQUIRE/CHECK наполнены (мёртвые абстракции — S152, не vacuity); `screenshots.spec.js` — честный capture-скрипт; `monitoring/alerts/` — пустая untracked-папка, не residue.
+
+Board: **21 open** (S148–S168).

@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~165 (S001–S165) |
+| Всего находок | ~168 (S001–S168) |
 | Закрыто | 147 |
-| Открыто | **18** — 7 из R71 + 4 из R72 + 3 из R73 + 2 из R74 + 2 из R75 |
+| Открыто | **21** — 7 из R71 + 4 из R72 + 3 из R73 + 2 из R74 + 2 из R75 + 3 из R76 |
 
-**Текущее состояние:** R75 (infra-config honesty: helm values/templates + terraform + alertmanager + Makefile) нашёл **2 открытых** — S164–S165. Главное: helm-чарт деплоит нерабочую систему — ai-bot звонит на `ws://localhost:8765` своего пода (нет `WS_URL`), сим биндит pod-loopback без config-маунта → CrashLoop, Prometheus без `rule_files`/alertmanager, Grafana без provisioning, NetworkPolicy режет egress на api.openai.com при подключённом `OPENAI_API_KEY` (S164).
+**Текущее состояние:** R76 (test-honesty sweep: web-ui vitest + python tests + hft doctest + monitoring/tests + e2e) нашёл **3 открытых** — S166–S168. Главное: 5 math-тестов (cointegration/garch/hmm/kalman/kmeans, 85 expect'ов) импортируют только vitest и тестируют inline-копии алгоритмов — продакшен-реализации (`GARCHVolatility`/`HiddenMarkovModel`/`KalmanFilterPrice`/`KMeansClustering`/`PairTradingSignals`) тестами не касаются (S167); `exchange-ui.test.jsx` на ~88% состоит из `expect(true)` и fixture-self-asserts (S166).
 
 ---
 
@@ -41,6 +41,9 @@
 | **S163** | Grafana latency dashboard: 6 из 8 панелей латентности мертвы навсегда | `latency-monitoring.json` — `histogram_quantile(0.50/0.99, exchange_simulator_{order,websocket,price_feed}_latency_seconds)` (:47,63,79,95,111,127) кверит **голое имя** без `_bucket`; sim эмитит только `name_bucket{le=...}` (`ws_metrics.py:29-30`) → bare-name селектор пуст → `histogram_quantile` ничего не возвращает → 6 панелей вечно пустые. Правильная форма с `_bucket`+`rate()` есть рядом (`:15,:31` для `trading_signal_latency` и `:159` distribution) — т.е. половина дашборда написана правильно, половина — нет. В инциденте оператор смотрит на пустые latency-панели. | Medium | [ ] Open |
 | **S164** | Helm-чарт рендерит нерабочую систему: мёртвый data-path, ноль алертинга, пустой Grafana | Кластер k8s-поломок: (1) ai-signal-bot Deployment не ставит `WS_URL` — бот звонит на baked `ws://localhost:8765` (settings.yaml:73) = loopback своего пода → сервис `*-exchange-simulator` недостижим → нет market-data → нет сигналов → hft-sidecar голодает; пробы `/live`+`/ready` зелёные (там нет проверки upstream). (2) exchange-simulator: `COPY . .` печёт `config.yaml` с `host: localhost`, ConfigMap/volume нет → процесс слушает pod-loopback; k8s httpGet-пробы идут на pod-IP ≠ loopback → **CrashLoopBackOff** (хуже compose-варианта S156, где healthcheck внутри контейнера зелёный); и исправить через чарт нельзя — маунта конфига нет вообще. (3) Prometheus ConfigMap (`prometheus.yaml:87-99`) — только scrape_interval + 3 job'а; **нет `rule_files`/`alerting:`**, alertmanager-шаблона в чарте нет вообще → `alerts.yml`/`alertmanager.yml` — compose-only, в k8s ноль алертов. (4) Grafana StatefulSet маунтит только `/var/lib/grafana` — **нет provisioning** → ни datasource, ни дашбордов: пустой Grafana (S068 fixed compose; helm никогда и не имел). (5) `network-policy.yaml` — default-deny egress кроме same-release pods + DNS + ingress-nginx, но чарт вайрит `OPENAI_API_KEY` → api.openai.com заблокирован → LLM-путь мёртв. (6) hft-sidecar: `readOnlyRootFilesystem` + trigger `/tmp/kill_switch` на rootfs → file-trigger недостижим (SHM-флаг `/dev/shm` — writable, жив). (7) `webUi.wsExchange/wsSignals` — обязательные `--set` значения, потребляются только `fail`-гвардами (web-ui.yaml:2-7), в под не попадают — ложная уверенность «я задал URL» при бандле, собранном с чем угодно. (8) `AI_BOT_AUTH_TOKEN` не ставится → publisher fail-open в кластере (расширяет S157). | High | [ ] Open |
 | **S165** | Мелкий infra-residue: terraform `vpc_id` + Makefile .PHONY | `terraform/modules/eks/main.tf:15` декларирует `variable "vpc_id"`, оба environment'а передают `module.vpc.vpc_id` (dev/prod main.tf:39) — но внутри модуля `var.vpc_id` ни разу не используется (0 refs) — мёртвый input интерфейса. `Makefile` — 5 хвостовых таргетов (`ci-test`, `ci-quick`, `benchmark`, `walk-forward`, `docker-hub`) не в `.PHONY` (:1) — файл с таким именем молча выключит таргет. | Info | [ ] Open |
+| **S166** | Vitest placeholder-theatre: 19 unconditional + 27 fixture-self-asserts | `web-ui/src/test/exchange-ui.test.jsx` — 17× `expect(true).toBe(true)` с комментами «This test would verify…» (order-form themes, state persistence при смене биржи, stop-limit/trailing/iceberg поля, advanced-order validation, audit-log UI) — плюс 27 assert'ов на собственный фикстурный литерал (`expect(mockBinanceTheme).toHaveProperty('primary')` ×24, `mockX.primary.not.toBe(mockY.primary)` ×3) — тестируют локальный const в тест-файле, не приложение. Реальный `ExchangeProvider` трогают ~6 из 50 expect'ов. `performance.test.jsx` — 2 unconditional («manual chunks configured», «target <2s initial load» — оба `expect(true)`). Suite насчитывает 34 зелёных теста «покрытия», которого нет: регрессии в order-form UI и перф-конфиге Vite проходят молча. | Low | [ ] Open |
+| **S167** | 5 math-тестов — shadow-копии алгоритмов, 0 импортов продакшена | `cointegration.test.js` / `garch.test.js` / `hmm.test.js` / `kalman.test.js` / `kmeans.test.js` — 85 expect'ов суммарно, единственный import — vitest; тестируемые функции (`calcADF`, `ols`, `calcZScore`, `forward`…) определены **внутри тест-файлов** как копии («Tests the core algorithms extracted from …»). Продакшен-реализации живут отдельно — `PairTradingSignals.jsx`, `GARCHVolatility.jsx`, `HiddenMarkovModel.jsx`, `KalmanFilterPrice.jsx`, `KMeansClustering.jsx` — и тестами не вызываются. Баг в продакшен-математике не сломает ни одного теста; копии могут расходиться с оригиналом бесконечно — suite доказывает корректность своих собственных снапшотов, не кода, который считает сигналы. | Medium | [ ] Open |
+| **S168** | ARCHITECTURE.md: stale test-count «99 unit» vs фактические 157 | `ARCHITECTURE.md:422` — «103 test files: 99 unit + 4 e2e» — таблица застряла до добавления ~58 тест-файлов; фактически `web-ui/src/test/` = 157 vitest-файлов + 4 e2e-спеки. README:121 «157 test files (Vitest)» и :195 «162 test files» — честны (157+4 spec+helper). | Info | [ ] Open |
 
 ---
 
@@ -118,7 +121,7 @@
 - Все 4 prod Dockerfile: multi-stage, non-root user, пинned base images
 - `release.yml` — легитимный changelog/release flow
 - `deploy.yml` — scp/ssh + GHCR push, секреты через secrets.*, чисто
-- README числа точные: 278 panels (registry), 289 components, 116 vitest файлов
+- README числа точные: 278 panels (registry), 289 components, 116 vitest файлов [R76: vitest вырос до 157 — README:121 «157» актуален, ARCHITECTURE.md:422 «99 unit» протух → S168]
 - `EnsembleVoter` + `CircuitBreaker` + StatArb — реально в loop (run.py / signal_publisher)
 - `visualizer.py` — подключён через `__main__.py --no-visualizer`, живой
 - Все 18 незарегистрированных web-ui компонентов — App.jsx chrome (Header/StatusBar/OrderForm…), не сироты
@@ -194,6 +197,14 @@
 - terraform: 10 из 11 переменных потребляются (vpc/eks/s3 модули реальные)
 - hft-trade-bot.yaml — честный comment-only файл (sidecar-pattern задокументирован)
 
+**R76 (test-honesty — проверено, чисто):**
+- python test suites — ai-bot 99 + sim 29 файлов: реальные asserts + mock-assertions (`assert_called_once_with`/`assert_not_called`); no-assert скан → 0 истинных попаданий (`test_run_equity.py` — false-positive на mock-API)
+- `monitoring/tests/test_alerts.py` — настоящая schema-валидация `alerts.yml`: 5 групп, severity∈{info,warning,critical}, обязательные `expr`/`for`/`labels`/`annotations`
+- e2e — 4 spec'а с реальными expect'ами (34 шт); CI `test-e2e` job — настоящий gate (нет `continue-on-error`/`|| true`, входит в `check_result` test-summary); `screenshots.spec.js` — честно названный capture-скрипт для README, не притворяется тестом
+- hft doctest — 565 REQUIRE/CHECK в 17 файлах, наполненные тесты (что они тестируют мёртвые абстракции — отдельно в S152/S096, не vacuity)
+- `monitoring/alerts/` — пустая untracked-папка на диске, не закоммичена — не residue репо
+- README test-counts честны: :121 «157 vitest + 4 e2e» и :195 «162 test files» (157+4 spec+helper) — точны
+
 ---
 
 ## ПРИОРИТЕТЫ
@@ -205,4 +216,5 @@
 5. **S159** (Medium) — ~16 мёртвых конфиг-ключей в 3 сервисах. Fix-порядок: sim `metrics.*` — либо честный gate + отдельный `health.enabled`, либо удалить ключи (healthcheck зависит); `account.currency`/`exchanges.*.symbols` — пробросить в `SimulatedExchange` или дропнуть; hft `fft_*`/`fast_ema_enabled`/`obi_levels`-drift — свести к одному написанию и завести в `EngineParams`.
 6. **S162** (Medium) — протокол-док :8765 врёт в 8 местах. Fix: переписать §8765 по диспетчеру — `update_config`+`updates`-схема, убрать `position`/`speed_change`/`error.code`, `fills`→`orders`, `server_name`→`server`, дописать `start_trading`/`stop_trading` и 5 candles-полей. (Doc поправлен в R74; строка остаётся как контрольная точка для slop-verify.)
 7. **S164** (High) — helm-чарт деплоит мёртвую систему. Fix: ConfigMap с конфигом сима + `host: 0.0.0.0`, env `WS_URL=ws://<release>-exchange-simulator:8765` + `AI_BOT_AUTH_TOKEN` из secret, `rule_files`+alertmanager, grafana provisioning volume, egress-whitelist на api.openai.com или убрать ключ, `/tmp` emptyDir для kill-switch.
+8. **S167** (Medium) — 5 math-тестов тестируют inline-копии, не продакшен. Fix: импортировать реальные функции из компонентов (вынести чистую математику в `src/utils/math/`, импортировать из обеих сторон) или удалить shadow-файлы; плюс S166 — заменить 19 `expect(true)` реальными рендер-assert'ами или удалить placeholder-тесты.
 8. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.

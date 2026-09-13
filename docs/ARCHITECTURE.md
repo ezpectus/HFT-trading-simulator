@@ -419,7 +419,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
 | Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (103 test files: 99 unit + 4 e2e) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (161 test files: 157 unit + 4 e2e) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
