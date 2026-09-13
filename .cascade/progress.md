@@ -1518,3 +1518,15 @@ Findings:
 Clean: env files properly ignored; vendored dep dirs have CMake fallback; bat/sh helpers real; pre-commit config delegates to canonical hook; sops template untracked; nginx.conf honest; prod VITE_WS args required-guarded.
 
 Commit: (below)
+
+## R109 — 2026-09-15 — audit: ci.yml full-sweep + compose connectivity — 2 findings (S210–S211)
+
+Target: `.github/workflows/ci.yml` (621 lines, every job) + all 4 docker-compose files + .env.prod.example wiring.
+
+Findings:
+- S210 (High): compose data-path never wired — ai-bot no WS_URL in any file (loopback); hft dev config.yaml websocket_url=localhost (no env expansion); hft prod default exchange_simulator≠exchange-simulator (NXDOMAIN); HFT_EXCHANGE_WS_URL undocumented in .env.prod.example. All healthchecks green — dead system looks healthy. Helm was fixed in S164; compose never.
+- S211 (Low): ci.yml — dead npm-audit grep step (prior step already gates); bandit skips check when report file absent.
+
+Clean: test-summary honest aggregator; test-count floors real; docker-smoke hits real health endpoints; staging scrape aliases resolve; hft images install wget.
+
+Commit: (below)
