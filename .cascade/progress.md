@@ -1558,3 +1558,17 @@ Findings:
 Clean: liquidation/margin/funding/OCO/flip-residual correct; account-level leverage consistent model (validator+hot-reload+margin+liq) — Position without leverage is design; close_position via force_close legit; market-sim GBM/corr/OHLC honest; SECURITY.md honest (rate-limit real); docker-smoke-test.sh correct ports; REFACTORING_PLAN/PROJECT_AUDIT disclaimers present; web-ui/public = favicon only; hooks thin delegates; parquet export real.
 
 Commit: (below)
+
+## R112 — 2026-09-15 — audit: exchange_simulator leaf-sweep + ai-bot root + no-docker launchers — 4 findings (S220–S223)
+
+Target: exchange_simulator never-leaf-read modules (options_simulator, data_export, config_validator, visualizer x3, ws_metrics, ws_prometheus, websocket_server, __main__), ai-signal-bot root (monitor.py, run_backtest.py), no-docker.{bat,sh} launchers.
+
+Findings:
+- S220 (Medium): no-docker sim launch dead on all OSes, twice — no-docker.bat:88 + no-docker.sh:77-78 cd inside the package then `python -m exchange_simulator` -> ModuleNotFoundError (3rd/4th sites of the S215/S217 defect); and __main__.py:162-163 unguarded `loop.add_signal_handler` -> NotImplementedError on Windows ProactorEventLoop (verified live on host Py3.12) — even a correct root-cwd launch crashes on Windows. Docker masks both; the advertised native quick-start works nowhere.
+- S221 (Low): exchange_orders_{submitted,filled,rejected}_total exported as _total but derived from deque(maxlen=10000) — submitted pins at 10000, filled/rejected DECREASE on eviction -> non-monotonic counters -> rate()/increase() counter-reset garbage; no HELP/TYPE lines either.
+- S222 (Info): visualizer arrows dead on Windows — _handle_key routes only b'\x1b' but msvcrt emits \xe0/\x00 prefix for arrows; advertised '<- -> Switch tabs' does nothing. Plus hardcoded exchanges.get("binance") x2 -> AttributeError on rename, escaping the _viz_loop catch-list (silent thread death).
+- S223 (Info): get_metrics() dead public API — WebSocketMetrics.get_metrics + ExchangeWebSocketServer.get_metrics called only by tests; prod reads metrics.* fields directly via ws_prometheus.
+
+Clean: options_simulator canonical BS+Greeks+NR-IV honest NaN; data_export real CSV/Parquet honest fallback; config_validator full cross-refs; ws_metrics all counters/histograms fed (broadcast:68/224, handler:101-114/122/218); ws_prometheus valid exposition + rusage Windows-guard; websocket_server guarded optional imports (S207 contrast), correct SHM seqlock, real health endpoints; monitor.py — Signal.to_dict keys 1:1, both tail files are config defaults; run_backtest.py real walk-forward (optimizer:193-219 IS/OOS) — unlike S214's theatrical twin; visualizer charts/account — canonical indicator math, real data.
+
+Commit: (below)
