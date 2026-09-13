@@ -1065,3 +1065,19 @@ C++/Python SHM contract sweep: все 4 struct'а байт-в-байт совп�
 - **ccxt live-path** — dormant opt-in, честно задокументирован.
 - **ebpf_monitor / mock-mode / scripts/ci / backtestEngine** — opt-in/gated/live как заявлено.
 - S126 kept-residue (ExchangeSelector/useInterval/usePerformance/auditExport/cn) — utility-library по решению, zero importers — documented.
+
+## R71 — slop-audit: domain-required patterns (timeouts/backpressure/idempotency/gap-detection/shutdown) — 7 находок S148–S154
+
+Последний крупный непокрытый пласт из rulebook: reliability-паттерны, критичные для трейдинга. Sweep по sim + ai-bot + web-ui + hft hot paths + root residue.
+
+- **S148 (High)** — kill-switch «cancel all open orders» — `spdlog::warn`-заглушка (bot_setup.cpp:175-176); cancel-метода в OrderExecutor нет, `cancel_order` в протоколе сима нет. Resting LIMIT/GTD-ордера переживают стоп и филлятся после. Та же ложь в graceful_shutdown (bot_loop.cpp:349).
+- **S149 (High)** — `client_order_id` мёртв end-to-end: ai-bot шлёт (run.py:542 → ws_client.py:240), sim игнорит (0 refs, dedup-таблицы нет), ARCHITECTURE.md:641 лжёт про deduplication. Живой dup-вектор: useWebSocket send-queue (≤100 msg) сбрасывается пачкой на reconnect.
+- **S150 (Medium)** — config.prod.yaml: ~35 мёртвых ключей. database.*/redis.* — 10 ключей парсятся только в баннер «DB: true|Redis: true» при нуле DB-кода; paper_trading/fallback_to_simulator/metrics.{enabled,host}/v2_min_composite/v2_vwap_window — parsed-never-read; kill_switch.{enabled,auto_*}, adaptive default_type/post_only_retries, pressure obi_levels/microprice_enabled, latency cores/queue/pool, symbols[].{id,max_leverage} — не парсятся вовсе. Прод-бинарь дозванивается только до simulator_ws_url.
+- **S151 (Medium)** — `seq` в broadcast write-only: шлётся в каждом candles (ws_broadcast.py:421/472/510), doc обещает gap-detect+resync (WEBSOCKET_PROTOCOL.md:269), читателей ноль — ни useExchangeData.js, ни ws_client.py. Потерянный delta → молча протухший стакан.
+- **S152 (Medium)** — network/ws_client.h (Watchdog/MessageQueue/ReconnectionManager, 255 строк) инклудится только тестами — 0 src-includes; ЧИСТО-claim R51 «широко инклудятся» неверен. Живые коннекты (SignalReceiver/OrderExecutor) без ping/pong/stale-detection: полуоткрытый TCP → молчаливый ресивер → SL/TP по мёртвым ценам.
+- **S153 (Low)** — alerting.py:74 `ClientSession()` без timeout (vs engine.py:55 с ClientTimeout): зависший webhook морозит check_rules на ~300s, CRITICAL-алерт ждёт за мёртвым каналом.
+- **S154 (Low)** — AdaptiveOrderSelectorV2 выбирает IOC/FOK/GTD/POST_ONLY, но submit_order перерешает MARKET/LIMIT через второй селектор — kind/TIF/expiry теряются до провода; 7 exchange-mapping функций test-only. Лог «kind=GTD», провод — LIMIT.
+
+ЧИСТО добавлено (verified): sim per-client cleanup + rate-limit, signal_publisher wait_for(5s) bounded sends, ai-bot ws_client recv watchdog 30s + ping 10/10, market_data_feed bounded queue + drop-oldest, useWebSocket ring 5000 + outgoing cap 100 + maxReconnects 20, sync_state лечит orderbooks, OrderExecutor honest-bool + arb unwind, KillSwitch идемпотентность + SHM-notify, root residue всё untracked.
+
+Board: **7 open** (S148–S154).

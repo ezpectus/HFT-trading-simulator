@@ -1,6 +1,6 @@
 ﻿# OFFICE BOARD — AI SLOP AUDIT
 
-> Аудит: 11 сен 2026 → текущий раунд R60+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
+> Аудит: 11 сен 2026 → текущий раунд R70+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
 > **Закрытые находки перенесены в `.cascade/done-log.md`** (99 шт, R4–R60) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
 > История работ: `.cascade/progress.md`, баги: `.cascade/bug_log.md`.
 
@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~147 (S001–S147) |
+| Всего находок | ~154 (S001–S154) |
 | Закрыто | 147 |
-| Открыто | **0** — доска чистая |
+| Открыто | **7** — R71 domain-required patterns sweep |
 
-**Текущее состояние:** R63 закрыл S144+S145 (deploy-path), R66 — S146 (undeclared deps), R68 — S147 (SHM fills write-only + side-enum). **0 открытых** — следующий шаг: slop-audit на новом грунте.
+**Текущее состояние:** R71 (domain-required: timeouts/backpressure/idempotency/gap-detection/shutdown) нашёл **7 открытых** — S148–S154. Главное: kill-switch «cancel all orders» — лог-заглушка (S148), заявленная идемпотентность ордеров фейковая (S149), прод-конфиг hft — ~35 мёртвых ключей (S150).
 
 ---
 
@@ -23,6 +23,13 @@
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
+| **S148** | Kill-switch «cancel all orders» — лог-заглушка, реальных отмен нет | `bot_setup.cpp:175-176` — `set_cancel_all_callback([&]{ spdlog::warn("KILL SWITCH: Cancelling all open orders..."); })` — чистый лог, ноль отмен. `OrderExecutor` не имеет cancel-метода; в WS-протоколе сима нет `cancel_order` (диспетч `ws_message_handler.py:143-167`). Покоящиеся ордера (LIMIT/GTD/PostOnly через adaptive selector → в симе уходят в PENDING и исполняются на следующих тиках) переживают kill-switch → филлятся после остановки → переоткрывают позицию. Тот же ложный лог в `graceful_shutdown` (`bot_loop.cpp:349` «cancelling all open orders» — только close_position дальше). Аварийный стоп оставляет боевые ордера работать. | High | [ ] Open |
+| **S149** | `client_order_id` мёртв end-to-end — заявленная идемпотентность не существует | `run.py:542` шлёт `client_order_id=f"sig_{signal_id}"` → `ws_client.py:240` кладёт в order-msg → sim читает 14 полей (`_submit_exchange_order`, `ws_message_handler.py:230-244`), `client_order_id` среди них нет, dedup-таблицы нет — 0 refs во всём exchange_simulator. `ARCHITECTURE.md:641` заявляет «client_order_id for deduplication» — ложь; в `WEBSOCKET_PROTOCOL.md` поля вообще нет. Живой вектор дублей: `useWebSocket.send()` очередит ≤100 сообщений при дисконнекте и сбрасывает пачкой на reconnect (`useWebSocket.ts:280-290,161-172`) — «не отправленный» (return false) ордер исполняется позже по новой цене; повторный клик юзера = второй ордер, и dedup, который должен был это ловить, отсутствует. | High | [ ] Open |
+| **S150** | `config.prod.yaml` — продакшн-театр: ~35 мёртвых ключей | Parsed-but-never-read: `database.*` (7 ключей — dsn/pool_*/persist_*), `redis.*` (3), `exchange.fallback_to_simulator`, `metrics.enabled`, `metrics.host`, `signal_engine_v2.thresholds.min_composite`, `signal_engine_v2.periods.vwap_window`, `trading.paper_trading` — всё пишется в `Config`, читается только баннером (`bot_setup.cpp:37-39` печатает «DB: true \| Redis: true» при нуле DB-кода в src). `stop_loss_pct`/`take_profit_pct` — только валидируются (`config_validate.h:20-27`), в поведение не идут (V2 использует sl/tp_atr_mult). Никогда не парсятся: `risk.kill_switch.{enabled,auto_cancel_orders,auto_close_positions}` (kill-switch безусловен — `enabled:false` его не отключит), `adaptive_order_selector.{default_type,post_only_retries}`, `pressure_model.{obi_levels,microprice_enabled}` (microprice считается всегда, `pressure_model.h:102`), `latency_optimization.{signal_thread_core,market_data_core,spsc_queue_capacity,object_pool_size}`, `symbols[].{id,max_leverage}` (id берётся из порядка в списке, не из поля). Плюс: прод-бинарь всё равно дозванивается только до `exchange.simulator_ws_url` — реальных exchange-адаптеров нет с S059. | Medium | [ ] Open |
+| **S151** | `seq` в broadcast — write-only: заявленный gap-detection отсутствует | `ws_broadcast.py:421-422,472,510` инкрементит и шлёт `seq` в каждом `candles`-сообщении; `WEBSOCKET_PROTOCOL.md:269` обещает клиентам «detect missed messages and request sync_state on gaps». Читателей ноль: `useExchangeData.js` — 0 обращений к `data.seq`, `ws_client.py` (ai-bot) тоже игнорит. Reconnect лечит книги через полный `sync_state`-снапшот (orderbooks включены, `ws_broadcast.py:114-123`) — но per-tick детекта дыр нет: потерянное сообщение (напр. merge-логика `flushBatch` в useWebSocket, сейчас выключена для exchange-сокета) → `orderbook_deltas` молча лягут на протухший стакан. Мёртвое поле + ложный doc-claim. | Medium | [ ] Open |
+| **S152** | `network/ws_client.h` — мёртвый toolkit; живые коннекты без watchdog | 255 строк (`Watchdog`/`MessageQueue`/`ReconnectionManager`/`SubscriptionManager`/`ReconnectPolicy`) инклудятся только тестами (`test_network.cpp`, `test_signal_flow.cpp`) — 0 include в src (ЧИСТО-claim R51 «ws_client.h широко инклудятся» неверен — инклудят только тесты). `SignalReceiver`/`OrderExecutor` руками крутят websocketpp-reconnect; ни ping/pong-handler'а, ни stale-detection — полуоткрытый TCP (peer умер без FIN/RST) никогда не вызовет `close_handler` → ресивер молча перестаёт получать данные при `connected_=true`; `prices_cache` протухает → SL/TP/PnL считаются по мёртвым ценам вечно. Watchdog, который это ловит, лежит в том же репо неподключённым. | Medium | [ ] Open |
+| **S153** | `alerting.py` — aiohttp session без timeout | `alerting.py:74` `ClientSession()` голый — контраст с `engine.py:55` (`ClientTimeout(total=...)`). Зависший webhook-POST блокирует `check_rules`→`_send_alert` gather на неявные 300s aiohttp-дефолта — последующие проверки правил задерживаются на ~5 минут, CRITICAL-алерт (daily_loss/kill_switch) стоит в очереди за мёртвым Discord-каналом. Backstop есть (300s), но алерт-конвейер на это время встаёт. | Low | [ ] Open |
+| **S154** | Адаптивные типы ордеров умирают до провода | `AdaptiveOrderSelectorV2::select` выбирает IOC/FOK/GTD/POST_ONLY (`bot_loop.cpp:179-198` логирует «kind=GTD» и т.п.), но `execute_v2_order` использует из селекции только `limit_price`, а `submit_order` заново деривирует MARKET/LIMIT через второй селектор (`OrderTypeSelector`, `order_executor.h:109`) — kind/TIF/expiry теряются; `gtd_seconds` кормит `expire_ns`, никуда не уходящий. `to_{binance,okx,bybit}_{type,tif}` + `to_exchange_*` — 7 функций ~100 строк, вызываются только тестами (`test_doctest_adaptive_order_selector.cpp`, `test_v2_pressure_adaptive.cpp`). Лог говорит GTD — на проводе LIMIT. | Low | [ ] Open |
 
 ---
 
@@ -135,8 +142,21 @@
 - `market_simulator` GBM-ядро настоящее: correlated z (shared+idio), news events, weekend mode, wick/high/low/volume synthesis — разумный симулятор
 - funding `rng.gauss(0,0.0002)` per-exchange — осознанный сим-дизайн, funding pipeline живой до UI
 
+**R71 (domain-required patterns — проверено, чисто):**
+- sim `_cleanup_client` — все 4 per-client dict'а (versions/encodings/subscriptions/msg_counts) pop'аются на disconnect, утечки нет; rate-limit 1000 msg/мин, per-message try, `max_size=1MB`, ping_interval=10
+- `signal_publisher.py` — broadcast bounded `wait_for(send, 5s)` per-client, `max_clients=50` + 1013 reject, auth handshake `wait_for(10s)`
+- ai-bot `ws_client.py` — recv watchdog `wait_for(30s)`, `open_timeout=10`, ping 10/10, reconnect backoff+jitter ≤5 попыток, per-message JSONDecodeError try
+- `market_data_feed.py` — `asyncio.Queue(maxsize=500)` + drop-oldest-политика на QueueFull, ping 20/10, backoff ≤30s, gap-fill hook на reconnect
+- `useWebSocket.ts` — ring buffer 5000, outgoing queue cap 100, `maxReconnects=20`, app-ping 5s
+- `sync_state` включает полные orderbooks (`ws_broadcast.py:114-123`) — reconnect лечит книги
+- `OrderExecutor` — честный bool-return, unwind-нога при срыве sell-лега арбитража, JSON truncation guard, reconnect backoff ≤30s
+- `KillSwitch` — идемпотентный `activate()`, joinable monitor-thread, SHM-нотификация wired (S132), close-positions callback реальный
+- root-level residue — `websocketpp/`, `vcpkg/`, `node_modules/`, `audit/`, `hft-skills/`, root `*.py`, stale root `*.md` — всё untracked/gitignored, находок нет
+
 ---
 
 ## ПРИОРИТЕТЫ
 
-1. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
+1. **S148** (High) — kill-switch/graceful-shutdown «cancel all orders» лог-заглушка: resting-ордера переживают аварийный стоп. Fix-варианты: sim-side `cancel_order` msg-type + `OrderExecutor::cancel_all` + реальный callback; или min-fix — marketable-close вместо pending-ордеров + честный лог.
+2. **S149** (High) — `client_order_id` мёртв end-to-end при живом dup-векторе (UI send-queue flush). Fix: sim dedup-таблица `client_order_id → order_id` (TTL) + протокол-док.
+3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.

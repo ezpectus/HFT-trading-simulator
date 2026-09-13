@@ -638,7 +638,7 @@ Each service (Exchange Simulator, AI Signal Bot, HFT Trade Bot, Web UI) runs as 
 
 5. **Reversibility** — Every architectural change must be reversible. The V1 signal engine is preserved alongside V2. Config sections are optional — removing a section reverts to defaults. No migration is one-way.
 
-6. **Idempotent operations** — Order submission includes client_order_id for deduplication. Position updates are state-based, not delta-based. Reconnecting and re-syncing state is safe.
+6. **Idempotent operations** — Order submission includes `client_order_id` (sent by clients; the simulator does not yet deduplicate on it — see audit S149). Position updates are state-based, not delta-based. Reconnecting and re-syncing state is safe.
 
 7. **Observable by default** — Every service logs timestamped events. Latency histograms track per-stage timing. Error boundaries count failures. CSV trade logs provide audit trail. Prometheus metrics expose health endpoints in production.
 
