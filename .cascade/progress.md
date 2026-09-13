@@ -1290,3 +1290,13 @@ Board: **32 open** (S150–S190 минус S157/S158/S164/S178/S179/S180/S188).
 Verify: sim 404 + shm 18 + exchange-factory 86 + backtest 87 green; validator shipped-config 0/0; clang-format clean; C++ — syntax-check где тулчейн позволяет (vendored-deps отсутствуют, CI компилит).
 
 Board: **30 open**.
+
+## R88 — slop-fix: S170 + S171 + S175 — 3 закрыты
+
+- **S170** — удалены с доказанной deadness: cross_exchange_arb.py (337) + marketplace.py (259) + utils/helpers.py (142) + 4 тестовых файла; run_all_tests globs вычищены. bot_helpers.py живой — сохранён.
+- **S171** — strategies-CircuitBreaker удалён (unfeedable: on_trade_closed нужен realized-PnL feed, которого в сервисе нет — wire был бы theatre); EnsembleVoter.strategies/analyze стали живыми (run.py передаёт strategies); _EnsembleAdapter удалён; fee_pct 0.075→0.04 residue закрыт.
+- **S175** — `[...fills].sort()` — shared-prop мутация убрана.
+
+Verify: ai-bot suite 1438 passed/10 skipped; web-ui drawdownAnalysis 18/18.
+
+Board: **26 open**.
