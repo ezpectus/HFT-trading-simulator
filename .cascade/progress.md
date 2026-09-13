@@ -1192,3 +1192,17 @@ Board: **22 open** (S150–S173).
 ЧИСТО: `Object.values(positions)` на list — корректно; 115 .sort()/.reverse() — все на локальных массивах кроме S175; useWebSocket onmessage — per-message try (S013 закрыт); performance.ts vs performanceMonitor.js — разные домены, оба живы; ui-helpers.js — честный shim; backtest/performance подпакеты wired.
 
 Board: **26 open** (S150–S177).
+
+## R80 — slop-audit: hft-trade-bot/src internals leaf-sweep — 5 находок S178–S182
+
+Скоуп: `hft-trade-bot/src/` (42 файла, ~8.3k строк) — position/risk/monitoring/network/execution/strategies per-module correctness. Wiring проверялся в R69, домены в R71 — internals впервые.
+
+- **S178 (High)** — RiskManager V2 «production safety» целиком tests-only: `check_order` (8 проверок: blacklist/leverage/per-symbol qty/exposure/daily-loss-$/peak-drawdown/rate-throttle/margin) + `on_fill`/`reduce_exposure`/`update_pnl_v2`/`reset_daily`/`blacklist_symbol` — 0 прод-вызовов, живут только в `test_doctest_risk_manager.cpp`. Прод зовёт `check_signal` (confidence/R:R/maxpos/drawdown-%) — 8 конфиг-ключей безопасности парсятся, валидируются и никогда не enforce'ятся. `total_exposure_`/`peak_equity_` вечно 0. `kill_switch.h:6` «auto-trigger from RiskManager» — ложь: `activate()` зовёт только file-trigger; DAILY_LOSS/MAX_DRAWDOWN/MARGIN_CALL unreachable.
+- **S179 (Medium)** — оптимистичная книга: `open_position` на `ws.send()`-success (bot_loop:104,219,289); `fill`-handler только логирует+SHM (handlers:30-54), pos_mgr не трогает. Resting LIMIT → локальная позиция мгновенно по цене сигнала; `check_sl_tp` может «закрыть» позицию, которой нет на бирже → close-order создаёт реальную противоположную. Рестарт → пустая книга, дубль-открытия.
+- **S180 (Medium)** — `bot_context.h:75` `balance{10000.0}` хардкод: ни конфига, ни `account`-handler'а (сим вещает баланс, receiver его игнорит); мутирует только на SL/TP-close. Sizing 2%-risk и daily-drawdown-% считаются от фиктивного капитала.
+- **S181 (Low)** — `signal_engine_v3_enabled` мёртв без `v2_enabled`: `engine_v3` живёт только внутри `run_v2_signal_loop`, гейт на v2 (:223). v3=true,v2=false → конструируется+prepopulate, никогда не анализирует.
+- **S182 (Low)** — `open_position` overwrite-ветка (position_manager.h:21-30) недостижима: все 3 вызова под `has_position()`. Мёртвый код; если бы дошла — теряла бы unrealized PnL и флипала side без close-ордера; match по symbol без exchange.
+
+ЧИСТО: `Position::update_pnl` корректна (fees+funding); `shm_ring_buffer` — честный SPSC (acquire/release, aligned head/tail, header-валидация); все JSON-доступы через `.value()` с дефолтами; kill-switch file-trigger + `can_trade()` live; `check_sl_tp`/`close_position` корректны; 0 TODO/stub; V1 `check_signal`/`calculate_position_size` — честная логика.
+
+Board: **31 open** (S150–S182).
