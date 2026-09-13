@@ -33,6 +33,24 @@ void handle_message_json(const json& data) {
             spdlog::info("Order filled: {} {} {:.4f} @ {:.2f}", o.value("side", ""),
                          o.value("symbol", ""), o.value("filled_quantity", 0.0),
                          o.value("filled_price", 0.0));
+            // Share the fill with the Python side over SHM (ipc.fills ring).
+            if (fill_producer_) {
+                const auto sid = symbol_id_impl(o.value("symbol", ""));
+                if (sid != 0xFFFF) {
+                    ipc::FillMsg f{};
+                    f.timestamp = static_cast<uint64_t>(
+                        std::chrono::duration_cast<std::chrono::nanoseconds>(
+                            std::chrono::system_clock::now().time_since_epoch())
+                            .count());
+                    f.symbol_id   = static_cast<uint8_t>(sid);
+                    f.side        = (o.value("side", "") == "SELL") ? 1 : 0; // 0=BUY,1=SELL
+                    f.qty         = static_cast<float>(o.value("filled_quantity", 0.0));
+                    f.price       = static_cast<float>(o.value("filled_price", 0.0));
+                    f.fee         = static_cast<float>(o.value("fee", 0.0));
+                    f.exchange_id = 3; // Simulator
+                    fill_producer_->push_fill(f);
+                }
+            }
         }
     } else if (type == "error") {
         spdlog::warn("Exchange error: {}", data.value("message", "unknown error"));

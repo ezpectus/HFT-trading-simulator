@@ -84,7 +84,7 @@ class TestShmChannel:
             _symbol_names=["BTC/USDT", "ETH/USDT"],
             db=MagicMock(), trade_logger=MagicMock(),
         )
-        fills = [(1_700_000_000_000_000_000, 0, 1, 0.25, 64000.0, 1.5, 0)]
+        fills = [(1_700_000_000_000_000_000, 0, 0, 0.25, 64000.0, 1.5, 0)]
         AISignalBot._on_shm_fills(bot, fills)
         trade = bot.db.save_trade.call_args[0][0]
         assert trade["symbol"] == "BTC/USDT"
@@ -99,7 +99,7 @@ class TestShmChannel:
             config=_cfg(), logger=logging.getLogger("t"),
             _symbol_names=["BTC/USDT"], db=MagicMock(), trade_logger=MagicMock(),
         )
-        AISignalBot._on_shm_fills(bot, [(1, 9, 2, 1.0, 100.0, 0.0, 0)])
+        AISignalBot._on_shm_fills(bot, [(1, 9, 1, 1.0, 100.0, 0.0, 0)])
         trade = bot.db.save_trade.call_args[0][0]
         assert trade["symbol"] == "#9" and trade["side"] == "SELL"
 

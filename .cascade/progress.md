@@ -1046,3 +1046,7 @@ Reverse-dependency sweep (imports vs requirements.txt): **tabulate** — unguard
 ## R67 — slop-audit: state/hooks surface — чисто, 0 находок
 
 Поверхность: `import *` (0), module-level mutable globals (все — константы или capped: `_max_history`, 200-entry FIFO `_cache` в стратегиях), S013-class per-message try в `useWebSocket.ts:183` (есть), Zustand arrays (toasts capped at 5), `.env.prod` gitignored ✓, `no-docker.*` scripts реальные+задокументированы, WS-консьюмеры wired (useSignalData живёт в useExchangeData.js). FP-guard: `backtestEngine.js` жив (StrategyBacktest client-engine, honest "2 engines" disclosure), `backtestExport.js` жив (BacktestRunner CSV export), `useInterval.{js,ts}`/auditExport/cn — S126-решение keep, не пересматривается.
+
+## R68 — slop-audit + fix: S147 SHM fills channel (closed)
+
+C++/Python SHM contract sweep: все 4 struct'а байт-в-байт совпадают (static_asserts + Python Struct strings), kill-switch timestamp epoch-ns ✓. Но `/hft_fills` был write-only: producer создан, `push_fill` — 0 call-сайтов; fill-handler только логировал. + латентная инверсия side-enum (C++ 0=BUY/1=SELL vs Python {1:BUY,2:SELL}). Fix: set_fill_producer + FillMsg push в handler, decode исправлен, фикстуры под контракт. 53 теста green. C++ локально не собирается (build cache на s:/ + VS18 нет) — верификация инспекцией: ipc:: неймспейс резолвится, symbol_id_impl protected ✓, chrono уже в TU.

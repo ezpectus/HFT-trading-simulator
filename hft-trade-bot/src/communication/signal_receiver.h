@@ -7,6 +7,7 @@
 
 #include "../data/signal.h"
 #include "../data/types.h"
+#include "../ipc/shm_fill_producer.h"
 #include "../utils/low_latency.h"
 #include "signal_receiver_data.h"
 #include <atomic>
@@ -135,6 +136,9 @@ class SignalReceiver : private SignalReceiverData {
     void on_candles(CandleCallback cb) { candle_cb_ = std::move(cb); }
     void on_arbitrage(ArbitrageCallback cb) { arb_cb_ = std::move(cb); }
 
+    // Non-owning — producer lives in BotContext (bot_setup wires it after init).
+    void set_fill_producer(ipc::ShmFillProducer* p) { fill_producer_ = p; }
+
     bool is_connected() const { return connected_; }
     bool is_trading_active() const { return trading_active_.load(std::memory_order_relaxed); }
 
@@ -209,6 +213,8 @@ class SignalReceiver : private SignalReceiverData {
     SignalCallback    signal_cb_;
     CandleCallback    candle_cb_;
     ArbitrageCallback arb_cb_;
+
+    ipc::ShmFillProducer* fill_producer_{nullptr};
 };
 
 } // namespace hft

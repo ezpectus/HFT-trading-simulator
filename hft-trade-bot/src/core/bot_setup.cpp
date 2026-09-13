@@ -210,6 +210,7 @@ void init_ipc(BotContext& ctx) {
                                                                    ctx.config.ipc_fills_capacity);
     if (ctx.shm_fill_producer->init()) {
         spdlog::info("SHM IPC: fill producer ready (shm={})", ctx.config.ipc_fills_shm);
+        if (ctx.receiver) ctx.receiver->set_fill_producer(ctx.shm_fill_producer.get());
     } else {
         spdlog::warn("SHM IPC: fill producer init failed — fills won't be shared with Python");
         ctx.shm_fill_producer.reset();

@@ -325,7 +325,7 @@ class AISignalBot:
             trade = {
                 "timestamp": ts_ns / 1e9, "symbol": symbol,
                 "exchange": self.config.default_exchange,
-                "side": {1: "BUY", 2: "SELL"}.get(side, "BUY"),
+                "side": {0: "BUY", 1: "SELL"}.get(side, "BUY"),
                 "quantity": qty, "entry_price": price, "fee": fee,
                 "status": "FILLED", "signal_id": None,
             }
