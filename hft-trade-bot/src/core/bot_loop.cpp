@@ -190,18 +190,20 @@ static Signal convert_fast_signal(BotContext& ctx, const FastSignal& fast_sig) {
 struct OrderSelection {
     FastOrder::OrderKind kind;
     double               limit_price;
+    int64_t              expire_ns;
     const char*          reason;
 };
 
 static OrderSelection select_order_kind(BotContext& ctx, const FastSignal& fast_sig,
                                         const OrderBook& ob, double qty, double mid,
                                         double spread_bps, int64_t now_ns) {
-    if (!ctx.config.adaptive_order_enabled) return {FastOrder::OrderKind::MARKET, 0.0, "default"};
+    if (!ctx.config.adaptive_order_enabled)
+        return {FastOrder::OrderKind::MARKET, 0.0, 0, "default"};
     auto pressure = ctx.pressure_model->analyze(ob);
     auto sel      = ctx.adaptive_selector->select(fast_sig.confidence, fast_sig.is_long(), mid,
                                                   spread_bps, pressure.obi_weighted,
                                                   pressure.toxic_score, qty, 0.0, now_ns);
-    return {sel.kind, sel.limit_price, sel.reason};
+    return {sel.kind, sel.limit_price, sel.expire_ns, sel.reason};
 }
 
 static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSignal& fast_sig,
@@ -225,18 +227,9 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
             ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
             return;
         }
-        if (os.kind == FastOrder::OrderKind::MARKET) {
-            sent = ctx.executor->submit_order(sig, qty, ob);
-        } else {
-            OrderBook ob_mod = ob;
-            if (os.limit_price > 0) {
-                if (fast_sig.is_long())
-                    ob_mod.bids.insert(ob_mod.bids.begin(), {os.limit_price, qty});
-                else
-                    ob_mod.asks.insert(ob_mod.asks.begin(), {os.limit_price, qty});
-            }
-            sent = ctx.executor->submit_order(sig, qty, ob_mod);
-        }
+        // The selected kind now reaches the wire: IOC/FOK/GTD/post_only are
+        // serialized instead of silently degrading to plain LIMIT (S154).
+        sent = ctx.executor->submit_order(sig, qty, ob, os.kind, os.limit_price, os.expire_ns);
         if (sent)
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
         else
@@ -446,7 +439,6 @@ void graceful_shutdown(BotContext& ctx) {
         spdlog::info("  Total loop:        [{}]", ctx.total_loop_hist.format_stats());
     }
     spdlog::info("HFT Trade Bot v2 stopped");
-    ctx.config.clear_secrets();
 }
 
 } // namespace hft

@@ -9,7 +9,6 @@
 #include "../strategies/pressure_model.h"
 #include <cmath>
 #include <cstdint>
-#include <cstring>
 
 namespace hft {
 
@@ -114,105 +113,6 @@ class AdaptiveOrderSelectorV2 {
         result.limit_price = mid_price;
         result.reason      = "Default: IOC at mid";
         return result;
-    }
-
-    // Map internal order kind to Binance-specific order type string
-    static const char* to_binance_type(FastOrder::OrderKind kind) noexcept {
-        switch (kind) {
-        case FastOrder::OrderKind::MARKET:
-            return "MARKET";
-        case FastOrder::OrderKind::LIMIT_IOC:
-            return "LIMIT";
-        case FastOrder::OrderKind::LIMIT_FOK:
-            return "LIMIT";
-        case FastOrder::OrderKind::LIMIT_GTD:
-            return "LIMIT";
-        case FastOrder::OrderKind::POST_ONLY:
-            return "GTX"; // Binance post-only
-        }
-        return "MARKET";
-    }
-
-    // Map to Binance time-in-force
-    static const char* to_binance_tif(FastOrder::OrderKind kind) noexcept {
-        switch (kind) {
-        case FastOrder::OrderKind::MARKET:
-            return "GTC";
-        case FastOrder::OrderKind::LIMIT_IOC:
-            return "IOC";
-        case FastOrder::OrderKind::LIMIT_FOK:
-            return "FOK";
-        case FastOrder::OrderKind::LIMIT_GTD:
-            return "GTC"; // GTC + expireT
-        case FastOrder::OrderKind::POST_ONLY:
-            return "GTX"; // Post-only
-        }
-        return "GTC";
-    }
-
-    // Map to OKX order type
-    static const char* to_okx_type(FastOrder::OrderKind kind) noexcept {
-        switch (kind) {
-        case FastOrder::OrderKind::MARKET:
-            return "market";
-        case FastOrder::OrderKind::LIMIT_IOC:
-            return "ioc";
-        case FastOrder::OrderKind::LIMIT_FOK:
-            return "fok";
-        case FastOrder::OrderKind::LIMIT_GTD:
-            return "gtc"; // + expireTs
-        case FastOrder::OrderKind::POST_ONLY:
-            return "post_only";
-        }
-        return "market";
-    }
-
-    // Map to Bybit order type
-    static const char* to_bybit_type(FastOrder::OrderKind kind) noexcept {
-        switch (kind) {
-        case FastOrder::OrderKind::MARKET:
-            return "Market";
-        case FastOrder::OrderKind::LIMIT_IOC:
-            return "Limit";
-        case FastOrder::OrderKind::LIMIT_FOK:
-            return "Limit";
-        case FastOrder::OrderKind::LIMIT_GTD:
-            return "Limit";
-        case FastOrder::OrderKind::POST_ONLY:
-            return "Limit";
-        }
-        return "Market";
-    }
-
-    static const char* to_bybit_tif(FastOrder::OrderKind kind) noexcept {
-        switch (kind) {
-        case FastOrder::OrderKind::MARKET:
-            return "GoodTillCancel";
-        case FastOrder::OrderKind::LIMIT_IOC:
-            return "ImmediateOrCancel";
-        case FastOrder::OrderKind::LIMIT_FOK:
-            return "FillOrKill";
-        case FastOrder::OrderKind::LIMIT_GTD:
-            return "GoodTillCancel"; // + expire
-        case FastOrder::OrderKind::POST_ONLY:
-            return "PostOnly";
-        }
-        return "GoodTillCancel";
-    }
-
-    // Get exchange-specific order type mapping
-    static const char* to_exchange_type(FastOrder::OrderKind kind, const char* exchange) noexcept {
-        if (std::strcmp(exchange, "binance") == 0) return to_binance_type(kind);
-        if (std::strcmp(exchange, "okx") == 0) return to_okx_type(kind);
-        if (std::strcmp(exchange, "bybit") == 0) return to_bybit_type(kind);
-        return to_binance_type(kind); // Default to Binance mapping
-    }
-
-    static const char* to_exchange_tif(FastOrder::OrderKind kind, const char* exchange) noexcept {
-        if (std::strcmp(exchange, "binance") == 0) return to_binance_tif(kind);
-        if (std::strcmp(exchange, "bybit") == 0) return to_bybit_tif(kind);
-        // OKX embeds TIF in order type
-        return "GTC";
     }
 
   private:

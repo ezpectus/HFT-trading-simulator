@@ -159,32 +159,6 @@ TEST(test_adaptive_selector_large_order_gtd) {
     ASSERT_TRUE(result.expire_ns > 1000000);
 }
 
-TEST(test_adaptive_selector_binance_mapping) {
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_binance_type(FastOrder::OrderKind::MARKET)),
-              "MARKET");
-    ASSERT_EQ(
-        std::string(AdaptiveOrderSelectorV2::to_binance_type(FastOrder::OrderKind::POST_ONLY)),
-        "GTX");
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_binance_tif(FastOrder::OrderKind::LIMIT_IOC)),
-              "IOC");
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_binance_tif(FastOrder::OrderKind::LIMIT_FOK)),
-              "FOK");
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_binance_tif(FastOrder::OrderKind::POST_ONLY)),
-              "GTX");
-}
-
-TEST(test_adaptive_selector_exchange_mapping) {
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_exchange_type(FastOrder::OrderKind::LIMIT_IOC,
-                                                                    "binance")),
-              "LIMIT");
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_exchange_type(FastOrder::OrderKind::LIMIT_IOC,
-                                                                    "okx")),
-              "ioc");
-    ASSERT_EQ(std::string(AdaptiveOrderSelectorV2::to_exchange_type(FastOrder::OrderKind::POST_ONLY,
-                                                                    "bybit")),
-              "Limit");
-}
-
 int main() {
     return test_report("V2 Pressure Model + Adaptive Selector Tests");
 }

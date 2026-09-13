@@ -13,7 +13,7 @@ using namespace hft;
 // Helper — default selector with standard params
 // ═══════════════════════════════════════════════════════════════════════════
 static AdaptiveOrderSelectorV2 make_selector() {
-    return AdaptiveOrderSelectorV2({});
+    return AdaptiveOrderSelectorV2();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -145,87 +145,6 @@ TEST_CASE("AdaptiveOrderSelectorV2: custom toxic threshold") {
     AdaptiveOrderSelectorV2 sel(params);
     auto                    result = sel.select(70, true, 50000.0, 2.0, 0.0, 0.15, 1.0, 100.0, 0);
     CHECK(result.kind == FastOrder::OrderKind::LIMIT_IOC);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Binance mappings
-// ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("AdaptiveOrderSelectorV2: binance type mapping") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_type(K::MARKET), "MARKET") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_type(K::LIMIT_IOC), "LIMIT") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_type(K::LIMIT_FOK), "LIMIT") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_type(K::LIMIT_GTD), "LIMIT") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_type(K::POST_ONLY), "GTX") == 0);
-}
-
-TEST_CASE("AdaptiveOrderSelectorV2: binance TIF mapping") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_tif(K::MARKET), "GTC") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_tif(K::LIMIT_IOC), "IOC") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_tif(K::LIMIT_FOK), "FOK") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_tif(K::LIMIT_GTD), "GTC") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_binance_tif(K::POST_ONLY), "GTX") == 0);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// OKX mappings
-// ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("AdaptiveOrderSelectorV2: okx type mapping") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_okx_type(K::MARKET), "market") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_okx_type(K::LIMIT_IOC), "ioc") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_okx_type(K::LIMIT_FOK), "fok") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_okx_type(K::LIMIT_GTD), "gtc") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_okx_type(K::POST_ONLY), "post_only") == 0);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Bybit mappings
-// ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("AdaptiveOrderSelectorV2: bybit type mapping") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_type(K::MARKET), "Market") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_type(K::LIMIT_IOC), "Limit") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_type(K::LIMIT_FOK), "Limit") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_type(K::LIMIT_GTD), "Limit") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_type(K::POST_ONLY), "Limit") == 0);
-}
-
-TEST_CASE("AdaptiveOrderSelectorV2: bybit TIF mapping") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::MARKET), "GoodTillCancel") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_IOC), "ImmediateOrCancel") ==
-          0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_FOK), "FillOrKill") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::LIMIT_GTD), "GoodTillCancel") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_bybit_tif(K::POST_ONLY), "PostOnly") == 0);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Exchange dispatch functions
-// ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("AdaptiveOrderSelectorV2: to_exchange_type dispatches correctly") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "binance"), "GTX") ==
-          0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "okx"),
-                      "post_only") == 0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "bybit"), "Limit") ==
-          0);
-    // Unknown exchange defaults to Binance
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_type(K::POST_ONLY, "unknown"), "GTX") ==
-          0);
-}
-
-TEST_CASE("AdaptiveOrderSelectorV2: to_exchange_tif dispatches correctly") {
-    using K = FastOrder::OrderKind;
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "binance"), "IOC") ==
-          0);
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "bybit"),
-                      "ImmediateOrCancel") == 0);
-    // OKX embeds TIF in order type, returns "GTC"
-    CHECK(std::strcmp(AdaptiveOrderSelectorV2::to_exchange_tif(K::LIMIT_IOC, "okx"), "GTC") == 0);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
