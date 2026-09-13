@@ -241,3 +241,16 @@ TEST_CASE("check_sl_tp multiple positions multiple triggers") {
     auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.size() == 2);
 }
+
+TEST_CASE("total_realized_pnl accumulates on close (S131)") {
+    PositionManager pm;
+    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
+    CHECK(pm.total_realized_pnl() == doctest::Approx(0.0));
+    auto result = pm.close_position("BTC/USDT", 51000.0);
+    REQUIRE(result.has_value());
+    CHECK(pm.total_realized_pnl() == doctest::Approx(result->unrealized_pnl));
+    // second close accumulates
+    pm.open_position(make_long_signal("ETH/USDT", 3000), 1.0, "binance");
+    auto r2 = pm.close_position("ETH/USDT", 3300.0);
+    CHECK(pm.total_realized_pnl() == doctest::Approx(result->unrealized_pnl + r2->unrealized_pnl));
+}

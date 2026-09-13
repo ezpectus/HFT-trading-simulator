@@ -197,6 +197,10 @@ class LatencyHistogram {
 
     void record(double microseconds) noexcept {
         total_count_.fetch_add(1, std::memory_order_relaxed);
+        // atomic double has no fetch_add pre-C++20 — CAS loop
+        double current_sum = sum_us_.load(std::memory_order_relaxed);
+        while (!sum_us_.compare_exchange_weak(current_sum, current_sum + microseconds)) {
+        }
 
         // Track min/max before bucketing — the sub-1μs early-return below
         // must not skip this.
@@ -274,8 +278,20 @@ class LatencyHistogram {
         return oss.str();
     }
 
+    // Copy cumulative bucket counts into out[] (le bound of bucket i = 2^((i+1)/2) μs).
+    void snapshot_buckets(uint64_t* out, size_t n, uint64_t* total, double* sum_us) const noexcept {
+        uint64_t cumulative = 0;
+        for (size_t i = 0; i < n && i < NUM_BUCKETS; ++i) {
+            cumulative += buckets_[i].load(std::memory_order_relaxed);
+            out[i] = cumulative;
+        }
+        if (total) *total = total_count_.load(std::memory_order_relaxed);
+        if (sum_us) *sum_us = sum_us_.load(std::memory_order_relaxed);
+    }
+
     void reset() noexcept {
         total_count_.store(0, std::memory_order_relaxed);
+        sum_us_.store(0.0, std::memory_order_relaxed);
         for (auto& b : buckets_)
             b.store(0, std::memory_order_relaxed);
         min_.store(1e18, std::memory_order_relaxed);
@@ -285,6 +301,7 @@ class LatencyHistogram {
   private:
     std::array<std::atomic<uint64_t>, NUM_BUCKETS> buckets_{};
     std::atomic<uint64_t>                          total_count_{0};
+    std::atomic<double>                            sum_us_{0.0};
     std::atomic<double>                            min_{1e18};
     std::atomic<double>                            max_{0.0};
 };

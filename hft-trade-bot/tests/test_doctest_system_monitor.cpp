@@ -272,3 +272,99 @@ TEST_CASE("HealthStatus: format_json contains all fields") {
     CHECK(json.find("\"error_count_5min\":10") != std::string::npos);
     CHECK(json.find("\"memory_usage_mb\":") != std::string::npos);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SystemMonitor — runtime gauges (S131)
+// ═══════════════════════════════════════════════════════════════════════════
+TEST_CASE("SystemMonitor: runtime gauges default to zero") {
+    SystemMonitor sm;
+    std::string   prom = sm.format_prometheus();
+    CHECK(prom.find("hft_active_positions 0") != std::string::npos);
+    CHECK(prom.find("hft_pnl_unrealized 0") != std::string::npos);
+    CHECK(prom.find("hft_pnl_total 0") != std::string::npos);
+    CHECK(prom.find("hft_memory_usage_mb 0") != std::string::npos);
+    CHECK(prom.find("hft_shm_signal_queue_depth 0") != std::string::npos);
+    CHECK(prom.find("hft_shm_order_queue_depth 0") != std::string::npos);
+    CHECK(prom.find("hft_shm_fill_queue_depth 0") != std::string::npos);
+}
+
+TEST_CASE("SystemMonitor: set_runtime_gauges reflected in prometheus output") {
+    SystemMonitor                sm;
+    SystemMonitor::RuntimeGauges g;
+    g.active_positions       = 3;
+    g.pnl_unrealized         = 12.5;
+    g.pnl_total              = 40.25;
+    g.memory_usage_mb        = 96.0;
+    g.shm_signal_queue_depth = 7;
+    g.shm_order_queue_depth  = 2;
+    g.shm_fill_queue_depth   = 4;
+    sm.set_runtime_gauges(g);
+
+    std::string prom = sm.format_prometheus();
+    CHECK(prom.find("hft_active_positions 3") != std::string::npos);
+    CHECK(prom.find("hft_pnl_unrealized 12.5") != std::string::npos);
+    CHECK(prom.find("hft_pnl_total 40.25") != std::string::npos);
+    CHECK(prom.find("hft_memory_usage_mb 96.00") != std::string::npos);
+    CHECK(prom.find("hft_shm_signal_queue_depth 7") != std::string::npos);
+    CHECK(prom.find("hft_shm_order_queue_depth 2") != std::string::npos);
+    CHECK(prom.find("hft_shm_fill_queue_depth 4") != std::string::npos);
+    CHECK(prom.find("# HELP hft_pnl_total") != std::string::npos);
+    CHECK(prom.find("# TYPE hft_pnl_total gauge") != std::string::npos);
+}
+
+TEST_CASE("SystemMonitor: latency histogram emits cumulative buckets") {
+    SystemMonitor sm;
+    // 3 samples <= 2^1.5≈2.83us bound, 1 sample <= 2^3=8us bound, 1 above all
+    uint64_t cumulative[SystemMonitor::LATENCY_BUCKETS]{};
+    cumulative[0] = 1; // le=1.41us
+    cumulative[1] = 3; // le=2us
+    cumulative[2] = 3; // le=2.83us
+    cumulative[3] = 3;
+    cumulative[4] = 3;
+    cumulative[5] = 3; // le=8us
+    cumulative[6] = 4; // le=11.31us — sparse higher bucket
+    sm.set_latency_histogram(cumulative, SystemMonitor::LATENCY_BUCKETS, 5, 33.0);
+
+    std::string prom = sm.format_prometheus();
+    CHECK(prom.find("# TYPE hft_latency_us histogram") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_bucket{le=\"1.41421\"} 1") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_bucket{le=\"2\"} 3") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_bucket{le=\"8\"} 3") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_bucket{le=\"11.3137\"} 4") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_bucket{le=\"+Inf\"} 5") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_sum 33.00") != std::string::npos);
+    CHECK(prom.find("hft_latency_us_count 5") != std::string::npos);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LatencyHistogram — snapshot_buckets (S131)
+// ═══════════════════════════════════════════════════════════════════════════
+TEST_CASE("LatencyHistogram: snapshot_buckets is cumulative and carries totals") {
+    LatencyHistogram h;
+    h.record(0.5);  // bucket 0 (<1us)
+    h.record(1.5);  // bucket 1 ([1,2)us)
+    h.record(30.0); // bucket 9 ([16,32)us? 2^(9/2)=22.6 -> [22.6,32))
+    uint64_t cumulative[LatencyHistogram::NUM_BUCKETS]{};
+    uint64_t total  = 0;
+    double   sum_us = 0.0;
+    h.snapshot_buckets(cumulative, LatencyHistogram::NUM_BUCKETS, &total, &sum_us);
+    CHECK(total == 3);
+    CHECK(sum_us == doctest::Approx(32.0));
+    CHECK(cumulative[0] == 1);
+    CHECK(cumulative[1] == 2);
+    // bucket covering 30us: upper = 2^((i+1)/2) >= 30 -> i=9 (2^5=32)
+    CHECK(cumulative[9] == 3);
+    CHECK(cumulative[LatencyHistogram::NUM_BUCKETS - 1] == 3);
+}
+
+TEST_CASE("LatencyHistogram: reset clears sum") {
+    LatencyHistogram h;
+    h.record(5.0);
+    h.reset();
+    uint64_t cumulative[LatencyHistogram::NUM_BUCKETS]{};
+    uint64_t total  = 99;
+    double   sum_us = 99.0;
+    h.snapshot_buckets(cumulative, LatencyHistogram::NUM_BUCKETS, &total, &sum_us);
+    CHECK(total == 0);
+    CHECK(sum_us == doctest::Approx(0.0));
+}

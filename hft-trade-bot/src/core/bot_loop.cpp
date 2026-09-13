@@ -4,9 +4,42 @@
 #include <chrono>
 #include <cstring>
 
+#ifdef _WIN32
+#include <psapi.h>
+#include <windows.h>
+#else
+#include <fstream>
+#include <limits>
+#endif
+
 #include <spdlog/spdlog.h>
 
 namespace hft {
+
+namespace {
+double process_memory_mb() {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS pmc{};
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        return static_cast<double>(pmc.WorkingSetSize) / (1024.0 * 1024.0);
+    }
+    return 0.0;
+#else
+    std::ifstream status("/proc/self/status");
+    std::string   key;
+    double        kb = 0.0;
+    std::string   unit;
+    while (status >> key) {
+        if (key == "VmRSS:") {
+            status >> kb >> unit;
+            return kb / 1024.0;
+        }
+        status.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    return 0.0;
+#endif
+}
+} // namespace
 
 void process_sl_tp(BotContext& ctx, double current_balance) {
     {
@@ -263,6 +296,26 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
 void print_status(BotContext& ctx) {
     auto   positions  = ctx.pos_mgr.get_positions();
     double unrealized = ctx.pos_mgr.total_unrealized_pnl();
+    {
+        uint64_t buckets[SystemMonitor::LATENCY_BUCKETS]{};
+        uint64_t lat_total = 0;
+        double   lat_sum   = 0.0;
+        ctx.order_exec_hist.snapshot_buckets(buckets, SystemMonitor::LATENCY_BUCKETS, &lat_total,
+                                             &lat_sum);
+        ctx.sys_monitor.set_latency_histogram(buckets, SystemMonitor::LATENCY_BUCKETS, lat_total,
+                                              lat_sum);
+        ctx.sys_monitor.set_runtime_gauges(SystemMonitor::RuntimeGauges{
+            .active_positions       = static_cast<double>(positions.size()),
+            .pnl_unrealized         = unrealized,
+            .pnl_total              = ctx.pos_mgr.total_realized_pnl() + unrealized,
+            .memory_usage_mb        = process_memory_mb(),
+            .shm_signal_queue_depth = static_cast<double>(
+                ctx.shm_signal_consumer ? ctx.shm_signal_consumer->pending() : 0),
+            .shm_order_queue_depth = static_cast<double>(ctx.ai_signal_queue.size()),
+            .shm_fill_queue_depth =
+                static_cast<double>(ctx.shm_fill_producer ? ctx.shm_fill_producer->pending() : 0),
+        });
+    }
     spdlog::info(
         "Status: balance={:.2f} equity={:.2f} positions={} unrealized={:+.2f} trading={} kill={}",
         ctx.balance.load(std::memory_order_relaxed),

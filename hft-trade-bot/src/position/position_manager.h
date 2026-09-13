@@ -46,6 +46,7 @@ class PositionManager {
             if (it->symbol == symbol) {
                 Position pos = *it;
                 pos.update_pnl(exit_price);
+                realized_pnl_total_ += pos.unrealized_pnl;
                 positions_.erase(it);
                 active_symbols_.erase(symbol);
                 return pos;
@@ -120,8 +121,14 @@ class PositionManager {
         return total;
     }
 
+    double total_realized_pnl() const {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return realized_pnl_total_;
+    }
+
   private:
     mutable std::mutex              mutex_;
+    double                          realized_pnl_total_{0.0};
     std::vector<Position>           positions_;
     std::unordered_set<std::string> active_symbols_;
 };

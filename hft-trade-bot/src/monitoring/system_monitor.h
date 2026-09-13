@@ -10,6 +10,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <string>
@@ -186,12 +187,114 @@ class SystemMonitor {
             (unsigned long long)s.uptime_seconds);
         if (n <= 0) return {};
         n = std::min(n, static_cast<int>(sizeof(buf) - 1));
-        return std::string(buf, static_cast<size_t>(n));
+        return std::string(buf, static_cast<size_t>(n)) + format_runtime_prometheus();
+    }
+
+    // Runtime gauges refreshed by the main loop each iteration.
+    struct RuntimeGauges {
+        double active_positions{0.0};
+        double pnl_unrealized{0.0};
+        double pnl_total{0.0}; // realized + unrealized
+        double memory_usage_mb{0.0};
+        double shm_signal_queue_depth{0.0};
+        double shm_order_queue_depth{0.0};
+        double shm_fill_queue_depth{0.0};
+    };
+
+    void set_runtime_gauges(const RuntimeGauges& g) noexcept {
+        g_active_positions_.store(g.active_positions, std::memory_order_relaxed);
+        g_pnl_unrealized_.store(g.pnl_unrealized, std::memory_order_relaxed);
+        g_pnl_total_.store(g.pnl_total, std::memory_order_relaxed);
+        g_memory_usage_mb_.store(g.memory_usage_mb, std::memory_order_relaxed);
+        g_shm_signal_queue_depth_.store(g.shm_signal_queue_depth, std::memory_order_relaxed);
+        g_shm_order_queue_depth_.store(g.shm_order_queue_depth, std::memory_order_relaxed);
+        g_shm_fill_queue_depth_.store(g.shm_fill_queue_depth, std::memory_order_relaxed);
+    }
+
+    static constexpr size_t LATENCY_BUCKETS = 35;
+
+    // cumulative[] = per-bucket cumulative counts; le bound of bucket i = 2^((i+1)/2) μs
+    void set_latency_histogram(const uint64_t* cumulative, size_t n, uint64_t total,
+                               double sum_us) noexcept {
+        for (size_t i = 0; i < LATENCY_BUCKETS; ++i) {
+            latency_buckets_[i].store(i < n ? cumulative[i] : 0, std::memory_order_relaxed);
+        }
+        latency_count_.store(total, std::memory_order_relaxed);
+        latency_sum_us_.store(sum_us, std::memory_order_relaxed);
     }
 
   private:
+    std::string format_runtime_prometheus() const {
+        char buf[2048];
+        int  n =
+            std::snprintf(buf, sizeof(buf),
+                          "# HELP hft_active_positions Currently open positions\n"
+                          "# TYPE hft_active_positions gauge\n"
+                          "hft_active_positions %.0f\n"
+                          "# HELP hft_pnl_unrealized Unrealized PnL across open positions\n"
+                          "# TYPE hft_pnl_unrealized gauge\n"
+                          "hft_pnl_unrealized %.4f\n"
+                          "# HELP hft_pnl_total Realized plus unrealized PnL\n"
+                          "# TYPE hft_pnl_total gauge\n"
+                          "hft_pnl_total %.4f\n"
+                          "# HELP hft_memory_usage_mb Process resident memory (MB)\n"
+                          "# TYPE hft_memory_usage_mb gauge\n"
+                          "hft_memory_usage_mb %.2f\n"
+                          "# HELP hft_shm_signal_queue_depth Signals pending in SHM ring\n"
+                          "# TYPE hft_shm_signal_queue_depth gauge\n"
+                          "hft_shm_signal_queue_depth %.0f\n"
+                          "# HELP hft_shm_order_queue_depth Signals queued for order execution\n"
+                          "# TYPE hft_shm_order_queue_depth gauge\n"
+                          "hft_shm_order_queue_depth %.0f\n"
+                          "# HELP hft_shm_fill_queue_depth Fills pending in SHM ring\n"
+                          "# TYPE hft_shm_fill_queue_depth gauge\n"
+                          "hft_shm_fill_queue_depth %.0f\n",
+                          g_active_positions_.load(std::memory_order_relaxed),
+                          g_pnl_unrealized_.load(std::memory_order_relaxed),
+                          g_pnl_total_.load(std::memory_order_relaxed),
+                          g_memory_usage_mb_.load(std::memory_order_relaxed),
+                          g_shm_signal_queue_depth_.load(std::memory_order_relaxed),
+                          g_shm_order_queue_depth_.load(std::memory_order_relaxed),
+                          g_shm_fill_queue_depth_.load(std::memory_order_relaxed));
+        std::string out;
+        if (n > 0) {
+            n = std::min(n, static_cast<int>(sizeof(buf) - 1));
+            out.assign(buf, static_cast<size_t>(n));
+        }
+        out += "# HELP hft_latency_us Order-execution loop latency (microseconds)\n"
+               "# TYPE hft_latency_us histogram\n";
+        char line[128];
+        for (size_t i = 0; i < LATENCY_BUCKETS; ++i) {
+            // le bound of bucket i = 2^((i+1)/2) μs — matches LatencyHistogram
+            int m = std::snprintf(
+                line, sizeof(line), "hft_latency_us_bucket{le=\"%.6g\"} %llu\n",
+                std::pow(2.0, (static_cast<double>(i) + 1.0) / 2.0),
+                (unsigned long long)latency_buckets_[i].load(std::memory_order_relaxed));
+            if (m > 0) out.append(line, static_cast<size_t>(m));
+        }
+        int m = std::snprintf(line, sizeof(line),
+                              "hft_latency_us_bucket{le=\"+Inf\"} %llu\n"
+                              "hft_latency_us_sum %.2f\n"
+                              "hft_latency_us_count %llu\n",
+                              (unsigned long long)latency_count_.load(std::memory_order_relaxed),
+                              latency_sum_us_.load(std::memory_order_relaxed),
+                              (unsigned long long)latency_count_.load(std::memory_order_relaxed));
+        if (m > 0) out.append(line, static_cast<size_t>(m));
+        return out;
+    }
+
     std::array<std::atomic<int64_t>, static_cast<size_t>(Metric::COUNT)> counters_{};
     std::chrono::steady_clock::time_point start_time_{std::chrono::steady_clock::now()};
+    std::atomic<double>                   g_active_positions_{0.0};
+    std::atomic<double>                   g_pnl_unrealized_{0.0};
+    std::atomic<double>                   g_pnl_total_{0.0};
+    std::atomic<double>                   g_memory_usage_mb_{0.0};
+    std::atomic<double>                   g_shm_signal_queue_depth_{0.0};
+    std::atomic<double>                   g_shm_order_queue_depth_{0.0};
+    std::atomic<double>                   g_shm_fill_queue_depth_{0.0};
+    std::array<std::atomic<uint64_t>, LATENCY_BUCKETS> latency_buckets_{};
+    std::atomic<uint64_t>                              latency_count_{0};
+    std::atomic<double>                                latency_sum_us_{0.0};
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
