@@ -1081,3 +1081,16 @@ C++/Python SHM contract sweep: все 4 struct'а байт-в-байт совп�
 ЧИСТО добавлено (verified): sim per-client cleanup + rate-limit, signal_publisher wait_for(5s) bounded sends, ai-bot ws_client recv watchdog 30s + ping 10/10, market_data_feed bounded queue + drop-oldest, useWebSocket ring 5000 + outgoing cap 100 + maxReconnects 20, sync_state лечит orderbooks, OrderExecutor honest-bool + arb unwind, KillSwitch идемпотентность + SHM-notify, root residue всё untracked.
 
 Board: **7 open** (S148–S154).
+
+## R72 — slop-audit: security surface (auth/CORS/binds/control-plane) — 4 находки S155–S158
+
+Последний непройденный раздел rulebook — Security holes. Sweep: auth-глубина на WS/HTTP-листенерах, unauthenticated control-эндпоинты, binds, CORS, token-transport, secrets-in-logs, SHM perms.
+
+- **S155 (High)** — sim :8765 полностью без авторизации: `order`/`close_position`/`stop_trading`/`update_config`/`set_speed`/`replay` от любого клиента. Одно `stop_trading` = DoS всех клиентов; `update_config` без bounds (отрицательный fee_pct = бесплатные деньги, произвольный leverage/volatility). Data+control на одном открытом порту, публикуется в dev+prod.
+- **S156 (High)** — сим в контейнере биндит `localhost` (config.yaml:313/320 → __main__.py:136, env-override'а нет) при публикуемых `8765/8775` — внешний коннект мёртв, in-container healthcheck зелёный → зелёно-но-мёртвый деплой; DEPLOYMENT.md:22 «docker-compose up = everything works» — ложь (поправлено). ai-bot ок — `AI_BOT_BIND_HOST` env.
+- **S157 (Medium)** — publisher auth fail-open (пустой токен = auth off молча, без warn), `.env.prod.example` шипит `AI_BOT_AUTH_TOKEN=` пустым → прод-деплой = открытый :8766: слив signal-ленты + 10 compute-эндпоинтов без per-client rate-limit (backtest-спам = CPU-DoS). `==` token-compare ×2 (publisher:128, health:157) — timing-канал, нужен `secrets.compare_digest`. UI-токен зашит в JS-бандл.
+- **S158 (Medium)** — hft health-server: однопоточный accept + блокирующий `::read` без таймаута — один idle-коннект замораживает /health+/metrics → пробы таймаутят → restart-луп. INADDR_ANY без auth отдаёт monitor-JSON (позиции/PnL) на публикуемом :9091.
+
+ЧИСТО: SHM 0600 обе стороны, CORS-заголовков нет вообще (0 `*`), токен in-band фреймом (не URL), auth-fail лог без токена, `_sanitize_log` на user-данных, health-middleware освобождает только /live+/ready, Grafana пароль `:?required`, notifier подавляет aiohttp debug (нет утечки токенов), sim rate-limit 1000/мин + max_size 1MB.
+
+Board: **11 open** (S148–S158).

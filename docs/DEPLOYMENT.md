@@ -19,7 +19,7 @@ updates. High availability. Resource limits per pod.
 
 **Docker Compose (dev):**
 - Single host, simple, fast startup
-- `docker-compose up` = everything works
+- `docker-compose up` starts all services — **known issue (audit S156):** the exchange simulator binds `localhost` inside its container, so the published `:8765`/`:8775` ports accept nothing externally; the web UI cannot connect until the bind host is fixed
 - No self-healing, no auto-scaling
 - Sufficient for development
 

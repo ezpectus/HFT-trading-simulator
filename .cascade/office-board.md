@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~154 (S001–S154) |
+| Всего находок | ~158 (S001–S158) |
 | Закрыто | 147 |
-| Открыто | **7** — R71 domain-required patterns sweep |
+| Открыто | **11** — 7 из R71 + 4 из R72 security sweep |
 
-**Текущее состояние:** R71 (domain-required: timeouts/backpressure/idempotency/gap-detection/shutdown) нашёл **7 открытых** — S148–S154. Главное: kill-switch «cancel all orders» — лог-заглушка (S148), заявленная идемпотентность ордеров фейковая (S149), прод-конфиг hft — ~35 мёртвых ключей (S150).
+**Текущее состояние:** R72 (security surface: auth/CORS/binds/control-plane) нашёл **4 открытых** — S155–S158. Главное: control-plane сима (:8765) полностью без авторизации — `stop_trading`/`update_config`/`close_position` принимает любой клиент (S155), при этом в контейнере сим вообще биндится на localhost — публикуемые порты мёртвы, healthcheck'и зелёные (S156).
 
 ---
 
@@ -30,6 +30,10 @@
 | **S152** | `network/ws_client.h` — мёртвый toolkit; живые коннекты без watchdog | 255 строк (`Watchdog`/`MessageQueue`/`ReconnectionManager`/`SubscriptionManager`/`ReconnectPolicy`) инклудятся только тестами (`test_network.cpp`, `test_signal_flow.cpp`) — 0 include в src (ЧИСТО-claim R51 «ws_client.h широко инклудятся» неверен — инклудят только тесты). `SignalReceiver`/`OrderExecutor` руками крутят websocketpp-reconnect; ни ping/pong-handler'а, ни stale-detection — полуоткрытый TCP (peer умер без FIN/RST) никогда не вызовет `close_handler` → ресивер молча перестаёт получать данные при `connected_=true`; `prices_cache` протухает → SL/TP/PnL считаются по мёртвым ценам вечно. Watchdog, который это ловит, лежит в том же репо неподключённым. | Medium | [ ] Open |
 | **S153** | `alerting.py` — aiohttp session без timeout | `alerting.py:74` `ClientSession()` голый — контраст с `engine.py:55` (`ClientTimeout(total=...)`). Зависший webhook-POST блокирует `check_rules`→`_send_alert` gather на неявные 300s aiohttp-дефолта — последующие проверки правил задерживаются на ~5 минут, CRITICAL-алерт (daily_loss/kill_switch) стоит в очереди за мёртвым Discord-каналом. Backstop есть (300s), но алерт-конвейер на это время встаёт. | Low | [ ] Open |
 | **S154** | Адаптивные типы ордеров умирают до провода | `AdaptiveOrderSelectorV2::select` выбирает IOC/FOK/GTD/POST_ONLY (`bot_loop.cpp:179-198` логирует «kind=GTD» и т.п.), но `execute_v2_order` использует из селекции только `limit_price`, а `submit_order` заново деривирует MARKET/LIMIT через второй селектор (`OrderTypeSelector`, `order_executor.h:109`) — kind/TIF/expiry теряются; `gtd_seconds` кормит `expire_ns`, никуда не уходящий. `to_{binance,okx,bybit}_{type,tif}` + `to_exchange_*` — 7 функций ~100 строк, вызываются только тестами (`test_doctest_adaptive_order_selector.cpp`, `test_v2_pressure_adaptive.cpp`). Лог говорит GTD — на проводе LIMIT. | Low | [ ] Open |
+| **S155** | Sim :8765 — control-plane без авторизации вообще | В `exchange_simulator/` ноль auth/token/password — диспетч `ws_message_handler.py:143-167` принимает от любого клиента: `order`, `close_position` (форс-клоуз чужой позиции), `start_trading`/`stop_trading` (одно сообщение = стоп торговли для ВСЕХ клиентов), `update_config` (мутация `volatility`/`fee_pct`/`slippage_bps`/`account.leverage` БЕЗ границ — отрицательная комиссия = бесплатные деньги на каждом филле, leverage→0 ломает маржу), `set_speed`/`replay` (пауза всего рынка), `options_chain` (compute-спам). Data-plane и control-plane на одном открытом порту; rate-limit 1000 msg/мин спасает от флуда, но не от одной команды. Порт публикуется в dev+prod compose. | High | [ ] Open |
+| **S156** | Сим биндится на `localhost` внутри контейнера — публикуемые порты мёртвы | `config.yaml:313` `websocket.host: "localhost"` (+ `metrics.host` :320) читается `__main__.py:136` без env-override (env читаются только LOG_FORMAT/SHM_*), тот же файл монтируется ro в dev+prod контейнеры, а compose публикует `8765:8765`/`8775:8775` — docker-proxy форвардит на container-IP, где никто не слушает → веб-UI и внешние клиенты НИКОГДА не подключатся. Healthcheck курлит `localhost:8775` изнутри контейнера → остаётся зелёным → «здоровый» деплой с мёртвой лентой. `DEPLOYMENT.md:22` врёт: «docker-compose up = everything works». ai-bot так не болеет — `AI_BOT_BIND_HOST` env default `0.0.0.0` (run.py:87). | High | [ ] Open |
+| **S157** | Auth publisher'а fail-open + `==` + ноль rate-limit на compute-эндпоинтах | `signal_publisher.py:124` `if self._auth_token:` — пустой токен = авторизация отключена **молча** (ни одного warn при старте, `run.py:88`), а `.env.prod.example:37` шипит `AI_BOT_AUTH_TOKEN=` пустым — задокументированный прод-деплой = открытый :8766: слив signal-ленты + history-доступ на коннект + 10 compute-эндпоинтов (`run_backtest`/`optimize_portfolio`/`hawkes_fit`/`cvar`/`stress`/`vol_surface`/`funding_arb_scan`/`position_size`/`compare_backtests`) без пер-клиентского лимита — спам бэктестами = CPU-DoS всего бота. Токен сравнивается `==` (`signal_publisher.py:128`, `health_server.py:157`) — timing-канал; нужен `secrets.compare_digest`. UI-токен к тому же зашит в JS-бандл (`VITE_SIGNAL_TOKEN` build-time). | Medium | [ ] Open |
+| **S158** | hft health-server: один idle-коннект замораживает /health + /metrics | `health_server.h:105-118` — однопоточный accept-loop + блокирующий `::read`/`recv` без `SO_RCVTIMEO`/deadline: клиент, открывший TCP и ничего не шлющий, навсегда блокирует весь сервер — все последующие коннекты висят в backlog=4 → healthcheck'и (docker `:9091/health`, k8s-пробы) таймаутят → restart-луп живого бота. Плюс INADDR_ANY без авторизации отдаёт `monitor_->format_json()` (позиции/PnL) на публикуемом :9091 — утечка торгового состояния. | Medium | [ ] Open |
 
 ---
 
@@ -153,10 +157,21 @@
 - `KillSwitch` — идемпотентный `activate()`, joinable monitor-thread, SHM-нотификация wired (S132), close-positions callback реальный
 - root-level residue — `websocketpp/`, `vcpkg/`, `node_modules/`, `audit/`, `hft-skills/`, root `*.py`, stale root `*.md` — всё untracked/gitignored, находок нет
 
+**R72 (security surface — проверено, чисто):**
+- SHM perms `0600`/`0o600` обе стороны — C++ `shm_open` (shm_ring_buffer.h:101, shm_market_data.h:66), Python `os.open` (shm_ring_buffer.py:148,151) + `multiprocessing.SharedMemory` (sim) — owner-only, инъекция сигналов локальным юзером закрыта
+- CORS — 0 `Access-Control`/cors-хедеров репо-вайд: никаких `*` — health-эндпоинты не читаются браузером cross-origin
+- Токен-транспорт правильный: `{type:"auth",token}` первым фреймом (не URL query → не течёт в proxy-логи); auth-fail лог не эхит токен; `_sanitize_log` на user-значениях в update_config
+- ai-bot health middleware: освобождает только `/live`+`/ready`, `/health*` под Bearer при заданном токене
+- Grafana admin-пароль `${GRAFANA_PASSWORD:?required}` в dev+prod (staging default «staging» — только staging)
+- sim ws: `max_size=1MB`, per-client rate-limit 1000 msg/мин (от флуда защищает, от control-команд нет → S155), auth-handshake publisher'а bounded `wait_for(10s)`
+- secrets-in-logs: aiohttp debug-лог подавлен в notifier (токены telegram/discord не утекают)
+
 ---
 
 ## ПРИОРИТЕТЫ
 
 1. **S148** (High) — kill-switch/graceful-shutdown «cancel all orders» лог-заглушка: resting-ордера переживают аварийный стоп. Fix-варианты: sim-side `cancel_order` msg-type + `OrderExecutor::cancel_all` + реальный callback; или min-fix — marketable-close вместо pending-ордеров + честный лог.
 2. **S149** (High) — `client_order_id` мёртв end-to-end при живом dup-векторе (UI send-queue flush). Fix: sim dedup-таблица `client_order_id → order_id` (TTL) + протокол-док.
-3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
+3. **S155** (High) — sim :8765 control-plane без авторизации. Fix: auth-handshake как у publisher'а (токен) или разделение data/control портов + bounds-валидация `update_config` (fee≥0, leverage∈[1,125], vol>0).
+4. **S156** (High) — контейнерный сим биндит localhost → публикуемые порты мёртвы, healthcheck зелёный. Fix: env-override (`EXCHANGE_WS_HOST` как `AI_BOT_BIND_HOST`) или `host: 0.0.0.0` в compose-конфиге; healthcheck наружу (docker-proxy), не изнутри.
+5. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
