@@ -1771,7 +1771,7 @@ Scope: `exchange_simulator/` modules outside the R11/R12/R18/R71 clusters — `a
 
 Scope: `monitoring/grafana/` (5 dashboard JSONs + provisioning yml), `web-ui/e2e/` (4 specs + `dismiss-onboarding.js` + `playwright.config.js`), `ai-signal-bot/config/` (`__init__.py` 448-line accessor layer + `settings.testnet.yaml`), plus a docs-vs-deleted-code resweep after R97/R99 deletions. Recorded only; no source changes.
 
-**S194 (Medium) — Open.** `ai-signal-bot/config/settings.testnet.yaml` is a broken testnet path on four independent layers:
+**S194 (Medium) — Fixed in R101.** `ai-signal-bot/config/settings.testnet.yaml` is a broken testnet path on four independent layers:
 
 1. **Validation rejects it standalone.** The file is a fragment containing only an `exchange:` section; `SignalBotConfig.load(validate=True)` raises `ValueError` with 5 errors (missing `trading`/`risk`/`strategies`/`indicators` sections + `exchange.websocket_url`/`default_exchange`). The documented command `python run.py --config config/settings.testnet.yaml` (`docs/theory/useful_info_en.md:151`) therefore dies at startup — verified by running it.
 2. **`testnet: true` never reaches the exchange layer.** Nothing reads `exchange.testnet` (or `mode`/`name`/`api_key`/`api_secret`/`symbols`) from config — `run.py:580-585` constructs `ExchangeFactory(mode=REAL, exchange=default_exchange, symbols, rest_timeout)` with no `testnet`/`api_key`/`api_secret`. Factory default `testnet=False` means a fixed config would still hit **real Binance, not the sandbox**.
@@ -1780,11 +1780,15 @@ Scope: `monitoring/grafana/` (5 dashboard JSONs + provisioning yml), `web-ui/e2e
 
 The file's own header also advertises CLI flags that don't exist (`--exchange-mode real --testnet --api-key/--api-secret` — `run.py` argparse has only `--config`/`--dashboard`/`--metrics`/`--backtest`). A sandbox-trading config that either crashes on load or silently routes to the live venue is exactly the failure mode a testnet preset exists to prevent.
 
-**S195 (Info) — Open.** Stale-doc cluster — documentation references modules deleted in R99 and config keys that never existed:
+**Fix:** `SignalBotConfig.testnet` accessor added (`config/__init__.py`, `exchange.testnet`, default `False`) and wired into `ExchangeFactory` at `run.py:580` → `RealExchangeAdapter` → `RealAccountManager` → ccxt sandbox mode. `settings.testnet.yaml` rewritten as a complete loadable preset — all required sections present, `paper_trading: false` + `testnet: true`, credentials documented as `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` env vars (the names the factory actually reads); dead keys (`exchange.mode`/`name`/`api_key`/`api_secret`/`symbols`/`intervals`) removed; header usage corrected to the real `--config` flag. Verified: the file now passes `SignalBotConfig.load` validation and `testnet=True` reaches the adapter.
+
+**S195 (Info) — Fixed in R101.** Stale-doc cluster — documentation references modules deleted in R99 and config keys that never existed:
 
 - `docs/ARCHITECTURE.md:201` lists `options_strategies.py` / `options_pricing.py` as strategy helpers — both deleted in R99 (S191).
 - `docs/TESTING.md:129` lists `test_options_pricing` in the test inventory — deleted in R99.
 - `docs/theory/TECHNICAL_REFERENCE.md:1427-1428` lists both dead options files as live modules.
 - `docs/DEPLOYMENT.md:734-739` "HFT Trade Bot" tuning block shows `latency_optimization.enable_thread_pinning`, `enable_spinlocks`, `shm.ring_buffer_size` — **none are parsed**: the real keys are `thread_pinning`/`execution_thread_core` (prod names, `config_parser.h:317-319`) or `thread_pinning_enabled`/`execution_core_id` (dev names, `:157-159`), and SHM sizing lives at `ipc.signals.capacity`/`ipc.fills.capacity` (`:208,213`). Following the doc produces a config the parser silently ignores.
+
+**Fix:** all four sites corrected — ARCHITECTURE/TESTING/TECHNICAL_REFERENCE no longer list the deleted options files (`options_simulator.py` is the live entry); the DEPLOYMENT tuning block now uses the keys the parser actually reads (`thread_pinning`/`execution_thread_core`, `ipc.signals.capacity`/`ipc.fills.capacity`).
 
 **Verified clean this round:** all 70 `SignalBotConfig` accessors have live readers (only `__getattr__` fallback unused — legitimate); all 5 grafana dashboards are valid JSON with real panels (flat + `{"dashboard":…}` wrapped formats are both file-provisionable; 46 exprs across 4 files; `ai_signal_bot_metrics.json` flat-format, others wrapped — inconsistent but loadable); `dashboards.yml` provider `options.path` matches the compose mount; datasource `url: http://prometheus:9090` is correct container-to-container; `playwright.config.js` is wired (`dev:mock` script exists, baseURL/webServer agree); all 3 `dismiss-onboarding.js` exports imported; `monitoring/alerts/` is an empty untracked dir; `latency_optimization` dual key-names work because dev/prod yamls each use their own parser branch's names.

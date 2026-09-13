@@ -1440,3 +1440,10 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - **S195** (Info) — stale-docs кластер: ARCHITECTURE:201 + TESTING:129 + TECHNICAL_REFERENCE:1427 ссылаются на удалённые options_* (R99); DEPLOYMENT:734-739 tuning-блок — `enable_thread_pinning`/`enable_spinlocks`/`shm.ring_buffer_size` нигде не парсятся.
 
 ЧИСТО: 70/70 SignalBotConfig accessors consumed; все 5 grafana dashboards валидны (46 exprs, оба формата provisionable); provider path ↔ compose mount ок; playwright.config + dismiss-onboarding helpers живы; latency_optimization dual-names работают (dev/prod парсеры читают свои имена).
+
+## R101 — slop-fix — R100 находки закрыты (S194/S195), доска пуста
+
+- **S194** — testnet wired end-to-end: `SignalBotConfig.testnet` accessor → `run.py:580` → ExchangeFactory → RealAccountManager (ccxt sandbox). `settings.testnet.yaml` переписан как полный loadable preset (required-секции, paper_trading:false + testnet:true, креды через EXCHANGE_API_KEY/SECRET env — имена совпадают с фабрикой); мёртвые ключи и вымышленные CLI-флаги удалены.
+- **S195** — 4 stale-doc сайта исправлены: options_*-ссылки убраны (ARCHITECTURE/TESTING/TECHNICAL_REFERENCE), DEPLOYMENT tuning-блок на реальных ключах парсера.
+
+**Verifications:** `SignalBotConfig.load(settings.testnet.yaml)` OK, testnet=True/paper_trading=False; 107 config/exchange-тестов pass; ruff clean.
