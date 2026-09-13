@@ -30,6 +30,7 @@ services:
     command: python -m exchange_simulator --no-visualizer
     environment:
       - LOG_FORMAT=json
+      - EXCHANGE_WS_HOST=0.0.0.0
     restart: on-failure:5
     deploy:
       resources:

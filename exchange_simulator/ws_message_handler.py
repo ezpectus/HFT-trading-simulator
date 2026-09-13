@@ -7,6 +7,7 @@ trading state, config updates, and options chain requests.
 from __future__ import annotations
 
 import json
+import secrets
 import time
 
 import websockets
@@ -29,6 +30,16 @@ try:
     import orjson
 except ImportError:
     orjson = None
+
+
+_ORDER_DEDUP_MAX = 10000
+
+# Message types that mutate server/exchange state — gated behind auth when
+# EXCHANGE_CONTROL_TOKEN is configured. Market-data requests stay open.
+_CONTROL_TYPES = frozenset({
+    "order", "close_position", "cancel_order", "cancel_all_orders",
+    "start_trading", "stop_trading", "update_config", "set_speed", "replay",
+})
 
 
 class MessageHandlerMixin:
@@ -127,6 +138,7 @@ class MessageHandlerMixin:
     def _cleanup_client(self, websocket, remote) -> None:
         """Clean up client state on disconnect."""
         self.clients.discard(websocket)
+        self._authed_sockets.discard(websocket)
         self._client_versions.pop(websocket, None)
         self._client_encodings.pop(websocket, None)
         self._client_subscriptions.pop(websocket, None)
@@ -139,6 +151,18 @@ class MessageHandlerMixin:
     ) -> None:
         """Handle incoming message from a bot."""
         msg_type = data.get("type")
+
+        if msg_type == "auth":
+            await self._handle_auth(websocket, data)
+            return
+        if (self._control_token and msg_type in _CONTROL_TYPES
+                and websocket not in self._authed_sockets):
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"'{msg_type}' requires auth — send "
+                           "{\"type\":\"auth\",\"token\":...} first",
+            }))
+            return
 
         if msg_type == "order":
             await self._handle_order(websocket, data)
@@ -157,6 +181,10 @@ class MessageHandlerMixin:
             await self._handle_replay(websocket, data)
         elif msg_type == "close_position":
             await self._handle_close_position(websocket, data)
+        elif msg_type == "cancel_order":
+            await self._handle_cancel_order(websocket, data)
+        elif msg_type == "cancel_all_orders":
+            await self._handle_cancel_all_orders(websocket, data)
         elif msg_type == "start_trading":
             await self._handle_trading_state(websocket, True)
         elif msg_type == "stop_trading":
@@ -198,9 +226,29 @@ class MessageHandlerMixin:
             }))
             return
 
+        client_order_id = data.get("client_order_id")
+        dedup_key = f"{exchange_id}:{client_order_id}" if client_order_id else None
+        if dedup_key is not None:
+            original = self._order_dedup.get(dedup_key)
+            if original is not None:
+                # Idempotent resubmit: a replayed/duplicated request gets the
+                # original order back instead of filling a second time.
+                await websocket.send(json.dumps({
+                    "type": "fill",
+                    "order": original.to_dict(),
+                    "deduplicated": True,
+                }))
+                return
+
         order = await self._submit_exchange_order(websocket, exchange, data)
         if order is None:
             return
+
+        if dedup_key is not None:
+            self._order_dedup[dedup_key] = order
+            self._order_dedup_keys.append(dedup_key)
+            if len(self._order_dedup_keys) > _ORDER_DEDUP_MAX:
+                self._order_dedup.pop(self._order_dedup_keys.popleft(), None)
 
         self._log_order_result(order, data, exchange_id)
         fill_msg = json.dumps({"type": "fill", "order": order.to_dict()})
@@ -381,6 +429,62 @@ class MessageHandlerMixin:
                     fill_msg = json.dumps({"type": "fill", "order": close_order.to_dict()})
                     await self._broadcast_to_clients(fill_msg)
                     break
+
+    async def _handle_cancel_order(self, websocket: WebSocketServerConnection, data: dict) -> None:
+        """Cancel a single pending order by id. Works while trading is stopped —
+        killing resting orders during a halt is the point."""
+        exchange = self.exchanges.get(data.get("exchange", "binance"))
+        order_id = data.get("order_id")
+        if not exchange or not order_id:
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": "cancel_order requires exchange and order_id",
+            }))
+            return
+        cancelled = exchange.cancel_order(order_id)
+        if cancelled is None:
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"No pending order {order_id} on {exchange.exchange_id}",
+            }))
+            return
+        cancel_msg = json.dumps({"type": "order_cancelled", "order": cancelled.to_dict()})
+        await websocket.send(cancel_msg)
+        await self._broadcast_to_clients(cancel_msg, exclude=websocket)
+
+    async def _handle_cancel_all_orders(self, websocket: WebSocketServerConnection, data: dict) -> None:
+        """Cancel every pending order on an exchange (optionally one symbol)."""
+        exchange = self.exchanges.get(data.get("exchange", "binance"))
+        if not exchange:
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"Unknown exchange: {data.get('exchange', 'binance')}",
+            }))
+            return
+        cancelled = exchange.cancel_all_orders(symbol=data.get("symbol"))
+        cancel_msg = json.dumps({
+            "type": "orders_cancelled",
+            "exchange": exchange.exchange_id,
+            "count": len(cancelled),
+            "order_ids": [o.id for o in cancelled],
+        })
+        await websocket.send(cancel_msg)
+        await self._broadcast_to_clients(cancel_msg, exclude=websocket)
+
+    async def _handle_auth(self, websocket: WebSocketServerConnection, data: dict) -> None:
+        """Authenticate a socket for control commands."""
+        if not self._control_token:
+            # No token configured — control plane is open; auth is a no-op accept.
+            self._authed_sockets.add(websocket)
+            await websocket.send(json.dumps({"type": "auth_ok"}))
+            return
+        if secrets.compare_digest(str(data.get("token", "")), self._control_token):
+            self._authed_sockets.add(websocket)
+            await websocket.send(json.dumps({"type": "auth_ok"}))
+        else:
+            logger.warning("Control auth failed for %s",
+                           _sanitize_log(getattr(websocket, "remote_address", "?")))
+            await websocket.send(json.dumps({"type": "auth_failed"}))
 
     async def _handle_trading_state(self, websocket: WebSocketServerConnection, active: bool) -> None:
         """Handle start/stop trading commands."""

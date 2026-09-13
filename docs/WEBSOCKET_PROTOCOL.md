@@ -112,6 +112,18 @@ Sent immediately on connect (before any `subscribe`), followed by a `snapshot`.
 ```
 On reconnect, send `sync_state` with the last received timestamp to get missed data.
 
+#### Auth (control plane)
+```json
+{ "type": "auth", "token": "<EXCHANGE_CONTROL_TOKEN>" }
+```
+When the server is started with `EXCHANGE_CONTROL_TOKEN` set, control commands
+(`order`, `close_position`, `cancel_order`, `cancel_all_orders`, `start_trading`,
+`stop_trading`, `update_config`, `set_speed`, `replay`) are rejected with an
+`error` until the socket authenticates. Replies `auth_ok` on success,
+`auth_failed` otherwise. Market-data messages (`subscribe`, `snapshot`,
+`options_chain`, `ping`, …) never require auth. When no token is configured the
+control plane is open and `auth` is accepted as a no-op.
+
 #### Order
 ```json
 {
@@ -122,10 +134,35 @@ On reconnect, send `sync_state` with the last received timestamp to get missed d
   "quantity": 0.05,
   "order_type": "MARKET",
   "stop_loss": 63000.0,
-  "take_profit": 70000.0
+  "take_profit": 70000.0,
+  "client_order_id": "sig_42"
 }
 ```
 Submit a market or limit order. Server responds with a fill notification.
+A `LIMIT` order priced off-market rests as `PENDING` and fills at its limit
+price once the market reaches it.
+
+`client_order_id` (optional) is an idempotency key scoped per exchange:
+re-sending a message with the same `client_order_id` returns the **original**
+order with `"deduplicated": true` instead of filling twice — the dedup table is
+bounded to the last 10,000 keys per server.
+
+#### Cancel Order
+```json
+{ "type": "cancel_order", "exchange": "binance", "order_id": "binance-7" }
+```
+Cancel a pending (resting) order. Replies `order_cancelled` with the cancelled
+order (also broadcast to other clients) or `error` if no pending order has that
+id. Works while trading is stopped.
+
+#### Cancel All Orders
+```json
+{ "type": "cancel_all_orders", "exchange": "binance", "symbol": "BTC/USDT" }
+```
+Cancel every pending order on the exchange; `symbol` is optional and filters
+to one market. Replies `orders_cancelled` (`{exchange, count, order_ids}`),
+broadcast to other clients. Works while trading is stopped — this is the
+kill-switch path.
 
 #### Close Position
 ```json
@@ -849,9 +886,12 @@ Pushed on connect and broadcast periodically while the publisher runs. `state` i
 
 | Port | Direction | Type | Description |
 |------|-----------|------|-------------|
+| 8765 | C→S | `auth` | Control-plane token (required when `EXCHANGE_CONTROL_TOKEN` set) |
 | 8765 | C→S | `subscribe` | Subscribe to market data (with protocol_version, encoding) |
 | 8765 | C→S | `sync_state` | Request missed data on reconnect |
-| 8765 | C→S | `order` | Submit order |
+| 8765 | C→S | `order` | Submit order (optional `client_order_id` idempotency key) |
+| 8765 | C→S | `cancel_order` | Cancel one pending order by `order_id` |
+| 8765 | C→S | `cancel_all_orders` | Cancel all pending orders (optional `symbol` filter) |
 | 8765 | C→S | `close_position` | Close open position |
 | 8765 | C→S | `set_speed` | Set simulation speed (0/1/2/5) |
 | 8765 | C→S | `update_config` | Hot-reload simulator parameters (flat `updates` map) |
@@ -862,7 +902,10 @@ Pushed on connect and broadcast periodically while the publisher runs. `state` i
 | 8765 | S→C | `welcome` | Server info on connect |
 | 8765 | S→C | `snapshot` | Initial market state + order books + accounts |
 | 8765 | S→C | `candles` | Streaming candle + price + order book + account data |
-| 8765 | S→C | `fill` | Order fill confirmation |
+| 8765 | S→C | `auth_ok` / `auth_failed` | Control-plane auth result |
+| 8765 | S→C | `fill` | Order fill confirmation (`deduplicated: true` on idempotent resubmit) |
+| 8765 | S→C | `order_cancelled` | Single pending order cancelled |
+| 8765 | S→C | `orders_cancelled` | Bulk cancel ack (`count` + `order_ids`) |
 | 8765 | S→C | `fills_batch` | Batched fill notifications (`orders` key) |
 | 8765 | S→C | `trading_state` | Trading active/stopped broadcast |
 | 8765 | S→C | `arbitrage_scan` | Active arbitrage opportunities |

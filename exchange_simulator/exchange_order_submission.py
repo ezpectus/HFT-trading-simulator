@@ -254,6 +254,7 @@ class OrderSubmissionMixin:
         if order_type == OrderType.LIMIT and price is not None:
             if side == Side.BUY and price < fill_price:
                 order.status = OrderStatus.PENDING
+                self._pending_limits[order_id] = order
                 self._order_history.append(order)
                 self._audit_logger.log(
                     event_type=AuditEventType.ORDER_SUBMITTED,
@@ -263,6 +264,7 @@ class OrderSubmissionMixin:
                 return True
             if side == Side.SELL and price > fill_price:
                 order.status = OrderStatus.PENDING
+                self._pending_limits[order_id] = order
                 self._order_history.append(order)
                 self._audit_logger.log(
                     event_type=AuditEventType.ORDER_SUBMITTED,
@@ -313,6 +315,7 @@ class OrderSubmissionMixin:
             self._pending_stop_limits.pop(cancelled.id, None)
             self._pending_trailing_stops.pop(cancelled.id, None)
             self._pending_icebergs.pop(cancelled.id, None)
+            self._pending_limits.pop(cancelled.id, None)
             self._audit_logger.log(
                 event_type=AuditEventType.ORDER_CANCELLED,
                 exchange=self.exchange_id, symbol=cancelled.symbol,

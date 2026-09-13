@@ -237,7 +237,10 @@ describe('useExchangeData', () => {
     act(() => {
       result.current.submitOrder({ symbol: 'BTC/USDT', side: 'BUY', qty: 1.0 })
     })
-    expect(mockSend).toHaveBeenCalledWith({ type: 'order', symbol: 'BTC/USDT', side: 'BUY', qty: 1.0 })
+    const sent = mockSend.mock.calls[0][0]
+    expect(sent).toMatchObject({ type: 'order', symbol: 'BTC/USDT', side: 'BUY', qty: 1.0 })
+    expect(typeof sent.client_order_id).toBe('string')
+    expect(sent.client_order_id.length).toBeGreaterThan(0)
   })
 
   it('closePosition sends close_position message', () => {

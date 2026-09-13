@@ -62,12 +62,15 @@ class ExchangeWebSocketServer(
         host: str = "localhost",
         port: int = 8765,
         arb_detector: ArbitrageDetector | None = None,
+        control_token: str | None = None,
     ):
         self.exchanges = exchanges
         self.market = market
         self.host = host
         self.port = port
         self.arb_detector = arb_detector
+        self._control_token = control_token
+        self._authed_sockets: set = set()
         self.clients: set[WebSocketServerConnection] = set()
         self._running = False
         self._shutdown_event = asyncio.Event()
@@ -95,6 +98,10 @@ class ExchangeWebSocketServer(
 
         self._client_subscriptions: dict[WebSocketServerConnection, set[str]] = {}
         self._client_message_counts: dict[WebSocketServerConnection, dict] = {}
+        # client_order_id -> Order, for idempotent order resubmission across reconnects.
+        # Bounded LRU: deque of keys, evict oldest past _DEDUP_MAX.
+        self._order_dedup: dict[str, object] = {}
+        self._order_dedup_keys: deque = deque()
         self._rate_limit_window = 60.0
         self._rate_limit_max = 1000
 

@@ -130,12 +130,24 @@ async def run_websocket_server(
         opportunity_ttl=arb_cfg.get("opportunity_ttl", 30.0),
     )
 
+    control_token = os.environ.get("EXCHANGE_CONTROL_TOKEN") or None
+    if control_token:
+        logger.info("Control-plane auth enabled (EXCHANGE_CONTROL_TOKEN)")
+    else:
+        logger.warning(
+            "EXCHANGE_CONTROL_TOKEN unset — order/cancel/trading-state/config "
+            "commands are unauthenticated; set it for any non-local deployment",
+        )
     server = ExchangeWebSocketServer(
         exchanges=exchanges,
         market=market,
-        host=ws_cfg.get("host", "localhost"),
+        # EXCHANGE_WS_HOST overrides the yaml host — containers need 0.0.0.0 so
+        # published ports/healthchecks reach the listener (localhost = loopback
+        # only inside the container). Also binds the metrics/health HTTP server.
+        host=os.environ.get("EXCHANGE_WS_HOST") or ws_cfg.get("host", "localhost"),
         port=ws_cfg.get("port", 8765),
         arb_detector=arb_detector,
+        control_token=control_token,
     )
 
     # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C)

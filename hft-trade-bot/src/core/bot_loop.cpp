@@ -347,6 +347,11 @@ void poll_shm_market_data(BotContext& ctx) {
 
 void graceful_shutdown(BotContext& ctx) {
     spdlog::info("Shutting down — cancelling all open orders...");
+    if (ctx.executor && ctx.executor->cancel_all_orders()) {
+        spdlog::info("  Cancel-all-orders request sent");
+    } else {
+        spdlog::warn("  Cancel-all-orders request NOT sent — resting orders may stay live");
+    }
     auto positions = ctx.pos_mgr.get_positions();
     for (const auto& pos : positions) {
         spdlog::info("  Closing position: {} {} qty={:.4f}", pos.symbol,

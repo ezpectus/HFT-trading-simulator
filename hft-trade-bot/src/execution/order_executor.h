@@ -45,6 +45,21 @@ class OrderExecutor {
                 connected_  = true;
                 reconnect_delay_.store(1000, std::memory_order_relaxed);
                 spdlog::info("OrderExecutor connected to {}", ws_url_);
+                // Control-plane auth must precede order sends — the sim gates
+                // order/cancel/close commands behind EXCHANGE_CONTROL_TOKEN.
+                if (const char* tok = std::getenv("EXCHANGE_CONTROL_TOKEN"); tok && *tok) {
+                    char auth_buf[320];
+                    int  m = std::snprintf(auth_buf, sizeof(auth_buf),
+                                           "{\"type\":\"auth\",\"token\":\"%s\"}", tok);
+                    if (m > 0 && m < static_cast<int>(sizeof(auth_buf))) {
+                        websocketpp::lib::error_code auth_ec;
+                        client_->send(connection_, std::string(auth_buf, m),
+                                      websocketpp::frame::opcode::text, auth_ec);
+                        if (auth_ec) {
+                            spdlog::error("Failed to send auth frame: {}", auth_ec.message());
+                        }
+                    }
+                }
             });
 
             client_->set_close_handler([this](websocketpp::connection_hdl) {
@@ -114,14 +129,15 @@ class OrderExecutor {
 
         // Fast path: manual JSON serialization (avoids nlohmann/json heap alloc)
         char buf[512];
-        int  n = std::snprintf(buf, sizeof(buf),
-                               "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
-                                "\"stop_loss\":%.2f,\"take_profit\":%.2f",
-                               exchange_id_.c_str(), signal.symbol.c_str(),
-                              signal.is_long() ? "BUY" : "SELL", quantity,
-                              type == OrderType::MARKET ? "MARKET" : "LIMIT", signal.stop_loss,
-                               signal.take_profit);
+        int  n = std::snprintf(
+            buf, sizeof(buf),
+            "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+             "\"side\":\"%s\",\"quantity\":%.8f,\"order_type\":\"%s\","
+             "\"stop_loss\":%.2f,\"take_profit\":%.2f,"
+             "\"client_order_id\":\"hft_%s_%lld\"",
+            exchange_id_.c_str(), signal.symbol.c_str(), signal.is_long() ? "BUY" : "SELL",
+            quantity, type == OrderType::MARKET ? "MARKET" : "LIMIT", signal.stop_loss,
+            signal.take_profit, signal.symbol.c_str(), static_cast<long long>(signal.timestamp));
 
         if (type == OrderType::LIMIT && n > 0 && n < static_cast<int>(sizeof(buf) - 32)) {
             n += std::snprintf(buf + n, sizeof(buf) - n, ",\"price\":%.2f", price);
@@ -178,6 +194,35 @@ class OrderExecutor {
             return false;
         }
         spdlog::info("Close position request: {} on {}", symbol, exchange_id_);
+        return true;
+    }
+
+    // Cancel every resting order on the exchange — kill-switch path.
+    // Returns true only if the request was handed to the WebSocket.
+    bool cancel_all_orders() {
+        if (!connected_) [[unlikely]] {
+            spdlog::warn("Cannot cancel orders — not connected");
+            return false;
+        }
+
+        char buf[256];
+        int  n =
+            std::snprintf(buf, sizeof(buf), "{\"type\":\"cancel_all_orders\",\"exchange\":\"%s\"}",
+                          exchange_id_.c_str());
+
+        if (n <= 0) [[unlikely]] {
+            spdlog::error("Cancel-all JSON serialization failed");
+            return false;
+        }
+
+        websocketpp::lib::error_code ec;
+        client_->send(connection_, std::string(buf, static_cast<size_t>(n)),
+                      websocketpp::frame::opcode::text, ec);
+        if (ec) [[unlikely]] {
+            spdlog::error("Failed to send cancel-all: {}", ec.message());
+            return false;
+        }
+        spdlog::info("Cancel-all-orders request sent on {}", exchange_id_);
         return true;
     }
 

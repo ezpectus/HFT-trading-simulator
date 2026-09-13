@@ -111,6 +111,11 @@ class ExchangeClient:
             )
             self._connected = True
             logger.info("Connected to exchange simulator: %s", self.url)
+            # Control-plane auth must precede any order/close_position sends —
+            # the server gates those behind EXCHANGE_CONTROL_TOKEN when set.
+            control_token = os.environ.get("EXCHANGE_CONTROL_TOKEN")
+            if control_token:
+                await self._ws.send(json.dumps({"type": "auth", "token": control_token}, separators=(',', ':')))
             await self._ws.send(json.dumps({"type": "subscribe", "protocol_version": 2, "encoding": self._encoding}, separators=(',', ':')))
             return True
         except (OSError, websockets.WebSocketException) as e:

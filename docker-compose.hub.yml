@@ -27,6 +27,8 @@ services:
       - ./exchange_simulator/config.yaml:/app/config.yaml:ro
       - sim-data:/app/data
       - sim-logs:/app/logs
+    environment:
+      - EXCHANGE_WS_HOST=0.0.0.0
     command: python -m exchange_simulator --no-visualizer
     restart: unless-stopped
     healthcheck:

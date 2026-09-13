@@ -28,11 +28,66 @@ class AdvancedOrderMixin:
         filled_orders = []
         current_prices = {symbol: self.get_price(symbol) for symbol in self.symbols}
 
+        self._check_limit_orders(current_prices, filled_orders)
         self._check_stop_limit_orders(current_prices, filled_orders)
         self._check_trailing_stop_orders(current_prices, filled_orders)
         self._check_iceberg_orders(current_prices, filled_orders)
 
         return filled_orders
+
+    def _check_limit_orders(
+        self, current_prices: dict, filled_orders: list
+    ) -> None:
+        """Fill resting limit orders whose limit price the market has reached."""
+        to_remove = []
+        for order_id, order in list(self._pending_limits.items()):
+            if order.status != OrderStatus.PENDING:
+                to_remove.append(order_id)
+                continue
+            current_price = current_prices.get(order.symbol, 0)
+            if current_price == 0:
+                continue
+
+            marketable = (order.side == Side.BUY and current_price <= order.price) or \
+                         (order.side == Side.SELL and current_price >= order.price)
+            if marketable:
+                filled_orders.append(self._execute_limit_order(order, order.price))
+                to_remove.append(order_id)
+
+        for order_id in to_remove:
+            self._pending_limits.pop(order_id, None)
+
+    def cancel_order(self, order_id: str) -> Order | None:
+        """Cancel a pending order by id. Returns the cancelled order or None."""
+        for book in (self._pending_limits, self._pending_stop_limits,
+                     self._pending_trailing_stops, self._pending_icebergs):
+            order = book.pop(order_id, None)
+            if order is not None:
+                order.status = OrderStatus.CANCELLED
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_CANCELLED,
+                    exchange=self.exchange_id, symbol=order.symbol,
+                    order_id=order.id, reason="CANCELLED_BY_CLIENT",
+                )
+                return order
+        return None
+
+    def cancel_all_orders(self, symbol: str | None = None) -> list[Order]:
+        """Cancel every pending order, optionally filtered to one symbol."""
+        cancelled = []
+        for book in (self._pending_limits, self._pending_stop_limits,
+                     self._pending_trailing_stops, self._pending_icebergs):
+            for order_id in [oid for oid, o in book.items()
+                             if symbol is None or o.symbol == symbol]:
+                order = book.pop(order_id)
+                order.status = OrderStatus.CANCELLED
+                cancelled.append(order)
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_CANCELLED,
+                    exchange=self.exchange_id, symbol=order.symbol,
+                    order_id=order.id, reason="CANCEL_ALL",
+                )
+        return cancelled
 
     def _check_stop_limit_orders(
         self, current_prices: dict, filled_orders: list

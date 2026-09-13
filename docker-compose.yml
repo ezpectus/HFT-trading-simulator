@@ -38,6 +38,9 @@ services:
       - sim-audit:/app/logs/audit
     environment:
       - PYTHONUNBUFFERED=1
+      # Baked config binds localhost — unreachable via published ports from
+      # outside the container without this.
+      - EXCHANGE_WS_HOST=0.0.0.0
     command: python -m exchange_simulator --no-visualizer
     restart: unless-stopped
     deploy:

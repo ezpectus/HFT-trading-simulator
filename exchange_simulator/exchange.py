@@ -1,4 +1,4 @@
-﻿"""Simulated exchange -- order matching engine with fees and slippage.
+"""Simulated exchange -- order matching engine with fees and slippage.
 
 Each exchange (Binance, Bybit, OKX) has its own fee structure and slippage
 model. Orders are matched against the simulated order book.
@@ -68,6 +68,7 @@ class SimulatedExchange(
         self._pending_stop_limits: dict[str, StopLimitOrder] = {}
         self._pending_trailing_stops: dict[str, TrailingStopOrder] = {}
         self._pending_icebergs: dict[str, IcebergOrder] = {}
+        self._pending_limits: dict[str, Order] = {}
         self._oco_groups: dict[str, OCOGroup] = {}
 
         self._audit_logger.log(

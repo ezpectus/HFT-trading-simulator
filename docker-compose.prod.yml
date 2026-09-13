@@ -96,6 +96,12 @@ services:
     command: python -m exchange_simulator --no-visualizer
     environment:
       - LOG_FORMAT=json
+      # 0.0.0.0 — the baked config binds localhost, which is unreachable via the
+      # published ports from outside the container.
+      - EXCHANGE_WS_HOST=0.0.0.0
+      # Gates order/cancel/trading-state/config commands; ai-bot + hft inherit
+      # the same var via env_file, the web UI gets VITE_EXCHANGE_TOKEN at build.
+      - EXCHANGE_CONTROL_TOKEN=${EXCHANGE_CONTROL_TOKEN:?EXCHANGE_CONTROL_TOKEN must be set in .env.prod}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8775/health', timeout=5)"]
@@ -203,6 +209,10 @@ services:
         # user's browser at their own machine.
         - VITE_WS_EXCHANGE=${VITE_WS_EXCHANGE:?VITE_WS_EXCHANGE must be set in .env.prod (e.g. ws://your-host:8765)}
         - VITE_WS_SIGNALS=${VITE_WS_SIGNALS:?VITE_WS_SIGNALS must be set in .env.prod (e.g. ws://your-host:8766)}
+        - VITE_SIGNAL_TOKEN=${VITE_SIGNAL_TOKEN:-}
+        # Must equal EXCHANGE_CONTROL_TOKEN — without it the UI's order/cancel
+        # buttons get auth errors in prod.
+        - VITE_EXCHANGE_TOKEN=${VITE_EXCHANGE_TOKEN:?VITE_EXCHANGE_TOKEN must be set in .env.prod (same value as EXCHANGE_CONTROL_TOKEN)}
     container_name: trading-web-ui
     depends_on:
       ai-signal-bot:

@@ -7,6 +7,9 @@ const WS_SIGNALS = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
 // Shared secret for the signal publisher handshake — matches the bot's
 // api.auth_token / AI_BOT_AUTH_TOKEN. Empty = server-side auth disabled.
 const SIGNAL_TOKEN = import.meta.env.VITE_SIGNAL_TOKEN || ''
+// Control-plane token for the exchange simulator — matches the server's
+// EXCHANGE_CONTROL_TOKEN. Empty = control commands unauthenticated (dev).
+const EXCHANGE_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
 
 /**
  * Main exchange data hook — connects to exchange simulator.
@@ -167,13 +170,19 @@ export function useExchangeData() {
 
   const { connected: exchangeConnected, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
     onMessage: handleExchangeMessage,
+    authToken: EXCHANGE_TOKEN || undefined,
     syncOnReconnect: true,
     getLastTimestamp: () => lastTimestampRef.current,
     autoConnect: !IS_MOCK,  // mock mode — never open the real socket
   })
 
   const submitOrder = useCallback((order) => {
-    return sendExchange({ type: 'order', ...order })
+    // client_order_id is stamped at send time so a queued/replayed message
+    // (sendExchange queues while disconnected) dedupes server-side on flush.
+    const msg = order.client_order_id
+      ? { type: 'order', ...order }
+      : { type: 'order', ...order, client_order_id: `ui_${Date.now()}_${Math.random().toString(36).slice(2, 10)}` }
+    return sendExchange(msg)
   }, [sendExchange])
 
   const closePosition = useCallback((exchange, symbol) => {

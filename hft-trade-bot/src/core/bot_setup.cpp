@@ -172,8 +172,14 @@ void init_order_routing(BotContext& ctx) {
 void init_kill_switch(BotContext& ctx) {
     ctx.kill_switch =
         std::make_unique<KillSwitch>(ctx.config.kill_switch_trigger_file, "/hft_kill_switch");
-    ctx.kill_switch->set_cancel_all_callback(
-        [&]() { spdlog::warn("KILL SWITCH: Cancelling all open orders..."); });
+    ctx.kill_switch->set_cancel_all_callback([&]() {
+        if (ctx.executor && ctx.executor->cancel_all_orders()) {
+            spdlog::warn("KILL SWITCH: cancel-all-orders request sent to exchange");
+        } else {
+            spdlog::error("KILL SWITCH: cancel-all-orders request NOT sent — resting "
+                          "orders may stay live on the exchange");
+        }
+    });
     ctx.kill_switch->set_close_all_callback([&]() {
         spdlog::warn("KILL SWITCH: Closing all positions at market...");
         auto positions = ctx.pos_mgr.get_positions();

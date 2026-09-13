@@ -1150,3 +1150,19 @@ Board: **21 open** (S148–S168).
 ЧИСТО: registry полностью честен (см. доску); stores wired (useTradingStore — 6 потребителей); остальные 19 хуков живые.
 
 Board: **22 open** (S148–S169).
+
+## R77-fix — 2026-09-14 — slop-fix раунд: 4 High закрыты (S148, S149, S155, S156)
+
+Скоуп: весь sim-WS/executor кластер — ордера, отмены, дедуп, auth, бинд.
+
+**S148** — kill-switch «cancel all orders» был логом. Диагностика вскрыла глубже: покоящие LIMIT-ордера писались в `_order_history` как PENDING, но ни в один pending-dict не попадали → никогда не филлились и не отменялись (вечные зомби, adaptive order selection был сим-театром). Fix: `_pending_limits` + `_check_limit_orders` в tick-loop (fills_batch broadcast), `cancel_order`/`cancel_all_orders` + WS-хэндлеры (работают при `trading_active=false` — это и есть kill-сценарий), `OrderExecutor::cancel_all_orders()`, реальные callback'и в kill-switch и graceful_shutdown. E2E: pending→fill по limit-цене→cancel→cancel-all.
+
+**S149** — `client_order_id` слали, sim игнорил. Fix: bounded dedup-таблица `{exchange}:{cid}→Order` (cap 10k), повтор → оригинальный order + `deduplicated:true`, без второго fill. C++ шлёт `hft_{symbol}_{ts}`, UI штампует `ui_{ts}_{rand}` до очереди (reconnect-flush несёт тот же id).
+
+**S155** — control-plane :8765 без auth. Fix: `EXCHANGE_CONTROL_TOKEN` → `auth`-handshake первым фреймом (`secrets.compare_digest`); `_CONTROL_TYPES` (order/close_position/cancel_*/start|stop_trading/update_config/set_speed/replay) гейтятся, data-путь открыт, tokenless-dev неизменен. Клиенты: web-ui `VITE_EXCHANGE_TOKEN`, ai-bot ws_client, C++ OrderExecutor. Bonus: `VITE_SIGNAL_TOKEN` не был build-ARG — объявлен в обоих Dockerfile.
+
+**S156** — контейнерный сим слушал loopback. Fix: `EXCHANGE_WS_HOST` env-override (покрывает WS + metrics/health — оба на `self.host`); `0.0.0.0` во всех 4 compose.
+
+Verified: pytest sim 387 green + e2e-скрипты новых путей; vitest 37 (test обновлён под новый payload — честная смена контракта); ai-bot 22; ruff чист; compose config -q ×4. C++ — inspection-verified, тулчейна локально нет → CI.
+
+Board: **18 open**. Done-log +4. Протокол-док синхронизирован (auth, cancel_*, client_order_id, deduplicated).
