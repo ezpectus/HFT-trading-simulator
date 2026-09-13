@@ -991,3 +991,9 @@ Reverse props direction: компоненты деструктурируют т�
 - **S139 (Low)**: Makefile `ci-test`/`ci-quick` звали удалённый `ci-test.sh`. Repointed на `pre-commit-check.py --all/--quick`.
 - **S140 (Low)**: `cachetools` pin в exchange_simulator/requirements.txt — 0 импортов. Удалён.
 - Verify: `pre-commit-check.py --lint` 4/4 green; web-ui deps все used; `matplotlib`/`msgpack`/`orjson` — реальные.
+
+## Round 60 — 2026-09-13 — docs-refresh: full docs sweep vs real code
+- **Scope**: README + docs/* — every claim grep-verified. Fixed: phantom PostgreSQL/Redis (0 code/compose refs), invented env vars (`VITE_EXCHANGE_WS_URL`→real `VITE_WS_EXCHANGE`, `SIGNAL_BOT_*`, `SMTP_*`, `SLACK_*` — 0 readers), stale counts (test files 116→162 JS / 25 C++ / 129 Py / 316 total; components →295, panels 278; symbols→49; alerts→22), wrong ports (sim health 8775, ai-bot 8080, prometheus host 9099), dead refs (`run-all-tests.*`, `ci-test.sh`, deleted `test_metrics.py`, `hft-executor`, `VITE_ENABLE_*`), invented health-response JSON, wrong grafana dashboard names.
+- **Diagrams**: README ASCII → verified mermaid flowchart (WS :8765/:8766 + SHM rings + orders); ARCHITECTURE.md + erDiagram (real SQLite schema: signals/trades/equity_curve, logical signal_id).
+- **Feature Status table** (README): working / opt-in (SHM, ccxt live path) / demo (math panels, mock mode) / removed.
+- **New findings recorded**: S141 (env drift — BINANCE_API_KEY etc. unread; code reads EXCHANGE_API_KEY), S142 (Alertmanager documented but absent — no service/config/`alerting:` section anywhere).
