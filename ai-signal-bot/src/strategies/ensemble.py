@@ -1,5 +1,4 @@
 """EnsembleVoter — majority/weighted voting across strategy signals."""
-from src.strategies.circuit_breaker import CircuitBreaker
 from src.strategies.signal import Signal, SignalDirection
 
 
@@ -13,11 +12,9 @@ class EnsembleVoter:
     """
 
     def __init__(self, mode: str = "majority", min_votes: int = 2,
-                 circuit_breaker: CircuitBreaker | None = None,
                  strategies: list | None = None):
         self.mode = mode
         self.min_votes = min_votes
-        self.circuit_breaker = circuit_breaker
         self.strategies = strategies or []
         self.name = "ensemble"
 
@@ -34,19 +31,6 @@ class EnsembleVoter:
 
     def vote(self, signals: list[Signal]) -> Signal:
         """Combine multiple strategy signals into one ensemble signal."""
-        if self.circuit_breaker:
-            self.circuit_breaker.check_and_recover()
-        if self.circuit_breaker and self.circuit_breaker.is_tripped:
-            sym = signals[0].symbol if signals else ""
-            entry = signals[0].entry_price if signals else 0
-            return Signal(
-                symbol=sym,
-                direction=SignalDirection.NEUTRAL,
-                confidence=0, strategy=self.name,
-                entry_price=entry, stop_loss=0, take_profit=0,
-                reason=f"Circuit breaker active ({self.circuit_breaker.consecutive_losses} losses)",
-            )
-
         long_count, short_count, long_score, short_score, \
             long_agg, short_agg, long_strategies, short_strategies, \
             first_actionable, long_signals, short_signals = self._accumulate_signals(signals)

@@ -122,6 +122,7 @@ class AISignalBot:
         self.ensemble = EnsembleVoter(
             mode=config.ensemble_mode,
             min_votes=config.ensemble_min_votes,
+            strategies=self.strategies,
         )
 
         # Statistical arbitrage (pairs trading — separate interface)

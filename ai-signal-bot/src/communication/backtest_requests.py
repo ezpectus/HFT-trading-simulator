@@ -18,19 +18,6 @@ if TYPE_CHECKING:
 logger = get_logger("ai_signal_bot.signal_publisher")
 
 
-class _EnsembleAdapter:
-    """Adapter that makes EnsembleVoter compatible with Backtester's .analyze() interface."""
-
-    def __init__(self, voter, sub_strategies: list):
-        self.voter = voter
-        self.sub_strategies = sub_strategies
-        self.name = "ensemble"
-
-    def analyze(self, symbol: str, candles: list):
-        signals = [s.analyze(symbol, candles) for s in self.sub_strategies]
-        return self.voter.vote(signals)
-
-
 async def run_backtest_request(params: dict) -> dict:
     """Run a backtest and return results as JSON payload."""
     from src.backtesting import Backtester
@@ -44,7 +31,7 @@ async def run_backtest_request(params: dict) -> dict:
     risk_config = build_risk_config(bt_params)
     bt = Backtester(
         initial_balance=bt_params["balance"],
-        fee_pct=0.075, slippage_bps=2.0, risk_config=risk_config,
+        fee_pct=0.04, slippage_bps=2.0, risk_config=risk_config,
     )
     strategies = build_strategies(bt_params["strategy"])
     if not strategies:
@@ -171,9 +158,8 @@ def build_strategies(strategy_name: str) -> dict:
             MeanReversionStrategy(rsi_oversold=30, rsi_overbought=70, bb_period=20, bb_std=2.0),
             FFTCycleStrategy(min_data=64),
         ]
-        strategies["Ensemble"] = _EnsembleAdapter(
-            EnsembleVoter(mode="weighted", min_votes=2),
-            sub_strategies,
+        strategies["Ensemble"] = EnsembleVoter(
+            mode="weighted", min_votes=2, strategies=sub_strategies,
         )
     return strategies
 

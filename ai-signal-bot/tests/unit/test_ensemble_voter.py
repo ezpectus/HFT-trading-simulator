@@ -1,10 +1,6 @@
-"""Tests for EnsembleVoter — majority/weighted voting + CircuitBreaker integration."""
-import time
-from unittest.mock import patch
-
+"""Tests for EnsembleVoter — majority/weighted voting."""
 import pytest
 
-from src.strategies.circuit_breaker import CircuitBreaker
 from src.strategies.signal import Signal, SignalDirection
 from src.strategies.strategies import EnsembleVoter
 
@@ -137,72 +133,3 @@ class TestEnsembleVoterAggregation:
         assert "mean" in result.reason
 
 
-class TestCircuitBreakerIntegration:
-    def test_circuit_breaker_not_tripped_passes_through(self):
-        cb = CircuitBreaker(max_consecutive_losses=5, cooldown_seconds=300)
-        voter = EnsembleVoter(mode="majority", min_votes=2, circuit_breaker=cb)
-        signals = [
-            make_signal(SignalDirection.LONG, 70, strategy="trend"),
-            make_signal(SignalDirection.LONG, 65, strategy="mean"),
-        ]
-        result = voter.vote(signals)
-        assert result.direction == SignalDirection.LONG
-
-    def test_circuit_breaker_tripped_forces_neutral(self):
-        cb = CircuitBreaker(max_consecutive_losses=3, cooldown_seconds=300)
-        # Trip the breaker
-        for _ in range(3):
-            cb.on_trade_closed(-100)
-        assert cb.is_tripped
-
-        voter = EnsembleVoter(mode="majority", min_votes=2, circuit_breaker=cb)
-        signals = [
-            make_signal(SignalDirection.LONG, 90, strategy="trend"),
-            make_signal(SignalDirection.LONG, 85, strategy="mean"),
-        ]
-        result = voter.vote(signals)
-        assert result.direction == SignalDirection.NEUTRAL
-        assert "Circuit breaker" in result.reason
-        assert result.confidence == 0
-
-    def test_circuit_breaker_recovered_allows_trading(self):
-        cb = CircuitBreaker(max_consecutive_losses=3, cooldown_seconds=0.1)
-        # Trip the breaker
-        for _ in range(3):
-            cb.on_trade_closed(-100)
-        assert cb.is_tripped
-
-        # Fast-forward past cooldown instead of sleeping
-        with patch('src.strategies.circuit_breaker.time.monotonic',
-                   return_value=time.monotonic() + 0.2):
-            assert not cb.is_tripped
-
-        voter = EnsembleVoter(mode="majority", min_votes=2, circuit_breaker=cb)
-        signals = [
-            make_signal(SignalDirection.LONG, 70, strategy="trend"),
-            make_signal(SignalDirection.LONG, 65, strategy="mean"),
-        ]
-        result = voter.vote(signals)
-        assert result.direction == SignalDirection.LONG
-
-    def test_no_circuit_breaker_backward_compatible(self):
-        voter = EnsembleVoter(mode="majority", min_votes=2)
-        assert voter.circuit_breaker is None
-        signals = [
-            make_signal(SignalDirection.LONG, 70, strategy="trend"),
-            make_signal(SignalDirection.LONG, 65, strategy="mean"),
-        ]
-        result = voter.vote(signals)
-        assert result.direction == SignalDirection.LONG
-
-    def test_circuit_breaker_preserves_symbol(self):
-        cb = CircuitBreaker(max_consecutive_losses=2, cooldown_seconds=300)
-        cb.on_trade_closed(-100)
-        cb.on_trade_closed(-100)
-        voter = EnsembleVoter(mode="majority", min_votes=2, circuit_breaker=cb)
-        signals = [
-            make_signal(SignalDirection.LONG, 90, symbol="ETH/USDT", strategy="trend"),
-            make_signal(SignalDirection.LONG, 85, symbol="ETH/USDT", strategy="mean"),
-        ]
-        result = voter.vote(signals)
-        assert result.symbol == "ETH/USDT"
