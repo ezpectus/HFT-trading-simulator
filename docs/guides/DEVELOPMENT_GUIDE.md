@@ -295,11 +295,8 @@ npm run test:e2e    # E2E tests (Playwright)
 ### All Tests at Once
 
 ```bash
-# Linux/macOS
-./run-all-tests.sh
-
-# Windows
-run-all-tests.bat
+# Runs the same gate CI enforces: lint, unit tests, coverage, config consistency
+python scripts/pre-commit-check.py --all
 ```
 
 ---
@@ -391,7 +388,7 @@ Automated weekly dependency updates for:
 2. **Create branch**: `git checkout -b feature/my-feature`
 3. **Write code** following quality standards (see above)
 4. **Add tests** for new functionality
-5. **Run all tests**: `./run-all-tests.sh`
+5. **Run all tests**: `python scripts/pre-commit-check.py --all`
 6. **Update documentation** if needed
 7. **Submit PR** using the template in `.github/PULL_REQUEST_TEMPLATE.md`
 

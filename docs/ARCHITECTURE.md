@@ -13,7 +13,7 @@ Independent deploy, scaling, failure isolation. But: harder to deploy,
 debug, and manage IPC.
 
 **This project = polyglot microservices:** Python (AI), C++ (HFT),
-Rust (FFI), React (UI). Each language is optimized for its task.
+React (UI). Each language is optimized for its task.
 Trade-off: complexity in deployment, debugging, IPC — but latency
 requirements make this necessary.
 
@@ -64,33 +64,33 @@ Circuit breaker prevents cascade failures.
 
 ## Overview
 
-The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It includes a C++20 sub-millisecond signal engine, React-based UI, quant models in trading logic, and production-grade infrastructure with PostgreSQL, Redis, Prometheus, and Grafana.
+The system is a full-stack crypto HFT trading simulation platform consisting of four independent components communicating over WebSocket. It includes a C++20 sub-millisecond signal engine, React-based UI, quant models in trading logic, SQLite persistence, and a monitoring stack with Prometheus, Grafana, and alerting rules.
 
-**Status notes:** ML models (LSTM, Transformer, RL) are implemented but require trained weights before use. 60+ advanced math model components exist as React UI visualizations for educational purposes. SVI/SABR volatility surface is implemented in `ai-signal-bot/src/pricing/volatility_surface.py`. Rust FFI executor is experimental.
+**Status notes:** ML models (LSTM, Transformer, RL) are implemented but require trained weights before use. 60+ advanced math model components exist as React UI visualizations for educational purposes. SVI/SABR volatility surface is implemented in `ai-signal-bot/src/pricing/volatility_surface.py`.
 
 ```mermaid
 graph TB
     subgraph "Exchange Simulator (Python)"
-        ES["Exchange Simulator<br/>GBM + Correlated Multi-Symbol<br/>3 Exchanges | 50+ Symbols<br/>Real-time Price Feeds (Binance, Coinbase)<br/>Order Book | Funding | Liquidation<br/>News Events | Market Impact | Slippage"]
+        ES["Exchange Simulator<br/>Seeded GBM + Correlated Multi-Symbol<br/>3 Exchanges | 49 Symbols<br/>Order Book | Funding | Liquidation<br/>News Events | Market Impact | Slippage"]
         WS8765[WebSocket :8765]
         WS8765 --- ES
     end
 
     subgraph "AI Signal Bot (Python)"
-        AI["AI Signal Bot<br/>8-Stage Pipeline<br/>19 Strategies (10 Py + 6 C++ + 3 aux)<br/>44 Quant Models in Trading Logic<br/>SVI/SABR Vol Surface | Kelly Sizing<br/>ML (LSTM, Transformer, RL — untrained)<br/>Risk Manager | Backtest Engine | SQLite"]
+        AI["AI Signal Bot<br/>Signal Loop (collect → analyze → vote → validate → publish)<br/>7 Strategies | Ensemble Voter<br/>SVI/SABR Vol Surface | Kelly Sizing<br/>ML Ensemble (sklearn/xgb/lgb optional)<br/>Risk Manager | Backtest Engine | SQLite"]
         WS8766[Signal Publisher :8766]
         WS8766 --- AI
     end
 
     subgraph "HFT Trade Bot (C++20 v2.0)"
-        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Signal Engine V3 (HMM regime)<br/>Pressure Model | Smart Order Router V2<br/>Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | FIX 4.4 Protocol<br/>Rust FFI Executor"]
+        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Signal Engine V3 (HMM regime)<br/>Pressure Model | Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | Kill Switch"]
         HFT --- WS8765
         HFT --- WS8766
         HFT -->|Orders| WS8765
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>289 Components | 278 Panels<br/>44 Trading + 40 UI-Only Math Models<br/>React.lazy | PWA | WCAG AA<br/>Vitest (99 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>295 Components | 278 Panels<br/>React.lazy | PWA | WCAG AA<br/>Vitest (157 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -109,14 +109,13 @@ graph TB
 **Polyglot microservices** — Each language is chosen for what it does best:
 - **Python** for AI/ML, quant models, and rapid strategy iteration
 - **C++20** for sub-millisecond execution where every microsecond matters
-- **Rust** for safe FFI bridging (experimental)
 - **React** for rich, interactive browser-based UI
 
 **WebSocket for inter-service communication** — Simple, bidirectional, language-agnostic.
 Each service runs independently and can be restarted without affecting others. This
 follows the Kleppmann principle: failures in one component do not cascade.
 
-**Dual signal path** — The AI Signal Bot (Python) provides deep analysis with 10+
+**Dual signal path** — The AI Signal Bot (Python) provides deep analysis with 7
 strategies, quant models, and risk management. The HFT Trade Bot (C++) provides
 microsecond reaction to order book changes. Together they cover both slow (thorough)
 and fast (reactive) signal generation.
@@ -140,7 +139,7 @@ The system implements production-grade observability across all components:
 - `trading_*` — operational metrics (orders, fills, latency, positions, SHM)
 - `exchange_*` — simulator metrics (clients, candles, orders, prices, balance)
 
-**Alerting** — 21 alert rules in `monitoring/alerts.yml` covering circuit breaker, signal generation, error rates, drawdown, order fill rates, and service availability. Alertmanager routes to email + Slack by severity (critical/warning/info) with `${ENV_VAR}` substitution for credentials.
+**Alerting** — 22 alert rules in `monitoring/alerts.yml` covering circuit breaker, signal generation, error rates, drawdown, order fill rates, and service availability. Prometheus evaluates them in-process (severity labels critical/warning/info); no Alertmanager is deployed — attach one to route alerts to email/Slack/Discord, or use the bot's own `ALERT_*` webhooks (section 6 of the Configuration Guide).
 
 **Graceful shutdown** — SIGTERM/SIGINT handlers in both `run.py` and `exchange_simulator/__main__.py` ensure clean shutdown: cancel tasks, close WebSocket connections, stop metrics/health servers, flush tracing.
 
@@ -164,7 +163,7 @@ The system implements production-grade observability across all components:
 | Order book | 20 levels/side, exponential decay depth (`e^{-0.15i}`) + random qty, real-time depth snapshot API |
 | Data export | CSV and Parquet export for candles, trades, account data (backtesting/ML training) |
 | Exchanges | Binance, Bybit, OKX (different fees, slippage, volatility multipliers) |
-| Symbols | 50+ cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
+| Symbols | 49 cryptocurrency pairs (BTC, ETH, SOL, BNB, XRP, ADA, DOGE, DOT, MATIC, SHIB, AVAX, LINK, UNI, ATOM, LTC, NEAR, XLM, ALGO, VET, FIL, APT, INJ, OP, ARB, QNT, ETC, HBAR, ICP, LDO, GRT, STX, AAVE, MKR, COMP, SUSHI, CRV, 1INCH, SNX, MANA, SAND, AXS, ENJ, FTM, CRO, GLM, KAVA, ROSE, CELO, MINA) |
 | Order book | 20 levels per side, decay-based liquidity, real-time depth |
 | Order matching | Market, limit, stop-limit, trailing stop, OCO, iceberg orders with slippage, partial fills, market impact |
 | Advanced order types | Stop-Limit (trigger + limit), Trailing Stop (dynamic stop), OCO (linked orders), Iceberg (hidden quantity) |
@@ -230,8 +229,8 @@ The system implements production-grade observability across all components:
 - Timestamped file logging via `run_logger.py`
 - CLI monitor script (`monitor.py`) for live signal feed
 - Circuit breaker: signal protection with CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery
-- Prometheus metrics server: counters (signals sent/blocked, backtests, circuit breaker trips) and gauges (WS clients, CB state, uptime) on `:9091/metrics`
-- Health aggregator: aggregated health endpoint across all services on `:9092/health` and `/healthz`
+- Prometheus metrics server: counters (signals sent/blocked, backtests, circuit breaker trips) and gauges (WS clients, CB state, uptime) on `:9090/metrics`
+- Health server: `/health` detail + `/live` + `/ready` probe endpoints on `:8080`
 - SHM IPC: lock-free SPSC ring buffer for Python ↔ C++ communication (signal producer, fill consumer, market data writer)
 - FIX protocol client: order execution via FIX 4.2 protocol with session management
 
@@ -375,7 +374,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 289 components and 278 registered panels
+**Role:** Browser-based trading dashboard with 296 components and 278 registered panels
 
 | Feature | Implementation |
 |---------|---------------|
@@ -387,7 +386,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Order form | Market/limit, stop-limit, trailing stop, OCO, iceberg orders, SL/TP, quick-trade buttons, per-exchange fee breakdown |
 | Exchange UI clones | Binance, Bybit, Coinbase themed interfaces with seamless switching |
 | Audit log viewer | Real-time audit log display with filtering, search, export (JSON/CSV) |
-| Symbol search | Search across 50+ symbols with category-based filtering |
+| Symbol search | Search across 49 symbols with category-based filtering |
 | Exchange switcher | Dynamic theme and layout switching between exchanges |
 | Account panel | Per-exchange balance, equity, PnL, fees, win rate, PnL leaderboard |
 | Positions | Open positions with unrealized PnL, liquidation price, SL/TP progress bar |
@@ -478,7 +477,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **278 registered panels** — 289 component files across all categories
+- **278 registered panels** — 296 component files across all categories
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
@@ -519,6 +518,61 @@ Logging
     |-->> Trade CSV -> logs/trades_YYYYMMDD_HHMMSS.csv (fills, SL/TP, arbitrage)
 ```
 
+## Data Model
+
+The AI Signal Bot persists to an embedded SQLite database (`data/trading.db`,
+WAL mode — `src/database/db.py`). Three tables, one logical relationship
+(`trades.signal_id` is stored as a plain column, no formal FK constraint).
+The Exchange Simulator holds its order books and accounts in memory; the C++
+bot is stateless across restarts.
+
+```mermaid
+erDiagram
+    signals ||--o{ trades : "signal_id (logical)"
+
+    signals {
+        INTEGER id PK
+        INTEGER timestamp
+        TEXT symbol
+        TEXT direction
+        REAL confidence
+        TEXT strategy
+        REAL entry_price
+        REAL stop_loss
+        REAL take_profit
+        REAL rr_ratio
+        TEXT reason
+        TEXT status "default PENDING"
+        INTEGER validated "default 0"
+    }
+    trades {
+        INTEGER id PK
+        INTEGER timestamp
+        TEXT symbol
+        TEXT exchange
+        TEXT side
+        REAL quantity
+        REAL entry_price
+        REAL exit_price "nullable"
+        REAL pnl "nullable"
+        REAL fee
+        TEXT status "default OPEN"
+        INTEGER signal_id "nullable, logical ref"
+    }
+    equity_curve {
+        INTEGER id PK
+        INTEGER timestamp
+        REAL balance
+        REAL equity
+        INTEGER open_positions
+    }
+```
+
+Indexes: `signals(symbol)`, `trades(symbol)`, `trades(status)`,
+`equity_curve(timestamp)`. An equity-curve point is snapshotted each signal
+tick (`run.py::_snapshot_equity`); `MetricsExporter` derives `sharpe_ratio`
+from this series.
+
 ## Technology Stack
 
 | Component | Technology | Version |
@@ -528,8 +582,7 @@ Logging
 | HFT Trade Bot | C++20, Boost, websocketpp, spdlog, yaml-cpp | v2.0.0 |
 | Web UI | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, PWA | v2.2.0 |
 | Communication | WebSocket (JSON), per-message deflate compression | - |
-| Database | SQLite (WAL mode) — dev, PostgreSQL 16 — prod | - |
-| Caching | Redis 7 (production) | - |
+| Database | SQLite (WAL mode), embedded in the AI Signal Bot | - |
 | Containerization | Docker, docker-compose (dev), docker-compose.prod (prod) | - |
 | Monitoring | Prometheus, Grafana (production) | - |
 | Build System | CMake 3.16+ (C++), pip (Python), npm/Vite (JS) | - |
@@ -553,7 +606,7 @@ Logging
 10. **Error resilience** — ErrorBoundary + Suspense per panel, CircuitBreaker for exchange failures, exponential backoff for reconnections
 11. **Sustainability** — Modular architecture with V1 fallback, backward-compatible protocols, and configurable components
 12. **Observability** — Timestamped per-run logging, CSV trade logs, CLI monitor scripts, latency histograms, Prometheus metrics, Grafana dashboards
-13. **Production-ready** — Docker Compose production stack with PostgreSQL, Redis, Prometheus, Grafana, `.env.prod` configuration, `Makefile.prod` targets
+13. **Production-ready** — Docker Compose production stack with Prometheus, Grafana, `.env.prod` configuration, `Makefile.prod` targets
 
 ## Error Recovery & Fault Tolerance
 
@@ -694,12 +747,14 @@ The system runs as a set of independent containers connected via a shared Docker
 | Service | Internal | External | Protocol |
 |---------|----------|----------|----------|
 | Exchange Simulator | 8765 | 8765 | WebSocket (candles, orderbooks, order submission) |
+| Exchange Simulator | 8775 | 8775 | HTTP (`/health`, `/live`, `/ready`, `/metrics`) |
 | AI Signal Bot | 8766 | 8766 | WebSocket (signals, backtests) |
-| AI Signal Bot Metrics | 9091 | 9091 | HTTP (`/metrics` Prometheus endpoint) |
-| Exchange Sim Metrics | 9090 | 9090 | HTTP (`/metrics` Prometheus endpoint) |
-| Web UI | 5173 | 5173 | HTTP (Vite dev) / 80 (nginx prod) |
-| Prometheus | 9090 | 9092 | HTTP (scrape config + UI) |
-| Grafana | 3000 | 3000 | HTTP (dashboards) |
+| AI Signal Bot Health | 8080 | 8080 | HTTP (`/health`, `/live`, `/ready` — real checks) |
+| AI Signal Bot Metrics | 9090 | 9090 | HTTP (`/metrics` Prometheus endpoint) |
+| HFT Trade Bot | 9091 | 9091 | HTTP (`/health` 200/503 + `/metrics`) |
+| Web UI | 3000 | 3000 | HTTP (Vite dev / nginx prod) |
+| Prometheus | 9090 | 9099 | HTTP (dev compose maps host 9099; prod `expose`-only) |
+| Grafana | 3000 | 3001 | HTTP (dashboards) |
 
 **Data flow:**
 1. **Exchange Simulator** generates candles, order books, and accepts orders via WS:8765

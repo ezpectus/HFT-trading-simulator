@@ -109,26 +109,25 @@ curl http://localhost:9091/metrics | grep latency
 ### Python Signal Bot
 
 ```bash
-# Run with timing
-python run.py --profile --symbol BTC/USDT --interval 1m
+# Profile a run
+cd ai-signal-bot
+python -m cProfile -o profile.out run.py --metrics
+python -c "import pstats; pstats.Stats('profile.out').sort_stats('cumulative').print_stats(50)"
 
-# Or use the built-in latency tracker
-# Metrics available at http://localhost:8766/metrics
+# Prometheus metrics at http://localhost:9090/metrics (with --metrics)
 ```
 
-### Rust Executor
+### Benchmark Suite
 
 ```bash
-# Benchmark with cargo
-cd hft-executor
-cargo bench --features bench
+# Repo-level benchmark script
+python scripts/benchmark_suite.py --help
 ```
 
 ### Web UI
 
 ```bash
 cd web-ui
-npx vitest bench
 npx playwright test --reporter=line
 ```
 
@@ -141,7 +140,6 @@ npx playwright test --reporter=line
 | `perf` | C++ engine | Cache misses, branch mispredictions |
 | `valgrind --tool=callgrind` | C++ engine | Function call counts, hot paths |
 | `cProfile` / `py-spy` | Python bot | Strategy analysis time, I/O waits |
-| `cargo flamegraph` | Rust executor | Serialization overhead, async scheduling |
 | Chrome DevTools | Web UI | Render time, bundle size, memory leaks |
 | `docker stats` | All containers | CPU/memory per service |
 
@@ -151,7 +149,7 @@ npx playwright test --reporter=line
 
 | Metric | Current | Limit | Headroom |
 |--------|---------|-------|----------|
-| Symbols tracked | 50 | 200 | 4x |
+| Symbols tracked | 49 | 200 | 4x |
 | Candles in memory | 500/symbol | 10000/symbol | 20x |
 | Open positions | 3 | 50 | 16x |
 | WebSocket connections | 4 | 20 | 5x |

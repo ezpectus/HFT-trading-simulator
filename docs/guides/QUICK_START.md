@@ -220,7 +220,7 @@ no-docker.bat start
 cp .env.prod.example .env.prod
 # Edit .env.prod with your settings
 
-# Start production stack (includes PostgreSQL, Redis, Prometheus, Grafana)
+# Start production stack (includes Prometheus, Grafana)
 docker-compose -f docker-compose.prod.yml up -d
 
 # Or via Makefile

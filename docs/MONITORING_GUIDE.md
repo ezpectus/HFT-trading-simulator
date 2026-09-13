@@ -1,6 +1,6 @@
 # Monitoring Guide
 
-Guide to the monitoring and observability stack: Prometheus, Grafana, Alertmanager, distributed tracing, and health checks.
+Guide to the monitoring and observability stack: Prometheus, Grafana, alert rules, distributed tracing, and health checks.
 
 ---
 
@@ -73,7 +73,7 @@ The system provides full observability through:
 
 - **Prometheus** — metrics scraping (counters, histograms, gauges)
 - **Grafana** — 5 pre-built dashboards for real-time visualization
-- **Alertmanager** — alert routing to email, Slack, Discord
+- **Alert rules** — 22 rules evaluated by Prometheus (no Alertmanager deployed)
 - **OpenTelemetry** — distributed tracing with Jaeger export
 - **eBPF** — kernel-level system observability with minimal overhead
 - **Health checks** — HTTP endpoints for Kubernetes liveness/readiness
@@ -211,11 +211,16 @@ Access at `http://localhost:3001` (admin/admin).
 
 ---
 
-## Alertmanager
+## Alerting
 
 ### Alert Rules
 
-**Source:** `monitoring/alerts.yml`
+**Source:** `monitoring/alerts.yml` — evaluated by Prometheus itself
+(`rule_files` in `prometheus.yml`). **No Alertmanager is deployed** — firing
+alerts are visible in Prometheus (`/alerts`) and Grafana, but are not routed
+anywhere. For notifications use either the AI Signal Bot's own alert channels
+(`alerting.*` in `config/settings.yaml` + `ALERT_*` env vars) or attach an
+Alertmanager to Prometheus' `alerting:` section yourself.
 
 | Alert | Severity | Trigger | For |
 |-------|----------|---------|-----|
@@ -238,29 +243,24 @@ Access at `http://localhost:3001` (admin/admin).
 | SignalBotDown | critical | up == 0 | 30s |
 | ExchangeSimulatorDown | critical | up == 0 | 30s |
 | HftBotDown | critical | up == 0 | 30s |
+| PrometheusDown | critical | up == 0 (self) | 30s |
 | HighWsReconnectionRate | warning | disconnections > 0.5/s | 5m |
 | NoWsClientsConnected | warning | connected_clients == 0 | 2m |
 
 ### Notification Channels
 
-**Source:** `monitoring/alertmanager/config.yml`
+The AI Signal Bot ships its own alert dispatcher
+(`src/monitoring/alerting.py`, gated by `alerting.enabled` in
+`config/settings.yaml`) that posts severity-tagged alerts to:
 
-| Severity | Channels |
-|----------|----------|
-| Critical | Email (on-call) + Slack (#trading-critical) |
-| Warning | Email + Slack (#trading-warnings) |
-| Info | Email only |
+| Channel | Env var |
+|---------|---------|
+| Generic webhook | `ALERT_WEBHOOK_URL` |
+| Discord | `ALERT_DISCORD_WEBHOOK` |
+| Telegram | `ALERT_TELEGRAM_TOKEN` + `ALERT_TELEGRAM_CHAT_ID` |
 
-**Alertmanager config** uses `${ENV_VAR}` placeholders — render with `envsubst` before passing to Alertmanager. Required env vars: `SMTP_SMARTHOST`, `SMTP_FROM`, `SMTP_AUTH_USERNAME`, `SMTP_AUTH_PASSWORD`, `ALERT_EMAIL_TO`, `ALERT_EMAIL_ONCALL`, `SLACK_WEBHOOK_URL`, `SLACK_CHANNEL_CRITICAL`, `SLACK_CHANNEL_WARNING`.
-
-### Running Alertmanager
-
-```bash
-docker run -d \
-  -p 9093:9093 \
-  -v $(pwd)/monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml \
-  prom/alertmanager
-```
+To route the Prometheus rules instead, deploy Alertmanager and add it under
+`alerting:` in `monitoring/prometheus.yml` (not shipped).
 
 ---
 
@@ -268,12 +268,14 @@ docker run -d \
 
 **Source:** `ai-signal-bot/src/observability/tracing.py`
 
-OpenTelemetry integration with Jaeger export:
+OpenTelemetry integration (AI Signal Bot only — `run.py` calls `setup_tracing`
+at startup). The `opentelemetry-*` packages are **optional** — without them the
+bot logs a warning and continues with a no-op tracer.
 
-- **Service names:** `ai-signal-bot`, `exchange-simulator`
-- **Export endpoint:** `http://jaeger:4317` (gRPC)
+- **Service name:** `ai-signal-bot`
+- **Export endpoint:** `OTEL_EXPORTER_OTLP_ENDPOINT` env var, default `http://localhost:4317` (gRPC)
 - **Trace propagation:** W3C TraceContext headers
-- **Sampling:** Configurable (default: always sample)
+- **Collector:** none shipped — point at your own Jaeger/OTLP collector
 
 ```python
 from src.observability.tracing import setup_tracing, get_tracer
@@ -484,34 +486,25 @@ Fallback to standard logging if `structlog` is not installed.
 
 ## Docker Compose
 
-The full monitoring stack is in `docker-compose.yml`:
+`docker-compose.yml` ships two monitoring services (no Alertmanager/Jaeger):
 
 ```yaml
 services:
   prometheus:
-    image: prom/prometheus
-    ports: ["9090:9090"]
-    volumes: ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml"]
+    image: prom/prometheus:v3.0.0
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
 
   grafana:
-    image: grafana/grafana
-    ports: ["3001:3000"]
+    image: grafana/grafana:11.4.0
     volumes: ["./monitoring/grafana:/etc/grafana/provisioning"]
-
-  alertmanager:
-    image: prom/alertmanager
-    ports: ["9093:9093"]
-    volumes: ["./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml"]
-
-  jaeger:
-    image: jaegertracing/all-in-one:latest
-    ports: ["16686:16686", "4317:4317"]
 ```
 
-Start the full stack:
+Start the monitoring stack:
 
 ```bash
-docker-compose up -d prometheus grafana alertmanager jaeger
+docker-compose up -d prometheus grafana
 ```
 
 ---
@@ -520,8 +513,8 @@ docker-compose up -d prometheus grafana alertmanager jaeger
 
 | Test File | Coverage |
 |-----------|----------|
-| `monitoring/tests/test_metrics.py` | MetricsExporter, counter/gauge/histogram |
-| `monitoring/tests/test_alerts.py` | Alert rule syntax, Alertmanager config |
+| `ai-signal-bot/tests/unit/test_monitoring_metrics.py` | MetricsExporter, counter/gauge/histogram |
+| `monitoring/tests/test_alerts.py` | Alert rule file syntax and severity labels |
 | `ai-signal-bot/tests/unit/test_health_server.py` | Health endpoints, custom checks |
 
 ---

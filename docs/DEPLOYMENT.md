@@ -58,7 +58,7 @@ is problematic (double signals).
 ## Overview
 
 The HFT Trading System consists of 4 main components:
-- **Exchange Simulator** - Python-based simulated exchange with 50+ symbols
+- **Exchange Simulator** - Python-based simulated exchange with 49 symbols
 - **AI Signal Bot** - Python-based AI signal generation
 - **HFT Trade Bot** - C++20 high-frequency trading engine
 - **Web UI** - React-based trading dashboard
@@ -305,7 +305,8 @@ Helm templates configure `httpGet` liveness and readiness probes (not `tcpSocket
 | Service | Probe | Path | Port |
 |---------|-------|------|------|
 | Exchange Simulator | liveness + readiness | `/health` | 8775 |
-| AI Signal Bot | liveness + readiness | `/health` | 9090 |
+| AI Signal Bot | liveness | `/live` | 8080 |
+| AI Signal Bot | readiness | `/ready` | 8080 |
 | HFT Trade Bot | liveness + readiness | `/health` | 9091 |
 
 Docker Compose healthchecks in all 3 compose files use HTTP endpoints:
@@ -313,7 +314,7 @@ Docker Compose healthchecks in all 3 compose files use HTTP endpoints:
 | Service | Healthcheck | Start period |
 |---------|-------------|--------------|
 | Exchange Simulator | `http://localhost:8775/health` | 10s |
-| AI Signal Bot | `http://localhost:9090/health` | 15s |
+| AI Signal Bot | `http://localhost:8080/ready` | 15s |
 | HFT Trade Bot | `http://localhost:9091/health` | 10s |
 | Web UI | `http://localhost:3000/health` | 5s |
 
@@ -397,10 +398,6 @@ latency_optimization:
 VITE_WS_EXCHANGE=ws://your-server.com:8765
 VITE_WS_SIGNALS=ws://your-server.com:8766
 VITE_SIGNAL_TOKEN=            # optional — must match the bot's api.auth_token
-VITE_ENABLE_ADVANCED_ORDERS=true
-VITE_ENABLE_AUDIT_LOGS=true
-VITE_ENABLE_EXCHANGE_CLONES=true
-VITE_ENABLE_SYMBOL_SEARCH=true
 ```
 
 **AI Signal Bot (`settings.yaml` / env):**
@@ -416,16 +413,18 @@ AI_BOT_BIND_HOST=0.0.0.0      # WS bind host (127.0.0.1 for direct host runs)
 
 All components expose Prometheus metrics:
 
-**Exchange Simulator:** `http://localhost:8765/health` (health check)
-**AI Signal Bot:** `http://localhost:8766/health` (health check)
-**HFT Trade Bot:** `http://localhost:9091/health` (health check)
+**Exchange Simulator:** `http://localhost:8775/metrics` (+ `/health`, `/live`, `/ready`)
+**AI Signal Bot:** `http://localhost:9090/metrics` (+ real health on `:8080/health`)
+**HFT Trade Bot:** `http://localhost:9091/health` (+ metrics)
 
 ### Grafana Dashboards
 
-Import the provided Grafana dashboards:
-- `monitoring/grafana/dashboards/exchange-simulator.json`
-- `monitoring/grafana/dashboards/ai-signal-bot.json`
-- `monitoring/grafana/dashboards/hft-trade-bot.json`
+Five provisioned dashboards load automatically from `monitoring/grafana/dashboards/`:
+- `ai_signal_bot_metrics.json`
+- `latency-monitoring.json`
+- `system-overview.json`
+- `trading-overview.json`
+- `trading-performance.json`
 
 ### Key Metrics to Monitor
 
@@ -475,51 +474,47 @@ groups:
 
 ### Exchange Simulator
 
+Health/metrics HTTP server runs on **port 8775** (the WS port 8765 does not
+serve HTTP):
+
 ```bash
-curl http://localhost:8765/health
+curl http://localhost:8775/health
 ```
 
 Response:
 ```json
 {
   "status": "healthy",
-  "version": "2.2.0",
-  "uptime": 3600,
-  "connections": 5,
-  "symbols": 50
+  "clients": 2,
+  "trading_active": true
 }
 ```
+
+`/live` always returns `{"status":"alive"}`; `/ready` returns 200/503 based on
+`trading_active`.
 
 ### AI Signal Bot
 
+The real health server runs on **port 8080** (8766 is WebSocket-only):
+
 ```bash
-curl http://localhost:8766/health
+curl http://localhost:8080/health    # aggregate: all registered checks
+curl http://localhost:8080/ready     # 200/503 readiness
+curl http://localhost:8080/live      # liveness
 ```
 
-Response:
-```json
-{
-  "status": "healthy",
-  "version": "2.2.0",
-  "uptime": 3600,
-  "signals_generated": 150,
-  "active_positions": 3
-}
-```
+`/health` returns the `HealthChecker` aggregate — `{"healthy": bool, "checks":
+{exchange, database, shm, ...}}` — with HTTP 200 or 503. Detail endpoints:
+`/health/exchange`, `/health/database`, `/health/shm`.
 
 ### HFT Trade Bot
 
 ```bash
-curl http://localhost:9091/health
+curl http://localhost:9091/health    # JSON: {"status":{...},"metrics":{...}}
+curl http://localhost:9091/metrics   # Prometheus text exposition
 ```
 
-Response:
-```bash
-HFT Trade Bot v2.0.0 - Healthy
-Uptime: 3600s
-Active Positions: 3
-Orders Processed: 150
-```
+`/health` returns 200 or 503 based on the bot's internal `HealthStatus`.
 
 ## Scaling
 
@@ -527,7 +522,7 @@ Orders Processed: 150
 
 **Exchange Simulator:**
 - Deploy multiple instances behind a load balancer
-- Use shared state (Redis) for order book synchronization
+- Use shared state (e.g., Redis — not shipped, requires new code) for order book synchronization
 - Configure WebSocket sticky sessions
 
 **AI Signal Bot:**

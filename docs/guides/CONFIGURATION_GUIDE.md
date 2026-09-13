@@ -41,8 +41,8 @@ parameters. `__post_init__` validates ranges, types, relationships.
 
 | File | Component | Purpose |
 |------|-----------|---------|
-| `shared_config.yaml` | All | Global shared settings (symbols, exchanges, risk, ports) |
-| `exchange_simulator/config/settings.yaml` | Exchange Simulator | Market simulation parameters |
+| `shared_config.yaml` | All | Canonical cross-component reference (symbols, exchanges, risk, ports) — enforced by `scripts/test_config_consistency.py`, not read at runtime |
+| `exchange_simulator/config.yaml` | Exchange Simulator | Market simulation parameters |
 | `ai-signal-bot/config/settings.yaml` | AI Signal Bot | Strategies, risk, indicators, database |
 | `hft-trade-bot/config/config.yaml` | HFT Trade Bot | Signal Engine V2/V3, order routing, latency |
 | `web-ui/.env` | Web UI | WebSocket URLs, mock mode |
@@ -51,8 +51,10 @@ parameters. `__post_init__` validates ranges, types, relationships.
 
 ## 1. Shared Configuration (`shared_config.yaml`)
 
-Global settings shared across all components. Individual component configs may
-override these values.
+Canonical reference for values that must stay in sync across all components
+(symbols, exchanges, risk limits, ports). Components do **not** read this file
+at runtime — each has its own config; `scripts/test_config_consistency.py`
+(wired into `pre-commit-check.py`) verifies the component configs match it.
 
 ### System
 
@@ -382,8 +384,9 @@ ai_signal_bot:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_EXCHANGE_WS_URL` | `ws://localhost:8765` | Exchange simulator WebSocket |
-| `VITE_SIGNAL_WS_URL` | `ws://localhost:8766` | AI signal bot WebSocket |
+| `VITE_WS_EXCHANGE` | `ws://localhost:8765` | Exchange simulator WebSocket |
+| `VITE_WS_SIGNALS` | `ws://localhost:8766` | AI signal bot WebSocket |
+| `VITE_SIGNAL_TOKEN` | — | Auth token — must match the bot's `api.auth_token` / `AI_BOT_AUTH_TOKEN` |
 | `VITE_MOCK_MODE` | `false` | Enable mock data mode (no backend needed) |
 
 ### Mock Mode
@@ -398,29 +401,35 @@ VITE_MOCK_MODE=true npm run dev
 
 ## 6. Environment Variables
 
-Override config values with environment variables for production deployment:
+Only a small set of variables is read at runtime (verified against `os.environ`
+/`os.getenv` call sites — config files hold everything else):
 
 ### Exchange Simulator
 
 ```bash
-EXCHANGE_HOST=0.0.0.0
-EXCHANGE_PORT=8765
-EXCHANGE_COMPRESSION=deflate
+LOG_FORMAT=text          # or "json"
 ```
 
 ### AI Signal Bot
 
 ```bash
-SIGNAL_BOT_RISK_PER_TRADE=1.5
-SIGNAL_BOT_MIN_CONFIDENCE=70.0
-SIGNAL_BOT_DAILY_DRAWDOWN=5.0
+WS_URL=ws://localhost:8765          # override exchange WebSocket URL
+AI_BOT_AUTH_TOKEN=...               # signal publisher auth (matches VITE_SIGNAL_TOKEN)
+ALERT_WEBHOOK_URL=...               # generic alert webhook
+ALERT_DISCORD_WEBHOOK=...           # Discord alerts
+ALERT_TELEGRAM_TOKEN=...            # Telegram bot token
+ALERT_TELEGRAM_CHAT_ID=...          # Telegram chat id
+OPENAI_API_KEY=...                  # LLM signal explanations (optional)
+ANTHROPIC_API_KEY=...               # LLM fallback (optional)
+EXCHANGE_API_KEY=...                # live-trading path only (paper_trading: false + ccxt)
+EXCHANGE_API_SECRET=...
 ```
 
-### Web UI
+### Web UI (build-time, Vite)
 
 ```bash
-VITE_EXCHANGE_WS_URL=wss://api.example.com/ws
-VITE_SIGNAL_WS_URL=wss://api.example.com/signal
+VITE_WS_EXCHANGE=wss://api.example.com/ws
+VITE_WS_SIGNALS=wss://api.example.com/signal
 ```
 
 ### Production (.env.prod)
@@ -429,15 +438,14 @@ VITE_SIGNAL_WS_URL=wss://api.example.com/signal
 # Copy template
 cp .env.prod.example .env.prod
 
-# Key variables to set:
-GRAFANA_PASSWORD=your_secure_password
-GRAFANA_USER=admin
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=alerts@example.com
-SMTP_PASSWORD=your_app_password
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
-DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+# Key variables to set (see .env.prod.example comments — REQUIRED ones are
+# guarded by ${VAR:?} in docker-compose.prod.yml):
+GRAFANA_PASSWORD=your_secure_password   # REQUIRED
+VITE_WS_EXCHANGE=wss://your.domain/ws-exchange   # REQUIRED — browser-facing
+VITE_WS_SIGNALS=wss://your.domain/ws-signals     # REQUIRED — browser-facing
+AI_BOT_AUTH_TOKEN=...        # shared with VITE_SIGNAL_TOKEN (empty = auth off)
+OPENAI_API_KEY=...           # optional LLM explanations
+ALERT_DISCORD_WEBHOOK=...    # optional ops alerts
 ```
 
 ---
@@ -448,23 +456,16 @@ DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LOG_FORMAT` | `text` | Log format: `text` (dev) or `json` (prod) |
-| `LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
-| `WS_URL` | `ws://localhost:8765` | Exchange simulator WebSocket URL |
+| `LOG_FORMAT` | `text` | Log format: `text` (dev) or `json` (prod) — read by exchange simulator |
+| `WS_URL` | `ws://localhost:8765` | Exchange WebSocket URL override (AI signal bot) |
 | `SHM_MARKET_ENABLED` | `0` | Enable SHM market data publisher (exchange sim) |
 | `SHM_MARKET_NAME` | `/hft_market` | SHM segment name |
 | `SHM_MARKET_MAX_SYMBOLS` | `10` | Max symbols in SHM segment |
-| `GRAFANA_USER` | `admin` | Grafana admin username |
-| `GRAFANA_PASSWORD` | *(required)* | Grafana admin password |
-| `SMTP_SMARTHOST` | *(envsubst)* | SMTP server for alerts |
-| `SMTP_FROM` | *(envsubst)* | Alert sender email |
-| `SMTP_AUTH_USERNAME` | *(envsubst)* | SMTP auth user |
-| `SMTP_AUTH_PASSWORD` | *(envsubst)* | SMTP auth password |
-| `ALERT_EMAIL_TO` | *(envsubst)* | Default alert recipient |
-| `ALERT_EMAIL_ONCALL` | *(envsubst)* | On-call recipient (critical) |
-| `SLACK_WEBHOOK_URL` | *(envsubst)* | Slack incoming webhook |
-| `SLACK_CHANNEL_CRITICAL` | `#trading-critical` | Slack channel for critical alerts |
-| `SLACK_CHANNEL_WARNING` | `#trading-warnings` | Slack channel for warning alerts |
+| `GRAFANA_USER` | `admin` | Grafana admin username (compose `GF_SECURITY_ADMIN_*`) |
+| `GRAFANA_PASSWORD` | *(required)* | Grafana admin password (`:?` — prod compose fails without it) |
+
+Alert channels are configured in `ai-signal-bot/config/settings.yaml`
+(`alerting.*`) and use the `ALERT_*` variables listed in section 6.
 
 ### Health Endpoints
 

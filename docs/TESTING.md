@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 193 Python + 49 C++ + 116 JS = 358 total.
+  individual functions. 129 Python + 25 C++ + 157 JS = 311 unit test files.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,43 +81,44 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **362 test files** across three languages:
+The system has **316 test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
-| **Python** | 193 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
-| **C++** | 49 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | 120 | Vitest + Playwright | `web-ui/src/test/`, `web-ui/e2e/` |
-| **Total** | **362** | | |
+| **Python** | 129 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
+| **C++** | 25 | doctest | `hft-trade-bot/tests/` |
+| **JavaScript** | 162 | Vitest + Playwright | `web-ui/src/test/` (157), `web-ui/e2e/` (4 specs + 1 helper) |
+| **Total** | **316** | | |
 
 ---
 
-## Python Tests (117 files)
+## Python Tests (129 files)
 
-### AI Signal Bot (88 files)
+### AI Signal Bot (99 files)
 
-**Unit tests** (`ai-signal-bot/tests/unit/`): 58 files covering:
+**Unit tests** (`ai-signal-bot/tests/unit/`): 64 files covering:
 
 | Module | Test Files | Coverage |
 |--------|-----------|----------|
 | Strategies | test_strategies, test_ensemble_voter, test_market_making, test_sentiment, test_cross_exchange_arb, test_marketplace | All 10+ strategies |
 | Risk | test_risk, test_risk_manager, test_cvar, test_kelly, test_position_sizing, test_portfolio_optimizer | VaR, CVaR, Kelly, stress tests |
 | Portfolio | test_markowitz, test_portfolio_modules | Markowitz, BL, risk parity, rebalancing |
-| Backtesting | test_backtest, test_backtester, test_backtest_engine, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_order_book_replay, test_pnl_calculator | Full backtesting pipeline |
+| Backtesting | test_backtest, test_backtester, test_backtest_engine, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_pnl_calculator | Full backtesting pipeline |
 | ML | test_ml_features, test_ml_ensemble_funding | Feature engineering, ML ensemble funding |
 | Communication | test_circuit_breaker, test_comm_circuit_breaker, test_signal_publisher, test_shm_fill_consumer | WebSocket, SHM, circuit breaker |
-| Monitoring | test_alerting, test_health_check, test_health_server, test_metrics_server, test_monitoring_metrics, test_monitoring_llm, test_observability | Health, metrics, tracing, alerting |
+| Monitoring | test_alerting, test_health_checks, test_health_server, test_metrics_server, test_monitoring_metrics, test_monitoring_llm, test_observability | Health, metrics, tracing, alerting |
 | Data | test_exchange_factory, test_real_account, test_real_market_data | Data collection |
 | Other | test_db, test_fft_analysis, test_indicators, test_bot_helpers | Database, indicators |
 
 **Integration tests** (`ai-signal-bot/tests/integration/`): 3 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution
 - `test_trading_flow.py` — Full trading cycle simulation
+- `test_strategy_risk_backtest.py` — Strategy → risk → backtest chain
 
-**Root-level tests** (`ai-signal-bot/tests/`): 33 files (+ 52 in `tests/unit/`)
-- test_backtest, test_config_validator, test_fft, test_indicators, test_integration, test_kelly, test_ml, test_optimizer, test_order_book_replay, test_portfolio, test_portfolio_optimizer, test_risk, test_risk_manager, test_signal_publisher, test_strategies, test_validator
+**Root-level tests** (`ai-signal-bot/tests/`): 32 files
+- test_backtest, test_config_validator, test_fft, test_indicators, test_integration, test_kelly, test_optimizer, test_portfolio, test_risk, test_risk_manager, test_signal_publisher, test_strategies, test_validator, and others
 
-### Exchange Simulator (28 files)
+### Exchange Simulator (29 files + 1 standalone load script)
 
 **Unit tests** (`exchange_simulator/tests/`):
 
@@ -134,9 +135,8 @@ The system has **362 test files** across three languages:
 | Chaos | test_chaos_enhanced, test_chaos_reconnect |
 | Other | test_arbitrage, test_audit_logger, test_config_validator, test_correlation_funding, test_data_export, test_integration_dataflow, test_models, test_visualizer, test_visualizer_charts |
 
-### Monitoring (2 files)
+### Monitoring (1 file)
 
-- `monitoring/tests/test_metrics.py` — Prometheus metrics validation
 - `monitoring/tests/test_alerts.py` — Alert rule syntax validation
 
 ### Property-Based Testing
@@ -189,9 +189,9 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## JavaScript Tests (125 files)
+## JavaScript Tests (162 files)
 
-### Unit Tests (120 files)
+### Unit Tests (157 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`
@@ -203,7 +203,7 @@ Randomized invariant testing for C++ components.
 | Math/Indicators | 8+ math tests | Kalman, HMM, GARCH, KMeans, cointegration, backtestEngine, indicators, performance |
 | Utils | 5+ utility tests | utils, registry, virtualList, format, patterns |
 
-### E2E Tests (4 files)
+### E2E Tests (4 specs + 1 helper)
 
 **Framework:** Playwright
 **Location:** `web-ui/e2e/`
@@ -214,6 +214,7 @@ Randomized invariant testing for C++ components.
 | `screenshots.spec.js` | Visual regression screenshots |
 | `smoke.spec.js` | Basic smoke tests |
 | `trading.spec.js` | Trading workflow E2E |
+| `dismiss-onboarding.js` | Shared onboarding-dismissal helper |
 
 ---
 
@@ -224,7 +225,6 @@ Randomized invariant testing for C++ components.
 
 | File | Coverage |
 |------|----------|
-| `test_metrics.py` | MetricsExporter — counter, gauge, histogram, summary, alert metrics |
 | `test_alerts.py` | Alert rule validation — metric names match exports, severity routing |
 
 ---
@@ -267,27 +267,28 @@ python -m pytest tests/test_security.py -v
 
 ```bash
 cd hft-trade-bot && mkdir -p build && cd build
-cmake .. -DBUILD_TESTS=ON && cmake --build .
-./tests/test_runner
+cmake .. && cmake --build .
+ctest --output-on-failure   # each test_* executable is registered with add_test
 ```
 
 ### JavaScript
 
 ```bash
 cd web-ui
-npm test              # All unit tests
+npm run test:run      # All unit tests (single run)
+npm test              # Same, watch mode
 npm run test:e2e      # Playwright E2E
 npm run test:coverage # With coverage report
 ```
 
-### All Tests (CI)
+### Pre-commit Gate
+
+`scripts/pre-commit-check.py` runs the same checks locally that CI enforces
+(lint, unit tests, coverage gate, config consistency):
 
 ```bash
-# Windows
-run-all-tests.bat
-
-# Linux/macOS
-./run-all-tests.sh
+python scripts/pre-commit-check.py --quick   # staged files only
+python scripts/pre-commit-check.py --all     # full suite
 ```
 
 ---
