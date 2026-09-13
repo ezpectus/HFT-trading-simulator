@@ -1491,3 +1491,17 @@ Findings:
 Clean: 154/154 web-test imports resolve, 0 shadow subjects, 0 zero-assert files; shared_config timeframe wired to MarketSimulator; MONITORING_GUIDE 22 metric names all real; no stale deleted-module refs in tracked guides.
 
 Commit: (below)
+
+## R107 — 2026-09-15 — audit: e2e internals + helm + terraform — 4 findings (S203–S206)
+
+Target: `web-ui/e2e/` (5 specs + helpers), `helm/` (11 templates + vendored files), `terraform/` (7 files).
+
+Findings:
+- S203 (Medium): helm pdb.yaml — 2/3 PDBs select 0 pods (exchange-simulator hyphen-vs-underscore; hft-trade-bot label never exists — sidecar); ingress /grafana path 404s without sub_path env.
+- S204 (Medium): terraform/modules/eks — public API endpoint 0.0.0.0/0, no secrets encryption, no control-plane logs, EOL k8s 1.28, prod nodes on public subnets.
+- S205 (Info): DEPLOYMENT.md:339 claims terraform/ removed in S109 — exists; tfvars.example carry dead db_password; README promises CloudWatch, no resource.
+- S206 (Info): e2e — 3 vacuous/misnamed specs; dismissOnboarding hides all overlays+toasts; console allowlist swallows network/NaN errors.
+
+Clean: hft scrape via shared pod service correct; vendored helm files byte-identical; probe ports real; web-ui fail-fast on ws URLs; grafana provisioning correct; S3 module solid; e2e in required CI gate.
+
+Commit: (below)
