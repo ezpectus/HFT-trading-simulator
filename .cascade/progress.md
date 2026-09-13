@@ -1457,3 +1457,16 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 
 - `kill_switch` → единый дом `ipc.kill_switch`: risk-shadow-блок удалён из yaml + parse-site удалён; `shm_name` заведён (config.h:124 → bot_setup.cpp:179); `HFT_KILL_SWITCH_FILE` env-override теперь работает. Dead fixture-ключи в test_integration_config вычищены.
 - Verified: yaml parse-tree (ipc.kill_switch full, risk.kill_switch None), clang-format clean, 0 asserts на удалённые ключи.
+
+## R104 — slop-audit — delta-ревизия R97–R103 изменений — ЧИСТО, 0 находок
+
+Скоуп: код, добавленный фиксами последних 6 раундов (TIF-цепочка sim/executor/handler/broadcast/UI, seq-gap детекция в обоих клиентах, watchdog-вайринг SignalReceiver/OrderExecutor, audit-эмиты S193, testnet-вайринг S194, kill_switch-консолидация S196) + resweep оставшихся leaf-файлов.
+
+ЧИСТО:
+- TIF: LIMIT-филл кепится по лимиту (`fill_price = price`), GTD без expire → reject, FOK проверяет глубину, post_only reject на кроссе — семантика честная.
+- Watchdog: ping_handler/pong_handler/message/open все feed'ят; connected_-гейт; feed-после-trip; dead-handle → прямой schedule_reconnect; 15s timeout безопасен против 10s server-ping.
+- Seq-gap: обе стороны — pre-gap cursor, cooldown, baseline reset; `_request_resync` защищён (no-loop RuntimeError catch + _connected check).
+- audit_logger.log — non-throwing (file/callback catch-all) — безопасен внутри except-хендлеров.
+- Legacy `submit_order` 3-arg — жив (v1 path + MARKET delegation), `order_type_selector.h` wired.
+- web-ui utils/stores — 17/17 файлов имеют импортёров.
+- Новое: S194's `testnet` доходит до ccxt sandbox; kill_switch — единый дом `ipc.kill_switch` (S196 fix проверен parse-tree'ом).
