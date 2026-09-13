@@ -33,7 +33,6 @@ services:
       - "8775:8775"
     volumes:
       - ./exchange_simulator/config.yaml:/app/config.yaml:ro
-      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - sim-data:/app/data
       - sim-logs:/app/logs
       - sim-audit:/app/logs/audit
@@ -70,7 +69,6 @@ services:
       - "9090:9090"
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
-      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - ai-data:/app/data
       - ai-logs:/app/logs
     environment:
@@ -104,7 +102,6 @@ services:
         condition: service_healthy
     volumes:
       - ./hft-trade-bot/config:/app/config:ro
-      - ./shared_config.yaml:/app/shared_config.yaml:ro
       - hft-logs:/app/logs
     ports:
       - "9091:9091"

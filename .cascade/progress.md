@@ -974,3 +974,15 @@ Reverse props direction: компоненты деструктурируют т�
 - **S133 (Low)**: 5 sent-but-undocumented message types — `audit_logs`/`replay_candles`/`replay_state`/`speed_set` (sim :8765) + `circuit_breaker_status` (bot :8766).
 - **Fix** (docs-only): accurate sections in WEBSOCKET_PROTOCOL.md — field sets verified against `AuditLog.to_dict` (models.py:463-480), `_handle_replay`/`_handle_set_speed` (ws_message_handler.py:315-357), `CircuitBreaker.get_status` (circuit_breaker.py:137-147) + publisher timestamp wrapper. Message Type Summary +6 rows.
 - **Verify**: producer-vs-doc scan clean — all 41 sent types documented; no new JSON-example parse failures.
+
+## Round 57 — 2026-09-13 — slop-audit+fix: deploy-config drift → S134+S135 closed
+- **S133** (закрыт ранее в раунде): docs(audit) fb772bc — 5 WS message-типов задокументированы.
+- **S134 (Medium)**: ai-bot HealthServer :8080 (purpose-built /live /ready, auth-exempt для probes) недостижим — helm probes + 4 compose healthcheck били в MetricsExporter :9090 stub. Fix: helm probes→`/live`+`/ready`:8080 + `ports.health:8080` + service-port; compose×4 publish 8080 + healthcheck→`:8080/ready`.
+- **S135 (Low)**: docker-compose.yml инжектил 4 мёртвых VITE_ENABLE_* (S128 residue). Удалены.
+- Verify: все compose YAML + values.yaml валидны; monitoring tests 10/10 green.
+
+## Round 58 — 2026-09-13 — slop-audit+fix: deploy-config + script drift → S136–S138
+- **S136 (Medium)**: `shared_config.yaml` mount-ился в 3 контейнера с 0 читателями; `test_config_consistency.py` — не в CI, cp1251 crash, FAIL на stale `price_feed` (S097 удалил). Fix: mounts сняты, скрипт починен (utf-8 + audit-check), wired в pre-commit `config: consistency`.
+- **S137 (Medium)**: `deploy.yml` health-loop бил `3000/api/health` (SPA-fallback 200 — вечнозелёный) и `9092/health` (stub). Fix → `8080/ready` + `3000/health`. FP: prod-compose `api/health` — реальный grafana endpoint.
+- **S138 (Low)**: `scripts/load_test_50_symbols.py` — разошедшийся дупликат tests/ версии, 0 refs. Удалён (закрыта старая Finding 006).
+- Verify: gate 8/8 green incl. новый `config: consistency`; compose YAML валидны.

@@ -6,8 +6,13 @@ Verifies that configuration is consistent across all components:
 - ai-signal-bot/config/settings.yaml
 - hft-trade-bot/config/config.yaml
 """
+import sys
+
 import yaml
 from pathlib import Path
+
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 
 def load_yaml(path: Path) -> dict:
@@ -191,28 +196,16 @@ def test_risk_parameter_consistency():
     return True
 
 
-def test_new_features_configured():
-    """Test that new features are properly configured."""
+def test_optional_features_configured():
+    """Test that optional feature sections are properly formed where present."""
     project_root = Path(__file__).parent.parent
-    
+
     exchange_config = load_yaml(project_root / "exchange_simulator" / "config.yaml")
-    
-    # Check price feed configuration
-    if "price_feed" not in exchange_config:
-        print("ERROR: price_feed section missing from exchange config")
+
+    # Audit logging configuration (wired by S114)
+    if "audit" not in exchange_config:
+        print("ERROR: audit section missing from exchange config")
         return False
-    
-    price_feed = exchange_config["price_feed"]
-    if not price_feed.get("enabled", False):
-        print("WARNING: price_feed not enabled")
-    
-    if "apis" not in price_feed:
-        print("ERROR: apis section missing from price_feed config")
-        return False
-    
-    print("✓ Price feed configuration present")
-    
-    # Check audit logging configuration
     if "audit" not in exchange_config:
         print("ERROR: audit section missing from exchange config")
         return False
@@ -220,9 +213,8 @@ def test_new_features_configured():
     audit = exchange_config["audit"]
     if not audit.get("enabled", False):
         print("WARNING: audit logging not enabled")
-    
+
     print("✓ Audit logging configuration present")
-    
     return True
 
 
@@ -238,7 +230,7 @@ def main():
         ("Exchange Consistency", test_exchange_consistency),
         ("WebSocket Consistency", test_websocket_consistency),
         ("Risk Parameter Consistency", test_risk_parameter_consistency),
-        ("New Features Configured", test_new_features_configured),
+        ("Optional Features Configured", test_optional_features_configured),
     ]
     
     results = []

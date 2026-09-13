@@ -470,6 +470,29 @@ def check_bandit(component: str) -> CheckResult:
     )
 
 
+CONFIG_FILES = {
+    "shared_config.yaml",
+    "exchange_simulator/config.yaml",
+    "ai-signal-bot/config/settings.yaml",
+    "hft-trade-bot/config/config.yaml",
+}
+
+
+def check_config_consistency() -> CheckResult:
+    """Verify cross-component config consistency (symbols, exchanges, ws, risk)."""
+    success, stdout, stderr, duration = run_command(
+        [sys.executable, "scripts/test_config_consistency.py"],
+        cwd=PROJECT_ROOT,
+        timeout=30,
+    )
+    return CheckResult(
+        "config: consistency",
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
 def check_playwright_e2e() -> CheckResult:
     """Run Playwright E2E tests for web-ui (mock mode)."""
     cwd = PROJECT_ROOT / COMPONENT_JS
@@ -875,6 +898,10 @@ def main() -> int:
     if use_staged and staged_files:
         summary.add(check_test_coverage_gaps(staged_files))
         summary.add(check_python_imports(staged_files))
+        if any(f in CONFIG_FILES for f in staged_files):
+            summary.add(check_config_consistency())
+    elif not use_staged and not args.lint:
+        summary.add(check_config_consistency())
 
     print_results(summary, staged_files=staged_files if use_staged else None)
     return 0 if summary.all_ok else 1
