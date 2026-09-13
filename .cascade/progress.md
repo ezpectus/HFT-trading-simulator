@@ -1106,3 +1106,14 @@ Board: **11 open** (S148–S158).
 ЧИСТО: ai-bot `metrics.enabled` — настоящий gate (run.py:194), весь остальной settings.yaml с живыми читателями; hft dev-config остальные ключи вайрятся; netlify.toml/nginx.conf живые; VitePWA сам регистрирует SW; generated dirs gitignored; helm OPENAI_API_KEY if/else — value-or-secret, не дуп.
 
 Board: **14 open** (S148–S161). Docs: CONFIGURATION_GUIDE obi_levels-claim + §2 stale-annotation поправлены.
+
+## R74 — slop-audit: docs-vs-reality — WEBSOCKET_PROTOCOL.md field-level sweep + monitoring — 2 находки S162–S163
+
+Док :8765 секция впервые проверена по каждому message-type и полю против ws_message_handler/ws_broadcast; :8766 (ai-bot) секция — полная сверка с signal_publisher + request-модулями. Monitoring: grafana-квери + alerts.yml против эмиттеров.
+
+- **S162 (Medium)** — протокол-док врёт в 8 местах: `config_update` — несуществующий тип (реально `update_config` + плоский `updates` вместо `config`, `fee_pct` вместо maker/taker); `position` и `speed_change` — фиктивные broadcast'ы (ноль эмиттеров; `speed_set` — sender-only ответ); `config_updated` — doc обещает broadcast+`config`, реально sender-only ack с `updates`; `fills_batch.fills` → реальный ключ `orders`; `welcome.server_name` → реально `server`, шлётся на коннект не на subscribe; `error.code` — ни один эмиттер не несёт; недокументированы `start_trading`/`stop_trading` и 5 полей candles (`funding_rates`/`candles_to_funding`/`news_event`/`weekend_mode`/`trading_active`).
+- **S163 (Medium)** — latency-monitoring.json: 6 из 8 latency-панелей кверят голое имя гистограммы без `_bucket` (`histogram_quantile(0.5, exchange_simulator_order_latency_seconds)` и т.п., :47/63/79/95/111/127) — bare-name селектор пуст, панели вечно пустые. Правильная форма рядом (:15/:31/:159).
+
+ЧИСТО: :8766-секция полностью честна (9 compute-типов + 9 `*_result` + auth/signal/regime/cb); sim subscribe/unsubscribe/trading_state/snapshot/sync_state реальны; alerts.yml — все 22 expr резолвятся (rejected_total/equity/balance/drawdown/win_rate/pnl эмитятся); hft dashboard — все 10 `hft_*` метрик живые.
+
+Board: **16 open** (S148–S163). Docs: WEBSOCKET_PROTOCOL.md §8765 поправлен (все 7 пунктов).

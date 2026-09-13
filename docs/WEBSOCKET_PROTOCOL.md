@@ -97,11 +97,11 @@ Remove symbols from the client's subscription set. Only affects future broadcast
 {
   "type": "welcome",
   "protocol_version": 2,
-  "server_name": "exchange_simulator",
+  "server": "exchange_simulator",
   "trading_active": true
 }
 ```
-Server responds to `subscribe` with server info and current trading state.
+Sent immediately on connect (before any `subscribe`), followed by a `snapshot`.
 
 #### Sync State (reconnect)
 ```json
@@ -159,14 +159,19 @@ Control market replay. `pause`/`resume` halt and resume the simulation (`offset`
 #### Config Update (hot-reload)
 ```json
 {
-  "type": "config_update",
-  "config": {
+  "type": "update_config",
+  "updates": {
     "volatility": { "BTC/USDT": 0.8 },
-    "fees": { "binance": { "maker": 0.0005, "taker": 0.0007 } }
+    "fees": { "binance": 0.0005 },
+    "slippage": { "binance": 3.0 },
+    "leverage": { "binance": 10 }
   }
 }
 ```
-Hot-reload simulator parameters without restart. Supports volatility, fees, slippage, and other configurable parameters.
+Hot-reload simulator parameters without restart. The payload is a flat `updates`
+map: `volatility` (`{symbol: value}`), `fees`/`slippage` (`{exchange: fee_pct /
+slippage_bps}` — a single fee, no maker/taker split), `leverage`
+(`{exchange: int}`). No bounds are enforced. Acknowledged with `config_updated`.
 
 #### Options Chain Request
 ```json
@@ -184,6 +189,15 @@ Request options chain with Greeks (Black-Scholes pricing). Server responds with 
 }
 ```
 Latency measurement. Server responds with `pong`.
+
+#### Start / Stop Trading
+```json
+{ "type": "start_trading" }
+{ "type": "stop_trading" }
+```
+Globally enable/disable order submission for **all** clients. Replies with
+`trading_state` to the requester and broadcasts `trading_state` to every
+connected client. While stopped, `order` requests get an `error` reply.
 
 ### Simulator → Client
 
@@ -262,9 +276,19 @@ Latency measurement. Server responds with `pong`.
       "win_rate": 60.0,
       "positions": [ { ... } ]
     }
-  }
+  },
+  "funding_rates": { "binance": 0.0004 },
+  "candles_to_funding": 42,
+  "news_event": null,
+  "weekend_mode": false,
+  "trading_active": true
 }
 ```
+
+Every `candles` broadcast also carries `funding_rates` (per-exchange 8h rate
+fractions), `candles_to_funding` (countdown), `news_event` (object or null),
+`weekend_mode` (bool) and `trading_active` (bool) — these fields are always
+present even though older revisions of this doc omitted them.
 
 **Sequence Numbers:** The `seq` field is a monotonically increasing integer. Clients can use it to detect missed messages and request `sync_state` on gaps.
 
@@ -326,35 +350,24 @@ Latency measurement. Server responds with `pong`.
 ```json
 {
   "type": "error",
-  "message": "Unknown exchange: invalid_name",
-  "code": "UNKNOWN_EXCHANGE"
+  "message": "Unknown exchange: invalid_name"
 }
 ```
-Error message. `code` is optional.
+Error message. Note: no `code` field is emitted today — match on `message`.
 
 #### Fills Batch
 ```json
 {
   "type": "fills_batch",
-  "fills": [ { ... }, { ... } ]
+  "orders": [ { ... }, { ... } ]
 }
 ```
-Batched fill notifications — multiple fills in one message for efficiency.
+Batched fill notifications — the array key is `orders` (each entry is an
+`order.to_dict()`), **not** `fills`.
 
 #### Position Update
-```json
-{
-  "type": "position",
-  "symbol": "BTC/USDT",
-  "exchange": "binance",
-  "side": "LONG",
-  "quantity": 0.5,
-  "entry_price": 65050.0,
-  "unrealized_pnl": 25.0,
-  "leverage": 10
-}
-```
-Position update after fill or price change.
+No dedicated `position` message exists — positions are delivered inside
+`accounts` in `snapshot`/`candles` broadcasts (`account.positions` list).
 
 #### Trading State
 ```json
@@ -389,26 +402,6 @@ Response to `ping` for latency measurement.
 ```
 Options chain with Black-Scholes Greeks (delta, gamma, theta, vega, rho).
 
-#### Speed Change (broadcast)
-```json
-{
-  "type": "speed_change",
-  "speed": 2,
-  "timestamp": 1704067500
-}
-```
-Broadcast to all clients when simulation speed changes. Speed: 0=paused, 1=normal, 2=2x, 5=5x.
-
-#### Config Updated (broadcast)
-```json
-{
-  "type": "config_updated",
-  "config": { ... },
-  "timestamp": 1704067500
-}
-```
-Broadcast to all clients when config is hot-reloaded.
-
 #### Speed Set (direct ack)
 ```json
 {
@@ -416,7 +409,19 @@ Broadcast to all clients when config is hot-reloaded.
   "speed": 2
 }
 ```
-Direct reply to the requesting client after a `set_speed` request. Other clients see the `speed_change` broadcast instead.
+Direct reply to the requesting client after a `set_speed` request.
+**No broadcast exists** — other clients are not notified of the speed change
+(there is no `speed_change` message; older doc revisions invented it).
+
+#### Config Updated (direct ack)
+```json
+{
+  "type": "config_updated",
+  "updates": { "volatility": { "BTC/USDT": 0.8 }, ... }
+}
+```
+Direct reply to the requesting client after an `update_config` request,
+echoing the applied `updates` map. Not broadcast to other clients.
 
 #### Replay State
 ```json
@@ -849,7 +854,8 @@ Pushed on connect and broadcast periodically while the publisher runs. `state` i
 | 8765 | C→S | `order` | Submit order |
 | 8765 | C→S | `close_position` | Close open position |
 | 8765 | C→S | `set_speed` | Set simulation speed (0/1/2/5) |
-| 8765 | C→S | `config_update` | Hot-reload simulator parameters |
+| 8765 | C→S | `update_config` | Hot-reload simulator parameters (flat `updates` map) |
+| 8765 | C→S | `start_trading` / `stop_trading` | Globally enable/disable order submission |
 | 8765 | C→S | `options_chain` | Request options chain with Greeks |
 | 8765 | C→S | `ping` | Latency measurement |
 | 8765 | C→S | `replay` | Replay control (pause/resume/scrub+offset) |
@@ -857,12 +863,10 @@ Pushed on connect and broadcast periodically while the publisher runs. `state` i
 | 8765 | S→C | `snapshot` | Initial market state + order books + accounts |
 | 8765 | S→C | `candles` | Streaming candle + price + order book + account data |
 | 8765 | S→C | `fill` | Order fill confirmation |
-| 8765 | S→C | `fills_batch` | Batched fill notifications |
-| 8765 | S→C | `position` | Position update |
+| 8765 | S→C | `fills_batch` | Batched fill notifications (`orders` key) |
 | 8765 | S→C | `trading_state` | Trading active/stopped broadcast |
 | 8765 | S→C | `arbitrage_scan` | Active arbitrage opportunities |
-| 8765 | S→C | `speed_change` | Simulation speed changed (broadcast) |
-| 8765 | S→C | `config_updated` | Config hot-reloaded (broadcast) |
+| 8765 | S→C | `config_updated` | Direct ack echoing applied `updates` (not broadcast) |
 | 8765 | S→C | `options_chain` | Options chain with Greeks (response) |
 | 8765 | S→C | `speed_set` | Direct ack to `set_speed` request |
 | 8765 | S→C | `replay_state` | Replay paused/resumed state |
