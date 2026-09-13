@@ -168,16 +168,16 @@ set RETRY_DELAY=2
 for /L %%i in (1,1,%MAX_RETRIES%) do (
     call :log_info "Health check attempt %%i/%MAX_RETRIES%"
     
-    REM Check exchange simulator
-    curl -s http://localhost:8765/health >nul 2>&1
+    REM Check exchange simulator (HTTP health on :8775; :8765 is WS-only)
+    curl -s http://localhost:8775/health >nul 2>&1
     if errorlevel 1 (
         call :log_warn "Exchange Simulator: Not healthy yet"
     ) else (
         call :log_info "Exchange Simulator: Healthy"
     )
     
-    REM Check AI signal bot
-    curl -s http://localhost:8766/health >nul 2>&1
+    REM Check AI signal bot (real HealthServer on :8080; :8766 is WS-only)
+    curl -s http://localhost:8080/ready >nul 2>&1
     if errorlevel 1 (
         call :log_warn "AI Signal Bot: Not healthy yet"
     ) else (
@@ -192,8 +192,8 @@ for /L %%i in (1,1,%MAX_RETRIES%) do (
         call :log_info "HFT Trade Bot: Healthy"
     )
     
-    REM Check web UI
-    curl -s http://localhost:3000 >nul 2>&1
+    REM Check web UI (nginx serves exact /health; bare :3000 is SPA fallback)
+    curl -s http://localhost:3000/health >nul 2>&1
     if errorlevel 1 (
         call :log_warn "Web UI: Not healthy yet"
     ) else (

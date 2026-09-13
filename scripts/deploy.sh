@@ -198,16 +198,16 @@ health_check() {
         log_info "Health check attempt $i/$MAX_RETRIES"
         local healthy_count=0
         
-        # Check exchange simulator
-        if curl -s http://localhost:8765/health > /dev/null 2>&1; then
+        # Check exchange simulator (HTTP health/metrics on :8775; :8765 is WS-only)
+        if curl -s http://localhost:8775/health > /dev/null 2>&1; then
             log_info "Exchange Simulator: Healthy"
             healthy_count=$((healthy_count + 1))
         else
             log_warn "Exchange Simulator: Not healthy yet"
         fi
         
-        # Check AI signal bot
-        if curl -s http://localhost:8766/health > /dev/null 2>&1; then
+        # Check AI signal bot (real HealthServer on :8080; :8766 is WS-only)
+        if curl -s http://localhost:8080/ready > /dev/null 2>&1; then
             log_info "AI Signal Bot: Healthy"
             healthy_count=$((healthy_count + 1))
         else
@@ -222,8 +222,8 @@ health_check() {
             log_warn "HFT Trade Bot: Not healthy yet"
         fi
         
-        # Check web UI
-        if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        # Check web UI (nginx serves exact /health; bare :3000 is the SPA fallback)
+        if curl -s http://localhost:3000/health > /dev/null 2>&1; then
             log_info "Web UI: Healthy"
             healthy_count=$((healthy_count + 1))
         else
