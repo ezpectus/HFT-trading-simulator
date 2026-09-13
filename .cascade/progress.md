@@ -1217,3 +1217,15 @@ Board: **31 open** (S150–S182).
 ЧИСТО: все 9 addEventListener с cleanup; все timers с clear; 0 dead useState-setter'ов; 0 `[]`-deps читающих пропсы; 0 структурных дублей; fetch только AlertWebhook; все UI→sim типы handled; ~60 exotic math-панелей — настоящие реализации (AffineArithmetic: корректный AA с Chebyshev exp + noise symbols на selectCandles); useDetachablePanels без innerHTML; stores — честный Zustand; CancelMonitor — honest NoDataFeed; BacktestRunner → live endpoint.
 
 Board: **33 open** (S150–S184).
+
+## R82 — slop-audit: тест-сьюты вне web-ui — 3 находки S185–S187
+
+Скоуп: `ai-signal-bot/tests/` (37 файлов + unit/ + integration/ + mocks/), `exchange_simulator/tests/` (36), `hft-trade-bot/tests/` (28), `web-ui/e2e/` (5 спек). Паттерны: tautology, shadow-defs, mock-of-mock, orphan-тесты, skip-theatre.
+
+- **S185 (Medium)** — mock-testing-mock круг: `tests/mocks/mock_objects.py` (185 строк) — единственный потребитель `integration/test_trading_flow.py` (~130 строк), 0 прод-импортов; «integration»-тесты assert'ят хардкод-возвраты самих моков. ~315 строк самотестирующегося скаффолдинга.
+- **S186 (Medium)** — hft: `tests/mocks/mock_exchange.h` (164 строки) — 0 includers; `test_doctest_cpp_optimizations.cpp` (125) + `test_doctest_hft_config.cpp` (127) — нет add_doctest_test-таргета → никогда не собираются/не бегут: регрессии в `low_latency.h`/`config.h` проходят молча при видимости покрытия.
+- **S187 (Info)** — `web-ui/e2e/screenshots.spec.js`: 5 тестов без expect'ов (screenshot-capture для README) внутри required `test-e2e` CI-гейта — зелёные раны считаются e2e-покрытием.
+
+ЧИСТО: 0 tautology, 0 shadow-defs; настоящие e2e_pipeline/strategy_risk_backtest; честные dep-gate skip'ы; Playwright реальный и в required-гейте; doctest-таргеты все wired кроме 2 сирот; root-vs-unit дубли имён — разные предметы.
+
+Board: **36 open** (S150–S187).
