@@ -1020,3 +1020,13 @@ Board: **1 open** — S142 (alertmanager product-решение).
 **S142** — Alertmanager shipped (product-решение от user). Создан `monitoring/alertmanager.yml` (group_by alertname/severity/service, critical repeat 1h, inhibit warning-под-critical), `alerting:`-секция в `prometheus.yml` → `alertmanager:9093`, сервис `prom/alertmanager:v0.27.0` во все 3 compose (dev: 9093, staging: 19093, prod: expose) + data volumes + healthchecks. **Bonus-баг:** prod/staging prometheus не монтировали `alerts.yml` — 22 rules там никогда не грузились; mount добавлен. Docs синкнуты (MONITORING_GUIDE, CONFIGURATION_GUIDE, ARCHITECTURE, DEPLOYMENT, README). Invented `hft_order_latency_ms`/`hft_drawdown_pct` примеры в DEPLOYMENT заменены реальным правилом.
 
 Board: **0 open** — все 143 находки закрыты.
+
+## R63 — slop-audit + fix: deploy-pipeline drift (S144, S145 closed)
+
+Audit surface: workflows + hub compose. Negative results: scripts/ci (verified-clean local orchestrator), npm-audit/bandit gates real (`exit 1` на high), `if: failure()` — легитимные log-dump/issue-creation, `codeql || true` — стандарт для C++ extraction.
+
+**S145 (High)** — deploy.yml `deploy` job нерабочий by design и никогда не запускался (нет v-тегов): prod-compose без `image:` refs → `pull` пустой; bind-mount конфиги не копировались. Fix: `image:` refs + расширенный scp + IMAGE_TAG + `latest` на main + docs.
+
+**S144 (Low)** — hub.yml → ghcr.io путь, который реально пушится.
+
+Board: **0 open**.

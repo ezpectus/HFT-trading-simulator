@@ -346,6 +346,25 @@ GitHub Actions automates deployment on merge to main:
 | `deploy.yml` | Tag push | Build Docker images, push to registry, deploy Web UI to Netlify |
 | `codeql.yml` | Schedule | Security analysis |
 
+**How `deploy.yml` works end-to-end:**
+
+1. Every `main`/`master` push builds the four services (`Dockerfile.prod`) and
+   pushes `ghcr.io/ezpectus/hft-tradebot--lite-version/<service>:latest`.
+2. A `v*.*.*` git tag additionally pushes semver tags (`v2.0.0` → `:2.0.0`)
+   and runs the `deploy` job: it copies `docker-compose.prod.yml`, the
+   monitoring/ and service config files, and `Makefile.prod` to
+   `/opt/hft/` on `DEPLOY_HOST`, then runs
+   `IMAGE_TAG=<tag> docker compose pull && up -d` — the `image:` refs in
+   `docker-compose.prod.yml` resolve to the just-pushed ghcr images.
+3. Web UI deploys to Netlify on the same trigger.
+
+Server prerequisites (one-time): `docker login ghcr.io` if the package is not
+public, and a real `/opt/hft/.env.prod` (see `.env.prod.example`) — the
+workflow copies the example, not secrets.
+
+`docker-compose.hub.yml` runs the same `:latest` ghcr images locally without
+building — `docker compose -f docker-compose.hub.yml up`.
+
 See `.github/workflows/` for workflow definitions.
 
 ## Configuration

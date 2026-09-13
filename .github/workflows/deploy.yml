@@ -73,6 +73,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -99,13 +100,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copy docker-compose to server
+      - name: Copy compose + config files to server
         uses: appleboy/scp-action@v0.1.13
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: "docker-compose.prod.yml,.env.prod.example,Makefile.prod"
+          source: "docker-compose.prod.yml,.env.prod.example,Makefile.prod,monitoring,exchange_simulator/config.yaml,ai-signal-bot/config,hft-trade-bot/config"
           target: "/opt/hft/"
 
       - name: Pull and restart services
@@ -116,6 +117,9 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/hft
+            # Tag pushed images are semver without the leading v (v2.0.0 → 2.0.0)
+            export IMAGE_TAG="${{ github.ref_name }}"
+            export IMAGE_TAG="${IMAGE_TAG#v}"
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --force-recreate
             docker image prune -f

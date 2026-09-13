@@ -1,13 +1,12 @@
-# Docker Hub — Pre-built Images
+# Pre-built Images (GHCR)
 # ====================================
-# Uses pre-built images from Docker Hub instead of building from source.
+# Uses images built and pushed by .github/workflows/deploy.yml instead of
+# building from source. `latest` is tagged on every main/master build;
+# release tags follow git tags (v2.0.0 → :2.0.0).
 # No compilation required — just `docker-compose -f docker-compose.hub.yml up`.
 #
-# Images:
-#   ezpectus/hft-exchange-simulator:v2.0.0
-#   ezpectus/hft-ai-signal-bot:v2.0.0
-#   ezpectus/hft-trade-bot:v2.0.0
-#   ezpectus/hft-web-ui:v2.0.0
+# Images (ghcr.io/ezpectus/hft-tradebot--lite-version/<service>):
+#   exchange_simulator · ai-signal-bot · hft-trade-bot · web-ui
 #
 # Usage:
 #   docker-compose -f docker-compose.hub.yml up
@@ -19,7 +18,7 @@
 
 services:
   exchange-simulator:
-    image: ezpectus/hft-exchange-simulator:v2.0.0
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/exchange_simulator:latest
     container_name: exchange-sim
     ports:
       - "8765:8765"
@@ -40,7 +39,7 @@ services:
       - trading-net
 
   ai-signal-bot:
-    image: ezpectus/hft-ai-signal-bot:v2.0.0
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/ai-signal-bot:latest
     container_name: ai-signal-bot
     depends_on:
       exchange-simulator:
@@ -65,7 +64,7 @@ services:
       - trading-net
 
   hft-trade-bot:
-    image: ezpectus/hft-trade-bot:v2.0.0
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/hft-trade-bot:latest
     container_name: hft-trade-bot
     depends_on:
       exchange-simulator:
@@ -89,7 +88,7 @@ services:
       - trading-net
 
   web-ui:
-    image: ezpectus/hft-web-ui:v2.0.0
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/web-ui:latest
     container_name: web-ui
     depends_on:
       exchange-simulator:

@@ -82,6 +82,7 @@ services:
 
   # ── Exchange Simulator (Python) — market simulation for fallback ──
   exchange-simulator:
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/exchange_simulator:${IMAGE_TAG:-latest}
     build:
       context: ./exchange_simulator
       dockerfile: Dockerfile.prod
@@ -114,6 +115,7 @@ services:
 
   # ── AI Signal Bot (Python) — strategy signals + real market data ──
   ai-signal-bot:
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/ai-signal-bot:${IMAGE_TAG:-latest}
     build:
       context: ./ai-signal-bot
       dockerfile: Dockerfile.prod
@@ -155,6 +157,7 @@ services:
 
   # ── HFT Trade Bot (C++) — low-latency execution ──
   hft-trade-bot:
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/hft-trade-bot:${IMAGE_TAG:-latest}
     build:
       context: ./hft-trade-bot
       dockerfile: Dockerfile.prod
@@ -190,6 +193,7 @@ services:
 
   # ── Web UI (React + nginx) — dashboard with 200+ panels ──
   web-ui:
+    image: ghcr.io/ezpectus/hft-tradebot--lite-version/web-ui:${IMAGE_TAG:-latest}
     build:
       context: ./web-ui
       dockerfile: Dockerfile.prod
