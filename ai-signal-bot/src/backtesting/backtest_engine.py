@@ -21,8 +21,11 @@ logger = get_logger(__name__)
 @dataclass
 class BacktestConfig:
     initial_capital: float = 100000.0
+    # Defaults match the simulator's binance venue (exchange_simulator
+    # config.yaml: fee_pct=0.04, slippage_bps=2.0) — same model as
+    # Backtester so run_backtest and compare_backtests agree on costs.
     fee_rate: float = 0.0004         # 0.04% per side
-    slippage_bps: float = 1.0        # 1 bp slippage
+    slippage_bps: float = 2.0        # 2 bps slippage
     funding_rate: float = 0.0001     # 8h funding
     leverage: int = 1
     position_size_pct: float = 0.1   # 10% of capital per trade

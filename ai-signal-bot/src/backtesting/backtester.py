@@ -41,7 +41,10 @@ class Backtester:
     def __init__(
         self,
         initial_balance: float = 10000.0,
-        fee_pct: float = 0.075,  # Binance taker fee
+        # Defaults match the simulator's binance venue (config.yaml
+        # fee_pct=0.04, slippage_bps=2.0) so backtests price the same fills
+        # the system actually trades. Raise for real-venue estimates.
+        fee_pct: float = 0.04,
         slippage_bps: float = 2.0,
         leverage: int = 1,
         max_position_pct: float = 10.0,

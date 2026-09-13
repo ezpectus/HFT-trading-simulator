@@ -48,7 +48,8 @@ class TestBacktestConfig:
         cfg = BacktestConfig()
         assert cfg.initial_capital == 100000.0
         assert cfg.fee_rate == 0.0004
-        assert cfg.slippage_bps == 1.0
+        # Aligned with the simulator's binance venue + Backtester (S172)
+        assert cfg.slippage_bps == 2.0
         assert cfg.leverage == 1
         assert cfg.position_size_pct == 0.1
 

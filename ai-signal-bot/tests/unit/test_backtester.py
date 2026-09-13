@@ -31,7 +31,8 @@ class TestBacktesterInit:
     def test_defaults(self):
         bt = Backtester()
         assert bt.initial_balance == 10000.0
-        assert bt.fee_pct == 0.075
+        # Defaults track the simulator's binance venue (S172 alignment)
+        assert bt.fee_pct == 0.04
         assert bt.slippage_bps == 2.0
         assert bt.leverage == 1
         assert bt.risk_manager is None
