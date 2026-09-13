@@ -2,7 +2,7 @@
 
 This service provides centralized audit logging for:
 - Order lifecycle events (submit, fill, cancel, reject)
-- Position lifecycle events (open, close, modify)
+- Position lifecycle events (open, close)
 - Account balance changes
 - Configuration changes
 - System events (start, stop, errors, warnings)

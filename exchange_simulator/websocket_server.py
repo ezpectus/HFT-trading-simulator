@@ -18,6 +18,7 @@ from exchange_simulator.arbitrage import ArbitrageDetector
 from exchange_simulator.audit_logger import get_audit_logger
 from exchange_simulator.exchange import SimulatedExchange
 from exchange_simulator.market_simulator import MarketSimulator
+from exchange_simulator.models import AuditEventType
 from exchange_simulator.ws_broadcast import BroadcastMixin
 from exchange_simulator.ws_constants import (
     _HAS_SHM,
@@ -211,6 +212,7 @@ class ExchangeWebSocketServer(
                 broadcast_task.cancel()
                 if metrics_task:
                     metrics_task.cancel()
+                self._audit_logger.log(event_type=AuditEventType.SYSTEM_STOP)
                 self._audit_logger.unregister_callback(self._on_audit_event)
 
     async def _run_metrics_server(self, port: int) -> None:

@@ -12,7 +12,7 @@ import time
 
 import websockets
 
-from exchange_simulator.models import OrderType, Side
+from exchange_simulator.models import AuditEventType, OrderType, Side
 from exchange_simulator.ws_constants import (
     _HAS_MSGPACK,
     PROTOCOL_VERSION,
@@ -113,6 +113,11 @@ class MessageHandlerMixin:
         except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
             self.metrics.errors_total += 1
             logger.error("Error handling message: %s", e)
+            self._audit_logger.log(
+                event_type=AuditEventType.ERROR,
+                reason=_sanitize_log(str(e)),
+                metadata={"remote": _sanitize_log(str(remote))},
+            )
         finally:
             self.metrics.ws_latency.observe(time.monotonic() - t0)
 
@@ -125,6 +130,11 @@ class MessageHandlerMixin:
                 logger.warning(
                     "Invalid msgpack from %s: %s",
                     _sanitize_log(remote), _sanitize_log(message[:100]))
+                self._audit_logger.log(
+                    event_type=AuditEventType.WARNING,
+                    reason="invalid msgpack",
+                    metadata={"remote": _sanitize_log(str(remote))},
+                )
                 return None
         else:
             try:
@@ -133,6 +143,11 @@ class MessageHandlerMixin:
                 logger.warning(
                     "Invalid JSON from %s: %s",
                     _sanitize_log(remote), _sanitize_log(message[:100]))
+                self._audit_logger.log(
+                    event_type=AuditEventType.WARNING,
+                    reason="invalid json",
+                    metadata={"remote": _sanitize_log(str(remote))},
+                )
                 return None
 
     def _cleanup_client(self, websocket, remote) -> None:
@@ -539,6 +554,11 @@ class MessageHandlerMixin:
                 if ex_id in self.exchanges:
                     self.exchanges[ex_id].account.leverage = lev
                     logger.info("  Config hot-reload: %s leverage → %sx", _sanitize_log(ex_id), _sanitize_log(str(lev)))
+        if updates:
+            self._audit_logger.log(
+                event_type=AuditEventType.CONFIG_CHANGE,
+                metadata={"keys": [_sanitize_log(str(k)) for k in updates]},
+            )
         asyncio.create_task(websocket.send(json.dumps({"type": "config_updated", "updates": updates})))
 
     async def _handle_options_chain(self, websocket: WebSocketServerConnection, data: dict) -> None:
