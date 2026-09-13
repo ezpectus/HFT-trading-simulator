@@ -1042,3 +1042,7 @@ Sample 6 записей: S132 (kill-switch consumer — run.py:293-340 + metric 
 ## R66 — slop-audit + fix: S146 undeclared deps (closed)
 
 Reverse-dependency sweep (imports vs requirements.txt): **tabulate** — unguarded на startup-пути (run.py:38 → monitoring/__init__ → tracker.py:8), ноль транзитивных провайдеров, Docker-образ не мог стартовать. **scipy** — unguarded только в cvar.py (var/markowitz/vol_surface guarded) → `cvar_analysis` endpoint crash. Fix: tabulate declared; cvar.py получил var.py-конвенцию (`_HAS_SCIPY` + BSM `_norm_ppf` + `_norm_pdf` + numpy skew/kurt). Blocked-import verify: результаты идентичны ~1e-10. Clean: lightgbm/xgboost/sklearn (ml_ensemble — guarded), pyarrow, opentelemetry, psutil (tests only).
+
+## R67 — slop-audit: state/hooks surface — чисто, 0 находок
+
+Поверхность: `import *` (0), module-level mutable globals (все — константы или capped: `_max_history`, 200-entry FIFO `_cache` в стратегиях), S013-class per-message try в `useWebSocket.ts:183` (есть), Zustand arrays (toasts capped at 5), `.env.prod` gitignored ✓, `no-docker.*` scripts реальные+задокументированы, WS-консьюмеры wired (useSignalData живёт в useExchangeData.js). FP-guard: `backtestEngine.js` жив (StrategyBacktest client-engine, honest "2 engines" disclosure), `backtestExport.js` жив (BacktestRunner CSV export), `useInterval.{js,ts}`/auditExport/cn — S126-решение keep, не пересматривается.
