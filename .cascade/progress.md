@@ -1374,3 +1374,16 @@ Done-log помечен `✅ verified R93` на всех 12 строках.
 Verify: doctest pm_suite 22/22 локально, playwright 7/7 против dev:mock, нулевые референсы на open_position.
 
 Board: **10 open**.
+
+## R95 — slop-fix: 6 закрыто (S160/S161/S162/S165/S168/S169)
+
+- **S169** — удалены useInterval.{js,ts} + usePerformance.js + 2 тест-файла (0 импортеров, proven). ~674 строки.
+- **S160** — vite.config.js manifest: 204→278 panels, «44+ math models» убран (неверифицируемо).
+- **S161** — CONFIGURATION_GUIDE §2 переписан под реальный config.yaml; warning-блок снят.
+- **S165** — terraform dead `vpc_id` input + call-site args удалены; Makefile .PHONY дополнен.
+- **S168** — все stale counts поправлены: 153 unit/157 total test files, 291 components, 278 panels (README/ARCHITECTURE/WEB_UI).
+- **S162** — verify-close: WEBSOCKET_PROTOCOL.md уже исправлен по всем 8 классам.
+
+Verify: vite build green; playwright не трогали этим раундом.
+
+Board: **4 open** (S150 config-theatre, S151 seq write-only, S152 dead watchdog toolkit, S154 order-types die before wire).
