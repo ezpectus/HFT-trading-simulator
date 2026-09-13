@@ -1,6 +1,6 @@
 """Alert system — multi-channel alerting with rate limiting and severity levels.
 
-Channels: log, webhook (Discord/Telegram), email.
+Channels: log, webhook (Discord/Telegram).
 Rules: daily loss, no fills, SHM disconnected, DB down.
 Rate limiting: max 1 alert per rule per 5 minutes.
 """
@@ -52,13 +52,11 @@ class AlertSystem:
     def __init__(self, webhook_url: str | None = None,
                  discord_webhook: str | None = None,
                  telegram_token: str | None = None,
-                 telegram_chat_id: str | None = None,
-                 email_smtp: str | None = None):
+                 telegram_chat_id: str | None = None):
         self.webhook_url = webhook_url
         self.discord_webhook = discord_webhook
         self.telegram_token = telegram_token
         self.telegram_chat_id = telegram_chat_id
-        self.email_smtp = email_smtp
 
         self.rules: dict[str, AlertRule] = {}
         self.last_fired: dict[str, float] = {}
