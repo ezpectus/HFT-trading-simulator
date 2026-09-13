@@ -2,7 +2,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstring>
 #include <optional>
 #include <string>
 #include <vector>
@@ -17,17 +16,14 @@ struct Config {
 
     // Trading
     std::vector<std::string> symbols{"BTC/USDT", "ETH/USDT", "SOL/USDT"};
-    int  signal_interval_ms{1}; // Loop poll interval (0 = no wait, 1 = sub-ms HFT)
-    int  max_open_positions{3};
-    bool paper_trading{true};
+    int signal_interval_ms{1}; // Loop poll interval (0 = no wait, 1 = sub-ms HFT)
+    int max_open_positions{3};
 
     // Risk
     double max_risk_per_trade_pct{2.0};
     double max_daily_drawdown_pct{8.0};
     double min_confidence{65.0};
     double min_rr_ratio{1.5};
-    double stop_loss_pct{2.0};
-    double take_profit_pct{4.0};
     double max_position_size_pct{10.0};
 
     // HFT strategies
@@ -114,8 +110,6 @@ struct Config {
     std::string system_version{"2.0.0"};
 
     std::vector<std::string> active_exchanges;
-    bool                     fallback_to_simulator{true};
-    std::string              simulator_ws_url{"ws://localhost:8765"};
 
     // IPC / SHM
     bool        ipc_enabled{false};
@@ -127,20 +121,6 @@ struct Config {
     int         ipc_market_data_max_symbols{10};
     std::string kill_switch_trigger_file{"logs/kill_switch_trigger"};
     int         kill_switch_poll_interval_ms{250};
-
-    // Database (PostgreSQL)
-    std::string db_dsn;
-    int         db_pool_min{2};
-    int         db_pool_max{10};
-    bool        db_persist_trades{false};
-    bool        db_persist_signals{false};
-    bool        db_persist_positions{false};
-    bool        db_persist_candles{false};
-
-    // Redis
-    bool        redis_enabled{false};
-    std::string redis_url;
-    int         redis_cache_ttl{60};
 
     // Prometheus metrics
     bool        metrics_enabled{false};
@@ -167,21 +147,6 @@ struct Config {
     double v2_weight_vwap{0.15};
     double v2_weight_adx{0.10};
     double v2_weight_pressure{0.20};
-    // Note: v2_min_composite and v2_vwap_window are loaded from YAML
-    // but not currently used by SignalEngineV2::Params. Reserved for future use.
-    double v2_min_composite{0.35};
-    int    v2_vwap_window{60};
-
-    void clear_secrets() {
-        auto zero = [](std::string& s) {
-            if (!s.empty()) {
-                std::memset(s.data(), 0, s.size());
-                s.clear();
-            }
-        };
-        zero(db_dsn);
-        zero(redis_url);
-    }
 
     static Config load(const std::string& path);
 };

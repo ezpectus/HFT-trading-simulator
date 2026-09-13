@@ -17,14 +17,6 @@ inline void validate_risk_params(const Config& cfg) {
         spdlog::warn("Config: max_daily_drawdown_pct={} out of range (0, 100]. "
                      "Recommended: 5.0-15.0. Set risk.max_daily_drawdown_pct in config.yaml",
                      cfg.max_daily_drawdown_pct);
-    if (cfg.stop_loss_pct <= 0 || cfg.stop_loss_pct > 50)
-        spdlog::warn("Config: stop_loss_pct={} out of range (0, 50]. "
-                     "Recommended: 1.0-5.0. Set risk.stop_loss_pct in config.yaml",
-                     cfg.stop_loss_pct);
-    if (cfg.take_profit_pct <= 0 || cfg.take_profit_pct > 100)
-        spdlog::warn("Config: take_profit_pct={} out of range (0, 100]. "
-                     "Recommended: 2.0-10.0. Set risk.take_profit_pct in config.yaml",
-                     cfg.take_profit_pct);
     if (cfg.min_rr_ratio < 0)
         spdlog::warn("Config: min_rr_ratio={} should be non-negative. "
                      "Recommended: 1.5-3.0. Set risk.min_rr_ratio in config.yaml",

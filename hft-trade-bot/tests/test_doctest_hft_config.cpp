@@ -110,7 +110,7 @@ exchange:
 trading:
   symbols: ["BTC/USDT", "ETH/USDT"]
   signal_interval_ms: 1
-  paper_trading: true
+  max_open_positions: 4
 risk:
   max_risk_per_trade_pct: 2.0
   max_daily_drawdown_pct: 8.0
@@ -120,7 +120,7 @@ risk:
         auto cfg = hft::Config::load(path);
         CHECK(cfg.signal_interval_ms == 1);
         CHECK(cfg.signal_interval_ms < 1000); // Sub-second
-        CHECK(cfg.paper_trading == true);
+        CHECK(cfg.max_open_positions == 4);
         CHECK(cfg.symbols.size() == 2);
         std::filesystem::remove(path);
     }

@@ -1,12 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Production configuration — real exchanges, real DB, real risk limits
+# Production configuration — exchange simulator endpoint, real risk limits
 # ─────────────────────────────────────────────────────────────────────────────
-# C++20 HFT trading engine for live trading with:
-#   - PostgreSQL trade persistence
-#   - Redis hot state cache
+# C++20 HFT trading engine with:
 #   - SHM IPC for Python↔C++ communication
-#   - Kill switch with auto-cancel and auto-close
-#   - Prometheus metrics on :9091
+#   - Kill switch (file-triggered, always armed)
+#   - Health/metrics endpoint (port below)
+#
+# NOTE: the bot dials only exchange.simulator_ws_url — there are no
+# real-exchange adapters (removed in S059), and no database/redis code.
 #
 # API keys are read from environment variables (${VAR} syntax).
 # Never hardcode API keys in this file.
@@ -19,11 +20,9 @@
 #   pressure_model            — L2 microstructure toxicity detection
 #   adaptive_order_selector   — dynamic order type selection
 #   risk                      — production risk limits + kill switch
-#   database                  — PostgreSQL DSN and pool config
-#   redis                     — hot state cache
-#   metrics                   — Prometheus exporter
-#   symbols                   — traded symbols with max leverage
-#   latency_optimization      — thread pinning and queue sizes
+#   metrics                   — health/metrics HTTP endpoint
+#   symbols                   — traded symbols
+#   latency_optimization      — thread pinning
 
 system:
   mode: production          # production | simulator
@@ -34,7 +33,6 @@ system:
 # ── Exchange configuration ──
 # Exchange simulator connection
 exchange:
-  fallback_to_simulator: true
   # ${VAR:-default} — k8s injects the release-scoped DNS name via
   # HFT_EXCHANGE_WS_URL; compose/prod falls back to the compose service name.
   simulator_ws_url: "${HFT_EXCHANGE_WS_URL:-ws://exchange_simulator:8765}"
@@ -72,13 +70,11 @@ signal_engine_v2:
     pressure: 0.20                         # L2 pressure model weight
   thresholds:
     min_confidence: 70                     # 0-100, reject below this
-    min_composite: 0.35                    # |composite score| must exceed this
   periods:
     ema_fast: 9                            # Fast EMA period
     ema_slow: 21                           # Slow EMA period
     rsi_period: 14                         # RSI lookback
     adx_period: 14                         # ADX lookback
-    vwap_window: 60                        # VWAP calculation window
   obi_levels_5: 5                          # OBI depth snapshot levels (also feed PressureModel)
   obi_levels_10: 10
   obi_levels_20: 20
@@ -100,9 +96,7 @@ pressure_model:
 # Dynamically selects order type based on confidence + spread
 adaptive_order_selector:
   enabled: true
-  default_type: ioc                        # market | ioc | fok | gtd | post_only
   gtd_timeout_ms: 5000                     # GTD order timeout
-  post_only_retries: 3                     # PostOnly retry count on cross
 
 # ── Risk management (production) ──
 # Stricter limits than dev config — real money at stake
@@ -125,63 +119,27 @@ risk:
 
   blacklisted_symbols: []                  # Symbols to never trade
 
-  # Kill switch — emergency stop
+  # Kill switch — emergency stop (always armed; there is no enable flag)
   kill_switch:
-    enabled: true
     trigger_file: "/tmp/kill_switch"       # Touch this file to trigger
-    auto_cancel_orders: true               # Cancel all open orders on trigger
-    auto_close_positions: true             # Market-close all positions on trigger
 
-# ── Database (PostgreSQL) ──
-# Production uses PostgreSQL for persistent storage
-database:
-  dsn: "${POSTGRES_DSN}"                   # PostgreSQL connection string
-  pool_min: 2                              # Min DB connections
-  pool_max: 10                             # Max DB connections
-  persist_trades: true                     # Store all trade fills
-  persist_signals: true                    # Store all generated signals
-  persist_positions: true                  # Store position history
-  persist_candles: true                    # Store market data
-
-# ── Redis (hot state cache) ──
-# In-memory cache for frequently accessed state
-redis:
-  url: "${REDIS_URL}"                      # Redis connection URL
-  enabled: true
-  cache_ttl: 60                            # Cache TTL in seconds
-
-# ── Prometheus metrics ──
-# Metrics endpoint for monitoring
+# ── Metrics endpoint ──
+# Health + /metrics HTTP server (enabled gates /metrics)
 metrics:
   enabled: true
   port: 9091                               # Metrics HTTP server port (matches docker-compose + prometheus)
   host: "0.0.0.0"                          # Bind to all interfaces
 
 # ── Symbols to trade ──
-# Each symbol has an ID (for SHM packing) and max leverage
 symbols:
   - name: BTCUSDT
-    id: 0
-    max_leverage: 20
   - name: ETHUSDT
-    id: 1
-    max_leverage: 20
   - name: SOLUSDT
-    id: 2
-    max_leverage: 10
   - name: BNBUSDT
-    id: 3
-    max_leverage: 10
   - name: XRPUSDT
-    id: 4
-    max_leverage: 10
 
 # ── Latency optimization ──
-# Pin threads to specific CPU cores for cache locality
+# Pin the execution thread to a CPU core for cache locality
 latency_optimization:
   thread_pinning: true                     # Enable CPU core pinning
-  signal_thread_core: 0                    # Signal engine thread → core 0
   execution_thread_core: 1                 # Order execution thread → core 1
-  market_data_core: 2                      # Market data receiver → core 2
-  spsc_queue_capacity: 16384               # Single-producer single-consumer queue size
-  object_pool_size: 1024                   # Pre-allocated object pool size

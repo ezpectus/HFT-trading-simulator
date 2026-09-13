@@ -408,14 +408,16 @@ risk:
 **HFT Trade Bot (`hft-trade-bot/config/config.prod.yaml`):**
 ```yaml
 # Production settings
-trading:
-  max_open_positions: 50
-  paper_trading: false
+system:
+  mode: production
+risk:
+  max_open_positions: 5
+  daily_loss_limit: 2000.0
 
-# Performance tuning
+# Thread pinning (execution thread → core)
 latency_optimization:
-  enable_thread_pinning: true
-  enable_spinlocks: true
+  thread_pinning: true
+  execution_thread_core: 1
 ```
 
 ### Environment Variables

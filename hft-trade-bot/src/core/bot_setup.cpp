@@ -29,14 +29,12 @@ static void log_banner(const Config& c) {
     spdlog::info("  Mode: {}", c.is_production ? "PRODUCTION" : "SIMULATOR");
     spdlog::info("  Symbols: {}", fmt::join(c.symbols, ", "));
     spdlog::info("  Exchange: {}", c.default_exchange);
-    spdlog::info("  Paper trading: {}", c.paper_trading);
     spdlog::info("  Signal Engine V2: {}", c.signal_engine_v2_enabled);
     spdlog::info("  Signal Engine V3: {}", c.signal_engine_v3_enabled);
     spdlog::info("  Adaptive Orders: {}", c.adaptive_order_enabled);
     spdlog::info("  Thread Pinning: {}", c.thread_pinning_enabled);
     if (c.is_production) {
-        spdlog::info("  IPC: {} | DB: {} | Redis: {} | Metrics: {}", c.ipc_enabled,
-                     !c.db_dsn.empty(), c.redis_enabled, c.metrics_enabled);
+        spdlog::info("  IPC: {} | Metrics: {}", c.ipc_enabled, c.metrics_enabled);
     }
     spdlog::info("=" + std::string(60, '='));
 }

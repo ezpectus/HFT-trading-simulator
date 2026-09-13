@@ -62,7 +62,6 @@ inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
             cfg.signal_interval_ms =
                 t["signal_interval_seconds"].as<int>() * 1000; // backwards compat
         if (t["max_open_positions"]) cfg.max_open_positions = t["max_open_positions"].as<int>();
-        if (t["paper_trading"]) cfg.paper_trading = t["paper_trading"].as<bool>();
     }
     if (auto r = root["risk"]) {
         if (r["max_risk_per_trade_pct"])
@@ -71,8 +70,6 @@ inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
             cfg.max_daily_drawdown_pct = r["max_daily_drawdown_pct"].as<double>();
         if (r["min_confidence"]) cfg.min_confidence = r["min_confidence"].as<double>();
         if (r["min_rr_ratio"]) cfg.min_rr_ratio = r["min_rr_ratio"].as<double>();
-        if (r["stop_loss_pct"]) cfg.stop_loss_pct = r["stop_loss_pct"].as<double>();
-        if (r["take_profit_pct"]) cfg.take_profit_pct = r["take_profit_pct"].as<double>();
         if (r["max_position_size_pct"])
             cfg.max_position_size_pct = r["max_position_size_pct"].as<double>();
     }
@@ -180,12 +177,10 @@ inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
 
 inline void parse_prod_system(Config& cfg, const YAML::Node& root) {
     if (!root["system"]) return;
-    cfg.is_production = true;
-    auto sys          = root["system"];
-    if (sys["mode"]) {
-        std::string mode  = sys["mode"].as<std::string>();
-        cfg.paper_trading = (mode != "production");
-    }
+    auto sys = root["system"];
+    // `mode` gates the production flag — a system: section with a non-production
+    // mode (e.g. staging) does not flip is_production.
+    cfg.is_production = !sys["mode"] || sys["mode"].as<std::string>() == "production";
     if (sys["version"]) cfg.system_version = sys["version"].as<std::string>();
     if (sys["log_level"]) cfg.log_level = sys["log_level"].as<std::string>();
     if (sys["log_file"]) cfg.log_file = sys["log_file"].as<std::string>();
@@ -199,12 +194,8 @@ inline void parse_prod_exchanges(Config& cfg, const YAML::Node& root) {
             for (const auto& name : ex["active"])
                 cfg.active_exchanges.push_back(name.as<std::string>());
         }
-        if (ex["fallback_to_simulator"])
-            cfg.fallback_to_simulator = ex["fallback_to_simulator"].as<bool>();
-        if (ex["simulator_ws_url"]) {
-            cfg.simulator_ws_url = expand_env(ex["simulator_ws_url"].as<std::string>());
-            cfg.ws_url           = cfg.simulator_ws_url;
-        }
+        if (ex["simulator_ws_url"])
+            cfg.ws_url = expand_env(ex["simulator_ws_url"].as<std::string>());
         if (!cfg.active_exchanges.empty()) cfg.default_exchange = cfg.active_exchanges[0];
     }
 }
@@ -247,14 +238,12 @@ inline void parse_prod_v2_weights(Config& cfg, const YAML::Node& root) {
         if (auto th = v2["thresholds"]) {
             if (th["min_confidence"])
                 cfg.v2_min_confidence = static_cast<uint8_t>(th["min_confidence"].as<int>());
-            if (th["min_composite"]) cfg.v2_min_composite = th["min_composite"].as<double>();
         }
         if (auto p = v2["periods"]) {
             if (p["ema_fast"]) cfg.v2_ema_fast_period = p["ema_fast"].as<int>();
             if (p["ema_slow"]) cfg.v2_ema_slow_period = p["ema_slow"].as<int>();
             if (p["rsi_period"]) cfg.v2_rsi_period = p["rsi_period"].as<int>();
             if (p["adx_period"]) cfg.v2_adx_period = p["adx_period"].as<int>();
-            if (p["vwap_window"]) cfg.v2_vwap_window = p["vwap_window"].as<int>();
         }
         // Multi-level OBI depths — same flat keys as the dev parser; they feed
         // both SignalEngineV2 and PressureModel via bot_setup.
@@ -311,20 +300,6 @@ inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
         if (pm["microprice_enabled"])
             cfg.pressure_microprice_enabled = pm["microprice_enabled"].as<bool>();
-    }
-    if (auto db = root["database"]) {
-        if (db["dsn"]) cfg.db_dsn = expand_env(db["dsn"].as<std::string>());
-        if (db["pool_min"]) cfg.db_pool_min = db["pool_min"].as<int>();
-        if (db["pool_max"]) cfg.db_pool_max = db["pool_max"].as<int>();
-        if (db["persist_trades"]) cfg.db_persist_trades = db["persist_trades"].as<bool>();
-        if (db["persist_signals"]) cfg.db_persist_signals = db["persist_signals"].as<bool>();
-        if (db["persist_positions"]) cfg.db_persist_positions = db["persist_positions"].as<bool>();
-        if (db["persist_candles"]) cfg.db_persist_candles = db["persist_candles"].as<bool>();
-    }
-    if (auto redis = root["redis"]) {
-        if (redis["enabled"]) cfg.redis_enabled = redis["enabled"].as<bool>();
-        if (redis["url"]) cfg.redis_url = expand_env(redis["url"].as<std::string>());
-        if (redis["cache_ttl"]) cfg.redis_cache_ttl = redis["cache_ttl"].as<int>();
     }
     if (auto m = root["metrics"]) {
         if (m["enabled"]) cfg.metrics_enabled = m["enabled"].as<bool>();

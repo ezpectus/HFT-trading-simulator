@@ -69,7 +69,6 @@ trading:
     - "MINA/USDT"
   signal_interval_ms: 1         # Loop poll interval in ms (0 = no wait, 1 = sub-ms HFT)
   max_open_positions: 10        # Increased for 50+ symbols (was 3)
-  paper_trading: true           # If true, no real orders are sent
 
 exchange:
   # Dev default — override ws_url in Docker/K8s via config mount or env var
@@ -82,8 +81,6 @@ risk:
   max_daily_drawdown_pct: 8.0   # Stop trading if daily loss exceeds this (rec: 5-15)
   min_confidence: 65.0          # Minimum signal confidence 0-100 to act
   min_rr_ratio: 1.5             # Minimum risk:reward ratio (rec: 1.5-3.0)
-  stop_loss_pct: 2.0            # Default SL distance from entry % (rec: 1-5)
-  take_profit_pct: 4.0          # Default TP distance from entry % (rec: 2-10)
   max_position_size_pct: 10.0   # Max notional per position as % of balance
   initial_balance: 10000.0      # Seed balance until the exchange's account
                                 # broadcast arrives (authoritative after that)

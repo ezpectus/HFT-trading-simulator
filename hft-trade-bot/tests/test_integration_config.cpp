@@ -18,8 +18,7 @@ exchange:
   ws_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT", "ETH/USDT"]
-  paper_trading: true
-  leverage: 10
+  max_open_positions: 10
 risk:
   max_position_size_pct: 10.0
   max_risk_per_trade_pct: 2.0
@@ -32,8 +31,7 @@ risk:
         CHECK(config.symbols.size() == 2);
         CHECK(config.symbols[0] == "BTC/USDT");
         CHECK(config.symbols[1] == "ETH/USDT");
-        CHECK(config.paper_trading == true);
-        CHECK(config.leverage == 10);
+        CHECK(config.max_open_positions == 10);
         CHECK(config.is_production == false);
 
         std::filesystem::remove(path);
