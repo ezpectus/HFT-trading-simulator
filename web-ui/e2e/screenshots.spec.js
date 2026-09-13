@@ -1,4 +1,4 @@
-import { test } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 import { dismissOnboarding, closeOverlays, gotoWithRetry } from './dismiss-onboarding.js'
 
 const SCREENSHOTS_DIR = 'screenshots'
@@ -13,9 +13,12 @@ test.describe('Screenshot capture for README', () => {
   test('capture main dashboard', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000) // Wait for data to load
 
-    // Take full page screenshot
+    // App shell must actually render — a screenshot of an error boundary
+    // is not README material.
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 15000 })
+    await expect(page.locator('header')).toBeVisible()
+
     await page.screenshot({
       path: `${SCREENSHOTS_DIR}/dashboard-main.png`,
       fullPage: false,
@@ -25,37 +28,32 @@ test.describe('Screenshot capture for README', () => {
   test('capture market data panel', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000)
 
-    // Try to find and click on market data / chart panel
-    const chartPanel = page.locator('[data-panel-id="chart"], [data-panel-id="market-data"], .panel:has-text("Price Chart")').first()
-    if (await chartPanel.isVisible()) {
-      await chartPanel.screenshot({ path: `${SCREENSHOTS_DIR}/panel-market-data.png` })
-    }
+    // CandleChart renders a canvas inside the left pane
+    const chartCanvas = page.locator('canvas').first()
+    await expect(chartCanvas).toBeVisible({ timeout: 15000 })
+    await chartCanvas.screenshot({ path: `${SCREENSHOTS_DIR}/panel-market-data.png` })
   })
 
   test('capture order book panel', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000)
 
-    const orderBook = page.locator('[data-panel-id="orderbook"], .panel:has-text("Order Book")').first()
-    if (await orderBook.isVisible()) {
-      await orderBook.screenshot({ path: `${SCREENSHOTS_DIR}/panel-orderbook.png` })
-    }
+    // OrderBook header text is always rendered (empty book still shows it)
+    const orderBook = page.getByText('Order Book', { exact: true })
+    await expect(orderBook).toBeVisible({ timeout: 10000 })
+    await orderBook.locator('xpath=ancestor::div[contains(@class,"h-full")]').first()
+      .screenshot({ path: `${SCREENSHOTS_DIR}/panel-orderbook.png` })
   })
 
   test('capture backtest runner', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(2000)
 
-    // Find and click backtest panel/tab (labeled "BT" in the UI)
-    const backtestTab = page.getByRole('tab', { name: /^BT$/i })
-    if (await backtestTab.isVisible()) {
-      await backtestTab.click().catch(() => {})
-      await page.waitForTimeout(1000)
-    }
+    const backtestTab = page.getByTestId('tab-backtest')
+    await expect(backtestTab).toBeVisible({ timeout: 10000 })
+    await backtestTab.click()
+    await expect(page.locator('.tab-content')).toBeVisible({ timeout: 10000 })
 
     await page.screenshot({
       path: `${SCREENSHOTS_DIR}/panel-backtest.png`,
@@ -63,33 +61,41 @@ test.describe('Screenshot capture for README', () => {
     })
   })
 
-  test('capture signal engine panel', async ({ page }) => {
+  test('capture signals panel', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000)
 
-    const signalPanel = page.locator('[data-panel-id="signal-engine"], .panel:has-text("Signal Engine")').first()
-    if (await signalPanel.isVisible()) {
-      await signalPanel.screenshot({ path: `${SCREENSHOTS_DIR}/panel-signal-engine.png` })
-    }
+    const signalsTab = page.getByTestId('tab-signals')
+    await expect(signalsTab).toBeVisible({ timeout: 10000 })
+    await signalsTab.click()
+    await expect(page.locator('.tab-content')).toBeVisible({ timeout: 10000 })
+
+    await page.screenshot({
+      path: `${SCREENSHOTS_DIR}/panel-signal-engine.png`,
+      fullPage: false,
+    })
   })
 
   test('capture positions panel', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000)
 
-    const positionsPanel = page.locator('[data-panel-id="positions"], .panel:has-text("Positions")').first()
-    if (await positionsPanel.isVisible()) {
-      await positionsPanel.screenshot({ path: `${SCREENSHOTS_DIR}/panel-positions.png` })
-    }
+    const accountTab = page.getByTestId('tab-account')
+    await expect(accountTab).toBeVisible({ timeout: 10000 })
+    await accountTab.click()
+
+    // PositionsPanel renders "Open Positions (N)" or the empty state
+    const positions = page.getByText(/Open Positions|No open positions/).first()
+    await expect(positions).toBeVisible({ timeout: 10000 })
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/panel-positions.png` })
   })
 
   test('capture mobile view', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 })
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    await page.waitForTimeout(3000)
+
+    await expect(page.locator('#main-content')).toBeVisible({ timeout: 15000 })
 
     await page.screenshot({
       path: `${SCREENSHOTS_DIR}/dashboard-mobile.png`,
