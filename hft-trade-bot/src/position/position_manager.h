@@ -14,32 +14,6 @@ namespace hft {
 
 class PositionManager {
   public:
-    void open_position(const Signal& signal, double quantity, const std::string& exchange) {
-        if (!signal.is_actionable()) return;
-        std::lock_guard<std::mutex> lock(mutex_);
-        // Check if position already exists for this symbol — update instead of duplicate
-        for (auto& pos : positions_) {
-            if (pos.symbol == signal.symbol) {
-                pos.side        = signal.side();
-                pos.quantity    = quantity;
-                pos.entry_price = signal.entry_price;
-                pos.stop_loss   = signal.stop_loss;
-                pos.take_profit = signal.take_profit;
-                return;
-            }
-        }
-        Position pos;
-        pos.symbol      = signal.symbol;
-        pos.exchange    = exchange;
-        pos.side        = signal.side();
-        pos.quantity    = quantity;
-        pos.entry_price = signal.entry_price;
-        pos.stop_loss   = signal.stop_loss;
-        pos.take_profit = signal.take_profit;
-        positions_.push_back(std::move(pos));
-        active_symbols_.insert(signal.symbol);
-    }
-
     // ── Order-level tracking (S179) ─────────────────────────────────────────
     // Positions are booked only when the exchange reports FILLED — a send
     // ack is not a position. Resting LIMITs sit in pending_orders_ until

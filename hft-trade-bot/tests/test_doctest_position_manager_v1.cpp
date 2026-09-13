@@ -49,13 +49,23 @@ static Signal make_neutral_signal(std::string symbol = "BTC/USDT") {
     return s;
 }
 
+// Books a position the way prod does (S179): register the pending order,
+// then apply its FILLED ack. open_position() was removed — it bypassed the
+// fill path and its same-symbol overwrite branch silently dropped PnL.
+static void open_via_fill(PositionManager& pm, const Signal& sig, double qty,
+                          const std::string& exchange) {
+    pm.add_pending_order(sig, qty, exchange);
+    pm.apply_fill(sig.symbol, sig.direction == "LONG" ? "BUY" : "SELL", qty, sig.entry_price, 0.0,
+                  "FILLED");
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Open position
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Open long position creates correct position") {
     PositionManager pm;
     auto            sig = make_long_signal();
-    pm.open_position(sig, 1.0, "binance");
+    open_via_fill(pm, sig, 1.0, "binance");
     CHECK(pm.position_count() == 1);
     auto positions = pm.get_positions();
     CHECK(positions[0].symbol == "BTC/USDT");
@@ -68,7 +78,7 @@ TEST_CASE("Open long position creates correct position") {
 TEST_CASE("Open short position creates SELL side") {
     PositionManager pm;
     auto            sig = make_short_signal();
-    pm.open_position(sig, 2.0, "okx");
+    open_via_fill(pm, sig, 2.0, "okx");
     CHECK(pm.position_count() == 1);
     auto positions = pm.get_positions();
     CHECK(positions[0].side == Side::SELL);
@@ -78,14 +88,14 @@ TEST_CASE("Open short position creates SELL side") {
 TEST_CASE("Open position with NEUTRAL signal is rejected") {
     PositionManager pm;
     auto            sig = make_neutral_signal();
-    pm.open_position(sig, 1.0, "binance");
+    open_via_fill(pm, sig, 1.0, "binance");
     CHECK(pm.position_count() == 0);
 }
 
 TEST_CASE("Multiple positions can be opened") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
-    pm.open_position(make_short_signal("ETH/USDT"), 2.0, "okx");
+    open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("ETH/USDT"), 2.0, "okx");
     CHECK(pm.position_count() == 2);
 }
 
@@ -94,7 +104,7 @@ TEST_CASE("Multiple positions can be opened") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Close position returns position with pnl") {
     PositionManager pm;
-    pm.open_position(make_long_signal(), 1.0, "binance");
+    open_via_fill(pm, make_long_signal(), 1.0, "binance");
     auto result = pm.close_position("BTC/USDT", 51000.0);
     REQUIRE(result.has_value());
     CHECK(result->symbol == "BTC/USDT");
@@ -110,7 +120,7 @@ TEST_CASE("Close non-existent position returns nullopt") {
 
 TEST_CASE("Close short position calculates correct pnl") {
     PositionManager pm;
-    pm.open_position(make_short_signal(), 1.0, "binance");
+    open_via_fill(pm, make_short_signal(), 1.0, "binance");
     auto result = pm.close_position("BTC/USDT", 48000.0);
     REQUIRE(result.has_value());
     CHECK(result->unrealized_pnl == doctest::Approx(2000.0));
@@ -121,7 +131,7 @@ TEST_CASE("Close short position calculates correct pnl") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("has_position returns true for open position") {
     PositionManager pm;
-    pm.open_position(make_long_signal(), 1.0, "binance");
+    open_via_fill(pm, make_long_signal(), 1.0, "binance");
     CHECK(pm.has_position("BTC/USDT") == true);
 }
 
@@ -132,7 +142,7 @@ TEST_CASE("has_position returns false for non-open symbol") {
 
 TEST_CASE("has_position returns false after close") {
     PositionManager pm;
-    pm.open_position(make_long_signal(), 1.0, "binance");
+    open_via_fill(pm, make_long_signal(), 1.0, "binance");
     pm.close_position("BTC/USDT", 51000.0);
     CHECK(pm.has_position("BTC/USDT") == false);
 }
@@ -142,7 +152,7 @@ TEST_CASE("has_position returns false after close") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("update_all_pnl updates unrealized pnl") {
     PositionManager pm;
-    pm.open_position(make_long_signal(), 1.0, "binance");
+    open_via_fill(pm, make_long_signal(), 1.0, "binance");
     std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51000.0}};
     pm.update_all_pnl(prices);
     auto positions = pm.get_positions();
@@ -151,8 +161,8 @@ TEST_CASE("update_all_pnl updates unrealized pnl") {
 
 TEST_CASE("update_all_pnl ignores missing symbols") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
-    pm.open_position(make_short_signal("ETH/USDT"), 2.0, "okx");
+    open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("ETH/USDT"), 2.0, "okx");
     std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51000.0}};
     pm.update_all_pnl(prices);
     auto positions = pm.get_positions();
@@ -165,8 +175,8 @@ TEST_CASE("update_all_pnl ignores missing symbols") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("total_unrealized_pnl sums all positions") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
-    pm.open_position(make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
+    open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
     std::unordered_map<std::string, double> prices = {{"BTC/USDT", 51000.0}, {"ETH/USDT", 2900.0}};
     pm.update_all_pnl(prices);
     CHECK(pm.total_unrealized_pnl() == doctest::Approx(1200.0));
@@ -182,7 +192,7 @@ TEST_CASE("total_unrealized_pnl zero with no positions") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("check_sl_tp detects stop loss for long") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 48500.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
@@ -192,7 +202,7 @@ TEST_CASE("check_sl_tp detects stop loss for long") {
 
 TEST_CASE("check_sl_tp detects take profit for long") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 52500.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
@@ -201,7 +211,7 @@ TEST_CASE("check_sl_tp detects take profit for long") {
 
 TEST_CASE("check_sl_tp detects stop loss for short") {
     PositionManager pm;
-    pm.open_position(make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 51500.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
@@ -210,7 +220,7 @@ TEST_CASE("check_sl_tp detects stop loss for short") {
 
 TEST_CASE("check_sl_tp detects take profit for short") {
     PositionManager pm;
-    pm.open_position(make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("BTC/USDT", 50000, 51000, 48000), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 47500.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     REQUIRE(triggers.size() == 1);
@@ -219,7 +229,7 @@ TEST_CASE("check_sl_tp detects take profit for short") {
 
 TEST_CASE("check_sl_tp no triggers when price in range") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"BTC/USDT", 50500.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.empty());
@@ -227,7 +237,7 @@ TEST_CASE("check_sl_tp no triggers when price in range") {
 
 TEST_CASE("check_sl_tp skips missing price data") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
     std::unordered_map<std::string, double> prices   = {{"ETH/USDT", 3000.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.empty());
@@ -235,8 +245,8 @@ TEST_CASE("check_sl_tp skips missing price data") {
 
 TEST_CASE("check_sl_tp multiple positions multiple triggers") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
-    pm.open_position(make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
+    open_via_fill(pm, make_long_signal("BTC/USDT", 50000, 49000, 52000), 1.0, "binance");
+    open_via_fill(pm, make_short_signal("ETH/USDT", 3000, 3100, 2900), 2.0, "okx");
     std::unordered_map<std::string, double> prices = {{"BTC/USDT", 48500.0}, {"ETH/USDT", 2850.0}};
     auto                                    triggers = pm.check_sl_tp(prices);
     CHECK(triggers.size() == 2);
@@ -244,13 +254,13 @@ TEST_CASE("check_sl_tp multiple positions multiple triggers") {
 
 TEST_CASE("total_realized_pnl accumulates on close (S131)") {
     PositionManager pm;
-    pm.open_position(make_long_signal("BTC/USDT"), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
     CHECK(pm.total_realized_pnl() == doctest::Approx(0.0));
     auto result = pm.close_position("BTC/USDT", 51000.0);
     REQUIRE(result.has_value());
     CHECK(pm.total_realized_pnl() == doctest::Approx(result->unrealized_pnl));
     // second close accumulates
-    pm.open_position(make_long_signal("ETH/USDT", 3000), 1.0, "binance");
+    open_via_fill(pm, make_long_signal("ETH/USDT", 3000), 1.0, "binance");
     auto r2 = pm.close_position("ETH/USDT", 3300.0);
     CHECK(pm.total_realized_pnl() == doctest::Approx(result->unrealized_pnl + r2->unrealized_pnl));
 }
