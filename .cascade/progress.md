@@ -1335,3 +1335,15 @@ Board: **22 open**.
 Verify: vitest 61 (11 lifecycle + 6 PendingOrders + существующие), sim pytest 404, ai-bot pytest 1433, vite build green; test_doctest_cpp_optimizations собран и прогнан локально — 8/8.
 
 Board: **19 open**.
+
+## R92 — slop-fix: S189 + S190 + S184 + S153 + S176 — 5 закрыты
+
+- **S189** — ci.yml `wget -qO-` ×2 теперь pipe'ят gpg-ключ прямо в `gpg --dearmor` — lint-cpp и clang-17 leg снова собирают LLVM-репозиторий.
+- **S190** — codeql.yml: `|| true` снят с C++ build; python/js matrix legs удалены (дубль сильнейшего security-extended в ci.yml); остался cpp-only.
+- **S184** — `window.__hawkesTimeout` → useRef — per-instance таймер.
+- **S153** — alerting.py `ClientTimeout(total=15, connect=5)` — webhook-зависание ≤15s.
+- **S176** — auditExport.js + cn.js + 2 тест-файла удалены (0 импортеров).
+
+Verify: vitest 155 файлов / 1108 тестов green, alerting wiring 18/18, оба workflow-yaml валидны.
+
+Board: **14 open**.
