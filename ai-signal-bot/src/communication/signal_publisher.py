@@ -15,6 +15,8 @@ Protocol:
 """
 import asyncio
 import json
+import os
+import secrets
 import time
 from collections import deque
 from typing import TYPE_CHECKING
@@ -73,6 +75,11 @@ class SignalPublisher:
         self.data_source = None
         self.circuit_breaker = CircuitBreaker()
         self.metrics = MetricsCollector()
+        # Per-client sliding window for expensive compute endpoints — without
+        # it one client can CPU-DoS the whole bot by spamming run_backtest
+        # & friends. AI_BOT_COMPUTE_RATE_LIMIT = max compute msgs/min/client.
+        self._compute_rate_limit = int(os.environ.get("AI_BOT_COMPUTE_RATE_LIMIT", "30"))
+        self._compute_windows: dict = {}
         self._cb_broadcast_task: asyncio.Task | None = None
         self._state_lock = asyncio.Lock()
 
@@ -101,6 +108,13 @@ class SignalPublisher:
         self._running = True
         scheme = "wss" if self._ssl else "ws"
         logger.info("Signal publisher started on %s://%s:%s", scheme, self.host, self.port)
+        if not self._auth_token:
+            logger.warning(
+                "AI_BOT_AUTH_TOKEN unset — :%s accepts any client (signals, "
+                "history-on-connect, compute endpoints are open). Set the env "
+                "var or api.auth_token for real deployments.",
+                self.port,
+            )
 
         self._cb_broadcast_task = asyncio.create_task(self._broadcast_circuit_breaker_status())
 
@@ -125,7 +139,8 @@ class SignalPublisher:
             try:
                 raw = await asyncio.wait_for(websocket.recv(), timeout=10.0)
                 data = json.loads(raw)
-                if data.get("type") == "auth" and data.get("token") == self._auth_token:
+                if data.get("type") == "auth" and secrets.compare_digest(
+                        str(data.get("token", "")), self._auth_token):
                     await websocket.send(json.dumps({"type": "auth_ok"}, separators=(',', ':')))
                 else:
                     await websocket.send(json.dumps({"type": "auth_failed"}, separators=(',', ':')))
@@ -191,6 +206,16 @@ class SignalPublisher:
                     if msg_type not in _VALID_MSG_TYPES:
                         logger.warning("Unknown message type '%s' from %s", msg_type, remote)
                         continue
+                    if msg_type in self._COMPUTE_MSG_TYPES and not self._allow_compute(websocket):
+                        logger.warning("Compute rate limit exceeded for %s — dropping %s",
+                                       remote, msg_type)
+                        await websocket.send(json.dumps(
+                            {"type": "error",
+                             "message": f"rate limit: max {self._compute_rate_limit} "
+                                        f"compute requests/min per client",
+                             "request": msg_type},
+                            separators=(',', ':')))
+                        continue
                     if msg_type == "subscribe":
                         logger.info("Client subscribed: %s", data.get('client', 'unknown'))
                     elif msg_type == "auth":
@@ -236,10 +261,30 @@ class SignalPublisher:
         except (ConnectionError, OSError, RuntimeError) as e:
             logger.debug("Client handler error: %s", e)
         finally:
+            self._compute_windows.pop(websocket, None)
             async with self._state_lock:
                 self._clients.discard(websocket)
                 self.metrics.set_ws_clients(len(self._clients))
             logger.info("HFT client disconnected (total: %s)", len(self._clients))
+
+    # Compute endpoints share one sliding-window budget per client — they all
+    # burn seconds-to-minutes of CPU.
+    _COMPUTE_MSG_TYPES = frozenset({
+        "run_backtest", "compare_backtests", "optimize_portfolio",
+        "vol_surface", "cvar_analysis", "stress_test", "position_size",
+        "hawkes_fit", "funding_arb_scan",
+    })
+
+    def _allow_compute(self, websocket) -> bool:
+        """True if this client may run another compute request (sliding 60s)."""
+        now = time.monotonic()
+        window = self._compute_windows.setdefault(websocket, deque())
+        while window and now - window[0] > 60.0:
+            window.popleft()
+        if len(window) >= self._compute_rate_limit:
+            return False
+        window.append(now)
+        return True
 
     async def _broadcast_to_clients(self, msg: bytes | str) -> None:
         """Send a message to all connected clients, removing disconnected ones."""

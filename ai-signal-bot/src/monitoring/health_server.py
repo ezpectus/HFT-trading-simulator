@@ -9,6 +9,7 @@ GET /health/shm — SHM status
 from __future__ import annotations
 
 import asyncio
+import secrets
 import time
 from collections.abc import Callable
 from typing import TypedDict
@@ -154,7 +155,7 @@ class HealthServer:
         if request.path in ("/live", "/ready"):
             return await handler(request)
         auth = request.headers.get("Authorization", "")
-        if auth == f"Bearer {self._auth_token}":
+        if secrets.compare_digest(auth, f"Bearer {self._auth_token}"):
             return await handler(request)
         return web.json_response({"error": "unauthorized"}, status=401)
 

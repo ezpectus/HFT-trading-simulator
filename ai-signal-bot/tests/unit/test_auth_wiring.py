@@ -75,6 +75,40 @@ class TestPublisherAuthHandshake:
             await pub.stop()
 
 
+class TestComputeRateLimit:
+    @pytest.mark.asyncio
+    async def test_per_client_compute_window(self, monkeypatch):
+        """N+1th compute request in the window is dropped with an error —
+        subscribe/ping stay unlimited."""
+        monkeypatch.setenv("AI_BOT_COMPUTE_RATE_LIMIT", "2")
+        pub = SignalPublisher(host="127.0.0.1", port=18875)
+        await pub.start()
+        try:
+            ws = await websockets.connect("ws://127.0.0.1:18875", ping_interval=None)
+            replies = []
+            for _ in range(3):
+                await ws.send(json.dumps({"type": "hawkes_fit"}))
+                while True:
+                    data = json.loads(await asyncio.wait_for(ws.recv(), timeout=5))
+                    # skip connect-time history/cb-status frames; handler
+                    # replies arrive as {"type": "hawkes_result", ...} or the
+                    # rate-limit {"type": "error", ...}
+                    t = data.get("type", "")
+                    if t == "error" or t.endswith("_result"):
+                        replies.append(data)
+                        break
+            assert replies[2]["type"] == "error"
+            assert "rate limit" in replies[2]["message"]
+            assert replies[2]["request"] == "hawkes_fit"
+            # non-compute types are unaffected
+            await ws.send(json.dumps({"type": "subscribe"}))
+            await asyncio.sleep(0.3)
+            assert pub.client_count == 1
+            await ws.close()
+        finally:
+            await pub.stop()
+
+
 class TestHealthServerAuth:
     async def _start(self, token):
         server = HealthServer(port=0, host="127.0.0.1", auth_token=token)
