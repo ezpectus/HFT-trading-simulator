@@ -166,18 +166,16 @@ describe('Web UI Performance Tests', () => {
   })
 
   describe('Bundle Size Optimization', () => {
-    it('should have manual chunks configured', () => {
-      // Verify code splitting configuration
-      // This would typically check the vite.config.js
-      expect(true).toBe(true)
-    })
-  })
-
-  describe('Initial Load Time', () => {
-    it('should target < 2s initial load time', () => {
-      // This would be measured in a real browser environment
-      // For unit tests, we verify the configuration is in place
-      expect(true).toBe(true)
+    it('should have manual chunks configured', async () => {
+      const { default: config } = await import('../../vite.config.js')
+      const manualChunks = config.build?.rollupOptions?.output?.manualChunks
+      expect(typeof manualChunks).toBe('function')
+      // Vendor splitting rules actually group the heavy deps
+      expect(manualChunks('/app/node_modules/react-dom/index.js')).toBe('react-vendor')
+      expect(manualChunks('/app/node_modules/lightweight-charts/dist/x.js')).toBe('charts-vendor')
+      expect(manualChunks('/app/node_modules/lucide-react/dist/x.js')).toBe('icons-vendor')
+      expect(manualChunks('/app/node_modules/zustand/index.js')).toBe('state-vendor')
+      expect(manualChunks('/app/src/components/Foo.jsx')).toBeUndefined()
     })
   })
 })
