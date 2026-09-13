@@ -24,9 +24,19 @@ inline std::string expand_env(const std::string& s) {
                 break;
             }
             std::string var_name = s.substr(i + 2, end - i - 2);
-            const char* val      = std::getenv(var_name.c_str());
-            if (val) {
+            // "${VAR:-default}" — fall back to the default when the env var is
+            // unset or empty (k8s/compose inject service DNS via env).
+            std::string fallback;
+            const auto  sep = var_name.find(":-");
+            if (sep != std::string::npos) {
+                fallback = var_name.substr(sep + 2);
+                var_name = var_name.substr(0, sep);
+            }
+            const char* val = std::getenv(var_name.c_str());
+            if (val && *val) {
                 result += val;
+            } else {
+                result += fallback;
             }
             i = end + 1;
         } else {
@@ -187,7 +197,7 @@ inline void parse_prod_exchanges(Config& cfg, const YAML::Node& root) {
         if (ex["fallback_to_simulator"])
             cfg.fallback_to_simulator = ex["fallback_to_simulator"].as<bool>();
         if (ex["simulator_ws_url"]) {
-            cfg.simulator_ws_url = ex["simulator_ws_url"].as<std::string>();
+            cfg.simulator_ws_url = expand_env(ex["simulator_ws_url"].as<std::string>());
             cfg.ws_url           = cfg.simulator_ws_url;
         }
         if (!cfg.active_exchanges.empty()) cfg.default_exchange = cfg.active_exchanges[0];
@@ -211,7 +221,7 @@ inline void parse_prod_ipc(Config& cfg, const YAML::Node& root) {
         }
         if (auto ks = ipc["kill_switch"]) {
             if (ks["trigger_file"])
-                cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+                cfg.kill_switch_trigger_file = expand_env(ks["trigger_file"].as<std::string>());
             if (ks["poll_interval_ms"])
                 cfg.kill_switch_poll_interval_ms = ks["poll_interval_ms"].as<int>();
         }
@@ -278,7 +288,7 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
         if (r["initial_balance"]) cfg.initial_balance = r["initial_balance"].as<double>();
         if (auto ks = r["kill_switch"]) {
             if (ks["trigger_file"])
-                cfg.kill_switch_trigger_file = ks["trigger_file"].as<std::string>();
+                cfg.kill_switch_trigger_file = expand_env(ks["trigger_file"].as<std::string>());
         }
     }
 }

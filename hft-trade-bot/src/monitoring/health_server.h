@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -32,7 +33,8 @@ namespace hft {
 
 class HealthServer {
   public:
-    HealthServer(uint16_t port = 9091) : port_(port) {}
+    HealthServer(uint16_t port = 9091, std::string host = "0.0.0.0")
+        : port_(port), host_(std::move(host)) {}
 
     ~HealthServer() { stop(); }
 
@@ -85,9 +87,16 @@ class HealthServer {
 
         struct sockaddr_in addr;
         std::memset(&addr, 0, sizeof(addr));
-        addr.sin_family      = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port        = htons(port_);
+        addr.sin_family = AF_INET;
+        // metrics.host selects the bind address — default stays INADDR_ANY so
+        // compose/prometheus scraping keeps working; set 127.0.0.1 to keep
+        // positions/PnL off the wire.
+        if (::inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) != 1) {
+            spdlog::warn("Health server: invalid metrics.host '{}' — falling back to 0.0.0.0",
+                         host_);
+            addr.sin_addr.s_addr = INADDR_ANY;
+        }
+        addr.sin_port = htons(port_);
 
         if (::bind(server_sock_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
             spdlog::error("Health server: bind() failed on port {}", port_);
@@ -108,6 +117,23 @@ class HealthServer {
                 if (!running_.load(std::memory_order_relaxed)) break;
                 continue;
             }
+
+            // One accept-loop thread serves every client — an idle client that
+            // opens TCP and sends nothing must not freeze /health + /metrics
+            // for every probe behind it. Bound the blocking read/write.
+#ifdef _WIN32
+            DWORD io_timeout = 5000;
+            ::setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&io_timeout,
+                         sizeof(io_timeout));
+            ::setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, (const char*)&io_timeout,
+                         sizeof(io_timeout));
+#else
+            struct timeval io_timeout {
+                5, 0
+            };
+            ::setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &io_timeout, sizeof(io_timeout));
+            ::setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &io_timeout, sizeof(io_timeout));
+#endif
 
             // Read request (minimal — just need the first line)
             char buf[512];
@@ -182,6 +208,7 @@ class HealthServer {
     }
 
     uint16_t          port_;
+    std::string       host_;
     socket_t          server_sock_{kInvalidSocket};
     std::thread       thread_;
     std::atomic<bool> running_{false};

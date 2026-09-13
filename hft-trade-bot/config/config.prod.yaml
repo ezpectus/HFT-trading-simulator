@@ -35,7 +35,9 @@ system:
 # Exchange simulator connection
 exchange:
   fallback_to_simulator: true
-  simulator_ws_url: "ws://exchange_simulator:8765"
+  # ${VAR:-default} — k8s injects the release-scoped DNS name via
+  # HFT_EXCHANGE_WS_URL; compose/prod falls back to the compose service name.
+  simulator_ws_url: "${HFT_EXCHANGE_WS_URL:-ws://exchange_simulator:8765}"
 
 # ── SHM IPC configuration ──
 # Shared memory ring buffers for Python↔C++ communication
@@ -52,7 +54,9 @@ ipc:
     max_symbols: 10                        # Max symbols to track
   kill_switch:
     shm_name: "/hft_kill_switch"           # Kill switch SHM flag
-    trigger_file: "/tmp/kill_switch"       # File-based trigger (touch to activate)
+    # ${VAR:-default} — k8s sets HFT_KILL_SWITCH_FILE to a writable path
+    # (/tmp is read-only under readOnlyRootFilesystem); default suits bare metal.
+    trigger_file: "${HFT_KILL_SWITCH_FILE:-/tmp/kill_switch}"
     poll_interval_ms: 1000                 # Check interval
 
 # ── Signal engine v2 ──

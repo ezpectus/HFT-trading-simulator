@@ -206,8 +206,8 @@ void init_kill_switch(BotContext& ctx) {
 }
 
 void init_monitoring(BotContext& ctx) {
-    ctx.health_server =
-        std::make_unique<HealthServer>(ctx.config.is_production ? ctx.config.metrics_port : 9091);
+    ctx.health_server = std::make_unique<HealthServer>(
+        ctx.config.is_production ? ctx.config.metrics_port : 9091, ctx.config.metrics_host);
     ctx.health_server->start(&ctx.sys_monitor);
 }
 
