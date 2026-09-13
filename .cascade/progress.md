@@ -1572,3 +1572,17 @@ Findings:
 Clean: options_simulator canonical BS+Greeks+NR-IV honest NaN; data_export real CSV/Parquet honest fallback; config_validator full cross-refs; ws_metrics all counters/histograms fed (broadcast:68/224, handler:101-114/122/218); ws_prometheus valid exposition + rusage Windows-guard; websocket_server guarded optional imports (S207 contrast), correct SHM seqlock, real health endpoints; monitor.py — Signal.to_dict keys 1:1, both tail files are config defaults; run_backtest.py real walk-forward (optimizer:193-219 IS/OOS) — unlike S214's theatrical twin; visualizer charts/account — canonical indicator math, real data.
 
 Commit: (below)
+
+## R113 — 2026-09-15 — audit: hft root/scripts leaf-sweep + orphan files — 4 findings (S224–S227)
+
+Target: hft-trade-bot never-leaf-read (monitor.py, scripts/{build,run,monitor}.py, package-lock.json, Dockerfiles, .dockerignore), scripts/ci/ tree, __init__/.env.example/gitkeep markers, fpga_orderbook.vhd claim-check.
+
+Findings:
+- S224 (Medium): hft log_file dead config key + both monitors blind — log_file parsed from logging.file+system.log_file and set in config.prod.yaml:31, but Logger::init takes dir only (bot_setup.cpp:61) -> logs always hft_trade_bot_{ts}.log/_latest.log; monitor.py:13 tails never-written logs/hft_trade_bot.log -> permanent NOT FOUND; scripts/monitor.py:23 reads /hft_heartbeat shm that no producer creates (only /hft_fills+/hft_market exist) -> exits not-found every run.
+- S225 (Low): scripts/run.py --paper is a fake flag — appended as argv[2] but init_config_and_logger reads only argv[1]; no flag parser exists -> silently ignored.
+- S226 (Low): scripts/ci/ orphan self-hosted CI — 8 files ~545 lines, zero callers (real CI = ci.yml); test.sh greens with 0 tests run (missing pytest/vitest warn-skip without FAIL), and never runs exchange_simulator's 31 test files even when tools exist.
+- S227 (Info): committed residue — hft-trade-bot/package-lock.json empty lockfile (packages:{}, no package.json in dir); 4 stale .gitkeep in non-empty dirs.
+
+Clean: build.py honest CMake wrapper; hft Dockerfiles ABI-matched bookworm + pinned libs + non-root + real healthcheck; .dockerignore x5 sane; .env.example accurate (VITE_SIGNAL_TOKEN verified end-to-end: useExchangeData:457 -> signal_publisher:137-143; EXCHANGE_TOKEN -> _handle_auth:503); fpga_orderbook.vhd never claimed live; __init__ markers honest.
+
+Commit: (below)
