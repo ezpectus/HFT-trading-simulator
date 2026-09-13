@@ -731,14 +731,17 @@ market:
 ### HFT Trade Bot
 
 ```yaml
-# Enable thread pinning
+# Enable thread pinning (prod config key names)
 latency_optimization:
-  enable_thread_pinning: true
-  enable_spinlocks: true
+  thread_pinning: true
+  execution_thread_core: 1
 
-# Optimize SHM
-shm:
-  ring_buffer_size: 8192  # Increase from 4096
+# Increase IPC ring-buffer capacities
+ipc:
+  signals:
+    capacity: 8192       # Increase from 4096
+  fills:
+    capacity: 8192
 ```
 
 ## References

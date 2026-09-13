@@ -198,7 +198,6 @@ The system implements production-grade observability across all components:
 - `exchange_order_submission.py` — Order validation/submission path (rate limits, trading-stopped, error frames)
 - `exchange_advanced_orders.py` — Stop-limit, trailing-stop, OCO, iceberg order types
 - `options_simulator.py` — Black-Scholes engine with Greeks (per-day theta) + Newton-Raphson IV
-- `options_strategies.py` / `options_pricing.py` — Strategy helpers; `options_pricing` is a deprecated shim
 - `ws_message_handler.py` / `ws_broadcast.py` / `ws_metrics.py` / `ws_prometheus.py` — WS message routing, broadcasts, metrics exposition
 - `__main__.py` — Entry point with timestamped logging via `run_logger.py`
 

@@ -126,7 +126,7 @@ The system has **316 test files** across three languages:
 |----------|-----------|
 | Core engine | test_exchange, test_simulator, test_simulated_exchange, test_market_simulator |
 | Order types | test_advanced_order_types |
-| Options | test_options_pricing, test_options_simulator |
+| Options | test_options_simulator |
 | Funding & Liquidation | test_funding_liquidation, test_liquidation_depth |
 | WebSocket | test_websocket_orderbook, test_websocket_server, test_ws_message_handler |
 | Property-based | test_property_based (Hypothesis) |
