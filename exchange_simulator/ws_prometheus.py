@@ -3,6 +3,37 @@
 Extracted from websocket_server.py for file-size compliance.
 Generates Prometheus-format metrics string for /metrics endpoint.
 """
+import os
+import time
+
+try:
+    import resource
+    _HAS_RESOURCE = True
+except ImportError:  # Windows — process metrics unavailable
+    _HAS_RESOURCE = False
+
+
+def _process_metrics() -> tuple[float | None, int | None]:
+    """Return (cpu_percent, rss_bytes) for this process, or (None, None)."""
+    if not _HAS_RESOURCE:
+        return None, None
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    cpu_time = usage.ru_utime + usage.ru_stime
+    now = _process_metrics._last_wall
+    cpu_pct = None
+    if _process_metrics._last_cpu is not None:
+        wall_delta = time.monotonic() - now
+        if wall_delta > 0:
+            ncpu = os.cpu_count() or 1
+            cpu_pct = max(0.0, (cpu_time - _process_metrics._last_cpu) / wall_delta) * 100.0 / ncpu
+    _process_metrics._last_cpu = cpu_time
+    _process_metrics._last_wall = time.monotonic()
+    rss = usage.ru_maxrss * (1024 if os.uname().sysname == "Linux" else 1)
+    return cpu_pct, int(rss)
+
+
+_process_metrics._last_cpu = None
+_process_metrics._last_wall = time.monotonic()
 
 
 class PrometheusMixin:
@@ -45,8 +76,39 @@ class PrometheusMixin:
 
         self._append_exchange_metrics(lines)
         self._append_price_metrics(lines)
+        self._append_sim_metrics(lines)
 
         return "\n".join(lines) + "\n"
+
+    def _append_sim_metrics(self, lines: list[str]) -> None:
+        """Append simulator service-level metrics (S131)."""
+        m = self.metrics
+        lines.append("# HELP exchange_simulator_errors_total Message handling errors")
+        lines.append("# TYPE exchange_simulator_errors_total counter")
+        lines.append(f"exchange_simulator_errors_total {m.errors_total}")
+
+        lines.append("# HELP exchange_simulator_price_updates_total Per-symbol price updates generated")
+        lines.append("# TYPE exchange_simulator_price_updates_total counter")
+        lines.append(f"exchange_simulator_price_updates_total {m.price_updates_total}")
+
+        lines.extend(m.order_latency.prometheus_lines(
+            "exchange_simulator_order_latency_seconds", "Order handling latency (seconds)"))
+        lines.extend(m.feed_latency.prometheus_lines(
+            "exchange_simulator_price_feed_latency_seconds",
+            "Market tick generation-to-broadcast latency (seconds)"))
+        lines.extend(m.ws_latency.prometheus_lines(
+            "exchange_simulator_websocket_latency_seconds",
+            "Client message handling latency (seconds)"))
+
+        cpu_pct, rss = _process_metrics()
+        if cpu_pct is not None:
+            lines.append("# HELP exchange_simulator_cpu_usage_percent Process CPU usage (percent)")
+            lines.append("# TYPE exchange_simulator_cpu_usage_percent gauge")
+            lines.append(f"exchange_simulator_cpu_usage_percent {cpu_pct:.2f}")
+        if rss is not None:
+            lines.append("# HELP exchange_simulator_memory_usage_bytes Process resident memory (bytes)")
+            lines.append("# TYPE exchange_simulator_memory_usage_bytes gauge")
+            lines.append(f"exchange_simulator_memory_usage_bytes {rss}")
 
     def _append_exchange_metrics(self, lines: list[str]) -> None:
         """Append per-exchange account and order metrics."""

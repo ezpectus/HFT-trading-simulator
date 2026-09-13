@@ -19,6 +19,7 @@ import asyncio
 import logging
 import os
 import signal
+import statistics
 import sys
 import time
 
@@ -573,6 +574,17 @@ class AISignalBot:
                 equity=account.get("equity", account.get("balance", 0.0)),
                 open_positions=len(account.get("positions", [])),
             )
+            metrics = getattr(self.signal_publisher, "metrics", None)
+            if metrics is not None:
+                equity_series = self.db.get_equity_history(limit=500)
+                returns = [
+                    (b - a) / a
+                    for a, b in zip(equity_series, equity_series[1:], strict=False)
+                    if a > 0
+                ]
+                if len(returns) >= 2:
+                    sd = statistics.stdev(returns)
+                    metrics.set_bot_sharpe(statistics.fmean(returns) / sd if sd > 0 else 0.0)
         except Exception as e:  # persistence must never break the signal loop
             self.logger.warning("equity snapshot failed: %s", e)
 

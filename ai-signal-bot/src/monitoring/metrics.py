@@ -7,9 +7,16 @@ Uses prometheus_client for standard metric types (Counter, Gauge, Histogram).
 
 from __future__ import annotations
 
+import os
 import time
 
 from src.observability.logging import get_logger
+
+try:
+    import resource
+    HAS_RESOURCE = True
+except ImportError:  # Windows — process metrics unavailable
+    HAS_RESOURCE = False
 
 logger = get_logger(__name__)
 
@@ -74,6 +81,7 @@ class MetricsExporter:
             self.ws_reconnects_total = None
             return
 
+        self._last_cpu_sample: tuple[float, float] | None = None
         self.registry = CollectorRegistry()
         self._init_metrics()
 
@@ -209,6 +217,18 @@ class MetricsExporter:
             "trading_ws_reconnects_total", "Total WebSocket reconnections",
             registry=self.registry,
         )
+        self.bot_cpu_usage_percent = Gauge(
+            "ai_signal_bot_cpu_usage_percent", "Process CPU usage (percent)",
+            registry=self.registry,
+        )
+        self.bot_memory_usage_bytes = Gauge(
+            "ai_signal_bot_memory_usage_bytes", "Process resident memory (bytes)",
+            registry=self.registry,
+        )
+        self.bot_sharpe_ratio = Gauge(
+            "ai_signal_bot_sharpe_ratio", "Per-interval Sharpe ratio of equity returns",
+            registry=self.registry,
+        )
 
     # ── Update methods ──
 
@@ -342,6 +362,31 @@ class MetricsExporter:
             return
         self.bot_uptime_seconds.set(seconds)
 
+    def set_bot_sharpe(self, sharpe: float):
+        if not HAS_PROMETHEUS:
+            return
+        self.bot_sharpe_ratio.set(sharpe)
+
+    def _refresh_process_metrics(self):
+        """Sample process CPU/memory at scrape time (POSIX)."""
+        if not HAS_PROMETHEUS or not HAS_RESOURCE:
+            return
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        cpu_time = usage.ru_utime + usage.ru_stime
+        now = time.monotonic()
+        if self._last_cpu_sample is not None:
+            last_cpu, last_wall = self._last_cpu_sample
+            wall_delta = now - last_wall
+            if wall_delta > 0:
+                ncpu = os.cpu_count() or 1
+                self.bot_cpu_usage_percent.set(
+                    max(0.0, (cpu_time - last_cpu) / wall_delta) * 100.0 / ncpu
+                )
+        self._last_cpu_sample = (cpu_time, now)
+        # ru_maxrss: KiB on Linux, bytes on macOS
+        rss = usage.ru_maxrss * (1024 if os.uname().sysname == "Linux" else 1)
+        self.bot_memory_usage_bytes.set(rss)
+
     def record_ws_reconnect(self):
         if not HAS_PROMETHEUS:
             return
@@ -377,6 +422,7 @@ class MetricsExporter:
 
     async def _metrics_handler(self, request):
         """Handle /metrics endpoint."""
+        self._refresh_process_metrics()
         data = generate_latest(self.registry)
         return web.Response(body=data, content_type=CONTENT_TYPE_LATEST)
 

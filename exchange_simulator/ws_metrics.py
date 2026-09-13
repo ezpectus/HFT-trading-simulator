@@ -6,6 +6,33 @@ import time
 from collections import deque
 
 
+class LatencyHistogram:
+    """Prometheus-style cumulative-bucket latency histogram (seconds)."""
+
+    BUCKETS: tuple[float, ...] = (0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
+
+    def __init__(self) -> None:
+        self.bucket_counts = [0] * len(self.BUCKETS)
+        self.count = 0
+        self.sum = 0.0
+
+    def observe(self, seconds: float) -> None:
+        self.count += 1
+        self.sum += seconds
+        for i, bound in enumerate(self.BUCKETS):
+            if seconds <= bound:
+                self.bucket_counts[i] += 1
+
+    def prometheus_lines(self, name: str, help_text: str) -> list[str]:
+        lines = [f"# HELP {name} {help_text}", f"# TYPE {name} histogram"]
+        for bound, cnt in zip(self.BUCKETS, self.bucket_counts):
+            lines.append(f'{name}_bucket{{le="{bound:g}"}} {cnt}')
+        lines.append(f'{name}_bucket{{le="+Inf"}} {self.count}')
+        lines.append(f"{name}_sum {self.sum:.6f}")
+        lines.append(f"{name}_count {self.count}")
+        return lines
+
+
 class WebSocketMetrics:
     """Tracks WebSocket broadcasting performance metrics."""
 
@@ -18,6 +45,11 @@ class WebSocketMetrics:
         self.client_count: int = 0
         self.broadcast_latencies: deque[float] = deque(maxlen=10000)
         self.max_samples: int = 10000
+        self.errors_total: int = 0
+        self.price_updates_total: int = 0
+        self.order_latency = LatencyHistogram()
+        self.ws_latency = LatencyHistogram()
+        self.feed_latency = LatencyHistogram()
         self._start_time: float = time.time()
         self._sorted_sizes_cache: list[int] | None = None
         self._sorted_latencies_cache: list[float] | None = None

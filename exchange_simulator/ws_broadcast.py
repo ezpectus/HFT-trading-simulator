@@ -210,8 +210,10 @@ class BroadcastMixin:
             if not self.clients:
                 continue
 
+            feed_t0 = time.monotonic()
             candles = self.market.next_candle()
             self.market.auto_check_weekend()
+            self.metrics.price_updates_total += len(candles)
 
             await self._process_exchange_events()
             arb_data = await self._process_arbitrage()
@@ -221,6 +223,7 @@ class BroadcastMixin:
             self._publish_shm_snapshot(int(time.time_ns()))
 
             await self._broadcast_market_data(candles, orderbooks, orderbook_deltas, arb_data)
+            self.metrics.feed_latency.observe(time.monotonic() - feed_t0)
             await self._broadcast_audit_events()
 
     async def _broadcast_audit_events(self) -> None:

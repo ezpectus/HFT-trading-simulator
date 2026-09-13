@@ -1,5 +1,7 @@
 """Unit tests for monitoring/metrics.py — MetricsExporter Prometheus metrics."""
 
+import re
+
 import pytest
 
 from src.monitoring.metrics import HAS_PROMETHEUS, MetricsExporter
@@ -267,3 +269,57 @@ def test_record_ws_reconnect(exporter: MetricsExporter) -> None:
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
     exporter.record_ws_reconnect()
+
+
+# ─── S131 — service-level gauges ───
+
+
+def test_new_gauges_registered(exporter: MetricsExporter) -> None:
+    """S131 cpu/memory/sharpe gauges should exist in the registry output."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    from prometheus_client import generate_latest
+
+    exporter.set_bot_sharpe(1.25)
+    out = generate_latest(exporter.registry).decode()
+    assert "ai_signal_bot_sharpe_ratio 1.25" in out
+    assert "# HELP ai_signal_bot_cpu_usage_percent" in out
+    assert "# HELP ai_signal_bot_memory_usage_bytes" in out
+    assert "# HELP ai_signal_bot_sharpe_ratio" in out
+
+
+def test_refresh_process_metrics(exporter: MetricsExporter) -> None:
+    """Process metrics refresh should populate memory gauge on POSIX."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    from src.monitoring.metrics import HAS_RESOURCE
+    if not HAS_RESOURCE:
+        pytest.skip("resource module unavailable (Windows)")
+    from prometheus_client import generate_latest
+
+    exporter._refresh_process_metrics()
+    exporter._refresh_process_metrics()  # second call computes cpu delta
+    out = generate_latest(exporter.registry).decode()
+    assert re.search(r"ai_signal_bot_memory_usage_bytes [1-9]\d*", out)
+    assert re.search(r"ai_signal_bot_cpu_usage_percent [\d.]+", out)
+
+
+def test_set_bot_sharpe(exporter: MetricsExporter) -> None:
+    """set_bot_sharpe should not raise."""
+    if not HAS_PROMETHEUS:
+        pytest.skip("prometheus_client not installed")
+    exporter.set_bot_sharpe(0.0)
+
+
+# ─── S131 — db.get_equity_history ───
+
+
+def test_get_equity_history(tmp_path) -> None:
+    """Equity history returns chronological order, newest-limited."""
+    from src.database.db import Database
+
+    db = Database(str(tmp_path / "t.db"))
+    for eq in (100.0, 110.0, 105.0):
+        db.save_equity(balance=eq, equity=eq, open_positions=0)
+    assert db.get_equity_history() == [100.0, 110.0, 105.0]
+    assert db.get_equity_history(limit=2) == [110.0, 105.0]

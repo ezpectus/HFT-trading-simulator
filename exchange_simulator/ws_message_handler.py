@@ -84,8 +84,10 @@ class MessageHandlerMixin:
 
     async def _process_message(self, websocket, message, remote) -> None:
         """Parse and dispatch a single client message."""
+        t0 = time.monotonic()
         try:
             if not self._check_rate_limit(websocket):
+                self.metrics.errors_total += 1
                 await websocket.send(json.dumps({
                     "type": "error",
                     "message": "Rate limit exceeded — too many messages",
@@ -94,10 +96,14 @@ class MessageHandlerMixin:
 
             data = self._parse_message(message, remote)
             if data is None:
+                self.metrics.errors_total += 1
                 return
             await self._handle_message(websocket, data)
         except (RuntimeError, OSError, KeyError, ValueError, TypeError) as e:
+            self.metrics.errors_total += 1
             logger.error("Error handling message: %s", e)
+        finally:
+            self.metrics.ws_latency.observe(time.monotonic() - t0)
 
     def _parse_message(self, message, remote) -> dict | None:
         """Parse a message from bytes or str. Returns parsed dict or None."""
@@ -162,6 +168,13 @@ class MessageHandlerMixin:
 
     async def _handle_order(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle order submission from a bot."""
+        t0 = time.monotonic()
+        try:
+            await self._handle_order_inner(websocket, data)
+        finally:
+            self.metrics.order_latency.observe(time.monotonic() - t0)
+
+    async def _handle_order_inner(self, websocket: WebSocketServerConnection, data: dict) -> None:
         if not self._trading_active:
             await websocket.send(json.dumps({
                 "type": "error",

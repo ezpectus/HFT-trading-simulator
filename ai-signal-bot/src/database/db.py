@@ -161,6 +161,15 @@ class Database:
         )
         conn.commit()
 
+    def get_equity_history(self, limit: int = 500) -> list[float]:
+        """Return the most recent equity values in chronological order."""
+        conn = self._get_conn()
+        rows = conn.execute(
+            "SELECT equity FROM equity_curve ORDER BY timestamp DESC, rowid DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [r[0] for r in reversed(rows)]
+
     def get_stats(self) -> dict:
         conn = self._get_conn()
         total_signals = conn.execute("SELECT COUNT(*) FROM signals").fetchone()[0]
