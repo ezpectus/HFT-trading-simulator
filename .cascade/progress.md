@@ -1117,3 +1117,14 @@ Board: **14 open** (S148–S161). Docs: CONFIGURATION_GUIDE obi_levels-claim + �
 ЧИСТО: :8766-секция полностью честна (9 compute-типов + 9 `*_result` + auth/signal/regime/cb); sim subscribe/unsubscribe/trading_state/snapshot/sync_state реальны; alerts.yml — все 22 expr резолвятся (rejected_total/equity/balance/drawdown/win_rate/pnl эмитятся); hft dashboard — все 10 `hft_*` метрик живые.
 
 Board: **16 open** (S148–S163). Docs: WEBSOCKET_PROTOCOL.md §8765 поправлен (все 7 пунктов).
+
+## R75 — slop-audit: infra-config honesty (helm values/templates + terraform + alertmanager + Makefile) — 2 находки S164–S165
+
+Непокрытая клетка: leaf-sweep инфра-конфигов (R73 покрыл yaml конфиги сервисов, но не helm/terraform). Sweep: values.yaml vs .Values-потребители, все 10 шаблонов, terraform variables vs var.*, alertmanager routing, Makefile targets vs файлы.
+
+- **S164 (High)** — helm-чарт деплоит нерабочую систему. (1) ai-signal-bot без `WS_URL` → звонит на `ws://localhost:8765` своего пода → sim-service недостижим → весь signal-пайплайн + hft-sidecar мертвы при зелёных пробах. (2) exchange-simulator: baked `host: localhost` без config-маунта → пробы на pod-IP фейлят → CrashLoopBackOff (хуже compose-S156); исправить через чарт нельзя — маунта нет. (3) Prometheus ConfigMap без `rule_files`/`alerting:`, alertmanager-шаблона нет → ноль алертов в k8s. (4) Grafana без provisioning → пустая (ни datasource, ни дашбордов). (5) NetworkPolicy default-deny egress блокирует api.openai.com при подключённом `OPENAI_API_KEY`. (6) hft kill-switch `/tmp/kill_switch` на readOnly rootfs — file-trigger мёртв (SHM жив). (7) `webUi.wsExchange/wsSignals` — required `--set`, потребляются только fail-гвардами, в под не идут. (8) `AI_BOT_AUTH_TOKEN` не ставится → publisher fail-open (расширяет S157).
+- **S165 (Info)** — terraform `eks` модуль: `variable "vpc_id"` декларирован+передаётся из обоих env, внутри модуля не используется. Makefile: 5 хвостовых таргетов не в `.PHONY`.
+
+ЧИСТО: values.yaml — все ~44 ключа потребляются; alertmanager честно документирует «nothing sent until wired»; Makefile logs — все файлы реальны (`_latest` symlink'и/синки); Makefile targets → существующие файлы; terraform 10/11 vars; hft-trade-bot.yaml — честный comment-only sidecar-doc.
+
+Board: **18 open** (S148–S165).

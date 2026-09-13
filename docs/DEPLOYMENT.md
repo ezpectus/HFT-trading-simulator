@@ -256,6 +256,12 @@ npm run preview
 **Why Kubernetes?** For production deployments requiring auto-scaling, self-healing,
 rolling updates, and centralized management across multiple nodes.
 
+> **⚠ Audit note (S164):** the chart currently deploys a non-functional pipeline —
+> the simulator binds pod-loopback with no config mount (probes fail →
+> CrashLoop), the AI bot lacks `WS_URL`/`AI_BOT_AUTH_TOKEN` env wiring, and
+> Prometheus/Grafana ship without alert rules or provisioning. Treat the helm
+> path as a work-in-progress until S164 is fixed.
+
 #### 1. Configure Helm Values
 
 ```bash
