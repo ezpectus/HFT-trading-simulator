@@ -249,7 +249,11 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
 }
 
 void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade) {
-    if (!ctx.config.signal_engine_v2_enabled || !can_trade) return;
+    // v3 replaces v2 inside generate_signal when constructed — the loop must
+    // run when *either* engine is enabled, or v3-only configs stay dark.
+    if ((!ctx.config.signal_engine_v2_enabled && !ctx.config.signal_engine_v3_enabled) ||
+        !can_trade)
+        return;
     for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
         ScopedLatency signal_timer(ctx.signal_latency_hist);
         auto          candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
