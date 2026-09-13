@@ -1363,3 +1363,14 @@ Board: **14 open**.
 - **S176** — auditExport.js + cn.js + тесты отсутствуют.
 
 Done-log помечен `✅ verified R93` на всех 12 строках.
+
+## R94 — slop-fix: 3 fixed + 1 invalid (S177/S181/S182/S187)
+
+- **S177** — ложное срабатывание: все 11 `JSON.parse(localStorage)` сайтов уже в try/catch на момент записи находки (R79); blame показывает try-блоки старше аудита. 2 сайта — вообще не localStorage (import-парсеры). Закрыто без кода.
+- **S181** — `run_v2_signal_loop` gate: `(!v2_enabled && !v3_enabled)` — v3-only конфиг теперь работает (bot_loop.cpp:252).
+- **S182** — `PositionManager::open_position` удалён (0 prod-вызывателей с S179); doctest-сьют переведён на `open_via_fill` = `add_pending_order`+`apply_fill` — реальный booking-path. 22/22 green.
+- **S187** — screenshots.spec.js: 7/7 тестов с реальными `toBeVisible` assert'ами; селекторы `[data-panel-id]` никогда не матчились → заменены на data-testid/canvas/text. 7/7 pass.
+
+Verify: doctest pm_suite 22/22 локально, playwright 7/7 против dev:mock, нулевые референсы на open_position.
+
+Board: **10 open**.

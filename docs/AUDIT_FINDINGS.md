@@ -1593,7 +1593,7 @@ Scope: `web-ui/src/utils/` (17 files), `contexts/`, and component-internal corre
 
 **S176 (Low) — Fixed in R92.** Two more tests-only utilities: `utils/auditExport.js` (107 lines — JSON/CSV audit export; `AuditLogViewer` does its own export) and `utils/cn.js` (3-line classname joiner — zero `cn(` call sites; components use template literals). Both exist solely for their test files — same test-to-nowhere disease as S167/S169/S170.
 
-**S177 (Low) — Open.** 11 `JSON.parse(localStorage…)` call sites without try/catch: `AlertWebhook.jsx:27`, `BacktestComparison.jsx:139,188`, `StrategyBacktest.jsx:43`, `StrategyBuilder.jsx:36`, `useSavedBacktests.js:23`, `useSessionRecorder.ts:47,171`, `useStrategyMarketplace.ts:120,144` (+1). A truncated or hand-edited key throws `SyntaxError` during render/hook-init → `PanelErrorBoundary` shows a dead panel until the user clears storage. The shared `useLocalStorage` hook *is* guarded (`try → initialValue`) — these 11 sites bypass it.
+**S177 (Low) — Invalid (R94).** 11 `JSON.parse(localStorage…)` call sites without try/catch: `AlertWebhook.jsx:27`, `BacktestComparison.jsx:139,188`, `StrategyBacktest.jsx:43`, `StrategyBuilder.jsx:36`, `useSavedBacktests.js:23`, `useSessionRecorder.ts:47,171`, `useStrategyMarketplace.ts:120,144` (+1). A truncated or hand-edited key throws `SyntaxError` during render/hook-init → `PanelErrorBoundary` shows a dead panel until the user clears storage. The shared `useLocalStorage` hook *is* guarded (`try → initialValue`) — these 11 sites bypass it.
 
 **Verified clean this round:** `Object.values(acc.positions)` on the positions *list* works correctly at all 12 sites (values of an array are its items — no S041-class residue; zero `Object.entries(positions)`); 115 `.sort()/.reverse()` sites all operate on locally-built arrays except S175; `useWebSocket.onmessage` has per-message try/catch around `JSON.parse` (S013-class properly closed); `performance.ts` (trading math) vs `performanceMonitor.js` (web vitals) are different domains, both live; `ui-helpers.js` is an honest 1-line re-export shim; `components/backtest/` + `components/performance/` — all 6 files wired; `candles`/`format`/`indicators` have 80/91/31 importers.
 
@@ -1607,9 +1607,9 @@ Scope: all 42 source files in `hft-trade-bot/src/` (~8.3k lines) — position/ri
 
 **S180 (Medium) — Open.** Balance is a hardcoded fiction. `bot_context.h:75` — `std::atomic<double> balance{10000.0}`: no config key, no parsing of the `account` broadcast the simulator sends (`websocket_server.py:53` — receiver has no `account`/`balance` handler at all). It only mutates via `fetch_add(unrealized_pnl)` on SL/TP closes (`bot_loop.cpp:57`). Position sizing (`calculate_position_size`, 2%-risk) and `check_signal`'s daily-drawdown-% both compute against imaginary $10k forever.
 
-**S181 (Low) — Open.** `signal_engine_v3_enabled` is dead unless v2 is also enabled: the only consumer (`generate_signal`, `bot_loop.cpp:143`) lives inside `run_v2_signal_loop`, which early-returns on `!signal_engine_v2_enabled` (:223). Config `v3.enabled=true, v2.enabled=false` constructs + prepopulates the v3 engine (`bot_setup.cpp:145-147`) that never analyzes. The opt-in flag actually means "only on top of v2".
+**S181 (Low) — Fixed in R94.** `signal_engine_v3_enabled` is dead unless v2 is also enabled: the only consumer (`generate_signal`, `bot_loop.cpp:143`) lives inside `run_v2_signal_loop`, which early-returns on `!signal_engine_v2_enabled` (:223). Config `v3.enabled=true, v2.enabled=false` constructs + prepopulates the v3 engine (`bot_setup.cpp:145-147`) that never analyzes. The opt-in flag actually means "only on top of v2".
 
-**S182 (Low) — Open.** `PositionManager::open_position`'s overwrite branch (`position_manager.h:21-30`) is unreachable — all three production callers pre-guard with `has_position()`. Dead code that, if ever reached, would silently drop the old position's unrealized PnL (never realized) and flip LONG→SHORT without a close order; it also matches on `symbol` alone while storing `exchange` unused.
+**S182 (Low) — Fixed in R94.** `PositionManager::open_position`'s overwrite branch (`position_manager.h:21-30`) is unreachable — all three production callers pre-guard with `has_position()`. Dead code that, if ever reached, would silently drop the old position's unrealized PnL (never realized) and flip LONG→SHORT without a close order; it also matches on `symbol` alone while storing `exchange` unused.
 
 **Verified clean this round:** `Position::update_pnl` math is correct (long/short, fees+funding deducted); `shm_ring_buffer` is an honest SPSC (acquire/release ordering, cache-line-aligned head/tail, magic/capacity/element-size validation); every JSON access in `signal_receiver_handlers` uses `.value()` with defaults; kill-switch mechanics are live (file-trigger poller + `can_trade()` gate at `main.cpp:49`); `check_sl_tp`/`close_position`/`update_all_pnl` are correct; zero TODO/FIXME/stub markers across src; V1 `check_signal`/`calculate_position_size` are honest live logic; `update_pnl` CAS-add and `balance.fetch_add` are correct atomics.
 
@@ -1631,7 +1631,7 @@ Scope: `ai-signal-bot/tests/` (37 + unit/ + integration/ + mocks/), `exchange_si
 
 **S186 (Medium) — Fixed in R91.** hft dead test layer. `tests/mocks/mock_exchange.h` (164-line `hft::test::MockExchange`) — **zero includers** across tests/CMake. `tests/test_doctest_cpp_optimizations.cpp` (125 lines: LatencyHistogram/SPSC/spinlock) and `tests/test_doctest_hft_config.cpp` (127 lines: config defaults/YAML parsing) have **no `add_doctest_test` target** and no CI reference — they never compile or run: regressions in `low_latency.h` and `config.h` would pass silently while the tree looks covered. Tests for *live* code that can never execute — the mirror image of tests exercising dead code.
 
-**S187 (Info) — Open.** `web-ui/e2e/screenshots.spec.js` — 5 "tests" with zero `expect` calls (screenshot capture for the README) inside the required `test-e2e` CI gate (`ci.yml:502,528`) — green runs count as e2e coverage while asserting nothing.
+**S187 (Info) — Fixed in R94.** `web-ui/e2e/screenshots.spec.js` — 5 "tests" with zero `expect` calls (screenshot capture for the README) inside the required `test-e2e` CI gate (`ci.yml:502,528`) — green runs count as e2e coverage while asserting nothing.
 
 **Verified clean this round:** zero `assert True`/tautologies across all Python suites; zero shadow-defs of production functions in tests (the S167 pattern does not exist on the Python side); `test_e2e_pipeline.py`/`test_strategy_risk_backtest.py` are real integration tests; all skips are honest dependency gates (hypothesis/scipy/prometheus_client — installed in CI); Playwright e2e specs are real page tests in a required CI job; all doctest targets are CMake-wired except the two orphans; root-vs-`unit/` duplicate test filenames cover different subjects (both real); sim test suite is clean.
 
@@ -1716,3 +1716,13 @@ Verify: expand_env standalone harness 6/6; 18/18 in test_auth_wiring + test_sign
 **S153 — alert pipeline timeout.** `aiohttp.ClientSession()` → `ClientTimeout(total=15, connect=5)` — a hung webhook stalls the alert loop for ≤15s instead of ~300s.
 
 **S176 — dead utils deleted.** `auditExport.js` + `cn.js` + their test files — zero production importers each, proven by grep before deletion.
+
+## Round 94 — 2026-09-14 — fix round: 3 fixes + 1 invalidation (S177/S181/S182/S187)
+
+**S177 — Invalid.** All 11 `JSON.parse(localStorage)` sites were already wrapped in try/catch when R79 recorded the finding (`git blame`: try-blocks predate the audit; `6a05e5e` only added the IS_DEV gate to existing catches). Two listed sites aren't localStorage at all — import-file parsers with schema validation. Pattern-match false positive; closed without code change.
+
+**S181 — Fixed.** `run_v2_signal_loop` gate widened to `(!v2_enabled && !v3_enabled)` — a v3-only config now actually runs the loop instead of constructing+prepopulating an engine that never analyzes. Confirms v3's real semantics: `generate_signal` prefers engine_v3 when constructed (replacement, not layer).
+
+**S182 — Fixed.** `open_position` deleted outright — 0 prod callers since S179 (booking goes through `apply_fill`). The doctest suite's 24 call sites rerouted through a `open_via_fill` helper (`add_pending_order` + `apply_fill(FILLED)`) — tests now exercise the live booking path. 22/22 green.
+
+**S187 — Fixed.** All 7 screenshot tests now carry real `toBeVisible` asserts against verified selectors (`#main-content`, `canvas`, `getByTestId('tab-*')`, "Order Book"/"Open Positions" text). The old `[data-panel-id]` selectors never matched anything — `DetachablePanel` doesn't render the attribute. 7/7 green locally.
