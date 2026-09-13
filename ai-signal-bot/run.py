@@ -580,6 +580,7 @@ class AISignalBot:
             self._live_factory = ExchangeFactory(
                 mode=ExchangeMode.REAL,
                 exchange=self.config.default_exchange,
+                testnet=self.config.testnet,
                 symbols=self.config.symbols,
                 rest_timeout=self.config.rest_timeout,
             )

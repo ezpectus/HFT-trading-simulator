@@ -158,6 +158,10 @@ class SignalBotConfig:
     def default_exchange(self) -> str:
         return self.raw["exchange"]["default_exchange"]
 
+    @property
+    def testnet(self) -> bool:
+        return bool(self.raw.get("exchange", {}).get("testnet", False))
+
     # --- network ---
     @property
     def ws_connect_timeout(self) -> int:

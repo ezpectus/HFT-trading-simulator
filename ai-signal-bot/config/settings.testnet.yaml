@@ -1,37 +1,97 @@
 # Binance Testnet Configuration
 # ================================
-# Get your testnet API keys at: https://testnet.binancefuture.com
+# Sandbox trading against the Binance testnet (fake money, real market data).
+# Get testnet API keys at: https://testnet.binancefuture.com
 #
 # Usage:
-#   python run.py --exchange-mode real --testnet --api-key YOUR_KEY --api-secret YOUR_SECRET
+#   python run.py --config config/settings.testnet.yaml
 #
-# Or set environment variables:
-#   BINANCE_TESTNET_API_KEY=your_key
-#   BINANCE_TESTNET_API_SECRET=your_secret
+# Credentials come from environment variables (never put keys in this file):
+#   EXCHANGE_API_KEY=your_testnet_key
+#   EXCHANGE_API_SECRET=your_testnet_secret
+#
+# What this preset does:
+#   - trading.paper_trading: false  → live order path (real orders to the venue)
+#   - exchange.testnet: true        → ccxt sandbox mode (Binance testnet URLs)
+# Without EXCHANGE_API_KEY/SECRET the bot still runs — live orders will fail
+# the adapter's credential checks and be logged as errors.
+#
+# Binance testnet notes:
+#   - Same API as production, simulated execution
+#   - ~100,000 USDT fake balance
+#   - Real market data (prices track production)
+
+trading:
+  symbols:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "SOL/USDT"
+
+  signal_interval_seconds: 60
+  max_open_positions: 5
+  paper_trading: false          # Live orders — against the testnet venue
 
 exchange:
-  mode: real          # simulator | real | fallback
-  testnet: true
-  name: binance
-  api_key: ${BINANCE_TESTNET_API_KEY}
-  api_secret: ${BINANCE_TESTNET_API_SECRET}
+  websocket_url: "ws://localhost:8765"  # Market data feed (exchange simulator)
+  default_exchange: "binance"
+  testnet: true                 # Route live orders to the Binance sandbox
 
-  symbols:
-    - BTC/USDT
-    - ETH/USDT
-    - SOL/USDT
+risk:
+  max_risk_per_trade_pct: 2.0
+  max_daily_drawdown_pct: 8.0
+  min_confidence: 65
+  min_rr_ratio: 1.5
+  max_position_size_pct: 10.0
 
-  intervals:
-    - 1m
-    - 5m
-    - 15m
+strategies:
+  trend_following:
+    enabled: true
+    ema_fast: 9
+    ema_slow: 21
+    adx_threshold: 25.0
+  mean_reversion:
+    enabled: true
+    rsi_oversold: 30
+    rsi_overbought: 70
+    bb_period: 20
+    bb_std: 2.0
+  fft_cycle:
+    enabled: true
+    min_data: 64
+  statistical_arbitrage:
+    enabled: true
+    min_data: 100
+    zscore_entry: 2.0
+    zscore_exit: 0.5
+    recompute_interval: 50
+  market_making:
+    enabled: false
+    gamma: 0.1
+    sigma: 0.02
+    max_inventory: 5.0
+    min_spread: 0.0001
+  sentiment:
+    enabled: true
+    fade_threshold: 0.7
+    decay_rate: 0.95
+  ml_ensemble:
+    enabled: false
+    lookback: 200
+    prediction_horizon: 5
+  ensemble:
+    mode: "majority"
+    min_votes: 2
 
-# Testnet URLs (automatically used when testnet=true):
-#   REST:   https://testnet.binancefuture.com
-#   WS:     wss://stream.binancefuture.com
-#
-# Note: Binance testnet has:
-#   - Same API as production
-#   - Fake money (100,000 USDT initial balance)
-#   - Real market data (prices match production)
-#   - Simulated order execution
+indicators:
+  rsi_period: 14
+  atr_period: 14
+  adx_period: 14
+
+database:
+  path: "data/trading_testnet.db"
+
+logging:
+  level: "INFO"
+  file: "logs/ai_signal_bot_testnet.log"
+  trades_csv: "logs/trades_testnet.csv"
+  signals_csv: "logs/signals_testnet.csv"
