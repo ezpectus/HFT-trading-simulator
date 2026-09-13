@@ -11,6 +11,12 @@ global:
 rule_files:
   - "alerts.yml"
 
+# Alertmanager receives firing alerts for grouping/routing.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
   # Exchange Simulator (metrics HTTP server on port 8775)
   - job_name: "exchange-simulator"

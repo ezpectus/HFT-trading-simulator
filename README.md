@@ -128,7 +128,7 @@ What's real, what's a demo, what's dormant — verified against the code:
 
 | Status | Feature |
 |--------|---------|
-| **Working** | Exchange simulator (market data, order matching, funding, liquidation), paper trading, 7 strategies + ensemble, backtesting + walk-forward, C++ signal engines V2/V3, risk manager, all health/metrics endpoints, Prometheus metrics + 22 alert rules + Grafana dashboards |
+| **Working** | Exchange simulator (market data, order matching, funding, liquidation), paper trading, 7 strategies + ensemble, backtesting + walk-forward, C++ signal engines V2/V3, risk manager, all health/metrics endpoints, Prometheus metrics + 22 alert rules → Alertmanager + Grafana dashboards |
 | **Working, opt-in** | SHM IPC rings (`/hft_signals`, `/hft_fills`, `/hft_kill_switch`) — `shm.enabled: false` by default, enable when the C++ bot runs on the same host |
 | **Demo / educational** | ~60 math-model UI panels (visualizations, not wired to trading), mock mode (`VITE_MOCK_MODE=true`), exchange-themed UI clones, strategy competition |
 | **Dormant** | Live-trading path: `paper_trading: false` + `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` + `pip install ccxt` → real orders via `RealExchangeAdapter` (ccxt). Off by default, untested — not recommended |
@@ -194,9 +194,9 @@ hft-trading-system/
 ├── hft-trade-bot/               # C++20: HFT execution engine
 ├── web-ui/                      # React 18: dashboard (295 components, 162 test files)
 ├── docs/                        # 13 documentation files + 4 guides + 8 theory docs
-├── monitoring/                  # Prometheus + Grafana config
+├── monitoring/                  # Prometheus + Alertmanager + Grafana config
 ├── docker-compose.yml           # Development
-├── docker-compose.prod.yml      # Production (+ Prometheus, Grafana)
+├── docker-compose.prod.yml      # Production (+ Prometheus, Alertmanager, Grafana)
 └── shared_config.yaml           # Canonical cross-component config reference (enforced by scripts/test_config_consistency.py)
 ```
 
@@ -234,6 +234,7 @@ docker-compose -f docker-compose.prod.yml up -d
 | HFT Trade Bot | 9091 | Health + metrics |
 | AI Signal Bot | 8080 | Health server — `/live`, `/ready`, `/health/*` detail endpoints |
 | Prometheus | 9090 | Internal only (`expose`); dev compose maps it to 9099 |
+| Alertmanager | 9093 | Alert routing/grouping (dev compose); internal `expose` in prod |
 
 ---
 

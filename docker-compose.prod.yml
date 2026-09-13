@@ -8,6 +8,7 @@ services:
     container_name: trading-prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prom-data:/prometheus
     expose:
       - "9090"
@@ -25,6 +26,30 @@ services:
         limits:
           memory: 256M
           cpus: '0.5'
+
+  # ── Alertmanager — alert grouping/routing for Prometheus rules ──
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: trading-alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    expose:
+      - "9093"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
 
   # ── Grafana — dashboards and visualization ──
   grafana:
@@ -197,6 +222,7 @@ services:
 
 volumes:
   prom-data:
+  alertmanager-data:
   grafana-data:
   sim-data:
   ai-data:

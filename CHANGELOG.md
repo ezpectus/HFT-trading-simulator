@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased] — 2026-09-13 (Slop-loop audit — contract drift, dead config, docs refresh)
 
+### Added — R62
+- **Alertmanager** shipped (S142): `monitoring/alertmanager.yml` (severity grouping, critical→warning inhibition), `alerting:` section in `prometheus.yml`, `prom/alertmanager:v0.27.0` service in all compose files. Alerts now route through :9093.
+- Fixed: `alerts.yml` was never mounted in prod/staging prometheus — 22 rules silently never loaded there.
+- Deploy health checks corrected to real endpoints (S143): sim `:8775/health`, ai-bot `:8080/ready`, web-ui `:3000/health`.
+- Env templates realigned to actual readers (S141): `EXCHANGE_API_KEY`/`ALERT_*` names; dead `BINANCE_*`/`FIX_*`/`EXCHANGE_MODE`/`LOG_LEVEL` removed from env example, k8s secrets, helm, compose.
+
 ### Added
 - `ai-signal-bot/src/communication/shm_kill_switch_consumer.py` — C++ kill-switch SHM ring (`/hft_kill_switch`) now consumed: latch + `trading_kill_switch_active` gauge + CRITICAL alert + signal-push gate (S132)
 - `ai-signal-bot`: `sharpe_ratio` metric computed from the real `equity_curve` series; process `cpu_usage_percent`/`memory_usage_bytes` sampled at scrape (S131)

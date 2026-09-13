@@ -159,6 +159,7 @@ services:
     container_name: staging-prometheus
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - staging-prom-data:/prometheus
     ports:
       - "19091:9090"
@@ -174,6 +175,29 @@ services:
         limits:
           cpus: '0.5'
           memory: 256M
+    networks:
+      - staging-net
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: staging-alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - staging-alertmanager-data:/alertmanager
+    ports:
+      - "19093:9093"
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - staging-net
 
@@ -212,6 +236,7 @@ volumes:
   staging-ai-logs:
   staging-hft-logs:
   staging-prom-data:
+  staging-alertmanager-data:
   staging-grafana-data:
 
 networks:

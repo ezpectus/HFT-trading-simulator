@@ -1016,3 +1016,7 @@ Reverse props direction: компоненты деструктурируют т�
 **S141** — exchange-credential env drift. Документированные `BINANCE_*`/`OKX_*`/`BYBIT_*`/`FIX_*`/`EXCHANGE_MODE`/`LOG_LEVEL` читались нулём кода; реальные имена `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET`/`ALERT_*`. Переписаны `.env.prod.example` (только читаемые vars + disclosure что live-path требует `paper_trading: false` + ccxt), `deploy/k8s/secrets.enc.yaml` (реальные имена, убран TimescaleDB secret — PG нет), helm (убраны dead `EXCHANGE_MODE`/`LOG_LEVEL`/`global.logLevel`/`env.exchangeMode`; `LOG_FORMAT` оставлен — читается run.py:58 и `__main__.py:50`), compose (dead env ×5). Все YAML валидны.
 
 Board: **1 open** — S142 (alertmanager product-решение).
+
+**S142** — Alertmanager shipped (product-решение от user). Создан `monitoring/alertmanager.yml` (group_by alertname/severity/service, critical repeat 1h, inhibit warning-под-critical), `alerting:`-секция в `prometheus.yml` → `alertmanager:9093`, сервис `prom/alertmanager:v0.27.0` во все 3 compose (dev: 9093, staging: 19093, prod: expose) + data volumes + healthchecks. **Bonus-баг:** prod/staging prometheus не монтировали `alerts.yml` — 22 rules там никогда не грузились; mount добавлен. Docs синкнуты (MONITORING_GUIDE, CONFIGURATION_GUIDE, ARCHITECTURE, DEPLOYMENT, README). Invented `hft_order_latency_ms`/`hft_drawdown_pct` примеры в DEPLOYMENT заменены реальным правилом.
+
+Board: **0 open** — все 143 находки закрыты.

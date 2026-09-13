@@ -73,7 +73,7 @@ The system provides full observability through:
 
 - **Prometheus** — metrics scraping (counters, histograms, gauges)
 - **Grafana** — 5 pre-built dashboards for real-time visualization
-- **Alert rules** — 22 rules evaluated by Prometheus (no Alertmanager deployed)
+- **Alert rules** — 22 rules evaluated by Prometheus, routed through Alertmanager (`:9093`)
 - **OpenTelemetry** — distributed tracing with Jaeger export
 - **eBPF** — kernel-level system observability with minimal overhead
 - **Health checks** — HTTP endpoints for Kubernetes liveness/readiness
@@ -215,12 +215,17 @@ Access at `http://localhost:3001` (admin/admin).
 
 ### Alert Rules
 
-**Source:** `monitoring/alerts.yml` — evaluated by Prometheus itself
-(`rule_files` in `prometheus.yml`). **No Alertmanager is deployed** — firing
-alerts are visible in Prometheus (`/alerts`) and Grafana, but are not routed
-anywhere. For notifications use either the AI Signal Bot's own alert channels
-(`alerting.*` in `config/settings.yaml` + `ALERT_*` env vars) or attach an
-Alertmanager to Prometheus' `alerting:` section yourself.
+**Source:** `monitoring/alerts.yml` — evaluated by Prometheus
+(`rule_files` in `prometheus.yml`) and pushed to **Alertmanager** (`:9093`,
+configured under `alerting:` in `prometheus.yml`, config at
+`monitoring/alertmanager.yml`). Alertmanager groups alerts by
+`alertname`/`severity`/`service`, repeats criticals hourly, and inhibits
+warnings while a matching critical fires. The `default` receiver ships empty —
+alerts are visible/silenceable in the Alertmanager UI (`localhost:9093`) but
+nothing is sent until you add a receiver config (webhook/telegram examples in
+the file's comments). For direct bot-level notifications use the AI Signal
+Bot's own alert channels (`alerting.*` in `config/settings.yaml` + `ALERT_*`
+env vars) below.
 
 | Alert | Severity | Trigger | For |
 |-------|----------|---------|-----|
@@ -259,8 +264,8 @@ The AI Signal Bot ships its own alert dispatcher
 | Discord | `ALERT_DISCORD_WEBHOOK` |
 | Telegram | `ALERT_TELEGRAM_TOKEN` + `ALERT_TELEGRAM_CHAT_ID` |
 
-To route the Prometheus rules instead, deploy Alertmanager and add it under
-`alerting:` in `monitoring/prometheus.yml` (not shipped).
+The Prometheus rules also route through Alertmanager (`:9093`) — add a
+receiver to `monitoring/alertmanager.yml` to forward them anywhere.
 
 ---
 
@@ -486,7 +491,7 @@ Fallback to standard logging if `structlog` is not installed.
 
 ## Docker Compose
 
-`docker-compose.yml` ships two monitoring services (no Alertmanager/Jaeger):
+`docker-compose.yml` ships three monitoring services (no Jaeger):
 
 ```yaml
 services:
@@ -495,6 +500,11 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
 
   grafana:
     image: grafana/grafana:11.4.0

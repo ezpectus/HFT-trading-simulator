@@ -139,7 +139,7 @@ The system implements production-grade observability across all components:
 - `trading_*` — operational metrics (orders, fills, latency, positions, SHM)
 - `exchange_*` — simulator metrics (clients, candles, orders, prices, balance)
 
-**Alerting** — 22 alert rules in `monitoring/alerts.yml` covering circuit breaker, signal generation, error rates, drawdown, order fill rates, and service availability. Prometheus evaluates them in-process (severity labels critical/warning/info); no Alertmanager is deployed — attach one to route alerts to email/Slack/Discord, or use the bot's own `ALERT_*` webhooks (section 6 of the Configuration Guide).
+**Alerting** — 22 alert rules in `monitoring/alerts.yml` covering circuit breaker, signal generation, error rates, drawdown, order fill rates, and service availability. Prometheus evaluates them and pushes to **Alertmanager** (`:9093`, `monitoring/alertmanager.yml`) which groups by severity/service and inhibits warnings during criticals; add a receiver there to route to webhooks/Telegram, or use the bot's own `ALERT_*` webhooks (section 6 of the Configuration Guide).
 
 **Graceful shutdown** — SIGTERM/SIGINT handlers in both `run.py` and `exchange_simulator/__main__.py` ensure clean shutdown: cancel tasks, close WebSocket connections, stop metrics/health servers, flush tracing.
 

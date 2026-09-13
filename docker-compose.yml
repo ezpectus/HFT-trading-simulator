@@ -186,6 +186,33 @@ services:
     networks:
       - trading-net
 
+  # ─── Alertmanager — routes the 22 rules in alerts.yml ───
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    depends_on:
+      prometheus:
+        condition: service_started
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - trading-net
+
   grafana:
     image: grafana/grafana:11.4.0
     container_name: grafana
@@ -226,6 +253,7 @@ volumes:
   ai-logs:
   hft-logs:
   prom-data:
+  alertmanager-data:
   grafana-data:
 
 networks:

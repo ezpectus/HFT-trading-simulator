@@ -317,6 +317,8 @@ Docker Compose healthchecks in all 3 compose files use HTTP endpoints:
 | AI Signal Bot | `http://localhost:8080/ready` | 15s |
 | HFT Trade Bot | `http://localhost:9091/health` | 10s |
 | Web UI | `http://localhost:3000/health` | 5s |
+| Prometheus | `http://localhost:9090/-/healthy` | 10s |
+| Alertmanager | `http://localhost:9093/-/healthy` | 10s |
 
 #### 5. Graceful Shutdown
 
@@ -455,20 +457,21 @@ Configure alerts in `monitoring/alerts.yml`:
 
 ```yaml
 groups:
-  - name: hft_alerts
+  - name: ai-signal-bot
     rules:
-      - alert: HighLatency
-        expr: hft_order_latency_ms > 50
-        for: 5m
+      - alert: CircuitBreakerTripped
+        expr: ai_signal_bot_circuit_breaker_state == 1
+        for: 10s
+        labels:
+          severity: critical
+          service: ai-signal-bot
         annotations:
-          summary: "High order latency detected"
-      
-      - alert: HighDrawdown
-        expr: hft_drawdown_pct > 5
-        for: 1m
-        annotations:
-          summary: "High drawdown detected"
+          summary: "Circuit breaker is OPEN — signals blocked"
 ```
+
+Firing alerts route to **Alertmanager** (`alerting:` in `prometheus.yml`,
+config `monitoring/alertmanager.yml`) — grouped by severity/service; add a
+receiver there for notifications.
 
 ## Health Checks
 

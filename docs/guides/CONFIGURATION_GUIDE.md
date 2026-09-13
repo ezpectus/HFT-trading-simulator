@@ -487,22 +487,22 @@ Scrape targets:
 | AI Signal Bot | 9090 | /metrics | 15s |
 | HFT Trade Bot | 9091 | /metrics | 15s |
 
-### Alertmanager (`monitoring/alertmanager/config.yml`)
+### Alertmanager (`monitoring/alertmanager.yml`)
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `group_wait` | `10s` | Wait before sending first notification |
-| `group_interval` | `10s` | Wait before sending subsequent notifications |
-| `repeat_interval` | `12h` | Re-send unresolved alerts after this |
+| `group_wait` | `30s` | Wait before sending first notification |
+| `group_interval` | `5m` | Wait before sending subsequent notifications |
+| `repeat_interval` | `4h` (`1h` for critical) | Re-send unresolved alerts after this |
 
-Routes by severity:
-- **critical** → email (on-call) + Slack (#trading-critical)
-- **warning** → email + Slack (#trading-warnings)
-- **info** → email only
+Grouping: by `alertname`, `severity`, `service` (all 22 rules carry these
+labels). Inhibition: a firing `critical` suppresses `warning` for the same
+`alertname`+`instance`.
 
-Config uses `${ENV_VAR}` placeholders — render with `envsubst` before passing to Alertmanager.
-
-Inhibition: `critical` alerts suppress `warning` and `info` alerts for the same service.
+The `default` receiver is empty — alerts are visible/silenceable in the
+Alertmanager UI (`localhost:9093` in dev) but nothing is sent until you add a
+receiver (`webhook_configs` / `telegram_configs` examples in the file's
+comments).
 
 ---
 
