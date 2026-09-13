@@ -1402,3 +1402,16 @@ Board: **4 open** (S150 config-theatre, S151 seq write-only, S152 dead watchdog 
 - **S162** — doc-правки подтверждены в R95 при закрытии.
 
 Done-log помечен `✅ verified R96` на всех 10 строках.
+
+## R97 — slop-fix — доска обнулена (S150/S151/S152/S154)
+
+Последние 4 open-находки закрыты — `.cascade/office-board.md` пуст.
+
+- **S154** (Low) — TIF end-to-end: `OrderSelection.kind/limit_price/expire_ns` → новый `submit_order`-overload сериализует `time_in_force/post_only/expire_ms` → хендлер валидирует → sim исполняет (IOC/FOK не отдыхают, FOK проверяет глубину `_depth_covers`, post_only reject на кроссе, GTD sweep → CANCELLED `GTD_EXPIRED`). `ws_broadcast` шлёт все терминальные события — `trackOrderStatus` убирает их из openOrders. Мёртвый mapping-слой `to_{binance,okx,bybit,exchange}_{type,tif}` (~100 строк + тест-блоки) удалён. Новый test_time_in_force.py — 12 кейсов.
+- **S151** (Medium) — `seq` больше не write-only: gap-detection в `useExchangeData.js` (lastSeqRef + pre-gap курсор sync_state, 5s cooldown, baseline reset на open) и `ws_client.py` ai-bot (`_request_resync` create_task, reset на welcome). Тесты: 4 py + 3 vitest.
+- **S150** (Medium) — ~33 мёртвых ключа удалены (database.*/redis.*/fallback_to_simulator/paper_trading/sl-tp_pct/min_composite/vwap_window/kill_switch.{enabled,auto_*}/adaptive.{default_type,post_only_retries}/latency 4 ключа/symbols[].{id,max_leverage}) + Config-поля/парсинг/валидация/баннер. Коррекция аудита: metrics.*/microprice_enabled/obi_levels_*/risk-гарды живы. `mode` гейтит `is_production`. Bonus: test_integration_config был некомпилируем (config.leverage) — починен.
+- **S152** (Medium) — ws_client.h → network/watchdog.h (только Watchdog; 5 мёртвых абстракций удалены). Заведён в SignalReceiver + OrderExecutor: feed на open/message/ping/pong, 15s тишины → terminate → schedule_reconnect. `client_` = shared_ptr + client_mtx_ snapshot-хелпер (atomic<shared_ptr> нет в mingw-libc++); reconnect-тред joinable с cv-interruptible sleep — detached-UAF убран. test_signal_flow починен от протухания (ShmRingBuffer ctor, FastSignal/FastOrder поля).
+
+**Verifications:** sim 416 pass (12 новых TIF), ws_client ai-bot 26 pass (+4 gap), useExchangeData 51 pass (+3 gap), adaptive_selector 17/17, network watchdog 2/2. C++ executor/signal_receiver — syntax-only (websocketpp/vcpkg локально нет; MSVC в CI). Ruff eslint clang-format green.
+
+**Gate notes:** WD_SKIP_COVERAGE=1 для test_signal_flow.cpp (test-file mapping by stem).
