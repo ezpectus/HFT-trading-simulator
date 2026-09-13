@@ -1241,3 +1241,15 @@ Board: **36 open** (S150–S187).
 ЧИСТО: deploy health-check порты все валидны; docker-smoke реальный; nightly-backtest честный (Backtester + regression-gate + issue); release.yml честный; web-ui Dockerfile — prod nginx /health; netlify.toml корректен; vitest thresholds и скрипты живы.
 
 Board: **39 open** (S150–S190).
+
+## R84 — slop-fix: S188 + C++ risk/book кластер (S178+S179+S180) — 4 закрыты
+
+- **S188** — deploy.yml: `VITE_SIGNAL_TOKEN`/`VITE_EXCHANGE_TOKEN` из secrets в build-args; Netlify-джоба получила `env: VITE_WS_*` (токены в публичный бандл не печём — view-only).
+- **S178** — `precheck_order` (check_order ×3 сайта) + `update_risk_state` в main-loop (daily reset, update_pnl_v2, activate(DAILY_LOSS/MAX_DRAWDOWN)); on_fill/reduce_exposure из fill-callback.
+- **S179** — pending_orders_ + apply_fill (book-on-fill, weighted merge, realized PnL) + sync_position из account-broadcast + cancel-dispatch. Stray fills = no-op.
+- **S180** — `initial_balance` конфиг-ключ + account-balance feed из broadcast (ctx.balance = sim free cash).
+- Бонус: починен test_doctest_risk_manager drawdown-посылка (peak никогда не устанавливался) — 24/24 green.
+
+Verify: position_manager.h компилится clang++22 clean; doctest position_manager 22/22, risk_manager 24/24; clang-format-18 --Werror clean на всех тронутых файлах; yaml-валидация deploy.yml/config.yaml OK. Полный C++-билд невозможен локально (зависимости через vcpkg) — CI проверит.
+
+Board: **35 open** (S150–S190 минус S178/S179/S180/S188).

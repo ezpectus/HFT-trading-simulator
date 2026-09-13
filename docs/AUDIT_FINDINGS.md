@@ -1646,3 +1646,17 @@ Scope: `.github/workflows/` (5 files, 1241 lines), `web-ui/nginx.conf`, Dockerfi
 **S190 (Low) — Open.** `codeql.yml` builds C++ under `|| true` (:65) — a broken build still reaches `analyze`, and CodeQL-C++ needs build-tracing → empty/partial DB → zero C++ findings under a green check. Plus python/javascript are scanned twice per push: codeql.yml's matrix and ci.yml's `security-codeql` job duplicate the work.
 
 **Verified clean this round:** all 5 deploy health-check ports are real (8775 sim / 8080 ai-bot ready / 9091 hft / 3000 web / 3001 grafana); `docker-smoke` hits real `/health` endpoints (nginx.conf:26); `nightly-backtest` is honest (synthetic data → real Backtester → regression gate → issue on failure); `release.yml` changelog is honest; web-ui Dockerfile is a real prod nginx build with /health; `netlify.toml` correct; vitest thresholds + all package scripts live; `audit-deps`/bandit/test-summary are real gates.
+
+## Round 84 — 2026-09-14 — fix round: S188 + C++ risk/book cluster (S178+S179+S180)
+
+**S188 — Fixed.** `deploy.yml` now feeds `VITE_SIGNAL_TOKEN`/`VITE_EXCHANGE_TOKEN` from `secrets.*` into the docker build-args, and the Netlify job gets `env: VITE_WS_EXCHANGE/VITE_WS_SIGNALS` from `vars.*` — tokens deliberately NOT baked into the public bundle (view-only dashboard).
+
+**S178 — Fixed.** The V2 pre-trade layer is now live: `precheck_order` (bot_loop.cpp) calls `check_order` before every `submit_order` in all 3 order paths; `update_risk_state` runs every main-loop tick — UTC-day rollover → `reset_daily`, mark-to-market → `update_pnl_v2`, and `kill_switch->activate(DAILY_LOSS/MAX_DRAWDOWN)` is now reachable (previously only the file trigger could fire it). Fill callbacks feed `on_fill`/`reduce_exposure`. Residual: the arbitrage path bypasses `check_order` (two-leg semantics — noted), `blacklist_symbol` remains a runtime API.
+
+**S179 — Fixed.** Position book is fill-driven: `add_pending_order` marks a symbol engaged on send (no order stacking while a LIMIT rests), `apply_fill` books on FILLED only (weighted-average scale-in, partial-reduce with realized PnL, full close), `sync_position` reconciles the exchange's account broadcast so positions opened while offline are re-adopted after restart. Stray fills (our own close acks, other clients' orders on the shared sim account) are no-ops.
+
+**S180 — Fixed.** `risk.initial_balance` config key seeds `ctx.balance`; every `accounts` broadcast overwrites it with the exchange's real balance (free cash — the honest base for sizing/margin). Position reconcile rides the same feed.
+
+**Bonus fix:** `test_doctest_risk_manager.cpp` "Max drawdown rejected" had a broken premise — `update_pnl_v2(0,-2000,8000)` sets peak=8000, not the assumed 10000, so drawdown was always 0 and the check never exercised. Peak is now established explicitly → 24/24 green.
+
+Verify: clang++22 syntax-clean on `position_manager.h`; doctest binaries run locally — position_manager 22/22, risk_manager 24/24; clang-format-18 --Werror clean; YAML validated. Full C++ build not possible locally (vcpkg deps) — CI compiles.
