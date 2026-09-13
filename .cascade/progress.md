@@ -1540,3 +1540,21 @@ Findings: none new. S200 extended — package.json:6 "52 quant models" counts de
 Clean: deploy health-check hits published ports; nightly-backtest imports/attrs/regression-gate all real; codeql honest; vite manifest correct; CMake 25/25 targets↔sources; dependabot real; ruff/reqs honest.
 
 Commit: (below)
+
+## R111 — 2026-09-15 — audit: scripts/ leaf + exchange engine + docs stragglers — 8 findings (S212–S219)
+
+Target: scripts/ leaf files (benchmark_suite, walk_forward_ci, health-check, ci-equivalence, deploy.sh native/stop, hooks), exchange engine internals (liquidation/margin/funding/OCO/arb in exchange*.py, market_simulator, ws_broadcast, audit_logger), web-ui/public, CONTRIBUTING/SECURITY/README_PROJECT_OVERVIEW.
+
+Findings:
+- S212 (Medium): msgpack negotiated but never honored on hot path — 3 broadcast paths always orjson/json ignoring _client_encodings; client discriminates by isinstance(bytes) but orjson sends binary frames for JSON too — installing msgpack in bot env = silent total feed loss even with default encoding. WEBSOCKET_PROTOCOL.md:1078-1085 advertises it for exactly those payloads.
+- S213 (Low): arb pipeline can never fire — fixed per-exchange offsets + identical per-symbol book spread => every cross-book pair has sell<=buy => scan()=empty forever; auto-exec (spread>20) unreachable; arb UI panel permanently empty.
+- S214 (Low): scripts measurement theater — benchmark_suite times toy Python loops labeled as HFT components (0 real imports); walk_forward_ci never runs a strategy (WF_STRATEGY is an echoed label; 5 strategies = identical metrics on seed-42 GBM; no IS/OOS split; not wired to nightly despite docstring).
+- S215 (Low): deploy.sh native broken x3 — python -m exchange_simulator from inside the package fails; pkill -f ai_signal_bot never matches python run.py (stop leaves duplicate bot); ENVIRONMENT unused; docker path uses EOL docker-compose v1 while everything else uses v2.
+- S216 (Info): dev-tooling self-assertion — ci-equivalence never validates mapping vs extracted check_* (phantom test-rust/check_rust_build_and_test row); health-check scans only src/ subdirs so flat exchange_simulator is invisible; install-hooks.sh referenced but only .bat exists; phantom cargo/Rust claims in docstring+echo (0 Cargo.toml).
+- S217 (Info): CONTRIBUTING.md rot — deleted ml//research/ dirs in tree, 4 wrong test counts, 13->12 strategies, 50->49 symbols, phantom postgres/redis in prod compose claim, broken run commands (python -m from inside pkg; wrong config path from build/).
+- S218 (Low): README_PROJECT_OVERVIEW.md — undisclaimed fossil: Rust executor in live arch diagram, deleted ML suite + research/ described as current, kept-for-education claims on deleted files; sibling docs carry HISTORICAL disclaimers, this does not.
+- S219 (Low): audit_logger — logs/audit.log unbounded (no rotation) + open-per-write syscall per event on a hot path.
+
+Clean: liquidation/margin/funding/OCO/flip-residual correct; account-level leverage consistent model (validator+hot-reload+margin+liq) — Position without leverage is design; close_position via force_close legit; market-sim GBM/corr/OHLC honest; SECURITY.md honest (rate-limit real); docker-smoke-test.sh correct ports; REFACTORING_PLAN/PROJECT_AUDIT disclaimers present; web-ui/public = favicon only; hooks thin delegates; parquet export real.
+
+Commit: (below)
