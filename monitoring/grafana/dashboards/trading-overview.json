@@ -136,16 +136,12 @@
       },
       {
         "id": 7,
-        "title": "Signal Rate by Strategy",
+        "title": "Signal Rate",
         "type": "timeseries",
         "datasource": "Prometheus",
         "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
         "targets": [
-          {"expr": "rate(hft_signals_total{strategy=\"trend_following\"}[1m])", "legendFormat": "Trend"},
-          {"expr": "rate(hft_signals_total{strategy=\"mean_reversion\"}[1m])", "legendFormat": "Mean Rev"},
-          {"expr": "rate(hft_signals_total{strategy=\"stat_arb\"}[1m])", "legendFormat": "Stat Arb"},
-          {"expr": "rate(hft_signals_total{strategy=\"market_making\"}[1m])", "legendFormat": "MM"},
-          {"expr": "rate(hft_signals_total{strategy=\"ml_ensemble\"}[1m])", "legendFormat": "ML"}
+          {"expr": "rate(hft_signals_received_total[1m])", "legendFormat": "Signals"}
         ]
       },
       {

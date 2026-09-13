@@ -54,7 +54,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "exchange_simulator_active_connections",
+            "expr": "exchange_connected_clients",
             "legendFormat": "WebSocket Connections"
           }
         ],
@@ -70,7 +70,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(exchange_simulator_orders_total[1m])",
+            "expr": "rate(exchange_orders_submitted_total[1m])",
             "legendFormat": "Order Rate"
           }
         ],

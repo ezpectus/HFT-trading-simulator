@@ -28,7 +28,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "sum(ai_signal_bot_pnl_daily) by (strategy)",
+            "expr": "sum(trading_daily_pnl)",
             "legendFormat": "{{strategy}}"
           }
         ],
@@ -90,11 +90,11 @@
       },
       {
         "id": 6,
-        "title": "Portfolio Value",
+        "title": "Total Equity",
         "type": "graph",
         "targets": [
           {
-            "expr": "ai_signal_bot_portfolio_value",
+            "expr": "trading_total_equity",
             "legendFormat": "Portfolio Value"
           }
         ],
@@ -110,7 +110,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(ai_signal_bot_trades_total[1m])",
+            "expr": "rate(trading_fills_total[1m])",
             "legendFormat": "Trade Rate"
           }
         ],
@@ -126,7 +126,7 @@
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(ai_signal_bot_signals_generated_total[1m])",
+            "expr": "rate(trading_signals_total[1m])",
             "legendFormat": "{{strategy}}"
           }
         ],
@@ -142,7 +142,7 @@
         "type": "stat",
         "targets": [
           {
-            "expr": "sum(ai_signal_bot_position_count)",
+            "expr": "sum(trading_open_positions)",
             "legendFormat": "Total Positions"
           }
         ],
@@ -154,11 +154,11 @@
       },
       {
         "id": 10,
-        "title": "Model Accuracy",
+        "title": "Signal Win Rate",
         "type": "graph",
         "targets": [
           {
-            "expr": "ai_signal_bot_model_accuracy",
+            "expr": "ai_signal_bot_win_rate",
             "legendFormat": "{{model_type}}"
           }
         ],
