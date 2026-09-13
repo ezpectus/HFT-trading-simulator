@@ -1179,3 +1179,16 @@ Board: **18 open**. Done-log +4. Протокол-док синхронизир�
 ЧИСТО: ml_ensemble — реальный sklearn pipeline (honest NEUTRAL fallbacks); database/signal_validation/monitoring/tracing wired в run.py; data_collection целиком живой; MetricsCollector — честный fallback; walk_forward/backtest_comparison/optimizer — живы через WS+CI; все `return []` — defensive, не маскировка.
 
 Board: **22 open** (S150–S173).
+
+## R79 — slop-audit: web-ui utils/contexts/component-internals sweep — 4 находки S174–S177
+
+Скоуп: `web-ui/src/utils/` (17 файлов), `contexts/` (1), component internals — prop-mutation и unguarded-parse паттерны по всем components/panels.
+
+- **S174 (Medium)** — мёртвая theme-система: `ExchangeContext.jsx` (132 строки, 3 темы→CSS vars+layouts) + `ExchangeSelector.jsx` — 0 прод-mount'ов/импортеров; реальный exchange-switch — Zustand (`App.jsx:81`, `Header.jsx:65`); `var(--exchange-*)` — 0 читателей; темы без `okx` (sim торгует binance/okx/bybit, темы знают binance/bybit/coinbase). Единственные реальные asserts theatre-файла `exchange-ui.test.jsx` (S166) тестируют этот мёртвый провайдер.
+- **S175 (Low)** — `DrawdownAnalysis.jsx:16`: `fills.sort()` in-place на shared ctx-prop (стор держит newest-first) → FillsPanel «Recent Fills» и все читатели fills видят обратный порядок пока панель смонтирована.
+- **S176 (Low)** — tests-only утилиты: `auditExport.js` (107 строк) + `cn.js` (3) — 0 прод-импортеров, живут в своих тестах.
+- **S177 (Low)** — 11 сайтов `JSON.parse(localStorage)` без try (AlertWebhook/BacktestComparison×2/StrategyBacktest/StrategyBuilder/useSavedBacktests/useSessionRecorder×2/useStrategyMarketplace×2 +1): битый ключ → SyntaxError в render/init → панель мертва до ручной очистки (blast radius сдержан PanelErrorBoundary; shared `useLocalStorage` guarded — эти сайты его обходят).
+
+ЧИСТО: `Object.values(positions)` на list — корректно; 115 .sort()/.reverse() — все на локальных массивах кроме S175; useWebSocket onmessage — per-message try (S013 закрыт); performance.ts vs performanceMonitor.js — разные домены, оба живы; ui-helpers.js — честный shim; backtest/performance подпакеты wired.
+
+Board: **26 open** (S150–S177).
