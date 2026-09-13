@@ -1450,3 +1450,7 @@ No WRONG/ROTTED entries.
 **S137 (Medium) — Done.** `deploy.yml` post-deploy health loop checked `web-ui:3000/api/health` — nginx only serves exact-match `/health`; `/api/health` hits the SPA fallback and returns index.html with 200 — a check that cannot fail. Same loop also hit `:9092/health` (MetricsExporter stub, S134 class). Fixed: `:8080/ready` for ai-signal-bot (real `_check_all`) and `:3000/health` for web-ui (previously unchecked). Partial FP: the compose `:3001/api/health` target is Grafana — a real endpoint — left as-is.
 
 **S138 (Low) — Done.** `scripts/load_test_50_symbols.py` — diverged duplicate of `exchange_simulator/tests/load_test_50_symbols.py` (the copy TESTING.md documents); zero references, pytest collects nothing from it. Deleted; closes old Finding 006.
+
+**S139 (Low) — Done.** Makefile `ci-test`/`ci-quick` targets invoked `./ci-test.sh` — deleted in `c7025b7` ("duplicate test runners"), leaving broken targets. Repointed to the canonical gate: `pre-commit-check.py --all` / `--quick`.
+
+**S140 (Low) — Done.** `cachetools==5.5.0` in `exchange_simulator/requirements.txt` — zero imports repo-wide (src + tests). Dead pin removed. (`matplotlib`, `msgpack`, `orjson`, all 7 web-ui deps verified in use.)

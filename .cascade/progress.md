@@ -986,3 +986,8 @@ Reverse props direction: компоненты деструктурируют т�
 - **S137 (Medium)**: `deploy.yml` health-loop бил `3000/api/health` (SPA-fallback 200 — вечнозелёный) и `9092/health` (stub). Fix → `8080/ready` + `3000/health`. FP: prod-compose `api/health` — реальный grafana endpoint.
 - **S138 (Low)**: `scripts/load_test_50_symbols.py` — разошедшийся дупликат tests/ версии, 0 refs. Удалён (закрыта старая Finding 006).
 - Verify: gate 8/8 green incl. новый `config: consistency`; compose YAML валидны.
+
+## Round 59 — 2026-09-13 — slop-audit+fix: Makefile/deps drift → S139+S140
+- **S139 (Low)**: Makefile `ci-test`/`ci-quick` звали удалённый `ci-test.sh`. Repointed на `pre-commit-check.py --all/--quick`.
+- **S140 (Low)**: `cachetools` pin в exchange_simulator/requirements.txt — 0 импортов. Удалён.
+- Verify: `pre-commit-check.py --lint` 4/4 green; web-ui deps все used; `matplotlib`/`msgpack`/`orjson` — реальные.

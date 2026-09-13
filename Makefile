@@ -72,10 +72,10 @@ logs: ## View latest log files
 	@head -5 logs/trades_latest.csv 2>/dev/null || echo "No trades CSV found"
 
 ci-test: ## Run CI/CD test pipeline (all stages)
-	@./ci-test.sh all
+	@python scripts/pre-commit-check.py --all
 
-ci-quick: ## Run CI/CD quick test (skip Rust, skip C++ tests)
-	@./ci-test.sh quick
+ci-quick: ## Run CI/CD quick test (lint + fast tests)
+	@python scripts/pre-commit-check.py --quick
 
 benchmark: ## Run latency benchmark suite (p50/p95/p99/p999)
 	@python scripts/benchmark_suite.py --output logs/benchmark.json
