@@ -35,8 +35,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - language: python
-          - language: javascript
+          # python/javascript are scanned by ci.yml security-codeql with
+          # security-extended queries — duplicating them here runs the same
+          # analysis twice per push. This workflow keeps only the cpp leg,
+          # which ci.yml does not cover.
           - language: cpp
 
     steps:
@@ -54,7 +56,6 @@ jobs:
               - 'websocketpp/**'
 
       - name: Build C++ (manual)
-        if: matrix.language == 'cpp'
         run: |
           sudo apt-get update && sudo apt-get install -y \
             cmake libboost-dev libboost-system-dev libboost-random-dev \
@@ -65,11 +66,7 @@ jobs:
           sudo sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp
           cd hft-trade-bot
           cmake -B build -DCMAKE_BUILD_TYPE=Debug -DUSE_CCACHE=OFF -DUSE_UNITY_BUILD=OFF
-          cmake --build build -j$(nproc) --target hft_trade_bot || true
-
-      - name: Autobuild (non-C++)
-        if: matrix.language != 'cpp'
-        uses: github/codeql-action/autobuild@v3
+          cmake --build build -j$(nproc) --target hft_trade_bot
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
