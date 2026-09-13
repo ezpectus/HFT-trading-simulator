@@ -58,6 +58,8 @@ spec:
               name: ws
             - containerPort: {{ .Values.aiSignalBot.ports.metrics }}
               name: metrics
+            - containerPort: {{ .Values.aiSignalBot.ports.health }}
+              name: health
           volumeMounts:
             - name: shm
               mountPath: /dev/shm
@@ -67,14 +69,14 @@ spec:
               mountPath: /app/logs
           livenessProbe:
             httpGet:
-              path: /health
-              port: {{ .Values.aiSignalBot.ports.metrics }}
+              path: /live
+              port: {{ .Values.aiSignalBot.ports.health }}
             initialDelaySeconds: 15
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /health
-              port: {{ .Values.aiSignalBot.ports.metrics }}
+              path: /ready
+              port: {{ .Values.aiSignalBot.ports.health }}
             initialDelaySeconds: 10
             periodSeconds: 10
           resources:
@@ -140,6 +142,8 @@ spec:
       name: ws
     - port: {{ .Values.aiSignalBot.ports.metrics }}
       name: metrics
+    - port: {{ .Values.aiSignalBot.ports.health }}
+      name: health
     - port: 9091
       name: hft-health
   selector:

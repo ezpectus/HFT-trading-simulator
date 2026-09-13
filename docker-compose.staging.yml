@@ -58,6 +58,7 @@ services:
         condition: service_healthy
     ports:
       - "18766:8766"
+      - "18080:8080"
       - "19090:9090"
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
@@ -76,7 +77,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9090/health', timeout=5)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready', timeout=5)"]
       interval: 15s
       timeout: 5s
       retries: 5

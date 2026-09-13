@@ -34,6 +34,7 @@ aiSignalBot:
   ports:
     ws: 8766
     metrics: 9090
+    health: 8080
   env:
     exchangeMode: simulator
     openaiApiKey: ""
