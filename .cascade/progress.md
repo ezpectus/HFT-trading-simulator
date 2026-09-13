@@ -1530,3 +1530,13 @@ Findings:
 Clean: test-summary honest aggregator; test-count floors real; docker-smoke hits real health endpoints; staging scrape aliases resolve; hft images install wget.
 
 Commit: (below)
+
+## R110 — 2026-09-15 — audit: workflows + manifests + CMake wiring — 0 new (S200 extended)
+
+Target: `.github/workflows/{deploy,nightly-backtest,release,codeql}.yml`, web-ui manifests, pyproject/requirements, dependabot, hft CMake targets.
+
+Findings: none new. S200 extended — package.json:6 "52 quant models" counts deleted research/ package; numbers now diverge in 3 files (index.html 204/44+, package.json 278/52, manifest 278 correct).
+
+Clean: deploy health-check hits published ports; nightly-backtest imports/attrs/regression-gate all real; codeql honest; vite manifest correct; CMake 25/25 targets↔sources; dependabot real; ruff/reqs honest.
+
+Commit: (below)
