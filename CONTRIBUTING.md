@@ -202,7 +202,7 @@ For full setup instructions, see [docs/guides/QUICK_START.md](docs/guides/QUICK_
 
 ## Running Tests
 
-**All-in-one (Windows):** `run-all-tests.bat` opens 7 windows — Python lint/security, Python tests, JS lint/audit, JS tests + E2E, JS build, Docker build, C++ lint/build/tests.
+**All-in-one:** `python scripts/pre-commit-check.py --all` runs the same gate CI enforces — Python lint/tests, JS lint/tests, C++ checks, config consistency.
 
 ```bash
 # Exchange simulator tests
@@ -299,7 +299,7 @@ npx vitest run --coverage         # With coverage report
 npx vitest                        # Watch mode
 ```
 
-Test files are in `web-ui/src/test/`. Current coverage: 116 test files, 857+ tests covering:
+Test files are in `web-ui/src/test/` (unit) and `web-ui/e2e/` (Playwright). Current coverage: 157 unit test files + 4 E2E specs covering:
 - Component rendering and empty states (EmptyState, SignalFeed, BotStatus, FillsPanel)
 - Form validation (OrderForm quantity/margin validation)
 - Error boundaries (retry, auto-disable after 3+ errors)
@@ -457,8 +457,7 @@ hft-trading-system/
 │   ├── tests/                    # C++ tests
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
-├── hft-executor/                 # Rust: order executor (FFI + WebSocket)
-├── web-ui/                       # React 18: dashboard (289 components, 116 test files)
+├── web-ui/                       # React 18: dashboard (295 components, 162 test files)
 │   ├── src/
 │   │   ├── components/           # UI components (React.lazy)
 │   │   ├── panels/               # Panel registry

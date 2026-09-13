@@ -11,34 +11,39 @@ Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    subgraph SIM["Exchange Simulator — Python"]
+        ES["49 symbols · 3 exchange personalities<br/>GBM+jumps · order book · options"]
+    end
+    subgraph BOT["AI Signal Bot — Python"]
+        AI["Signal loop → 7 strategies<br/>→ ensemble vote → risk → SQLite"]
+    end
+    subgraph HFT["HFT Trade Bot — C++20"]
+        CPP["Signal Engine V2/V3 · HMM regime<br/>lock-free · kill switch"]
+    end
+    subgraph UI["Web UI — React 18"]
+        WEB["295 components · 278 panels<br/>PWA · WCAG AA · mock mode"]
+    end
+
+    ES -- "WS :8765 market data" --> AI
+    ES -- "WS :8765 market data" --> CPP
+    ES -- "WS :8765 prices/accounts" --> WEB
+    AI -- "WS :8766 signals" --> CPP
+    AI -- "WS :8766 signals/backtests" --> WEB
+    AI -- "paper orders" --> ES
+    CPP -- "orders" --> ES
+    WEB -- "orders" --> ES
+    AI -. "SHM rings /hft_* (opt-in)" .- CPP
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                    HFT TRADING SYSTEM                            │
-├──────────────┬──────────────┬────────────────────────────────────┤
-│  EXCHANGE    │  AI SIGNAL   │  HFT TRADE                         │
-│  SIMULATOR   │  BOT         │  BOT                               │
-│  (Python)    │  (Python)    │  (C++20)                           │
-│              │              │                                    │
-│  49 symbols  │  7 strategies│  Signal V2/V3                      │
-│  3 exchanges │  signal loop │  HMM regime                        │
-│  GBM + jumps │  Backtesting │  SHM IPC                           │
-│  Order book  │  Risk mgmt   │  lock-free                         │
-│  Options     │              │  zero-alloc                        │
-└──────┬───────┴──────┬───────┴──────┬─────────────────────────────┘
-       │ WS :8765     │ SHM ~30us    │ WS orders
-       │              │              │
-       ▼              ▼              ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    WEB UI (React 18)                             │
-│  ~290 panels · PWA · WCAG AA · WebSocket :3000                   │
-└──────────────────────────────────────────────────────────────────┘
-```
+
+Health/metrics endpoints: sim `:8775`, AI bot `:8080` (probes) + `:9090` (metrics), HFT bot `:9091`, UI `:3000`.
 
 ### Why Three Languages?
 
 | Language | Role | Why |
 |----------|------|-----|
-| **Python** | Signal bot, exchange simulator | ML ecosystem (PyTorch, scikit-learn). 50ms latency acceptable for signal generation. |
+| **Python** | Signal bot, exchange simulator | ML ecosystem (scikit-learn, optional lightgbm/xgboost). 50ms latency acceptable for signal generation. |
 | **C++20** | HFT execution engine | Sub-millisecond loop. Zero-allocation hot path, lock-free queues, cache-line alignment. |
 
 ### Latency Budget
@@ -109,11 +114,25 @@ Open **http://localhost:3000**.
 - Direct WebSocket order execution to the configured exchange
 
 ### Web UI (React 18)
-- ~290 panels with React.lazy code splitting
+- 295 component files, 278 registered panels with React.lazy code splitting
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
-- 116 test files (Vitest), 4 E2E specs (Playwright)
+- 157 test files (Vitest), 4 E2E specs (Playwright)
+
+---
+
+## Feature Status
+
+What's real, what's a demo, what's dormant — verified against the code:
+
+| Status | Feature |
+|--------|---------|
+| **Working** | Exchange simulator (market data, order matching, funding, liquidation), paper trading, 7 strategies + ensemble, backtesting + walk-forward, C++ signal engines V2/V3, risk manager, all health/metrics endpoints, Prometheus metrics + 22 alert rules + Grafana dashboards |
+| **Working, opt-in** | SHM IPC rings (`/hft_signals`, `/hft_fills`, `/hft_kill_switch`) — `shm.enabled: false` by default, enable when the C++ bot runs on the same host |
+| **Demo / educational** | ~60 math-model UI panels (visualizations, not wired to trading), mock mode (`VITE_MOCK_MODE=true`), exchange-themed UI clones, strategy competition |
+| **Dormant** | Live-trading path: `paper_trading: false` + `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` + `pip install ccxt` → real orders via `RealExchangeAdapter` (ccxt). Off by default, untested — not recommended |
+| **Removed** | Real price feeds, Rust FFI executor, PostgreSQL/Redis, Terraform, research/ML modules (see `docs/theory/` for the deletion rationale) |
 
 ---
 
@@ -122,13 +141,13 @@ Open **http://localhost:3000**.
 | Component | Language | Key Libraries |
 |-----------|----------|---------------|
 | Exchange Simulator | Python 3.12 | asyncio, websockets, numpy, orjson, msgpack |
-| AI Signal Bot | Python 3.12 | asyncio, numpy, torch, scipy, optuna |
+| AI Signal Bot | Python 3.12 | asyncio, websockets, numpy, aiohttp, prometheus-client (optional: sklearn, lightgbm, xgboost, scipy) |
 | HFT Trade Bot | C++20 | Boost, websocketpp, spdlog, fmt, nlohmann/json |
 | Web UI | JS (ES2021) | React 18, Vite, TailwindCSS, lightweight-charts |
 | Communication | — | WebSocket, SHM IPC |
-| Database | — | SQLite (WAL), PostgreSQL (optional), Redis (optional) |
+| Database | — | SQLite (WAL mode) |
 | CI/CD | — | GitHub Actions (Python, C++, JS, Docker) |
-| Testing | — | pytest, CTest, Vitest, cargo test |
+| Testing | — | pytest, CTest/doctest, Vitest, Playwright |
 
 ---
 
@@ -147,7 +166,7 @@ Open **http://localhost:3000**.
 | [Web UI](docs/WEB_UI.md) | Panels, performance, accessibility |
 | [Advanced Orders](docs/ADVANCED_ORDER_TYPES.md) | Iceberg, TWAP, trailing stops, OCO |
 | [Risk Management](docs/RISK_MANAGEMENT.md) | VaR, CVaR, Kelly, stress testing |
-| [Monitoring](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, Alertmanager |
+| [Monitoring](docs/MONITORING_GUIDE.md) | Prometheus, Grafana, alert rules |
 | [Testing](docs/TESTING.md) | Test infrastructure and coverage |
 | [Deployment](docs/DEPLOYMENT.md) | Deployment procedures |
 | [Performance](docs/PERFORMANCE.md) | Latency targets and benchmarks |
@@ -173,12 +192,12 @@ hft-trading-system/
 │   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
-├── web-ui/                      # React 18: dashboard (~290 components, 116 test files)
-├── docs/                        # 13 documentation files + 4 guides + 7 theory docs
+├── web-ui/                      # React 18: dashboard (295 components, 162 test files)
+├── docs/                        # 13 documentation files + 4 guides + 8 theory docs
 ├── monitoring/                  # Prometheus + Grafana config
 ├── docker-compose.yml           # Development
-├── docker-compose.prod.yml      # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
-└── shared_config.yaml           # 49 symbol definitions
+├── docker-compose.prod.yml      # Production (+ Prometheus, Grafana)
+└── shared_config.yaml           # Canonical cross-component config reference (enforced by scripts/test_config_consistency.py)
 ```
 
 ---
@@ -213,10 +232,8 @@ docker-compose -f docker-compose.prod.yml up -d
 | AI Signal Bot | 8766 | Signal publisher (WebSocket) |
 | AI Signal Bot | 9092 | Prometheus metrics + `/health` (container-internal 9090) |
 | HFT Trade Bot | 9091 | Health + metrics |
-| AI Signal Bot | 8080 | Health server — internal only, not published in prod |
+| AI Signal Bot | 8080 | Health server — `/live`, `/ready`, `/health/*` detail endpoints |
 | Prometheus | 9090 | Internal only (`expose`); dev compose maps it to 9099 |
-| PostgreSQL | 5432 | Trade persistence (optional, internal) |
-| Redis | 6379 | Caching (optional, internal) |
 
 ---
 
@@ -257,7 +274,7 @@ See [Monitoring Guide](docs/MONITORING_GUIDE.md) for full details.
 
 ## Disclaimer
 
-**Paper trading simulator for educational purposes.** No real exchange API, no real money, no financial advice. All market data is synthetically generated.
+**Paper trading simulator for educational purposes.** All market data is synthetically generated; the default `paper_trading: true` mode never leaves the simulator. A dormant opt-in live-trading adapter exists (`paper_trading: false` + ccxt + `EXCHANGE_API_KEY`) — it is untested, off by default, and entirely at your own risk. No financial advice.
 
 ## License
 
