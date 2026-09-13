@@ -19,6 +19,7 @@ def _cfg(**over):
         symbols=["BTC/USDT", "ETH/USDT"], default_exchange="binance",
         shm_enabled=True, shm_signals_name="/t_sig", shm_fills_name="/t_fill",
         shm_market_name="/t_mkt", shm_kill_name="/t_kill", shm_capacity=64,
+        shm_max_symbols=0,
         alerting_enabled=True, alerting_check_interval=15.0,
         alerting_webhook_url="", alerting_discord_webhook="",
         alerting_telegram_token="", alerting_telegram_chat_id="",

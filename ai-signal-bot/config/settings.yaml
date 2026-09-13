@@ -172,7 +172,7 @@ shm:
   kill_switch_name: "/hft_kill_switch"  # hft→bot kill-switch ring (hft creates, bot consumes)
   market_name: "/hft_market"     # bot→hft market snapshot slots (bot creates)
   capacity: 4096                 # ring capacity per segment
-  max_symbols: 10                # market snapshot slots
+  max_symbols: 0                 # market snapshot slots (0 = auto-size to symbols list)
 
 # Alerting — ops alerts (daily loss, no fills, SHM/DB down) via webhooks
 alerting:

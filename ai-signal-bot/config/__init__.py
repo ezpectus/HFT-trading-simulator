@@ -393,6 +393,11 @@ class SignalBotConfig:
     def shm_capacity(self) -> int:
         return int(self.raw.get("shm", {}).get("capacity", 4096))
 
+    @property
+    def shm_max_symbols(self) -> int:
+        # Market-snapshot segment slot count; 0 → sized to the symbol universe
+        return int(self.raw.get("shm", {}).get("max_symbols", 0))
+
     # --- alerting (ops alerts → webhook/Discord/Telegram) ---
     @property
     def alerting_enabled(self) -> bool:
