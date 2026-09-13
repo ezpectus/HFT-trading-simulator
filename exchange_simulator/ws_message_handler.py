@@ -275,6 +275,16 @@ class MessageHandlerMixin:
             }))
             return None
 
+        tif = str(data.get("time_in_force", "GTC")).upper()
+        if tif not in ("GTC", "IOC", "FOK", "GTD"):
+            await websocket.send(json.dumps({
+                "type": "error",
+                "message": f"Invalid time_in_force: {tif} (expected GTC/IOC/FOK/GTD)",
+            }))
+            return None
+        expire_ms = data.get("expire_ms")
+        expire_ts = float(expire_ms) / 1000.0 if expire_ms is not None else None
+
         try:
             return exchange.submit_order(
                 symbol=data["symbol"],
@@ -290,6 +300,9 @@ class MessageHandlerMixin:
                 trail_percentage=data.get("trail_percentage", True),
                 iceberg_visible_qty=data.get("iceberg_visible_qty"),
                 oco_group_id=data.get("oco_group_id"),
+                time_in_force=tif,
+                post_only=bool(data.get("post_only", False)),
+                expire_ts=expire_ts,
             )
         except (ValueError, KeyError) as e:
             await websocket.send(json.dumps({

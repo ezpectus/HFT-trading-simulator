@@ -293,7 +293,14 @@ class BroadcastMixin:
                         "order_id": order.id,
                         "status": f"CLOSED_{reason or 'SLTP'}",
                     })
-                    batched_fills.append(order.to_dict())
+                else:
+                    # Terminal non-fill (GTD expiry, IOC/FOK no-fill cancel) —
+                    # clients must see it or the order strands in openOrders.
+                    logger.info(
+                        f"  ORDER {order.status.value}: {order.symbol} "
+                        f"| {ex_id} | {order.rejection_reason or ''}"
+                    )
+                batched_fills.append(order.to_dict())
 
             if batched_fills:
                 await self._broadcast_fills_batch(batched_fills)

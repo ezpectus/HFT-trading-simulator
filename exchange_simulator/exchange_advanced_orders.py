@@ -38,10 +38,25 @@ class AdvancedOrderMixin:
     def _check_limit_orders(
         self, current_prices: dict, filled_orders: list
     ) -> None:
-        """Fill resting limit orders whose limit price the market has reached."""
+        """Fill resting limit orders whose limit price the market has reached.
+        GTD orders past expire_ts are cancelled first — they must not fill."""
+        import time as _time
+        now = _time.time()
         to_remove = []
         for order_id, order in list(self._pending_limits.items()):
             if order.status != OrderStatus.PENDING:
+                to_remove.append(order_id)
+                continue
+            if order.expire_ts is not None and now >= order.expire_ts:
+                order.status = OrderStatus.CANCELLED
+                order.rejection_reason = "GTD_EXPIRED"
+                self._audit_logger.log(
+                    event_type=AuditEventType.ORDER_CANCELLED,
+                    exchange=self.exchange_id, symbol=order.symbol, order_id=order_id,
+                    reason="GTD_EXPIRED",
+                    metadata={"expire_ts": order.expire_ts},
+                )
+                filled_orders.append(order)
                 to_remove.append(order_id)
                 continue
             current_price = current_prices.get(order.symbol, 0)

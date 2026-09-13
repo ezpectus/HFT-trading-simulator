@@ -128,6 +128,9 @@ class Order:
     rejection_reason: str | None = None
     oco_group_id: str | None = None
     client_order_id: str | None = None  # Echoed from the submit request for ack correlation
+    time_in_force: str = "GTC"          # GTC | IOC | FOK | GTD — LIMIT only
+    expire_ts: float | None = None      # Unix seconds; GTD orders cancel at this time
+    post_only: bool = False             # LIMIT only — reject if immediately marketable
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:
@@ -147,6 +150,9 @@ class Order:
             "rejection_reason": self.rejection_reason,
             "oco_group_id": self.oco_group_id,
             "client_order_id": self.client_order_id,
+            "time_in_force": self.time_in_force,
+            "expire_ts": self.expire_ts,
+            "post_only": self.post_only,
             "timestamp": self.timestamp,
         }
 

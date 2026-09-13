@@ -77,6 +77,8 @@ export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmi
       setLastMsg({ type: 'info', text: `Resting @ ${formatPrice(ack.price)}` })
     } else if (status === 'REJECTED') {
       setLastMsg({ type: 'error', text: `Rejected: ${ack.rejection_reason || 'unknown'}` })
+    } else if (status === 'CANCELLED') {
+      setLastMsg({ type: 'info', text: `Cancelled${ack.rejection_reason ? `: ${ack.rejection_reason}` : ''}` })
     } else {
       // null = no ack (queued/offline/timeout); true = legacy send-success bool
       setLastMsg({ type: ack === false ? 'error' : 'info', text: ack === false ? 'Not connected' : 'Sent — awaiting ack' })

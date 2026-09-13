@@ -39,6 +39,9 @@ class OrderSubmissionMixin:
         trail_percentage: bool = True,
         iceberg_visible_qty: float | None = None,
         oco_group_id: str | None = None,
+        time_in_force: str = "GTC",
+        post_only: bool = False,
+        expire_ts: float | None = None,
     ) -> Order:
         """Submit an order and return the result.
 
@@ -50,6 +53,9 @@ class OrderSubmissionMixin:
             trail_percentage: If True, trail_amount is percentage (Phase 3).
             iceberg_visible_qty: Visible quantity for Iceberg orders (Phase 3).
             oco_group_id: Group ID for OCO orders (Phase 3).
+            time_in_force: GTC | IOC | FOK | GTD (GTD requires expire_ts).
+            post_only: LIMIT only — reject instead of filling when marketable.
+            expire_ts: Unix seconds at which a resting order expires (GTD).
         """
         order_id = f"{self._order_counter:08x}"
         self._order_counter += 1
@@ -68,6 +74,23 @@ class OrderSubmissionMixin:
         if order is None:
             return self._reject_order(order_id, symbol, side, order_type, quantity, price,
                                       "INVALID_ORDER_PARAMETERS")
+        if time_in_force not in ("GTC", "IOC", "FOK", "GTD"):
+            return self._reject_order(order_id, symbol, side, order_type, quantity, price,
+                                      f"INVALID_TIME_IN_FORCE ({time_in_force})", order=order)
+        if order_type != OrderType.LIMIT and (
+                time_in_force != "GTC" or post_only or expire_ts is not None):
+            return self._reject_order(order_id, symbol, side, order_type, quantity, price,
+                                      "TIME_IN_FORCE_LIMIT_ONLY", order=order)
+        if expire_ts is not None and time_in_force != "GTD":
+            return self._reject_order(order_id, symbol, side, order_type, quantity, price,
+                                      "EXPIRE_REQUIRES_GTD", order=order)
+        order.time_in_force = time_in_force
+        order.post_only = post_only
+        if time_in_force == "GTD":
+            if expire_ts is None:
+                return self._reject_order(order_id, symbol, side, order_type, quantity, price,
+                                          "GTD_MISSING_EXPIRY", order=order)
+            order.expire_ts = expire_ts
 
         if oco_group_id:
             order.oco_group_id = oco_group_id
@@ -102,7 +125,7 @@ class OrderSubmissionMixin:
             return order
 
         if self._try_limit_order_pending(order, order_type, side, price, fill_price,
-                                         order_id, symbol, quantity):
+                                         order_id, symbol, quantity, post_only):
             return order
 
         return self._fill_market_order(order, order_id, symbol, side, quantity, price,
@@ -246,33 +269,80 @@ class OrderSubmissionMixin:
         )
 
     def _try_limit_order_pending(self, order, order_type, side, price,
-                                 fill_price, order_id, symbol, quantity) -> bool:
-        """Check if a limit order should go pending.
+                                 fill_price, order_id, symbol, quantity,
+                                 post_only=False) -> bool:
+        """Decide a LIMIT order's fate: rest, fill, cancel, or reject.
 
-        Returns True if the order was set to pending.
+        - marketable + post_only → REJECTED (POST_ONLY_WOULD_TAKE)
+        - not marketable + IOC/FOK → CANCELLED (never rests)
+        - not marketable + GTC/GTD → PENDING (rests; GTD expires via expire_ts)
+        Returns True if the order was consumed (rested/cancelled/rejected);
+        False means it is marketable and should fill via _fill_market_order.
         """
-        if order_type == OrderType.LIMIT and price is not None:
-            if side == Side.BUY and price < fill_price:
-                order.status = OrderStatus.PENDING
-                self._pending_limits[order_id] = order
+        if order_type != OrderType.LIMIT or price is None:
+            return False
+        marketable = (side == Side.BUY and price >= fill_price) or \
+                     (side == Side.SELL and price <= fill_price)
+        if marketable:
+            if post_only:
+                order.status = OrderStatus.REJECTED
+                order.rejection_reason = "POST_ONLY_WOULD_TAKE"
                 self._order_history.append(order)
                 self._audit_logger.log(
-                    event_type=AuditEventType.ORDER_SUBMITTED,
+                    event_type=AuditEventType.ORDER_REJECTED,
                     exchange=self.exchange_id, symbol=symbol, order_id=order_id,
-                    metadata={"order_type": order_type.value, "price": price, "quantity": quantity},
+                    reason=order.rejection_reason,
+                    metadata={"order_type": order_type.value, "price": price},
                 )
                 return True
-            if side == Side.SELL and price > fill_price:
-                order.status = OrderStatus.PENDING
-                self._pending_limits[order_id] = order
+            if order.time_in_force == "FOK" and not self._depth_covers(
+                    symbol, side, price, quantity):
+                order.status = OrderStatus.CANCELLED
+                order.rejection_reason = "FOK_INSUFFICIENT_DEPTH"
                 self._order_history.append(order)
                 self._audit_logger.log(
-                    event_type=AuditEventType.ORDER_SUBMITTED,
+                    event_type=AuditEventType.ORDER_CANCELLED,
                     exchange=self.exchange_id, symbol=symbol, order_id=order_id,
-                    metadata={"order_type": order_type.value, "price": price, "quantity": quantity},
+                    reason=order.rejection_reason,
+                    metadata={"order_type": order_type.value, "price": price,
+                              "quantity": quantity},
                 )
                 return True
-        return False
+            return False
+        if order.time_in_force in ("IOC", "FOK"):
+            order.status = OrderStatus.CANCELLED
+            order.rejection_reason = f"{order.time_in_force}_UNFILLED"
+            self._order_history.append(order)
+            self._audit_logger.log(
+                event_type=AuditEventType.ORDER_CANCELLED,
+                exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+                reason=order.rejection_reason,
+                metadata={"order_type": order_type.value, "price": price,
+                          "time_in_force": order.time_in_force},
+            )
+            return True
+        order.status = OrderStatus.PENDING
+        self._pending_limits[order_id] = order
+        self._order_history.append(order)
+        self._audit_logger.log(
+            event_type=AuditEventType.ORDER_SUBMITTED,
+            exchange=self.exchange_id, symbol=symbol, order_id=order_id,
+            metadata={"order_type": order_type.value, "price": price, "quantity": quantity,
+                      "time_in_force": order.time_in_force, "expire_ts": order.expire_ts},
+        )
+        return True
+
+    def _depth_covers(self, symbol, side, limit_price, quantity) -> bool:
+        """Cumulative book depth fillable at limit_price covers quantity (FOK check)."""
+        try:
+            book = self.get_order_book(symbol)
+        except Exception:
+            return True  # no book data → fall back to slippage model
+        levels = book.asks if side == Side.BUY else book.bids
+        depth = sum(qty for px, qty in levels
+                    if (side == Side.BUY and px <= limit_price)
+                    or (side == Side.SELL and px >= limit_price))
+        return depth >= quantity
 
     def _fill_market_order(self, order, order_id, symbol, side, quantity, price,
                            fill_price, mid_price, stop_loss, take_profit,
