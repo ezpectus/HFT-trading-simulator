@@ -1030,3 +1030,11 @@ Audit surface: workflows + hub compose. Negative results: scripts/ci (verified-c
 **S144 (Low)** — hub.yml → ghcr.io путь, который реально пушится.
 
 Board: **0 open**.
+
+## R64 — slop-audit: static-signal sweep — чисто, 0 находок
+
+Поверхность: Math.random (28 файлов — все алгоритмические/ID, mock-mode за `VITE_MOCK_MODE`), except-pass (все narrow-typed: CancelledError/QueueEmpty/OSError), TODO/FIXME (3 шт), dead sim-модули (0), pytest collect (1935/128 файлов — все собираются), orphan bounded contexts (portfolio/pricing/risk/technical_analysis — все транзитивно подключены через signal_publisher/analysis_requests/backtester), ebpf_monitor.py (реальный BCC opt-in tool), deploy/k8s (только gitignored secrets template), monitoring/alerts/ (untracked пустой локальный остаток).
+
+## R65 — slop-verify: выборочная QA done-log — все проверки прошли
+
+Sample 6 записей: S132 (kill-switch consumer — run.py:293-340 + metric живы), S136 (consistency-check wired pre-commit:481/902), S134 (helm probes /live+/ready:8080), S131 (`hft_active_positions` реальный эмиттер system_monitor.h:231), S130 (BacktestRunner получает `ctx.signals.connected`+sendSignalMessage+backtestResult — правильный сокет), S137 (deploy.yml → 8080/ready + 3000/health). 0 регрессий.
