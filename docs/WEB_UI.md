@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **295 React component files**, **278 registered panels** across 7 categories, **60+ advanced mathematical model components** (educational visualizations), **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
+Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **291 React component files**, **278 registered panels** across 7 categories, **60+ advanced mathematical model components** (educational visualizations), **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
 ## Theory: UI architecture and why this stack
 
@@ -373,14 +373,14 @@ npm run build          # Production build verification
 npm run analyze        # Bundle visualization (vite-bundle-visualizer)
 ```
 
-### Test Files (103 files: 99 unit + 4 E2E, 800+ tests)
+### Test Files (157 files: 153 unit + 4 E2E, 1000+ tests)
 
-#### Unit Tests (99 files)
+#### Unit Tests (153 files)
 
 | Category | Coverage |
 |----------|----------|
 | Components | 70+ component tests — rendering, props, user interaction, error boundaries |
-| Hooks | 16 hook tests — useLocalStorage, useWebSocket, useExchangeData, useDebounce, useInterval, useKeyboardShortcuts, useMediaQuery, useMockData, usePerformance, useSoundAlerts, useTheme, useTradeJournal, useAnimatedNumber, useDetachablePanels |
+| Hooks | hook tests — useLocalStorage, useWebSocket, useExchangeData, useDebounce, useKeyboardShortcuts, useMediaQuery, useMockData, useSoundAlerts, useTheme, useTradeJournal, useAnimatedNumber, useDetachablePanels, useSessionRecorder, useStrategyMarketplace |
 | Math/Indicators | 8+ math tests — Kalman, HMM, GARCH, KMeans, cointegration, backtestEngine, indicators, performance |
 | Utils | 5+ utility tests — utils, registry, virtualList, format, patterns |
 

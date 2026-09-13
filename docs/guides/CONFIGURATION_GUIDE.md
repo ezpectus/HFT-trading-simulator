@@ -129,17 +129,23 @@ account:
 
 ## 2. Exchange Simulator (`exchange_simulator/config.yaml`)
 
-> **Stale section (S161):** the table below documents keys that don't exist
-> in `config.yaml` — `compression`, `max_symbols`, `tick_interval_ms`,
-> `encoding` are hardcoded in `websocket_server.py` (`compression="deflate"`,
-> `_tick_interval = 1.0`), and host/port live under `websocket:`. The fees
-> schema is a single `fee_pct` + `slippage_bps` — there is no maker/taker
-> split. See the real file for authoritative keys.
-
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `websocket.host` | `localhost` | WebSocket server bind address |
-| `websocket.port` | `8765` | WebSocket server port |
+| `exchanges.<name>.fee_pct` | `0.04`–`0.06` | Trading fee in percent (single fee — no maker/taker split) |
+| `exchanges.<name>.slippage_bps` | `2.0`–`3.0` | Simulated slippage in basis points |
+| `initial_prices.<symbol>` | per-symbol | Starting reference price; also defines the symbol list |
+| `market.timeframe` / `market.timeframe_seconds` | `5m` / `300` | Candle interval |
+| `market.drift` | `0.0001` | Per-candle drift bias |
+| `market.warmup_candles` | `200` | History generated before trading starts |
+| `market.order_book_depth` | `20` | Book levels per side |
+| `account.initial_balance` | `10000.0` | Starting balance per exchange |
+| `account.leverage` | `10` | Default leverage (1–50) |
+| `websocket.host` | `localhost` | WebSocket bind address |
+| `websocket.port` | `8765` | WebSocket port (Prometheus metrics on port+10) |
+| `metrics.enabled` | `true` | Health/metrics HTTP server |
+
+Note: tick interval, compression and protocol encoding are hardcoded in
+`websocket_server.py` — not configurable keys.
 
 ---
 
