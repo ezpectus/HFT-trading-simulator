@@ -36,7 +36,6 @@ module "eks" {
   source             = "../../modules/eks"
   name_prefix        = "hft-prod"
   environment        = "prod"
-  vpc_id             = module.vpc.vpc_id
   subnet_ids         = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
   node_instance_type = "c5.2xlarge"
   node_desired_size  = 4
