@@ -39,6 +39,26 @@ spec:
           env:
             - name: LOG_FORMAT
               value: {{ .Values.global.logFormat | quote }}
+            # Without WS_URL the bot dials ws://localhost:8765 — loopback of
+            # its own pod — and starves on empty market data while probes
+            # stay green.
+            - name: WS_URL
+              value: "ws://{{ .Release.Name }}-exchange-simulator:{{ .Values.exchangeSimulator.ports.ws }}"
+            # Publisher auth + sim control-plane auth. Optional refs: the chart
+            # renders without the secret, both sides then run unauthenticated
+            # (documented fail-open) — set the api-keys secret for real deploys.
+            - name: AI_BOT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-api-keys
+                  key: ai-bot-auth-token
+                  optional: true
+            - name: EXCHANGE_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-api-keys
+                  key: exchange-control-token
+                  optional: true
             {{- if .Values.aiSignalBot.env.openaiApiKey }}
             - name: OPENAI_API_KEY
               value: {{ .Values.aiSignalBot.env.openaiApiKey | quote }}
@@ -88,6 +108,21 @@ spec:
               drop:
                 - ALL
           command: ["/app/hft_trade_bot", {{ .Values.hftTradeBot.configPath | quote }}]
+          env:
+            # config.prod.yaml resolves ${HFT_EXCHANGE_WS_URL:-...}; without it
+            # the sidecar dials its own pod loopback for market data.
+            - name: HFT_EXCHANGE_WS_URL
+              value: "ws://{{ .Release.Name }}-exchange-simulator:{{ .Values.exchangeSimulator.ports.ws }}"
+            # /tmp is read-only (readOnlyRootFilesystem) — the file trigger
+            # lives on the writable logs volume instead.
+            - name: HFT_KILL_SWITCH_FILE
+              value: "/app/logs/kill_switch"
+            - name: EXCHANGE_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-api-keys
+                  key: exchange-control-token
+                  optional: true
           ports:
             - containerPort: 9091
               name: health

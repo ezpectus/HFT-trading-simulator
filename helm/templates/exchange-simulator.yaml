@@ -38,6 +38,19 @@ spec:
           env:
             - name: LOG_FORMAT
               value: {{ .Values.global.logFormat | quote }}
+            # Without this the sim binds pod-loopback and every probe
+            # CrashLoops the pod (httpGet hits the pod IP, not 127.0.0.1).
+            - name: EXCHANGE_WS_HOST
+              value: "0.0.0.0"
+            # Control-plane auth (order/cancel/trading-state). Optional so the
+            # chart still renders without the secret — sim then runs open,
+            # same as a missing EXCHANGE_CONTROL_TOKEN elsewhere.
+            - name: EXCHANGE_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-api-keys
+                  key: exchange-control-token
+                  optional: true
           ports:
             - containerPort: {{ .Values.exchangeSimulator.ports.ws }}
               name: ws

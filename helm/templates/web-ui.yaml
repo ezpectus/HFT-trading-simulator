@@ -13,6 +13,13 @@ metadata:
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}
     app.kubernetes.io/component: web-ui
+  annotations:
+    # The WS URLs are baked into the JS bundle at image build time — they
+    # cannot be injected at runtime. These annotations record which URLs the
+    # deployed image was *supposed* to be built with, so a bundle/serving
+    # mismatch is auditable instead of silent.
+    trading/hft-ws-exchange: {{ .Values.webUi.wsExchange | quote }}
+    trading/hft-ws-signals: {{ .Values.webUi.wsSignals | quote }}
 spec:
   replicas: 1
   selector:

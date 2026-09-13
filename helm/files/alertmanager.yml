@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Alertmanager configuration — routing for the 22 rules in monitoring/alerts.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Alert flow: prometheus (alerts.yml) → alertmanager :9093 → receivers below.
+#
+# Baseline behaviour: alerts are grouped and held in Alertmanager where they are
+# visible via the UI/API on :9093 and can be silenced. The `default` receiver
+# has no notification configs, so nothing is sent until you wire a channel.
+#
+# To enable notifications, add a config under the `default` receiver (or add a
+# named receiver + route), e.g.:
+#
+#   - name: "default"
+#     webhook_configs:
+#       - url: "https://your-endpoint/alerts"
+#
+#   - name: "default"
+#     telegram_configs:
+#       - bot_token: "<token>"
+#         chat_id: 123456789
+#         parse_mode: HTML
+#
+# Env vars in this file are expanded only if the container runs with
+# --config.expand-env (not enabled by default — edit this file instead).
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: "default"
+  group_by: ["alertname", "severity", "service"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  # Critical alerts repeat more aggressively
+  routes:
+    - matchers: ['severity = "critical"']
+      repeat_interval: 1h
+
+receivers:
+  - name: "default"
+
+inhibit_rules:
+  # Suppress warning-level alert when a critical alert for the same
+  # alertname+instance is already firing.
+  - source_match: {severity: "critical"}
+    target_match: {severity: "warning"}
+    equal: ["alertname", "instance"]

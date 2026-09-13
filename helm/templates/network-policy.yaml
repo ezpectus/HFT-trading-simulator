@@ -36,3 +36,8 @@ spec:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: ingress-nginx
+    # External HTTPS: api.openai.com, Discord/alert webhooks, exchange REST.
+    # NetworkPolicy can't select by DNS name — allow TCP/443 anywhere.
+    - ports:
+        - protocol: TCP
+          port: 443

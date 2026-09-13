@@ -1270,3 +1270,13 @@ Batch (recent + High): S148, S149, S155, S156 (R77-fix), S125 (R50 wire-all), S0
 Вердикты: 11 VERIFIED, 0 WRONG, 0 ROTTED. Done-log остаётся честным.
 
 Board: **35 open** — без изменений.
+
+## R86 — slop-fix: S164 (helm, High) + S157 + S158 — 3 закрыты
+
+- **S164** — helm-чарт теперь деплоит живую систему: WS_URL + EXCHANGE_WS_HOST + token secretKeyRef'ы, prometheus rules+alertmanager (vendored helm/files/), grafana provisioning (datasource+5 dashboards), netpol TCP/443 egress, HFT_KILL_SWITCH_FILE на writable mount, webUi.ws* в Deployment annotations. Плюс `${VAR:-default}` в hft expand_env.
+- **S157** — publisher: startup-warn при пустом токене, secrets.compare_digest ×2, per-client 30/мин sliding-window на 9 compute-типов (AI_BOT_COMPUTE_RATE_LIMIT) + WS round-trip тест.
+- **S158** — health-server: SO_RCVTIMEO/SO_SNDTIMEO 5s на client-сокете (idle-клиент ≤5s вместо вечной блокировки) + bind на metrics.host (dead-key из S159 теперь жив — 127.0.0.1 прячет PnL от сети).
+
+Verify: expand_env standalone-тест 6/6 (env/unset/empty/mid-string/unterminated); test_auth_wiring + test_signal_publisher 18/18 incl. новый rate-limit round-trip; yaml-валидация values.yaml + config.prod.yaml OK; clang-format-18 clean. helm binary нет — шаблоны верифицированы инспекцией; полный C++-билд на CI.
+
+Board: **32 open** (S150–S190 минус S157/S158/S164/S178/S179/S180/S188).

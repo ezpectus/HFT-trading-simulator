@@ -1,0 +1,97 @@
+{{- if and .Values.prometheus.enabled .Values.alertmanager.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-alertmanager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alertmanager
+  template:
+    metadata:
+      labels:
+        {{- include "hft-trading-system.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: alertmanager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: alertmanager
+          image: {{ .Values.alertmanager.image }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/tmp/alertmanager
+          ports:
+            - containerPort: {{ .Values.alertmanager.port }}
+              name: web
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: data
+              mountPath: /tmp/alertmanager
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: {{ .Values.alertmanager.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: {{ .Values.alertmanager.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.alertmanager.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}-alertmanager-config
+        - name: data
+          emptyDir: {}
+---
+# Vendored copy of monitoring/alertmanager.yml — default receiver only holds
+# alerts in the UI until a real channel is wired. Keep the two in sync.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-alertmanager-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+data:
+  alertmanager.yml: |
+{{ .Files.Get "files/alertmanager.yml" | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-alertmanager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hft-trading-system.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.alertmanager.port }}
+      name: web
+  selector:
+    {{- include "hft-trading-system.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+{{- end -}}
