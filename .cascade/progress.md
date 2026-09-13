@@ -1347,3 +1347,19 @@ Board: **19 open**.
 Verify: vitest 155 файлов / 1108 тестов green, alerting wiring 18/18, оба workflow-yaml валидны.
 
 Board: **14 open**.
+
+## R93 — slop-verify: 12 claims из R90–R92 — все чисто, 0 reverts
+
+- **S163** — 6 `rate(*_bucket[5m])` в обоих latency dashboard'ах (monitoring + helm copy).
+- **S167** — 5 `*Math.js` утилит существуют, все 5 компонентов импортируют их.
+- **S166/S174** — exchange-ui.test.jsx, ExchangeContext.jsx, ExchangeSelector.jsx отсутствуют на диске.
+- **S183** — openOrders/order_cancelled/orders_cancelled/pendingAcks в useExchangeData (11 refs), client_order_id echo в models.py:130,149 + open_orders в ws_broadcast:98,143.
+- **S185** — mock_objects.py + test_trading_flow.py отсутствуют.
+- **S186** — mock_exchange.h отсутствует; оба doctest-таргета в CMakeLists:411-418 с config.cpp sources + линками.
+- **S189** — оба сайта `wget -qO- | gpg --dearmor | sudo tee` (ci.yml:42,139).
+- **S190** — codeql.yml cpp-only matrix, `|| true` отсутствует.
+- **S184** — `timeoutRef = useRef(null)` + `clearTimeout(timeoutRef.current)` ×2 — window-глобал отсутствует.
+- **S153** — `ClientTimeout(total=15, connect=5)` alerting.py:77.
+- **S176** — auditExport.js + cn.js + тесты отсутствуют.
+
+Done-log помечен `✅ verified R93` на всех 12 строках.
