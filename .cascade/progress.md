@@ -1050,3 +1050,7 @@ Reverse-dependency sweep (imports vs requirements.txt): **tabulate** — unguard
 ## R68 — slop-audit + fix: S147 SHM fills channel (closed)
 
 C++/Python SHM contract sweep: все 4 struct'а байт-в-байт совпадают (static_asserts + Python Struct strings), kill-switch timestamp epoch-ns ✓. Но `/hft_fills` был write-only: producer создан, `push_fill` — 0 call-сайтов; fill-handler только логировал. + латентная инверсия side-enum (C++ 0=BUY/1=SELL vs Python {1:BUY,2:SELL}). Fix: set_fill_producer + FillMsg push в handler, decode исправлен, фикстуры под контракт. 53 теста green. C++ локально не собирается (build cache на s:/ + VS18 нет) — верификация инспекцией: ipc:: неймспейс резолвится, symbol_id_impl protected ✓, chrono уже в TU.
+
+## R69 — slop-audit: SHM/WS contract + C++ surface — чисто (кроме S147, закрыт в R68)
+
+Проверено: все 4 SHM struct'а байт-в-байт (C++ #pragma pack + static_asserts ↔ Python struct.Struct strings); kill-switch timestamp epoch-ns ✓; msgpack-контракт полный (C++ subscribe `encoding: msgpack` → binary frames → `json::from_msgpack`; sim хранит per-client encoding, fallback на JSON если msgpack не установлен); `fill` handler → S147 (fixed); positions в C++ — внутренний pos_mgr, не с WS (S041-класс не применим); `hft-skills/` — untracked локальный материал.
