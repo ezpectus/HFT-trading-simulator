@@ -127,34 +127,19 @@ account:
 
 ---
 
-## 2. Exchange Simulator (`exchange_simulator/config/settings.yaml`)
+## 2. Exchange Simulator (`exchange_simulator/config.yaml`)
+
+> **Stale section (S161):** the table below documents keys that don't exist
+> in `config.yaml` — `compression`, `max_symbols`, `tick_interval_ms`,
+> `encoding` are hardcoded in `websocket_server.py` (`compression="deflate"`,
+> `_tick_interval = 1.0`), and host/port live under `websocket:`. The fees
+> schema is a single `fee_pct` + `slippage_bps` — there is no maker/taker
+> split. See the real file for authoritative keys.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `host` | `localhost` | WebSocket server bind address |
-| `port` | `8765` | WebSocket server port |
-| `compression` | `deflate` | WebSocket permessage-deflate compression |
-| `max_symbols` | `50` | Maximum number of trading symbols |
-| `tick_interval_ms` | `1000` | Market data broadcast interval |
-| `encoding` | `json` | Message encoding (`json` or `msgpack`) |
-
-### Exchange Fees and Slippage
-
-```yaml
-exchanges:
-  binance:
-    maker_fee_bps: 2.0       # 0.02% maker fee
-    taker_fee_bps: 5.0       # 0.05% taker fee
-    slippage_bps: 3.0        # 0.03% slippage
-  bybit:
-    maker_fee_bps: 1.0
-    taker_fee_bps: 4.5
-    slippage_bps: 2.5
-  okx:
-    maker_fee_bps: 1.5
-    taker_fee_bps: 5.0
-    slippage_bps: 3.0
-```
+| `websocket.host` | `localhost` | WebSocket server bind address |
+| `websocket.port` | `8765` | WebSocket server port |
 
 ---
 
@@ -291,7 +276,9 @@ signal_engine_v2:
   ema_slow_period: 50           # Slow EMA for crossover
   rsi_period: 14                # RSI lookback
   adx_period: 14                # ADX trend strength
-  obi_levels: 20                # Order book levels for OBI
+  obi_levels_5: 5               # OBI depth buckets — note: parsed keys are
+  obi_levels_10: 10             # obi_levels_5/10/20, NOT a single `obi_levels`
+  obi_levels_20: 20             # (the scalar form in config.yaml is dead — S159)
   atr_period: 14                # ATR for volatility-based SL/TP
   sl_atr_mult: 1.5              # SL = entry ± 1.5×ATR
   tp_atr_mult: 3.0              # TP = entry ± 3.0×ATR

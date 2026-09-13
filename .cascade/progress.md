@@ -1094,3 +1094,15 @@ Board: **7 open** (S148–S154).
 ЧИСТО: SHM 0600 обе стороны, CORS-заголовков нет вообще (0 `*`), токен in-band фреймом (не URL), auth-fail лог без токена, `_sanitize_log` на user-данных, health-middleware освобождает только /live+/ready, Grafana пароль `:?required`, notifier подавляет aiohttp debug (нет утечки токенов), sim rate-limit 1000/мин + max_size 1MB.
 
 Board: **11 open** (S148–S158).
+
+## R73 — slop-audit: config leaf-key sweep (sim config.yaml + settings.yaml + hft dev config.yaml + web-ui build-config) — 3 находки S159–S161
+
+Непокрытая клетка: leaf-ключи Python/hft-dev конфигов vs реальные читатели (S150 покрыл только config.prod.yaml). Sweep: exchange_simulator/config.yaml, ai-signal-bot/config/settings.yaml, hft-trade-bot/config/config.yaml, web-ui/vite.config.js + netlify.toml + nginx.conf, env-var cross-check.
+
+- **S159 (Medium)** — ~16 мёртвых конфиг-ключей в 3 сервисах: валидируются/парсятся, но не доходят до рантайма. Sim: `metrics.{enabled,port,host}` (:317-320) все мертвы — `_run_metrics_server` безусловен на `port+10`/`self.host`, «Off by default» врёт, а healthcheck+prometheus зависят от «выключенного» сервера; `account.currency` (:301) — нет параметра в `SimulatedExchange`, `Account.currency` хардкод USDT; `visualizer.enabled` (:306) — реальный gate = `--no-visualizer`; `market.timeframe` (:291) — validator-only; `exchanges.<id>.symbols` (:23,78,133, ~147 строк) — валидируются, но биржи отдают все 49 initial_prices. Ai-bot: `shm.max_symbols` (settings.yaml:175) — мёртв, run.py:280 деривит len(symbols). Hft dev: `signal_engine_v2.obi_levels:20` (:109) мёртвый скаляр (парсер хочет `obi_levels_5/10/20`); `hft_strategies.{fast_ema_enabled,fft_enabled,fft_min_candles}` парсятся в cfg, но `EngineParams` полей не имеет, FFT гейтится литералом `>=64u` (signal_engine.h:297); `metrics.{port,host}` мертвы в dev-пути. 4-сторонний drift `obi_levels`: dev-скаляр / prod-лист / parser split / guide:294 — 0 из 4 эффективен.
+- **S160 (Info)** — `vite.config.js:15` PWA manifest «204 panels and 44+ math models» vs факт 278 панелей в registry.js — install-prompt врёт о размере; «44+ models» без реестра не верифицируемо.
+- **S161 (Low)** — CONFIGURATION_GUIDE §2 фантомен: путь `config/settings.yaml` не существует (реальный `config.yaml`), таблица документирует 9 ключей, которых нет — `compression`/`max_symbols`/`tick_interval_ms`/`encoding` (все хардкоды в websocket_server.py:74,184) и `maker_fee_bps`/`taker_fee_bps` (реально одиночный `fee_pct`). Оператор правит несуществующие ключи — ничего не меняется.
+
+ЧИСТО: ai-bot `metrics.enabled` — настоящий gate (run.py:194), весь остальной settings.yaml с живыми читателями; hft dev-config остальные ключи вайрятся; netlify.toml/nginx.conf живые; VitePWA сам регистрирует SW; generated dirs gitignored; helm OPENAI_API_KEY if/else — value-or-secret, не дуп.
+
+Board: **14 open** (S148–S161). Docs: CONFIGURATION_GUIDE obi_levels-claim + §2 stale-annotation поправлены.
