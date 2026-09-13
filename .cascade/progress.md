@@ -1478,3 +1478,16 @@ Done-log помечен `✅ verified R96` на всех 10 строках.
 - **S199** (Info) — `tests/requirements.txt` мёртв+вреден: 0 refs, pytest>=7.0 без pytest-asyncio → silent-skip async-тестов.
 
 ЧИСТО: 127/127 test-импортов резолвятся; conftest'ы реальны; dep-gate skip'ы честные; гейт проводит реальные проверки (symbols/exchanges/ws) и может падать.
+
+## R106 — 2026-09-15 — audit: web-ui test leaf-sweep + docs/metadata resweep — 3 findings (S200–S202)
+
+Target: `web-ui/src/test/` (154 files) + `shared_config.yaml` + guides/metadata + `monitoring/` leaf.
+
+Findings:
+- S200 (Info): `index.html:6,12` meta/og still say "204 panels, 44+ math models" — S160 fixed the manifest, head forgotten.
+- S201 (Info): `DEVELOPMENT_GUIDE.md` tree rot — 7 wrong facts (test counts 28→31/88→93, nonexistent `exchange_simulator/config/` + `web-ui/src/contexts/`, `pch.h` path, `PanelRegistry.jsx`→`registry.js`, 227→295 components).
+- S202 (Low): `monitoring/ebpf_monitor.py` orphan — sys_enter-only probe, `ts_end` never set → latency metric eternally 0, docstring over-promises 4 capabilities, 0 wiring.
+
+Clean: 154/154 web-test imports resolve, 0 shadow subjects, 0 zero-assert files; shared_config timeframe wired to MarketSimulator; MONITORING_GUIDE 22 metric names all real; no stale deleted-module refs in tracked guides.
+
+Commit: (below)
