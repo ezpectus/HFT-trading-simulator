@@ -1314,3 +1314,14 @@ Board: **26 open**.
 - **S175** — `[...fills].sort()` DrawdownAnalysis.jsx:16.
 
 Результат: **9/9 верифицированы, 0 reverts**. Done-log помечен `✅ verified R89`.
+
+## R90 — slop-fix: S163 + S166 + S167 + S174 — 4 закрыты
+
+- **S163** — 6 bare-name histogram_quantile → `_bucket`+`rate()` в обоих latency-dashboard.json (monitoring + vendored helm copy).
+- **S167** — extraction: 5 shadow-math файлов → `src/utils/{cointegration,garch,hmm,kalman,kmeans}Math.js`; компоненты импортируют; тесты переписаны на реальные сигнатуры. Найден баг: zScore NaN на perfect-fit → guard. 65/65.
+- **S166** — exchange-ui.test.jsx удалён (17×expect(true) + fixture-self-asserts + dead-provider tests); performance.test «manual chunks» → реальный assert на vite.config.
+- **S174** — ExchangeContext + ExchangeSelector удалены (0 импортеров/mount/CSS-readers); реальный выбор через Zustand.
+
+Verify: vitest 156 файлов / 1106 тестов green; vite build green.
+
+Board: **22 open**.
