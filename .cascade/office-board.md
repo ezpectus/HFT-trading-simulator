@@ -11,11 +11,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1180 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84) |
-| Всего находок | ~168 (S001–S168) |
+| Всего находок | ~169 (S001–S169) |
 | Закрыто | 147 |
-| Открыто | **21** — 7 из R71 + 4 из R72 + 3 из R73 + 2 из R74 + 2 из R75 + 3 из R76 |
+| Открыто | **22** — 7 из R71 + 4 из R72 + 3 из R73 + 2 из R74 + 2 из R75 + 3 из R76 + 1 из R77 |
 
-**Текущее состояние:** R76 (test-honesty sweep: web-ui vitest + python tests + hft doctest + monitoring/tests + e2e) нашёл **3 открытых** — S166–S168. Главное: 5 math-тестов (cointegration/garch/hmm/kalman/kmeans, 85 expect'ов) импортируют только vitest и тестируют inline-копии алгоритмов — продакшен-реализации (`GARCHVolatility`/`HiddenMarkovModel`/`KalmanFilterPrice`/`KMeansClustering`/`PairTradingSignals`) тестами не касаются (S167); `exchange-ui.test.jsx` на ~88% состоит из `expect(true)` и fixture-self-asserts (S166).
+**Текущее состояние:** R77 (panel-registry wiring + stores/hooks leaf-sweep) нашёл **1 открытый** — S169. Registry чист: все 278 entries резолвятся, 15 `props: () => ({})` — честные (8× NoDataFeed-disclosure, 2 calculator, BacktestComparison→localStorage, Onboarding, StrategyMarketplace disclosed local-only, DashboardProfiler→real vitals, StrategyBacktest self-subscribed); `Math.random` — все 27 сайтов легитимная симуляция/ID-gen. Находка: 3 мёртвых hook-файла (~203 строки) + 471 строка тестов для них — `useInterval` дублируется в `.js`/`.ts` (extensionless → `.js`), `usePerformance.js` несёт 5 мёртвых хуков включая `useDebouncedValue` (дубль живого `useDebounce.ts`).
 
 ---
 
@@ -44,6 +44,7 @@
 | **S166** | Vitest placeholder-theatre: 19 unconditional + 27 fixture-self-asserts | `web-ui/src/test/exchange-ui.test.jsx` — 17× `expect(true).toBe(true)` с комментами «This test would verify…» (order-form themes, state persistence при смене биржи, stop-limit/trailing/iceberg поля, advanced-order validation, audit-log UI) — плюс 27 assert'ов на собственный фикстурный литерал (`expect(mockBinanceTheme).toHaveProperty('primary')` ×24, `mockX.primary.not.toBe(mockY.primary)` ×3) — тестируют локальный const в тест-файле, не приложение. Реальный `ExchangeProvider` трогают ~6 из 50 expect'ов. `performance.test.jsx` — 2 unconditional («manual chunks configured», «target <2s initial load» — оба `expect(true)`). Suite насчитывает 34 зелёных теста «покрытия», которого нет: регрессии в order-form UI и перф-конфиге Vite проходят молча. | Low | [ ] Open |
 | **S167** | 5 math-тестов — shadow-копии алгоритмов, 0 импортов продакшена | `cointegration.test.js` / `garch.test.js` / `hmm.test.js` / `kalman.test.js` / `kmeans.test.js` — 85 expect'ов суммарно, единственный import — vitest; тестируемые функции (`calcADF`, `ols`, `calcZScore`, `forward`…) определены **внутри тест-файлов** как копии («Tests the core algorithms extracted from …»). Продакшен-реализации живут отдельно — `PairTradingSignals.jsx`, `GARCHVolatility.jsx`, `HiddenMarkovModel.jsx`, `KalmanFilterPrice.jsx`, `KMeansClustering.jsx` — и тестами не вызываются. Баг в продакшен-математике не сломает ни одного теста; копии могут расходиться с оригиналом бесконечно — suite доказывает корректность своих собственных снапшотов, не кода, который считает сигналы. | Medium | [ ] Open |
 | **S168** | ARCHITECTURE.md: stale test-count «99 unit» vs фактические 157 | `ARCHITECTURE.md:422` — «103 test files: 99 unit + 4 e2e» — таблица застряла до добавления ~58 тест-файлов; фактически `web-ui/src/test/` = 157 vitest-файлов + 4 e2e-спеки. README:121 «157 test files (Vitest)» и :195 «162 test files» — честны (157+4 spec+helper). | Info | [ ] Open |
+| **S169** | Мёртвые хуки + 471 строка тестов для мёртвого кода | `hooks/useInterval.js` (15 строк) + `hooks/useInterval.ts` (36 строк, задокументирован) — duplicate-пара, 0 импортеров в проде; тест `useInterval.test.jsx` (182 строки) импортирует `'../hooks/useInterval'` extensionless → Vite резолвит `.js` первым → тест гоняет короткую нетипизированную копию, а «правильный» `.ts` — чистая тень; любой будущий импортер молча получит `.js`. `hooks/usePerformance.js` (152 строки, 5 экспортов: `useDebouncedValue` — дубль живого `useDebounce.ts`, `useThrottledCallback`, `useBatchedUpdates`, `useWorker`, `useIntersectionObserver`) — 0 прод-импортеров, живёт только в `usePerformance.test.jsx` (289 строк). Итого ~203 строки мёртвых хуков + 471 строка тестов, надувающих зелёный счёт сьюта — та же test-to-nowhere болезнь, что S167. | Low | [ ] Open |
 
 ---
 
@@ -204,6 +205,14 @@
 - hft doctest — 565 REQUIRE/CHECK в 17 файлах, наполненные тесты (что они тестируют мёртвые абстракции — отдельно в S152/S096, не vacuity)
 - `monitoring/alerts/` — пустая untracked-папка на диске, не закоммичена — не residue репо
 - README test-counts честны: :121 «157 vitest + 4 e2e» и :195 «162 test files» (157+4 spec+helper) — точны
+
+**R77 (panel-registry wiring + stores/hooks — проверено, чисто):**
+- `panels/registry.js` — все 278 entries резолвятся в существующие компоненты (0 missing файлов)
+- 15 entries с `props: () => ({})` — все честны: 8× `NoDataFeed`-disclosure (Colocation/ABTesting/LogDashboard/PacketInspector/HyperoptUI/RetrainingPipeline/GeneticViewer/CancelMonitor — «feed is not produced by backend»), OptionsPricing/OptionsStrategies — интерактивные калькуляторы (user-params → BS-math), BacktestComparison — localStorage saved-results viewer, OnboardingTutorial, StrategyMarketplace — disclosed «local only», DashboardProfiler — реальные Web Vitals через `utils/performanceMonitor`, StrategyBacktest — self-subscribed
+- `MOCK_` — только в `MockModeBanner` (детектор), не в data-компонентах
+- `Math.random()` — все 27 сайтов легитимны: Box-Muller/MC-сэмплинг, k-means centroid init, permutation shuffles, `Date.now()+rand` ID-gen — ноль фабрикованного market-data
+- stores честно вайрятся: `useTradingStore` — 6 потребителей, `usePanelContext`/`useToastStore`/`useUIStore` — по живым импортерам
+- остальные 19 хуков имеют прод-импортеров; `useDebounce.ts` — живой (4 панели)
 
 ---
 

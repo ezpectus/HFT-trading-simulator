@@ -1140,3 +1140,13 @@ Board: **18 open** (S148–S165).
 ЧИСТО: python suites (ai-bot 99 + sim 29) — реальные asserts/mock-assertions, no-assert скан 0 истинных хитов (`test_run_equity.py` — false-positive); `monitoring/tests/test_alerts.py` — настоящая schema-валидация alerts.yml; e2e реальны и CI-gated (test-e2e без continue-on-error, в check_result); hft doctest 565 REQUIRE/CHECK наполнены (мёртвые абстракции — S152, не vacuity); `screenshots.spec.js` — честный capture-скрипт; `monitoring/alerts/` — пустая untracked-папка, не residue.
 
 Board: **21 open** (S148–S168).
+
+## R77 — slop-audit: panel-registry wiring + stores/hooks leaf-sweep — 1 находка S169
+
+Проверка главного bug-класса рулбука («panels off the data path») по всем 278 registry-entries + stores/ + hooks leaf-sweep. Registry чист: все entries резолвятся; 15 `props: () => ({})` — честные (8 NoDataFeed-disclosure, 2 BS-калькулятора, localStorage-viewer, disclosed local-only marketplace, real vitals profiler, self-subscribed backtest). `MOCK_` только в MockModeBanner; все 27 `Math.random` — легитимная симуляция/ID-gen.
+
+- **S169 (Low)** — мёртвые хуки + tests-for-dead-code: `useInterval.js`(15)+`useInterval.ts`(36) duplicate-пара, 0 прод-импортеров, extensionless test-import резолвит `.js` → 182-строчный тест гоняет нетипизированную короткую копию, задокументированный `.ts` — тень. `usePerformance.js` (152 строки, 5 экспортов включая `useDebouncedValue` — дубль живого `useDebounce.ts`) — 0 импортеров кроме своего теста (289 строк). Итого ~203 строки мёртвых хуков + 471 строка тестов в зелёном счёте сьюта.
+
+ЧИСТО: registry полностью честен (см. доску); stores wired (useTradingStore — 6 потребителей); остальные 19 хуков живые.
+
+Board: **22 open** (S148–S169).
