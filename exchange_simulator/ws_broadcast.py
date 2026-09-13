@@ -95,6 +95,10 @@ class BroadcastMixin:
                 ex_id: ex.get_account_status()
                 for ex_id, ex in self.exchanges.items()
             },
+            "open_orders": {
+                ex_id: [o.to_dict() for o in ex.get_pending_orders()]
+                for ex_id, ex in self.exchanges.items()
+            },
             "trading_active": self._trading_active,
         }
         await self._send_json(websocket, message)
@@ -136,6 +140,10 @@ class BroadcastMixin:
             "candles_to_funding": self.market.candles_to_next_funding,
             "news_event": self.market.get_news_event(),
             "weekend_mode": self.market.is_weekend_mode,
+            "open_orders": {
+                ex_id: [o.to_dict() for o in ex.get_pending_orders()]
+                for ex_id, ex in self.exchanges.items()
+            },
             "trading_active": self._trading_active,
             "missed_candles": len(all_candles),
         }

@@ -124,6 +124,15 @@ class SimulatedExchange(
         history = self._order_history
         return list(islice(history, max(0, len(history) - limit), len(history)))
 
+    def get_pending_orders(self) -> list[Order]:
+        """All resting (unfilled) orders across the pending collections."""
+        return [
+            *self._pending_limits.values(),
+            *self._pending_stop_limits.values(),
+            *self._pending_trailing_stops.values(),
+            *self._pending_icebergs.values(),
+        ]
+
     def get_account_status(self) -> dict:
         self.update_positions_pnl()
         return self.account.to_dict()

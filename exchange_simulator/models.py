@@ -127,6 +127,7 @@ class Order:
     slippage: float = 0.0
     rejection_reason: str | None = None
     oco_group_id: str | None = None
+    client_order_id: str | None = None  # Echoed from the submit request for ack correlation
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:
@@ -145,6 +146,7 @@ class Order:
             "slippage": self.slippage,
             "rejection_reason": self.rejection_reason,
             "oco_group_id": self.oco_group_id,
+            "client_order_id": self.client_order_id,
             "timestamp": self.timestamp,
         }
 

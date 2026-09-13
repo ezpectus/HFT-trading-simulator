@@ -18,7 +18,7 @@ _MARKET_SURFACE = [
     'next_candle', 'symbols',
 ]
 _EXCHANGE_SURFACE = ['account', 'fee_pct', 'slippage_bps', 'get_account_status',
-                   'submit_order', '_order_history', 'cancel_order', 'get_positions']
+                   'submit_order', '_order_history', 'cancel_order', 'get_positions', 'get_pending_orders']
 
 
 @pytest.fixture

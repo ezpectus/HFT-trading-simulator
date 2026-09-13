@@ -243,6 +243,7 @@ class MessageHandlerMixin:
         order = await self._submit_exchange_order(websocket, exchange, data)
         if order is None:
             return
+        order.client_order_id = client_order_id
 
         if dedup_key is not None:
             self._order_dedup[dedup_key] = order
