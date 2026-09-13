@@ -382,6 +382,10 @@ class SignalBotConfig:
         return str(self.raw.get("shm", {}).get("fills_name", "/hft_fills"))
 
     @property
+    def shm_kill_name(self) -> str:
+        return str(self.raw.get("shm", {}).get("kill_switch_name", "/hft_kill_switch"))
+
+    @property
     def shm_market_name(self) -> str:
         return str(self.raw.get("shm", {}).get("market_name", "/hft_market"))
 

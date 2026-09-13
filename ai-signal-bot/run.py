@@ -104,6 +104,8 @@ class AISignalBot:
         self._shm_producer = None
         self._shm_fills = None
         self._shm_market = None
+        self._shm_kill = None
+        self._hft_kill_active = False
         self._symbol_map: dict[str, int] = {}
         self._symbol_names: list[str] = []
 
@@ -287,18 +289,33 @@ class AISignalBot:
             task.add_done_callback(self._on_task_done)
         else:
             self._shm_fills = None
+
+        from src.communication.shm_kill_switch_consumer import ShmKillSwitchConsumer
+
+        self._shm_kill = ShmKillSwitchConsumer(name=self.config.shm_kill_name)
+        if self._shm_kill.init():
+            task = asyncio.create_task(
+                self._shm_kill.run_polling(self._on_kill_switch))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._on_task_done)
+        else:
+            self._shm_kill = None
         self.logger.info(
-            "SHM channel: signals=%s market=%s fills=%s",
-            bool(self._shm_producer), bool(self._shm_market), bool(self._shm_fills))
+            "SHM channel: signals=%s market=%s fills=%s kill=%s",
+            bool(self._shm_producer), bool(self._shm_market), bool(self._shm_fills),
+            bool(self._shm_kill))
 
     async def _stop_shm_channel(self) -> None:
         if self._shm_fills:
             self._shm_fills.stop()
             self._shm_fills.close()
+        if self._shm_kill:
+            self._shm_kill.stop()
+            self._shm_kill.close()
         for seg in (self._shm_producer, self._shm_market):
             if seg:
                 seg.close()
-        self._shm_producer = self._shm_market = self._shm_fills = None
+        self._shm_producer = self._shm_market = self._shm_fills = self._shm_kill = None
 
     def _on_shm_fills(self, fills: list[tuple]) -> None:
         """Persist fills pushed by the C++ bot: (ts_ns, symbol_id, side, qty, price, fee, ex_id)."""
@@ -317,6 +334,18 @@ class AISignalBot:
                 self.trade_logger.log(trade)
             except (OSError, ValueError, RuntimeError) as e:
                 self.logger.warning("SHM fill persist failed: %s", e)
+
+    def _on_kill_switch(self, ts_ns: int, reason: int) -> None:
+        """C++ kill-switch activated — latch, metric, alert (CRITICAL rule)."""
+        from src.communication.shm_kill_switch_consumer import REASON_NAMES
+
+        self._hft_kill_active = True
+        name = REASON_NAMES.get(reason, f"unknown_{reason}")
+        self.logger.critical(
+            "HFT kill-switch activated via SHM (reason=%s) — pausing signal push", name)
+        metrics = getattr(self.signal_publisher, "metrics", None)
+        if metrics is not None:
+            metrics.record_kill_switch(name)
 
     def _write_shm_market(self) -> None:
         """Push latest prices into the market snapshot slots."""
@@ -377,6 +406,9 @@ class AISignalBot:
                                   AlertSeverity.WARNING, _no_fills))
         alerts.add_rule(AlertRule("shm_disconnected", "SHM signal ring full — hft not consuming",
                                   AlertSeverity.WARNING, _shm_down))
+        alerts.add_rule(AlertRule("hft_kill_switch", "HFT kill-switch activated via SHM",
+                                  AlertSeverity.CRITICAL, lambda: self._hft_kill_active,
+                                  cooldown_seconds=60.0))
         alerts.add_rule(AlertRule("db_down", "SQLite probe failed",
                                   AlertSeverity.CRITICAL, _db_down))
 
@@ -469,7 +501,7 @@ class AISignalBot:
         sig_dict["explanation"] = explanation
         sig_dict["signal_id"] = signal_id
         await self.signal_publisher.broadcast_signal(sig_dict)
-        if self._shm_producer:
+        if self._shm_producer and not self._hft_kill_active:
             self._shm_producer.push_signal_dict(sig_dict, self._symbol_map)
 
         if self.config.paper_trading:

@@ -325,3 +325,7 @@ FILL_STRUCT = struct.Struct('<Q B B f f f B 5x')  # 28 bytes
 
 # MarketSnapshot struct (28 bytes): timestamp, symbol_id, bid, ask, last, volume
 MARKET_SNAPSHOT_STRUCT = struct.Struct('<Q B 3x f f f f')  # 28 bytes
+
+# KillSwitch struct (16 bytes): timestamp, active, reason
+# reason: 0=manual, 1=daily_loss, 2=max_drawdown, 3=margin_call, 4=file_trigger
+KILL_SWITCH_STRUCT = struct.Struct('<Q B B 6x')  # 16 bytes

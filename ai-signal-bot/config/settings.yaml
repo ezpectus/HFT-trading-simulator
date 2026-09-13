@@ -169,6 +169,7 @@ shm:
   enabled: false                 # Off by default — enable only when hft-trade-bot runs locally
   signals_name: "/hft_signals"   # bot→hft signal ring (bot creates)
   fills_name: "/hft_fills"       # hft→bot fill ring (hft creates, bot consumes)
+  kill_switch_name: "/hft_kill_switch"  # hft→bot kill-switch ring (hft creates, bot consumes)
   market_name: "/hft_market"     # bot→hft market snapshot slots (bot creates)
   capacity: 4096                 # ring capacity per segment
   max_symbols: 10                # market snapshot slots

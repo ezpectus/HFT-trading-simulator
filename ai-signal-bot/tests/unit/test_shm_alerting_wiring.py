@@ -18,7 +18,7 @@ def _cfg(**over):
     base = dict(
         symbols=["BTC/USDT", "ETH/USDT"], default_exchange="binance",
         shm_enabled=True, shm_signals_name="/t_sig", shm_fills_name="/t_fill",
-        shm_market_name="/t_mkt", shm_capacity=64,
+        shm_market_name="/t_mkt", shm_kill_name="/t_kill", shm_capacity=64,
         alerting_enabled=True, alerting_check_interval=15.0,
         alerting_webhook_url="", alerting_discord_webhook="",
         alerting_telegram_token="", alerting_telegram_chat_id="",
@@ -34,22 +34,27 @@ class TestShmChannel:
         bot = SimpleNamespace(
             config=_cfg(), logger=logging.getLogger("t"),
             _background_tasks=set(), _on_task_done=lambda t: None,
-            _on_shm_fills=lambda f: None,
+            _on_shm_fills=lambda f: None, _on_kill_switch=lambda t, r: None,
         )
         with patch("src.communication.shm_signal_producer.ShmSignalProducer") as P, \
              patch("src.communication.shm_market_data_writer.ShmMarketDataWriter") as M, \
-             patch("src.communication.shm_fill_consumer.ShmFillConsumer") as C:
+             patch("src.communication.shm_fill_consumer.ShmFillConsumer") as C, \
+             patch("src.communication.shm_kill_switch_consumer.ShmKillSwitchConsumer") as K:
             P.return_value.init.return_value = True
             M.return_value.init.return_value = True
             C.return_value.init.return_value = True
+            K.return_value.init.return_value = True
             C.return_value.run_polling = lambda *a, **kw: asyncio.sleep(0)
+            K.return_value.run_polling = lambda *a, **kw: asyncio.sleep(0)
             AISignalBot._start_shm_channel(bot)
         assert bot._symbol_map == {"BTC/USDT": 0, "ETH/USDT": 1}
         P.assert_called_once_with(name="/t_sig", capacity=64)
         M.assert_called_once_with(name="/t_mkt", max_symbols=2)
         C.assert_called_once_with(name="/t_fill", capacity=64)
+        K.assert_called_once_with(name="/t_kill")
         assert bot._shm_producer is P.return_value
-        assert len(bot._background_tasks) == 1  # fill polling task
+        assert bot._shm_kill is K.return_value
+        assert len(bot._background_tasks) == 2  # fill + kill polling tasks
         for t in bot._background_tasks:  # don't leak pending sleep tasks
             t.cancel()
 
@@ -58,17 +63,20 @@ class TestShmChannel:
         bot = SimpleNamespace(
             config=_cfg(), logger=logging.getLogger("t"),
             _background_tasks=set(), _on_task_done=lambda t: None,
-            _on_shm_fills=lambda f: None,
+            _on_shm_fills=lambda f: None, _on_kill_switch=lambda t, r: None,
         )
         with patch("src.communication.shm_signal_producer.ShmSignalProducer") as P, \
              patch("src.communication.shm_market_data_writer.ShmMarketDataWriter") as M, \
-             patch("src.communication.shm_fill_consumer.ShmFillConsumer") as C:
+             patch("src.communication.shm_fill_consumer.ShmFillConsumer") as C, \
+             patch("src.communication.shm_kill_switch_consumer.ShmKillSwitchConsumer") as K:
             P.return_value.init.return_value = False
             M.return_value.init.return_value = False
             C.return_value.init.return_value = False
+            K.return_value.init.return_value = False
             AISignalBot._start_shm_channel(bot)
         assert bot._shm_producer is None and bot._shm_market is None
-        assert bot._shm_fills is None and not bot._background_tasks
+        assert bot._shm_fills is None and bot._shm_kill is None
+        assert not bot._background_tasks
 
     def test_on_shm_fills_persists_mapped_trade(self):
         bot = SimpleNamespace(
@@ -118,6 +126,7 @@ class TestShmChannel:
             signal_publisher=SimpleNamespace(
                 broadcast_signal=MagicMock(return_value=asyncio.Future())),
             _shm_producer=producer, _symbol_map={"BTC/USDT": 0},
+            _hft_kill_active=False,
             config=_cfg(paper_trading=True),
             exchange=SimpleNamespace(is_trading_active=False),
             trade_logger=MagicMock(), signal_logger=MagicMock(),
@@ -133,6 +142,51 @@ class TestShmChannel:
         producer.push_signal_dict.assert_called_once()
         pushed = producer.push_signal_dict.call_args[0][0]
         assert pushed["symbol"] == "BTC/USDT"
+
+    @pytest.mark.asyncio
+    async def test_finalize_skips_shm_push_when_kill_active(self):
+        """S132: kill-switch latch gates signal pushes to the dead hft bot."""
+        producer = MagicMock()
+        bot = SimpleNamespace(
+            logger=logging.getLogger("t"),
+            db=SimpleNamespace(save_signal=MagicMock(return_value=7)),
+            signal_publisher=SimpleNamespace(
+                broadcast_signal=MagicMock(return_value=asyncio.Future())),
+            _shm_producer=producer, _symbol_map={"BTC/USDT": 0},
+            _hft_kill_active=True,
+            config=_cfg(paper_trading=True),
+            exchange=SimpleNamespace(is_trading_active=False),
+            trade_logger=MagicMock(), signal_logger=MagicMock(),
+        )
+        bot.signal_publisher.broadcast_signal.return_value.set_result(None)
+        sig_dict = {"symbol": "BTC/USDT", "direction": "LONG", "entry_price": 64000,
+                    "stop_loss": 63000, "take_profit": 66000, "confidence": 80,
+                    "timestamp": 1_700_000_000}
+        with patch("run.generate_llm_explanation", return_value=asyncio.Future()) as gl:
+            gl.return_value.set_result("expl")
+            await AISignalBot._finalize_and_execute(
+                bot, "BTC/USDT", SimpleNamespace(), sig_dict, [], 10000)
+        producer.push_signal_dict.assert_not_called()
+
+    def test_on_kill_switch_latches_and_records_metric(self):
+        metrics = MagicMock()
+        bot = SimpleNamespace(
+            logger=logging.getLogger("t"),
+            signal_publisher=SimpleNamespace(metrics=metrics),
+            _hft_kill_active=False,
+        )
+        AISignalBot._on_kill_switch(bot, 1_700_000_000_000_000_000, 1)
+        assert bot._hft_kill_active is True
+        metrics.record_kill_switch.assert_called_once_with("daily_loss")
+
+    def test_on_kill_switch_works_without_metrics(self):
+        bot = SimpleNamespace(
+            logger=logging.getLogger("t"),
+            signal_publisher=SimpleNamespace(metrics=None),
+            _hft_kill_active=False,
+        )
+        AISignalBot._on_kill_switch(bot, 0, 0)
+        assert bot._hft_kill_active is True
 
 
 class TestAlerting:
@@ -159,7 +213,8 @@ class TestAlerting:
         with patch("src.monitoring.alerting.AlertSystem", _Alerts):
             AISignalBot._start_alerting(bot)
         assert set(bot._alert_system.rules) == {
-            "daily_loss", "no_fills", "shm_disconnected", "db_down"}
+            "daily_loss", "no_fills", "shm_disconnected", "db_down",
+            "hft_kill_switch"}
         assert monitor_calls == [{"check_interval": 15.0}]
         assert len(bot._background_tasks) == 1
         for t in bot._background_tasks:  # don't leak pending sleep tasks
