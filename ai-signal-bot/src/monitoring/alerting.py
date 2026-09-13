@@ -71,7 +71,11 @@ class AlertSystem:
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create shared aiohttp session."""
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            # Explicit timeout: a hung webhook endpoint must not stall the
+            # alert pipeline on aiohttp's implicit 300s default.
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=15, connect=5)
+            )
         return self._session
 
     async def close_session(self) -> None:
