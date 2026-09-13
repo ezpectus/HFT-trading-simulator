@@ -1325,3 +1325,13 @@ Board: **26 open**.
 Verify: vitest 156 файлов / 1106 тестов green; vite build green.
 
 Board: **22 open**.
+
+## R91 — slop-fix: S183 + S185 + S186 — 3 закрыты
+
+- **S183** — order-lifecycle проводен по реальному протоколу (ack = `fill` с `order.status`, не `type:'order'`): `openOrders` map в useExchangeData, cancel-кейсы, snapshot/sync_state несут `open_orders` (новый `Exchange.get_pending_orders`), `client_order_id` echo в Order.to_dict, `submitOrder` → Promise на ack, OrderForm показывает Filled/Resting/Rejected, новая панель PendingOrders с cancel-кнопками в Account-табе.
+- **S185** — удалён closed mock-loop: tests/mocks/mock_objects.py + tests/integration/test_trading_flow.py (5 тестов, 0 прод-импортов). 1433 ai-bot тестов green.
+- **S186** — mock_exchange.h удалён (0 includers); 2 сиротских doctest припаяны к CMake; test_doctest_hft_config получил config.cpp + yaml-cpp/fmt/spdlog; **bonus**: test_integration_config имел ту же unbuildable-дыру — починен тем же.
+
+Verify: vitest 61 (11 lifecycle + 6 PendingOrders + существующие), sim pytest 404, ai-bot pytest 1433, vite build green; test_doctest_cpp_optimizations собран и прогнан локально — 8/8.
+
+Board: **19 open**.
