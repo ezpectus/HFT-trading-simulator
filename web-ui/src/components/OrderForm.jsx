@@ -40,7 +40,7 @@ export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmi
     setQuantity(qty.toFixed(4))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!connected || !tradingActive || qtyNum <= 0) return
 
@@ -69,10 +69,20 @@ export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmi
       order.iceberg_visible_qty = parseFloat(icebergVisibleQty)
     }
 
-    const ok = onSubmit(order)
-    setLastMsg(ok ? { type: 'success', text: 'Order submitted' } : { type: 'error', text: 'Not connected' })
-    setTimeout(() => setSubmitting(false), 500)
-    setTimeout(() => setLastMsg(null), 3000)
+    const ack = await onSubmit(order)
+    const status = ack && typeof ack === 'object' ? ack.status : null
+    if (status === 'FILLED') {
+      setLastMsg({ type: 'success', text: `Filled @ ${formatPrice(ack.filled_price)}` })
+    } else if (status === 'PENDING') {
+      setLastMsg({ type: 'info', text: `Resting @ ${formatPrice(ack.price)}` })
+    } else if (status === 'REJECTED') {
+      setLastMsg({ type: 'error', text: `Rejected: ${ack.rejection_reason || 'unknown'}` })
+    } else {
+      // null = no ack (queued/offline/timeout); true = legacy send-success bool
+      setLastMsg({ type: ack === false ? 'error' : 'info', text: ack === false ? 'Not connected' : 'Sent — awaiting ack' })
+    }
+    setSubmitting(false)
+    setTimeout(() => setLastMsg(null), 4000)
   }
 
   const notional = qtyNum * currentPrice
@@ -399,7 +409,7 @@ export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmi
         </button>
 
         {lastMsg && (
-          <div className={`text-xs ${lastMsg.type === 'success' ? 'text-accent-green' : 'text-accent-red'}`}>
+          <div className={`text-xs ${lastMsg.type === 'success' ? 'text-accent-green' : lastMsg.type === 'info' ? 'text-accent-yellow' : 'text-accent-red'}`}>
             {lastMsg.text}
           </div>
         )}

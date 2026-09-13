@@ -31,10 +31,40 @@ export function useExchangeData() {
   const [tradingActive, setTradingActive] = useState(true)
   const [optionsChain, setOptionsChain] = useState(null)
   const [lastError, setLastError] = useState(null)
+  const [openOrders, setOpenOrders] = useState({})
   const lastTimestampRef = useRef(0)
   const candleMap = useRef(new Map())
+  // client_order_id -> {resolve, timer} for submitOrder ack correlation
+  const pendingAcks = useRef(new Map())
 
   const handleExchangeMessage = useCallback((data) => {
+    // The sim's order ack is a `fill` message carrying order.status:
+    // PENDING = resting, FILLED/REJECTED/CANCELLED = terminal.
+    const trackOrderStatus = (order) => {
+      if (!order?.id || !order?.exchange) return
+      const key = `${order.exchange}|${order.id}`
+      if (order.status === 'PENDING') {
+        setOpenOrders(prev => (key in prev ? prev : { ...prev, [key]: order }))
+      } else {
+        setOpenOrders(prev => {
+          if (!(key in prev)) return prev
+          const next = { ...prev }
+          delete next[key]
+          return next
+        })
+      }
+    }
+
+    const resolveAck = (order) => {
+      const cid = order?.client_order_id
+      const pending = cid && pendingAcks.current.get(cid)
+      if (pending) {
+        pendingAcks.current.delete(cid)
+        clearTimeout(pending.timer)
+        pending.resolve(order)
+      }
+    }
+
     switch (data.type) {
       case 'snapshot':
       case 'candles':
@@ -108,10 +138,21 @@ export function useExchangeData() {
         if (data.news_event !== undefined) setNewsEvent(data.news_event)
         if (data.weekend_mode !== undefined) setWeekendMode(data.weekend_mode)
         if (data.trading_active !== undefined) setTradingActive(data.trading_active)
+        if (data.open_orders) {
+          // Authoritative resting-order set — replaces, not merges, so orders
+          // cancelled while disconnected don't linger.
+          const flat = {}
+          for (const orders of Object.values(data.open_orders)) {
+            for (const o of orders) flat[`${o.exchange}|${o.id}`] = o
+          }
+          setOpenOrders(flat)
+        }
         break
       }
       case 'fill': {
         setFills(prev => [{ ...data.order, received_at: Date.now() }, ...prev].slice(0, 50))
+        trackOrderStatus(data.order)
+        resolveAck(data.order)
         break
       }
       case 'fills_batch': {
@@ -120,6 +161,33 @@ export function useExchangeData() {
         if (Array.isArray(data.orders) && data.orders.length) {
           const now = Date.now()
           setFills(prev => [...data.orders.map(o => ({ ...o, received_at: now })), ...prev].slice(0, 50))
+          for (const o of data.orders) {
+            trackOrderStatus(o)
+            resolveAck(o)
+          }
+        }
+        break
+      }
+      case 'order_cancelled': {
+        const order = data.order
+        if (order?.id) {
+          setOpenOrders(prev => {
+            const key = `${order.exchange}|${order.id}`
+            if (!(key in prev)) return prev
+            const next = { ...prev }
+            delete next[key]
+            return next
+          })
+        }
+        break
+      }
+      case 'orders_cancelled': {
+        if (Array.isArray(data.order_ids) && data.order_ids.length) {
+          const ids = new Set(data.order_ids.map(id => `${data.exchange}|${id}`))
+          setOpenOrders(prev => {
+            const next = Object.fromEntries(Object.entries(prev).filter(([k]) => !ids.has(k)))
+            return Object.keys(next).length === Object.keys(prev).length ? prev : next
+          })
         }
         break
       }
@@ -178,10 +246,29 @@ export function useExchangeData() {
 
   const submitOrder = useCallback((order) => {
     // client_order_id is stamped at send time so a queued/replayed message
-    // (sendExchange queues while disconnected) dedupes server-side on flush.
-    const msg = order.client_order_id
-      ? { type: 'order', ...order }
-      : { type: 'order', ...order, client_order_id: `ui_${Date.now()}_${Math.random().toString(36).slice(2, 10)}` }
+    // (sendExchange queues while disconnected) dedupes server-side on flush —
+    // and the sim echoes it back in the fill ack, which resolves the promise.
+    const cid = order.client_order_id || `ui_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    sendExchange({ type: 'order', ...order, client_order_id: cid })
+    // Resolves with the acked order, or null if no ack within 5s. A `false`
+    // from sendExchange means queued-not-dropped — the ack may still arrive
+    // after reconnect flushes the queue, so we wait either way.
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        pendingAcks.current.delete(cid)
+        resolve(null)
+      }, 5000)
+      pendingAcks.current.set(cid, { resolve, timer })
+    })
+  }, [sendExchange])
+
+  const cancelOrder = useCallback((exchange, orderId) => {
+    return sendExchange({ type: 'cancel_order', exchange, order_id: orderId })
+  }, [sendExchange])
+
+  const cancelAllOrders = useCallback((exchange, symbol) => {
+    const msg = { type: 'cancel_all_orders', exchange }
+    if (symbol) msg.symbol = symbol
     return sendExchange(msg)
   }, [sendExchange])
 
@@ -237,12 +324,15 @@ export function useExchangeData() {
     tradingActive,
     optionsChain,
     lastError,
+    openOrders,
     connected: exchangeConnected,
     latency: exchangeLatency,
     reconnects: exchangeReconnects,
     connect: exchangeConnect,
     nextReconnectIn: exchangeNextReconnect,
     submitOrder,
+    cancelOrder,
+    cancelAllOrders,
     closePosition,
     requestOptionsChain,
     sendSpeedChange,

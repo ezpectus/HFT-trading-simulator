@@ -30,6 +30,7 @@ import { useToastStore } from './stores/useToastStore'
 
 const AccountPanel = lazy(() => import('./components/AccountPanel'))
 const PositionsPanel = lazy(() => import('./components/PositionsPanel'))
+const PendingOrders = lazy(() => import('./components/PendingOrders'))
 const SignalFeed = lazy(() => import('./components/SignalFeed'))
 const SignalPerformance = lazy(() => import('./components/SignalPerformance'))
 const ArbitragePanel = lazy(() => import('./components/ArbitragePanel'))
@@ -304,6 +305,12 @@ export default function App() {
                     accounts={exchange.accounts}
                     onClose={exchange.closePosition}
                     currentPrices={exchange.prices}
+                  />
+                  <PendingOrders
+                    openOrders={exchange.openOrders}
+                    onCancel={exchange.cancelOrder}
+                    onCancelAll={exchange.cancelAllOrders}
+                    exchange={selectedExchange}
                   />
                   <DepthChart
                     orderbookData={exchange.orderbooks[`${selectedExchange}|${selectedSymbol}`]}

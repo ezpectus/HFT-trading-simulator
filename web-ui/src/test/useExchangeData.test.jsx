@@ -353,6 +353,141 @@ describe('useExchangeData', () => {
     })
     expect(result.current.auditLogs).toEqual([])
   })
+
+  it('tracks PENDING fill ack as an open order', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({
+        type: 'fill',
+        order: { id: 'o1', exchange: 'binance', symbol: 'BTC/USDT', side: 'BUY', status: 'PENDING', price: 49000 },
+      })
+    })
+    expect(result.current.openOrders['binance|o1']).toMatchObject({ id: 'o1', status: 'PENDING', price: 49000 })
+  })
+
+  it('removes open order when a later fill reports FILLED', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'o1', exchange: 'binance', status: 'PENDING' } })
+    })
+    expect(result.current.openOrders['binance|o1']).toBeDefined()
+    act(() => {
+      mockOnMessage({ type: 'fills_batch', orders: [{ id: 'o1', exchange: 'binance', status: 'FILLED' }] })
+    })
+    expect(result.current.openOrders['binance|o1']).toBeUndefined()
+  })
+
+  it('drops REJECTED acks from open orders', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'o1', exchange: 'binance', status: 'PENDING' } })
+    })
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'o1', exchange: 'binance', status: 'REJECTED', rejection_reason: 'margin' } })
+    })
+    expect(result.current.openOrders['binance|o1']).toBeUndefined()
+  })
+
+  it('removes a single order on order_cancelled', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'o1', exchange: 'binance', status: 'PENDING' } })
+      mockOnMessage({ type: 'fill', order: { id: 'o2', exchange: 'binance', status: 'PENDING' } })
+    })
+    act(() => {
+      mockOnMessage({ type: 'order_cancelled', order: { id: 'o1', exchange: 'binance', status: 'CANCELLED' } })
+    })
+    expect(result.current.openOrders['binance|o1']).toBeUndefined()
+    expect(result.current.openOrders['binance|o2']).toBeDefined()
+  })
+
+  it('clears listed orders on orders_cancelled', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'o1', exchange: 'binance', status: 'PENDING' } })
+      mockOnMessage({ type: 'fill', order: { id: 'o2', exchange: 'binance', status: 'PENDING' } })
+      mockOnMessage({ type: 'fill', order: { id: 'o3', exchange: 'bybit', status: 'PENDING' } })
+    })
+    act(() => {
+      mockOnMessage({ type: 'orders_cancelled', exchange: 'binance', count: 2, order_ids: ['o1', 'o2'] })
+    })
+    expect(result.current.openOrders['binance|o1']).toBeUndefined()
+    expect(result.current.openOrders['binance|o2']).toBeUndefined()
+    expect(result.current.openOrders['bybit|o3']).toBeDefined()
+  })
+
+  it('hydrates openOrders from snapshot open_orders', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({
+        type: 'snapshot',
+        open_orders: {
+          binance: [{ id: 'o1', exchange: 'binance', status: 'PENDING', price: 100 }],
+          bybit: [{ id: 'o9', exchange: 'bybit', status: 'PENDING', price: 200 }],
+        },
+      })
+    })
+    expect(Object.keys(result.current.openOrders)).toEqual(['binance|o1', 'bybit|o9'])
+  })
+
+  it('snapshot open_orders replaces stale state wholesale', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      mockOnMessage({ type: 'fill', order: { id: 'stale', exchange: 'binance', status: 'PENDING' } })
+    })
+    act(() => {
+      mockOnMessage({ type: 'sync_state', open_orders: { binance: [] } })
+    })
+    expect(result.current.openOrders).toEqual({})
+  })
+
+  it('submitOrder resolves with the matching ack', async () => {
+    const { result } = renderHook(() => useExchangeData())
+    let ackPromise
+    act(() => {
+      ackPromise = result.current.submitOrder({ exchange: 'binance', symbol: 'BTC/USDT', side: 'BUY', quantity: 1 })
+    })
+    const cid = mockSend.mock.calls[0][0].client_order_id
+    await act(async () => {
+      mockOnMessage({
+        type: 'fill',
+        order: { id: 'o1', exchange: 'binance', status: 'FILLED', filled_price: 50000, client_order_id: cid },
+      })
+      await ackPromise
+    })
+    await expect(ackPromise).resolves.toMatchObject({ status: 'FILLED', filled_price: 50000 })
+  })
+
+  it('submitOrder resolves null on ack timeout', async () => {
+    vi.useFakeTimers()
+    const { result } = renderHook(() => useExchangeData())
+    let ackPromise
+    act(() => {
+      ackPromise = result.current.submitOrder({ exchange: 'binance', symbol: 'BTC/USDT', side: 'BUY', quantity: 1 })
+    })
+    await act(async () => {
+      vi.advanceTimersByTime(6000)
+      await ackPromise
+    })
+    await expect(ackPromise).resolves.toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('cancelOrder sends cancel_order message', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      result.current.cancelOrder('binance', 'o1')
+    })
+    expect(mockSend).toHaveBeenCalledWith({ type: 'cancel_order', exchange: 'binance', order_id: 'o1' })
+  })
+
+  it('cancelAllOrders sends cancel_all_orders with optional symbol', () => {
+    const { result } = renderHook(() => useExchangeData())
+    act(() => {
+      result.current.cancelAllOrders('binance', 'BTC/USDT')
+    })
+    expect(mockSend).toHaveBeenCalledWith({ type: 'cancel_all_orders', exchange: 'binance', symbol: 'BTC/USDT' })
+  })
 })
 
 describe('useSignalData', () => {
