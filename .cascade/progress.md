@@ -1975,4 +1975,4 @@ Commit: dce61db
 
 **Clean:** 12/12 JSON.parse guarded; localStorage ключи все парные; 6 console.* за IS_DEV; 0 prod-asserts; suppressions все justified.
 
-Commit: pending
+Commit: 9a1f83b
