@@ -2188,3 +2188,16 @@ Re-checked R156+R157 claims adversarially against committed code:
 - **S265** — dead "Check for vulnerabilities" step gone; websocketpp pinned `--branch 0.8.2 --depth 1` at ci.yml:210.
 
 Also fixed: duplicate priority-queue lines on the board (R156 script residue).
+
+### R159 — 2026-09-15 — slop-fix: S272, S276+S284, S275, S270 + cascade S288/S292/S290 (8 closed)
+
+Commits: `fe6de91` (ai-bot S272/S288/S292/S290), `be6b090` (web-ui S275/S276 + 4 new smoke tests), `60845e4` (web-ui fixtures S284), `a6b7055` (coverage gate S270). Gate 9/9 ALL GREEN. ai-bot 1414 passed, web-ui 1093 passed.
+
+- **S272** — 17 dead MetricsExporter setters wired to live producers (signals/fills/orders/pnl/positions/ws/shm/latency/errors/drawdown/win-rate/uptime); 3 unproducible metrics cut (shm round-trip, position hold, kill-reset); DB equity-history queries added.
+- **S288** — all 6 dead-metric alert rules now backed by live setters (CriticalDrawdown>15% can actually page).
+- **S292** — `MetricsCollector` fallback gained the full producer surface incl. `record_kill_switch` — no more AttributeError on metrics-off kill-switch.
+- **S290** — `tracker.uptime_seconds()` → property access; 3 test mocks fixed from `lambda: 0` to attribute.
+- **S275** — `ctx.exchange.circuitBreaker` → `ctx.signals.circuitBreaker`; BotStatus CB section live.
+- **S276** — wire-field drift fixed across 11 components: `realized_pnl`→`pnl`, `timestamp|time`→`closed_at`, `order_id`/`filled_qty`/`fill_price`→`id`/`filled_quantity`/`filled_price`; fills no longer read for realized PnL (TaxReport/Drawdown use `trade_history`); uPnl derived equity−balance; mock `generateFill` emits real Order contract.
+- **S284** — 5 fixture files rewritten to the real schema; S278 assertion in useSessionRecorder left for its own round.
+- **S270** — coverage `include` widened `['src/utils/**','src/hooks/**']` → `src/**`; thresholds ratcheted to measured ~25% floor; TESTING.md synced.

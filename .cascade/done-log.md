@@ -486,3 +486,47 @@
 - **Files:** `.github/workflows/ci.yml`
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN.
+
+## Round 159 — slop-fix (8 closed)
+
+### S272 — dead MetricsExporter setters wired to live producers ✅
+- **Bug:** 17 of ~25 exporter methods never called → three Grafana dashboards + six alert rules rendered eternal zeros; dashboard queried `trading_signals_total` (dead `record_signal`) while the publisher incremented `ai_signal_bot_signals_sent_total`.
+- **Fix:** wired real producers — `record_signal` (symbol/direction/confidence) + `observe_signal_latency` (creation→broadcast) in `broadcast_signal`; `record_fill` in `_on_shm_fills`; `record_order_sent`/`record_order_rejected`/`observe_order_latency` in `_execute_live_order`; `update_pnl`/`update_positions`/`update_ws_status`/`set_bot_drawdown`/`set_bot_win_rate`/`set_bot_pnl_total`/`set_bot_uptime`/`record_error` in `_snapshot_equity` + error paths; `update_shm_buffer` reads ring `.pending()`. Cut what has no honest producer: `observe_shm_round_trip` (SHM fills carry `signal_id=None` — no correlation key), `observe_position_hold_time`, `reset_kill_switch` (no reset path — gauge latches honestly). DB gained equity-history/stat queries to feed the setters.
+- **Files:** `ai-signal-bot/run.py`, `src/monitoring/metrics.py`, `src/communication/{signal_publisher,metrics_server}.py`, `src/database/db.py`, `tests/unit/test_monitoring_metrics.py`
+
+### S288 — alert rules now have live producers ✅
+- **Bug:** 6 `alerts.yml` rules (`HighBotErrorRate`/`CriticalBotErrorRate`/`HighDrawdown`/`CriticalDrawdown`/`LowWinRate`/`NegativePnL`) queried metrics whose setters were dead — `CriticalDrawdown >15%` could never fire.
+- **Fix:** closed by the S272 wiring — `record_error`, `set_bot_drawdown`, `set_bot_win_rate`, `set_bot_pnl_total` now called from `_snapshot_equity` and the live-order error paths every tick.
+- **Files:** `ai-signal-bot/run.py`, `src/monitoring/metrics.py`
+
+### S292 — MetricsCollector fallback interface completed ✅
+- **Bug:** `record_kill_switch` (and the other bot-* setters) existed on `MetricsExporter` but not the `MetricsCollector` fallback → first kill-switch activation without `--metrics` raised `AttributeError` in the unguarded consumer callback.
+- **Fix:** fallback collector now exposes the full producer surface the bot calls (kill-switch, drawdown, win-rate, pnl, uptime, fills, orders, signals, errors, shm buffer) — same names, same signatures.
+- **Files:** `ai-signal-bot/src/communication/metrics_server.py`
+
+### S290 — `no_fills` alert rule un-dead ✅
+- **Bug:** `run.py` called `self.tracker.uptime_seconds()` — it's a `@property`, so every rule eval raised `TypeError`, swallowed by `check_rules` → the WARNING could never fire. Wiring test hid it (`SimpleNamespace(uptime_seconds=lambda: 0)`).
+- **Fix:** property access without parens; all 3 test mocks changed to `uptime_seconds=0` (attribute, matching prod shape).
+- **Files:** `ai-signal-bot/run.py`, `tests/unit/test_shm_alerting_wiring.py`
+
+### S275 — BotStatus circuit-breaker section live ✅
+- **Bug:** `registry.js` read `ctx.exchange.circuitBreaker` — field lives on `ctx.signals` → section rendered "No data" forever; real trips invisible.
+- **Fix:** `ctx.signals.circuitBreaker`.
+- **Files:** `web-ui/src/panels/registry.js`
+
+### S276 — wire-field drift fixed across 11 components ✅
+- **Bug:** panels written against invented field names — `realized_pnl` (real: `pnl`), `timestamp`/`time` (real: `closed_at`), `order_id`/`filled_qty`/`fill_price` (real: `id`/`filled_quantity`/`filled_price`), `f.pnl` on fills (Order wire has none), account `unrealized_pnl` (not emitted).
+- **Fix:** SessionReportExport uses `pnl`/`closed_at` (win-rate/profit-factor/dates now real); DrawdownAnalysis reads closed-trade history not order fills; TaxReport switched to `accounts.trade_history` for realized PnL; TradeReplay/AuditTrail/TickReplay/CostBasis/MarketDepthReplay use `id`/`filled_quantity`/`filled_price`; PerformanceAttribution buckets on `closed_at`+`pnl` (1970-Thursday bucket gone); StatusBar derives uPnl=equity−balance; AlertWebhook drops dead `order_id` fallbacks; mock `generateFill` emits the real Order contract; registry props updated (TaxReport gets accounts, TradeReplay gets live data).
+- **Files:** `web-ui/src/components/{SessionReportExport,DrawdownAnalysis,TaxReport,PerformanceAttribution,TradeReplay,AuditTrail,TickReplay,CostBasis,MarketDepthReplay,StatusBar,AlertWebhook}.jsx`, `web-ui/src/panels/registry.js`, `web-ui/src/utils/mockData.js`
+
+### S284 — fixtures repaired to the real wire schema ✅
+- **Bug:** 5 test files fed panels fantasy fields (`order_id`/`filled_qty`/`price`, `pnl` on fills) — the suite enforced the drift instead of catching it.
+- **Fix:** `auditTrail`/`tickReplay`/`costBasis`/`drawdownAnalysis`/`taxReport` fixtures rewritten to `id`/`filled_quantity`/`filled_price`, realized-PnL moved to trade_history shape. `useSessionRecorder.test:50` (S278 assertion) left for the S278 round.
+- **Files:** `web-ui/src/test/{auditTrail,tickReplay,costBasis,drawdownAnalysis,taxReport}.test.jsx`
+
+### S270 — coverage gate now measures the whole source tree ✅
+- **Bug:** `coverage.include` was `['src/utils/**','src/hooks/**']` — the ~290-file untested mass was invisible to the denominator; the 40% gate could never trip on real regressions.
+- **Fix:** include widened to `src/**` (excl. tests/deps); thresholds ratcheted to the measured floor (~25% lines/statements, ~24% functions/branches); TESTING.md updated to match the real gate scope.
+- **Files:** `web-ui/vitest.config.js`, `docs/TESTING.md`
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN (ruff×2, eslint, tsc, clang-format, pytest×2 = 1414+..., vitest 1093, config).
