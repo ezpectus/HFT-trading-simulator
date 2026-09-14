@@ -1989,6 +1989,16 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R143 — helm chart leaf-read (3 findings)
+
+- **Areas:** `helm/` — all 17 files (Chart.yaml, values.yaml, 10 templates, vendored `files/` alerts+alertmanager+5 dashboards). Last untouched infra tree.
+- **Findings:**
+  - **S310** — 2 of 3 PDBs select zero pods: `exchange-simulator` PDB uses hyphen while the Deployment labels pods `exchange_simulator` (underscore); `hft-trade-bot` PDB selects a component label no pod carries (hft is a sidecar in the ai-signal-bot pod). Fake disruption budgeting — `kubectl get pdb` looks fine while nothing is protected.
+  - **S311** — image defaults unreachable: `hft-*:v2.0.0` vs deploy.yml pushing `ghcr.io/ezpectus/hft-tradebot--lite-version/<svc>:2.0.0` (v-prefix stripped) — default `helm install` = ImagePullBackOff on all 4 app images.
+  - **S312** — ingress `/grafana` subpath with no `GF_SERVER_ROOT_URL`/`serve_from_sub_path`/rewrite → broken Grafana when enabled (latent, ingress off by default).
+- **Verified clean:** unusually literate chart — `fail` guards on required values, SHM sidecar + `shareProcessNamespace`, kill-switch on writable volume under readOnlyRootFilesystem, loopback-trap env comments (EXCHANGE_WS_HOST/WS_URL/HFT_EXCHANGE_WS_URL), `/live`+`/ready` probes real (health_server:143-144), vendored files byte-identical to monitoring/, network-policy honest about DNS/443, sim Deployment inherits S303's DOA image (blast radius, not new).
+- **Commit:** <pending>
+
 ## R142 — web-ui vitest suite vacuity scan (0 findings — honest zero #4)
 
 - **Areas:** `web-ui/src/test/` — all 153 `*.test.*` files (11,654 lines) — the last un-scanned test tree (e2e specs got R137, this suite only got counted in R141's floor check).
