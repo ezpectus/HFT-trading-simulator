@@ -1,6 +1,6 @@
 ﻿# OFFICE BOARD — AI SLOP AUDIT
 
-> Аудит: 11 сен 2026 → текущий раунд R70+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
+> Аудит: 11 сен 2026 → текущий раунд R198+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
 > **Закрытые находки перенесены в `.cascade/done-log.md`** (99 шт, R4–R60) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
 > История работ: `.cascade/progress.md`, баги: `.cascade/bug_log.md`.
 
