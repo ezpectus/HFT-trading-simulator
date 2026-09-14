@@ -2201,3 +2201,15 @@ Commits: `fe6de91` (ai-bot S272/S288/S292/S290), `be6b090` (web-ui S275/S276 + 4
 - **S276** — wire-field drift fixed across 11 components: `realized_pnl`→`pnl`, `timestamp|time`→`closed_at`, `order_id`/`filled_qty`/`fill_price`→`id`/`filled_quantity`/`filled_price`; fills no longer read for realized PnL (TaxReport/Drawdown use `trade_history`); uPnl derived equity−balance; mock `generateFill` emits real Order contract.
 - **S284** — 5 fixture files rewritten to the real schema; S278 assertion in useSessionRecorder left for its own round.
 - **S270** — coverage `include` widened `['src/utils/**','src/hooks/**']` → `src/**`; thresholds ratcheted to measured ~25% floor; TESTING.md synced.
+
+### R160 — 2026-09-15 — slop-fix: S281+S289, S215+S295, S296, S298 (6 closed)
+
+Commits: `48fe08d` (sim S281/S289), `9c7d6c2` (deploy.sh+bat S215/S295/S296), `62315c5` (build-all S298). Gate 9/9 ALL GREEN.
+
+- **S281** — `ws_prometheus` order counters used lowercase `"filled"`/`"rejected"` vs real `OrderStatus` `"FILLED"`/`"REJECTED"` → eternal zeros. Fixed + regression test.
+- **S289** — closed by S281: `HighOrderRejectionRate` can fire, `LowFillRate` stops crying wolf (PromQL was right, data dead).
+- **S215** — deploy.sh native: sim starts from repo root (was broken-from-inside), stop is pid-file driven (was non-matching pkill), `ENVIRONMENT` now selects real configs, `docker-compose`→`docker compose` ×4.
+- **S295** — deploy.sh native: ai-bot starts `--metrics --config` (HealthServer reachable → /ready gate can pass); mode-aware web check (native `id="root"` marker, not SPA-fallback 200); `status` reads pid files.
+- **S296** — deploy.bat: health loop now aggregates + exits non-zero (was can't-fail); stop kills by CIM commandline match (WINDOWTITLE never matched `start /B`); same start/config/compose fixes as .sh.
+- **S298** — build-all.bat: sim import check runs from repo root; phantom `cross_exchange_arb`/`marketplace` imports → real `funding_arb_detector`/`statistical_arbitrage`. Sim tests no longer silently skipped.
+- **S309** — deferred again: Docker daemon still down.

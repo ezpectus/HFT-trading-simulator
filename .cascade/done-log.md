@@ -530,3 +530,39 @@
 - **Files:** `web-ui/vitest.config.js`, `docs/TESTING.md`
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN (ruff×2, eslint, tsc, clang-format, pytest×2 = 1414+..., vitest 1093, config).
+
+## Round 160 — slop-fix (6 closed)
+
+### S281 — order-status counters count real enum values ✅
+- **Bug:** `ws_prometheus.py:129-130` compared `o.status.value` against lowercase `"filled"`/`"rejected"` while `OrderStatus` stores `"FILLED"`/`"REJECTED"` → `exchange_orders_filled_total`/`exchange_orders_rejected_total` were eternal zeros (ported from never-started `health.py` with the case bug).
+- **Fix:** uppercase comparisons matching the codebase idiom (`o.status.value == "FILLED"`); regression test feeds real `OrderStatus` values through the exposition path.
+- **Files:** `exchange_simulator/ws_prometheus.py`, `tests/test_ws_prometheus.py`
+
+### S289 — exchange ratio alerts un-dead ✅
+- **Bug:** `HighOrderRejectionRate` (`rejected/submitted > 0.1`) could never fire and `LowFillRate` (`filled/submitted < 0.8` for 10m) fired permanently — both fed by S281's eternal-zero metrics. Crying wolf + blind spot.
+- **Fix:** closed by the S281 fix — the PromQL was correct, the data was dead; both metrics now report real counts.
+- **Files:** `exchange_simulator/ws_prometheus.py` (no alerts.yml change needed)
+
+### S215 — deploy.sh native brokenness ✅
+- **Bug:** `cd exchange_simulator && python -m exchange_simulator` (can't import a package from inside itself); `pkill -f "ai_signal_bot"` never matches `python run.py` → stop/restart left a live bot; `ENVIRONMENT` read+logged but never branched; `docker-compose` v1 (EOL) ×4.
+- **Fix:** sim starts from repo root; stop is pid-file driven (files start_native already wrote); `ENVIRONMENT=dev|production` now selects `settings.testnet.yaml`/`config.yaml` vs `settings.yaml`/`config.prod.yaml` — matching the compose mounts; all compose calls on `docker compose` v2.
+- **Files:** `scripts/deploy.sh`
+
+### S295 — deploy.sh native health-gate reachable ✅
+- **Bug:** `start_native` ran bare `python run.py` (no `--metrics`, `metrics.enabled: false`) → HealthServer never started → `:8080/ready` failed all 30 retries → guaranteed `exit 1`; web check curled `:3000/health` — vite preview SPA-fallbacks 200 on any path; `status` grepped a non-matching pattern.
+- **Fix:** ai-bot starts `--metrics --config "$AI_CONFIG"` (mirrors docker-compose.yml:82); web check is mode-aware (docker `/health` vs native `id="root"` marker); `status` reports from pid files.
+- **Files:** `scripts/deploy.sh`
+
+### S296 — deploy.bat can fail + can stop ✅
+- **Bug:** health loop logged per-service warns but never aggregated → returned success after 30 iterations regardless; `taskkill /FI "WINDOWTITLE eq …"` matches nothing under `start /B` (shared console) → stop killed nothing; same-family: broken-from-inside sim start, no `--metrics`, `docker-compose` v1, vacuum `:3000/health`.
+- **Fix:** health check aggregates `HEALTHY` per round, breaks early on all-4, exits non-zero on failure; stop kills by CIM `Win32_Process` commandline match (python `-m exchange_simulator`/`run.py --metrics`, node `vite preview`) + `taskkill /IM` for the exe; same start/config/compose fixes as deploy.sh.
+- **Files:** `scripts/deploy.bat`
+
+### S298 — build-all.bat permanently-red checks fixed ✅
+- **Bug:** `python -c "import exchange_simulator"` ran from inside the package dir → guaranteed ModuleNotFoundError that also skipped the sim test suite; `cross_exchange_arb`/`marketplace` imports never existed.
+- **Fix:** import check runs from repo root (tests still run from the package dir); phantom imports replaced with real modules — `funding_arb_detector.FundingRateArbitrageDetector`, `statistical_arbitrage.StatisticalArbitrage` — all three verified live.
+- **Files:** `build-all.bat`
+
+**Deferred:** S309 — Docker daemon still unreachable on this host (npipe missing); static verification from R156 stands.
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN.
