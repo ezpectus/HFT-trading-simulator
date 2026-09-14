@@ -1781,4 +1781,4 @@ Commit: 427c5c0
 
 **Clean:** ВСЯ quant-math настоящая — scaled fwd/bwd+Viterbi+Baum-Welch (hmm), GARCH(1,1)+MLE-градиент (garch), predict/update (kalman 1D/2D), OLS/ADF/half-life (cointegration), канонические формулы ×20 индикаторов (indicators, 91 импортер), MI/FNN/simplex/CCM (edm), k-means++/silhouette (kmeans); backtestEngine честен + tested; все хуки имеют consumers; `trading-sim-strategies` key-chain живой; exchange engine — реальный matching (margin-lock/release, OCO-resolve, TIF/FOK-depth, partial-fill, residual-on-flip, pending-eval per tick, GTD-expiry, trailing-stop ratchet, iceberg slices, audit-log на каждом шаге).
 
-Commit: TBD
+Commit: f018859

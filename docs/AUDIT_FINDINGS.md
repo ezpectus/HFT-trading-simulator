@@ -2133,4 +2133,4 @@ Scope: `web-ui/src/utils/` (~3.6k lines — the claim-heavy quant-math surface: 
 
 **Verified clean:** all quant math is *real*, not label-deep — hmmMath (scaled forward/backward + Viterbi + Baum-Welch EM), garchMath (log-returns, GARCH(1,1) recursion, gradient-descent MLE), kalmanMath (genuine 1D + 2D predict/update), cointegrationMath (OLS/ADF/half-life vs critical values), indicators.js (579 lines of canonical formulas, 91 importers), edmMath (mutual information / FNN / delay embedding / simplex / CCM), kmeansMath (k-means++ + Lloyd + silhouette); `backtestEngine.js` is an honest documented browser-side engine with a real consumer and tests; all 21 hooks have production consumers; the exchange engine is a genuine matching pipeline — margin lock/release, OCO sibling resolution, TIF/FOK depth checks, partial fills for large orders, residual position on side-flip, per-tick pending-order evaluation, GTD expiry, trailing-stop ratchet, iceberg slices, audit events at every step.
 
-Commit: TBD
+Commit: f018859
