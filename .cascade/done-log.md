@@ -278,7 +278,7 @@
 
 **Верифицировано R150** — claims сверены с кодом, все присутствуют.
 
-### S245 — v3-only конфиг молча бежал V1 fallback + V3 untunable (R149)
+### S245 — v3-only конфиг молча бежал V1 fallback + V3 untunable (R149) ✅ · verified R183
 
 **Было:** `main.cpp` диспатчил только по `signal_engine_v2_enabled` → `v3_enabled:true, v2_enabled:false` падал в `run_v1_fallback_loop` — другой движок при banner'е «V3». `Config` не имел ни одного `v3_*` ключа — `SignalEngineV3::Params` жил на хардкод-defaults.
 
@@ -291,7 +291,7 @@
 
 **Файлы:** `hft-trade-bot/src/core/{main.cpp,config.h,config_parser.h,bot_setup.cpp}`, `hft-trade-bot/config/config{,.prod}.yaml`.
 
-### S253 — DEPLOYMENT `.env`-шаблон с 8 вымышленными переменными (R149)
+### S253 — DEPLOYMENT `.env`-шаблон с 8 вымышленными переменными (R149) ✅ · verified R183
 
 **Было:** `DEPLOYMENT.md` документировал `EXCHANGE_SIMULATOR_HOST`/`_PORT`, `AI_SIGNAL_BOT_HOST`/`_PORT`, `WEB_UI_PORT`, `DATABASE_PATH`, `PROMETHEUS_PORT`, `GRAFANA_PORT` — 0 читателей у всех восьми.
 
@@ -299,7 +299,7 @@
 
 **Файлы:** `docs/DEPLOYMENT.md`.
 
-### S254 — native-deploy команды неработоспособны (R149)
+### S254 — native-deploy команды неработоспособны (R149) ✅ · verified R183
 
 **Было:** `DEPLOYMENT.md` — `python -m` изнутри пакета, `--config` флаг у hft-бинаря (argv[1] позиционный); `QUICK_START.md` — `docker.bat` (несуществующий), чужой clone-URL, `./hft_trade_bot` без config-path.
 
@@ -307,7 +307,7 @@
 
 **Файлы:** `docs/guides/QUICK_START.md`.
 
-### S263 — `.env.prod` не доходил до `${}`-интерполяции (R149)
+### S263 — `.env.prod` не доходил до `${}`-интерполяции (R149) ✅ · verified R183
 
 **Было:** 5 `:?required` в `docker-compose.prod.yml` резолвятся только из `.env`/`--env-file`; `env_file: .env.prod` грузит контейнерный env, НЕ интерполяцию → `up` на чистом сервере падал с текстом ошибки, врущим про `.env.prod`.
 
@@ -317,18 +317,18 @@
 
 ## R151 — slop-fix (9 findings)
 
-### S291 — ai-bot: один malformed candle убивал market-data listener навсегда
+### S291 — ai-bot: один malformed candle убивал market-data listener навсегда ✅ · verified R183
 - `ai-signal-bot/src/communication/ws_client.py` — `_process_message` валидирует candle-словари (symbol/close) вместо слепого `candle["symbol"]`; per-message catch-all с логом — ни одно кривое сообщение не роняет listen-loop.
 - `ai-signal-bot/run.py` — `_listen_loop` ловит `Exception` (не только IO-классы), `_listen_task` сохранён в self, `_on_task_done` при неожиданной смерти таска во время работы бота планирует `_reconnect`/restart вместо голого лога.
 - Регресс: `ai-signal-bot/tests/unit/test_listen_restart.py` — 5 тестов: malformed-candle пропуск, non-IO исключение → restart, cancelled-task не рестартует, stop-флаг блокирует restart, повторный crash рестартует снова.
 - Проверено: pytest 5/5 + полный ai-signal-bot suite зелёный.
 
-### S303 — exchange_simulator Docker-образ DOA: `python -m` на плоском /app
+### S303 — exchange_simulator Docker-образ DOA: `python -m` на плоском /app ✅ · verified R183
 - `exchange_simulator/Dockerfile` + `Dockerfile.prod` — `COPY . .` → `COPY . ./exchange_simulator/` — пакет лежит как `/app/exchange_simulator/`, `python -m exchange_simulator` резолвится из WORKDIR /app.
 - Все 4 compose-файла — config-mount `./exchange_simulator/config.yaml:/app/exchange_simulator/config.yaml:ro` (package-relative путь `__main__.py`).
 - Проверено: локальный макет образа (tmpdir + `cp` layout) — `python -m exchange_simulator --no-visualizer` стартует, печатает баннер, биндит сервер.
 
-### S220 — no-docker лаунчеры мёртвы на всех ОС
+### S220 — no-docker лаунчеры мёртвы на всех ОС ✅ · verified R183
 - `no-docker.bat` — `cd exchange_simulator && python -m exchange_simulator` → запуск из корня репо (пакет резолвится снаружи, не изнутри себя).
 - `no-docker.sh` — та же правка (`cd "$PROJECT_ROOT"` перед `python3 -m exchange_simulator`).
 - `exchange_simulator/__main__.py` — `loop.add_signal_handler` под `try/except NotImplementedError` (Windows ProactorEventLoop) с warning + KeyboardInterrupt-фолбэком.
@@ -945,7 +945,7 @@ harnesses are un-unit-testable by design).
 
 ## R182 — slop-fix — 1 finding closed (S309 — docker-smoke un-red; board empty)
 
-### S309 — docker-smoke was red by construction; all three permanent-fail causes removed
+### S309 — docker-smoke was red by construction; all three permanent-fail causes removed ✅ · verified R183
 - **Bug (deeper than the original entry):** the finding blamed S303's dead sim image, but the job actually died *earlier* — `docker-compose.yml:242` has `${GRAFANA_PASSWORD:?...}` and CI has no `.env`, so `docker compose up` failed at variable interpolation before any image was built (reproduced on this host: `docker compose config` → `required variable GRAFANA_PASSWORD is missing a value`). Two more structural defects behind it: `--timeout 60` is the container-*shutdown* timeout — it never bounded `--wait`, which waits forever, so a stuck health chain surfaced as a 10-min job timeout rather than a compose error; and `timeout-minutes: 10` was marginal for a cold 4-image build (hft C++ in-Docker compile is the long pole) + ~2-3 min `depends_on: service_healthy` chain.
 - **Fix:** `.github/workflows/ci.yml:329-348` — job-level `env: GRAFANA_PASSWORD: ci-smoke` (throwaway; `down -v` in the same job destroys the stack), `docker compose build` split into its own step so build failures stop masquerading as smoke failures, `--wait-timeout 240` gives the healthy-wait a real bound, `timeout-minutes` 10→20. Same defect pair fixed in `scripts/docker-smoke-test.sh` (`export GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-ci-smoke}"`) and `scripts/docker-smoke-test.bat` (`if not defined`) — both died on the `:?` for any dev without the var, this host included (no `.env` present).
 - **Verified:** `docker compose config` repro-fail → with `GRAFANA_PASSWORD=ci-smoke` → clean parse; `--wait-timeout` flag exists in the installed compose; ci.yml YAML-valid; `bash -n` clean; pre-commit-check 9/9 ALL GREEN.

@@ -2471,3 +2471,18 @@ Done-log fully verified — zero unverified entries. Board: 1 open (S309 Medium,
 - **S309** — docker-smoke red-by-construction: found an earlier blocker the original entry missed — `GRAFANA_PASSWORD:?` killed `docker compose up` at interpolation before any image built (reproduced via `docker compose config` on this host). Fix: job-level throwaway `GRAFANA_PASSWORD: ci-smoke`, `build`/`up` split into separate steps, `--wait-timeout 240` replaces the meaningless `--timeout 60` (shutdown timeout — never bounded `--wait`), `timeout-minutes` 10→20 for cold 4-image build + healthy chain. Same `:?` + flag pair fixed in `scripts/docker-smoke-test.{sh,bat}` — local smoke also died for any dev without the var.
 
 Gate: 9/9 ALL GREEN. Board: 0 open — every finding closed or verified-clean; S309 runtime confirmation delegated to next CI run.
+
+## R183 — slop-verify — 8/8 claims VERIFIED, 0 reverts
+
+Board was empty for slop-fix; ran a verify pass on the unverified tail instead (R149–R151 leftovers + fresh R182).
+
+- **S309** — committed ci.yml has job-env `GRAFANA_PASSWORD: ci-smoke`, split `build`/`up` steps, `--wait-timeout 240`, `timeout-minutes: 20`; both smoke scripts carry the same env fallback + flag. Runtime healthy-chain still delegated to next CI run (no daemon on host) — noted, not a revert.
+- **S303** — `COPY . ./exchange_simulator/` present in both Dockerfiles; all 4 compose files mount `config.yaml` at the package-relative path.
+- **S220** — `no-docker.{sh,bat}` launch `python -m exchange_simulator` from repo root (S220 comment in .sh:77-80); `add_signal_handler` under `NotImplementedError` guard (`__main__.py:163-171`).
+- **S291** — `_listen_loop` catches broad `Exception` (run.py:493), `_on_task_done` restarts crashed listener (:297-302), candle dicts validated via `.get("symbol")` (ws_client.py:210-215), per-message catch-all (:176-180); `test_listen_restart.py` has the claimed 5 tests.
+- **S245** — `main.cpp:60` gates `v2||v3`; `parse_v3_section` (config_parser.h:143) shared by dev+prod paths; `make_v3_params` wired (bot_setup.cpp:137,158); all 7 tunables documented in `config.yaml:127-135` + `config.prod.yaml:92-100`.
+- **S263** — `--env-file .env.prod` in deploy.yml SSH step (:136-137) + `Makefile.prod` `DOCKER_COMPOSE` (:7) with the explanatory comment; prod-stats routes through it.
+- **S253** — the 8 invented env vars have zero hits in DEPLOYMENT.md; `GRAFANA_PASSWORD`/`GRAFANA_USER` documented at :131/:134.
+- **S254** — QUICK_START `:130` uses `./build/hft_trade_bot config/config.yaml`; `:176` honestly notes no docker.bat; clone URL matches `git remote -v`.
+
+Still unverified (next verify round): S203+S310+S312, S311, S204+S315, S255, S228. Board: 0 open.
