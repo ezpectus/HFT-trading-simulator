@@ -407,7 +407,7 @@ add_doctest_test(test_doctest_order_type_selector tests/test_doctest_order_type_
 # Signal Engine V3 doctest tests (HMM regime detection, state transitions, regime gating, multi-symbol)
 add_doctest_test(test_doctest_signal_engine_v3 tests/test_doctest_signal_engine_v3.cpp)
 
-# Low-latency infra doctest tests (LatencyHistogram, ScopedLatency, SPSCQueue, Spinlock, ThreadAffinity, CircuitBreaker)
+# Low-latency infra doctest tests (LatencyHistogram, ScopedLatency, SPSCQueue, Spinlock, ThreadAffinity)
 add_doctest_test(test_doctest_cpp_optimizations tests/test_doctest_cpp_optimizations.cpp)
 
 # HFT config doctest tests (signal_interval_ms, v2_cooldown_ms YAML parsing)

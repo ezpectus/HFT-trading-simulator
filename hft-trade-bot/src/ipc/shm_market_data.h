@@ -1,7 +1,9 @@
 // SHM market data — shared market data (prices, order book snapshots).
 //
-// C++ side: creates SHM segment, writes market snapshots for Python to read.
-// Also supports Python writing market data for C++ to consume (real exchange feeds).
+// C++ side: creates/owns the SHM segment and consumes snapshots written by the
+// Python producer (ai-signal-bot shm_market_data_writer). The write_* methods
+// are the canonical encoder for that protocol and the test fixture for
+// read_snapshot — the production bot never calls them.
 // Uses a single-slot update model (latest snapshot wins) for lowest latency.
 #pragma once
 
@@ -109,6 +111,8 @@ class ShmMarketData {
 
     ShmMarketData(const ShmMarketData&)            = delete;
     ShmMarketData& operator=(const ShmMarketData&) = delete;
+
+    // ── Producer side (test fixture / protocol reference — Python writes in prod) ──
 
     // Write a market snapshot (lock-free, seq-guarded)
     void write_snapshot(uint8_t symbol_id, const MarketSnapshotMsg& snap) {

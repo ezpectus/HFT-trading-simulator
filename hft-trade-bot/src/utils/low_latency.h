@@ -1,4 +1,4 @@
-// Low-latency infrastructure — spinlock, SPSC queue, object pool, latency histogram, thread pinning
+// Low-latency infrastructure — spinlock, SPSC queue, latency histogram, thread pinning
 //
 // Designed for sub-millisecond hot path: signal reception → risk check → order execution.
 // No heap allocations in critical sections. Cache-line aligned for false-sharing avoidance.
@@ -14,7 +14,6 @@
 #include <iomanip>
 #include <new>
 #include <numeric>
-#include <random>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -137,53 +136,6 @@ template <typename T, size_t Capacity> class SPSCQueue {
     alignas(64) std::atomic<size_t> head_;
     alignas(64) std::atomic<size_t> tail_;
     alignas(64) T buffer_[STORAGE];
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ObjectPool — pre-allocated, no heap alloc in hot path
-// ─────────────────────────────────────────────────────────────────────────────
-template <typename T, size_t PoolSize> class ObjectPool {
-  public:
-    ObjectPool() {
-        for (size_t i = 0; i < PoolSize; ++i) {
-            pool_[i].active = false;
-        }
-    }
-
-    // Acquire an object from the pool. Returns nullptr if pool exhausted.
-    T* acquire() noexcept {
-        for (size_t i = 0; i < PoolSize; ++i) {
-            bool expected = false;
-            if (pool_[i].active.compare_exchange_strong(expected, true,
-                                                        std::memory_order_acquire)) {
-                return &pool_[i].obj;
-            }
-        }
-        return nullptr;
-    }
-
-    // Release an object back to the pool. O(1) via pointer arithmetic.
-    void release(T* obj) noexcept {
-        if (!obj) return;
-        // Compute slot index from pointer arithmetic — O(1)
-        auto* slot = reinterpret_cast<Slot*>(reinterpret_cast<char*>(obj) - offsetof(Slot, obj));
-        slot->active.store(false, std::memory_order_release);
-    }
-
-    size_t available() const noexcept {
-        size_t count = 0;
-        for (size_t i = 0; i < PoolSize; ++i) {
-            if (!pool_[i].active.load(std::memory_order_relaxed)) ++count;
-        }
-        return count;
-    }
-
-  private:
-    struct Slot {
-        std::atomic<bool> active{false};
-        T                 obj{};
-    };
-    std::array<Slot, PoolSize> pool_;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,100 +322,6 @@ class ThreadAffinity {
         return static_cast<int>(sysconf(_SC_NPROCESSORS_ONLN));
 #endif
     }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CircuitBreaker — 5 errors → 30s cooldown → half-open probe
-// ─────────────────────────────────────────────────────────────────────────────
-class CircuitBreaker {
-  public:
-    enum class State { CLOSED, OPEN, HALF_OPEN };
-
-    CircuitBreaker(int threshold = 5, int cooldown_seconds = 30)
-        : threshold_(threshold), cooldown_seconds_(cooldown_seconds) {}
-
-    bool allow_request() noexcept {
-        State s = state_.load(std::memory_order_relaxed);
-        if (s == State::CLOSED) return true;
-        if (s == State::OPEN) {
-            auto    now       = std::chrono::steady_clock::now();
-            int64_t opened_ns = opened_at_ns_.load(std::memory_order_relaxed);
-            auto    opened =
-                std::chrono::steady_clock::time_point(std::chrono::nanoseconds(opened_ns));
-            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - opened).count();
-            if (elapsed >= cooldown_seconds_) {
-                // Transition to half-open
-                state_.store(State::HALF_OPEN, std::memory_order_relaxed);
-                return true; // Allow probe
-            }
-            return false;
-        }
-        // HALF_OPEN: allow one probe
-        return true;
-    }
-
-    void record_success() noexcept {
-        error_count_.store(0, std::memory_order_relaxed);
-        state_.store(State::CLOSED, std::memory_order_relaxed);
-    }
-
-    void record_failure() noexcept {
-        int count = error_count_.fetch_add(1, std::memory_order_relaxed) + 1;
-        if (count >= threshold_) {
-            state_.store(State::OPEN, std::memory_order_relaxed);
-            opened_at_ns_.store(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                    std::chrono::steady_clock::now().time_since_epoch())
-                                    .count(),
-                                std::memory_order_relaxed);
-        }
-    }
-
-    State get_state() const noexcept { return state_.load(std::memory_order_relaxed); }
-
-    int error_count() const noexcept { return error_count_.load(std::memory_order_relaxed); }
-
-  private:
-    int                threshold_;
-    int                cooldown_seconds_;
-    std::atomic<State> state_{State::CLOSED};
-    std::atomic<int>   error_count_{0};
-    // Store opened_at as nanoseconds since steady_clock epoch to ensure lock-free atomic
-    std::atomic<int64_t> opened_at_ns_{0};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Retry with exponential backoff + jitter
-// ─────────────────────────────────────────────────────────────────────────────
-class RetryPolicy {
-  public:
-    RetryPolicy(int max_attempts = 3, int base_delay_ms = 500, double jitter_pct = 0.3)
-        : max_attempts_(max_attempts), base_delay_ms_(base_delay_ms), jitter_pct_(jitter_pct) {}
-
-    template <typename Func> auto execute(Func&& func) -> decltype(func()) {
-        for (int attempt = 0; attempt < max_attempts_; ++attempt) {
-            try {
-                return func();
-            } catch (const std::exception& e) {
-                if (attempt == max_attempts_ - 1) {
-                    throw; // Re-throw on last attempt
-                }
-                int delay = base_delay_ms_ * (1 << attempt); // 500ms × 2^n
-                // Add jitter: 0-30% random addition
-                static thread_local std::random_device rd;
-                static thread_local std::mt19937       gen(rd());
-                std::uniform_real_distribution<double> dist(0.0, 1.0);
-                int jitter = static_cast<int>(delay * jitter_pct_ * dist(gen));
-                delay += jitter;
-                std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-            }
-        }
-        throw std::runtime_error("RetryPolicy: exhausted all attempts");
-    }
-
-  private:
-    int    max_attempts_;
-    int    base_delay_ms_;
-    double jitter_pct_;
 };
 
 } // namespace hft

@@ -107,19 +107,4 @@ TEST_SUITE("C++ Performance Optimizations") {
         CHECK(cores > 0);
     }
 
-    TEST_CASE("CircuitBreaker - Basic Operation") {
-        CircuitBreaker cb(3, 30);
-
-        CHECK(cb.allow_request() == true);
-        CHECK(cb.get_state() == CircuitBreaker::State::CLOSED);
-
-        cb.record_failure();
-        cb.record_failure();
-        cb.record_failure();
-
-        // Should be open after threshold
-        CHECK(cb.get_state() == CircuitBreaker::State::OPEN);
-        CHECK(cb.allow_request() == false);
-    }
-
 } // TEST_SUITE

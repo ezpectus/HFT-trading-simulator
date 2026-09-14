@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run HFT bot with a specific config.
 
-Usage: python scripts/run.py [--config config/config.yaml] [--paper]
+Usage: python scripts/run.py [--config config/config.yaml]
 """
 
 import subprocess
@@ -13,7 +13,6 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description="Run HFT Trade Bot")
     parser.add_argument("--config", default="config/config.yaml", help="Config file")
-    parser.add_argument("--paper", action="store_true", help="Paper trading mode")
     parser.add_argument("--debug", action="store_true", help="Debug build")
     args = parser.parse_args()
 
@@ -40,8 +39,6 @@ def main():
         sys.exit(1)
 
     cmd = [binary, config_path]
-    if args.paper:
-        cmd.append("--paper")
 
     print(f"Starting HFT Trade Bot: {' '.join(cmd)}")
     try:

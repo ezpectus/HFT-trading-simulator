@@ -37,7 +37,7 @@ static Signal make_short_signal(double confidence = 75.0, double entry = 50000.0
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TestCircuitBreakerInit
+// RiskManager default params
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("RiskManager default params") {
     RiskManager::Params params;

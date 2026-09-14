@@ -73,30 +73,6 @@ TEST(test_spsc_queue_wraparound) {
     ASSERT_TRUE(queue.empty());
 }
 
-TEST(test_object_pool_basic) {
-    ObjectPool<int, 8> pool;
-    int*               a = pool.acquire();
-    int*               b = pool.acquire();
-    ASSERT_TRUE(a != nullptr);
-    ASSERT_TRUE(b != nullptr);
-    ASSERT_TRUE(a != b);
-    pool.release(a);
-    pool.release(b);
-    ASSERT_EQ(pool.available(), 8u);
-}
-
-TEST(test_object_pool_exhaustion) {
-    ObjectPool<int, 4> pool;
-    int*               ptrs[4];
-    for (int i = 0; i < 4; ++i) {
-        ptrs[i] = pool.acquire();
-        ASSERT_TRUE(ptrs[i] != nullptr);
-    }
-    ASSERT_TRUE(pool.acquire() == nullptr); // Exhausted
-    pool.release(ptrs[0]);
-    ASSERT_TRUE(pool.acquire() != nullptr); // Available again
-}
-
 TEST(test_latency_histogram) {
     LatencyHistogram hist;
     hist.record(0.5);    // < 1μs → bucket 0
@@ -123,24 +99,6 @@ TEST(test_latency_histogram_scoped) {
     ASSERT_TRUE(stats.min >= 50.0); // At least 50μs (sleep overhead)
 }
 
-TEST(test_circuit_breaker) {
-    CircuitBreaker cb(3, 1); // 3 errors, 1s cooldown
-    ASSERT_TRUE(cb.allow_request());
-
-    cb.record_failure();
-    cb.record_failure();
-    ASSERT_TRUE(cb.allow_request()); // Still closed (2 < 3)
-
-    cb.record_failure();
-    ASSERT_FALSE(cb.allow_request()); // Open (3 >= 3)
-
-    // Wait for cooldown
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    ASSERT_TRUE(cb.allow_request()); // Half-open → probe allowed
-
-    cb.record_success();
-    ASSERT_TRUE(cb.allow_request()); // Closed again
-}
 // ═══════════════════════════════════════════════════════════════════════════════
 // Thread Affinity Tests
 // ═══════════════════════════════════════════════════════════════════════════════

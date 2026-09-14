@@ -203,9 +203,14 @@ static OrderSelection select_order_kind(BotContext& ctx, const FastSignal& fast_
     if (!ctx.config.adaptive_order_enabled)
         return {FastOrder::OrderKind::MARKET, 0.0, 0, "default"};
     auto pressure = ctx.pressure_model->analyze(ob);
-    auto sel      = ctx.adaptive_selector->select(fast_sig.confidence, fast_sig.is_long(), mid,
-                                                  spread_bps, pressure.obi_weighted,
-                                                  pressure.toxic_score, qty, 0.0, now_ns);
+    // Depth on the side the order crosses: buys lift asks, sells hit bids.
+    const auto& levels     = fast_sig.is_long() ? ob.asks : ob.bids;
+    double      top5_depth = 0.0;
+    for (size_t i = 0; i < levels.size() && i < 5; ++i)
+        top5_depth += levels[i].quantity;
+    auto sel = ctx.adaptive_selector->select(fast_sig.confidence, fast_sig.is_long(), mid,
+                                             spread_bps, pressure.obi_weighted,
+                                             pressure.toxic_score, qty, top5_depth, now_ns);
     return {sel.kind, sel.limit_price, sel.expire_ns, sel.reason};
 }
 
