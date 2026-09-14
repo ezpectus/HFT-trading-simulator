@@ -127,6 +127,7 @@ strategies:
   sentiment:
     enabled: true                # React to news events from simulator
     fade_threshold: 0.7          # Fade if sentiment > this
+    follow_threshold: 0.3        # Follow momentum if |sentiment| > this
     decay_rate: 0.95             # Sentiment decay per second
 
   ml_ensemble:

@@ -53,6 +53,7 @@ def build_strategies(config: SignalBotConfig) -> list:
     if config.sentiment_enabled:
         strategies.append(SentimentStrategy(config=SentimentConfig(
             fade_threshold=config.sentiment_fade_threshold,
+            follow_threshold=config.sentiment_follow_threshold,
             decay_rate=config.sentiment_decay_rate)))
     if config.market_making_enabled:
         strategies.append(MarketMakingStrategy(config=MarketMakingConfig(

@@ -17,7 +17,7 @@ _CFG_SURFACE = [
     'trend_enabled', 'trend_ema_fast', 'trend_ema_slow', 'trend_adx_threshold',
     'meanrev_enabled', 'meanrev_rsi_oversold', 'meanrev_rsi_overbought',
     'meanrev_bb_period', 'meanrev_bb_std', 'fft_enabled', 'sentiment_enabled',
-    'sentiment_fade_threshold', 'sentiment_decay_rate',
+    'sentiment_fade_threshold', 'sentiment_follow_threshold', 'sentiment_decay_rate',
     'market_making_enabled', 'mm_gamma', 'mm_sigma', 'mm_max_inventory', 'mm_min_spread',
     'ml_ensemble_enabled', 'ml_lookback', 'ml_prediction_horizon',
     'statarb_enabled', 'symbols', 'rsi_period', 'atr_period', 'fft_min_data',
@@ -95,10 +95,12 @@ def test_sentiment_tunables_reach_config(mock_config) -> None:
     """Regression S117: sentiment YAML values must reach SentimentConfig."""
     mock_config.sentiment_enabled = True
     mock_config.sentiment_fade_threshold = 0.42
+    mock_config.sentiment_follow_threshold = 0.11
     mock_config.sentiment_decay_rate = 0.5
     strategies = build_strategies(mock_config)
     sent = next(s for s in strategies if s.name == "sentiment")
     assert sent.config.fade_threshold == 0.42
+    assert sent.config.follow_threshold == 0.11
     assert sent.config.decay_rate == 0.5
 
 

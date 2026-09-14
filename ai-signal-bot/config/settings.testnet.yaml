@@ -73,6 +73,7 @@ strategies:
   sentiment:
     enabled: true
     fade_threshold: 0.7
+    follow_threshold: 0.3
     decay_rate: 0.95
   ml_ensemble:
     enabled: false

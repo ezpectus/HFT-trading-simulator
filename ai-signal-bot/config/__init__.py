@@ -290,6 +290,10 @@ class SignalBotConfig:
         return float(self.raw.get("strategies", {}).get("sentiment", {}).get("fade_threshold", 0.7))
 
     @property
+    def sentiment_follow_threshold(self) -> float:
+        return float(self.raw.get("strategies", {}).get("sentiment", {}).get("follow_threshold", 0.3))
+
+    @property
     def sentiment_decay_rate(self) -> float:
         return float(self.raw.get("strategies", {}).get("sentiment", {}).get("decay_rate", 0.95))
 
