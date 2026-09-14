@@ -1987,4 +1987,4 @@ Commit: 9a1f83b
 
 **Clean:** `.gitignore` полный (secrets/sops/age/env все покрыты, `.env.prod.example`+favicon корректно исключены, broad-игноры безопасны — ноль fixture-reads); `.gitattributes`/`.editorconfig` sane; LICENSE настоящий Apache-2.0; index.html scaffolding живой (root-div, main.jsx, fonts).
 
-Commit: pending
+Commit: 685d68f
