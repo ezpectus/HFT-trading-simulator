@@ -70,104 +70,7 @@ jobs:
         working-directory: ai-signal-bot
 
       - name: Run walk-forward backtest
-        run: |
-          python -c "
-          import json, sys, os, csv
-          sys.path.insert(0, '.')
-          from src.backtesting.backtester import Backtester
-          from src.strategies.strategies import TrendFollowingStrategy
-          from src.strategies.strategies import MeanReversionStrategy
-
-          # Load candles from CSV
-          all_candles = []
-          with open('data/exports/btc_usdt_1m.csv') as f:
-              reader = csv.DictReader(f)
-              for row in reader:
-                  all_candles.append({
-                      'time': int(row['time']),
-                      'open': float(row['open']),
-                      'high': float(row['high']),
-                      'low': float(row['low']),
-                      'close': float(row['close']),
-                      'volume': float(row['volume']),
-                  })
-          print(f'Loaded {len(all_candles)} candles')
-
-          # Walk-forward parameters
-          WINDOW_DAYS = 30
-          STEP_DAYS = 7
-          TOTAL_DAYS = 365
-          START_TS = 1704067200  # 2024-01-01
-
-          results = []
-
-          for start_day in range(0, TOTAL_DAYS - WINDOW_DAYS, STEP_DAYS):
-              start_ts = START_TS + start_day * 86400
-              end_ts = start_ts + WINDOW_DAYS * 86400
-
-              # Filter candles for this window
-              window_candles = [c for c in all_candles if start_ts <= c['time'] < end_ts]
-              if len(window_candles) < 100:
-                  print(f'  Window {start_day}-{start_day+WINDOW_DAYS}: too few candles ({len(window_candles)}), skipping')
-                  continue
-
-              for StrategyClass in [TrendFollowingStrategy, MeanReversionStrategy]:
-                  try:
-                      strategy = StrategyClass()
-                      bt = Backtester(
-                          initial_balance=10000,
-                          fee_pct=0.075,
-                          slippage_bps=2.0,
-                      )
-                      result = bt.run(window_candles, strategy, symbol='BTC/USDT', warmup=50)
-                      results.append({
-                          'strategy': strategy.__class__.__name__,
-                          'window_start': start_day,
-                          'window_end': start_day + WINDOW_DAYS,
-                          'total_return_pct': result.total_return_pct,
-                          'total_trades': result.total_trades,
-                          'win_rate': result.win_rate,
-                          'sharpe_ratio': result.sharpe_ratio,
-                          'max_drawdown_pct': result.max_drawdown_pct,
-                          'profit_factor': result.profit_factor,
-                          'final_balance': result.final_balance,
-                      })
-                  except Exception as e:
-                      print(f'  Window {start_day}-{start_day+WINDOW_DAYS} {StrategyClass.__name__}: ERROR ({e})')
-                      results.append({
-                          'strategy': StrategyClass.__name__,
-                          'window_start': start_day,
-                          'window_end': start_day + WINDOW_DAYS,
-                          'error': str(e),
-                          'total_return_pct': 0,
-                          'total_trades': 0,
-                      })
-
-          # Summary
-          print('\n=== Walk-Forward Backtest Summary ===')
-          print(f'Windows: {len(results)}')
-          profitable = [r for r in results if r.get('total_return_pct', 0) > 0]
-          print(f'Profitable windows: {len(profitable)}/{len(results)} ({100*len(profitable)/max(len(results),1):.0f}%)')
-
-          # Per-strategy summary
-          strategies = set(r['strategy'] for r in results)
-          for s in strategies:
-              s_results = [r for r in results if r['strategy'] == s and 'error' not in r]
-              if not s_results:
-                  continue
-              avg_return = sum(r['total_return_pct'] for r in s_results) / len(s_results)
-              avg_sharpe = sum(r['sharpe_ratio'] for r in s_results) / len(s_results)
-              total_trades = sum(r['total_trades'] for r in s_results)
-              print(f'\n  {s}:')
-              print(f'    Avg return per window: {avg_return:.2f}%')
-              print(f'    Avg Sharpe: {avg_sharpe:.2f}')
-              print(f'    Total trades: {total_trades}')
-
-          # Save results
-          with open('walk_forward_results.json', 'w') as f:
-              json.dump(results, f, indent=2)
-          print('\nResults saved to walk_forward_results.json')
-          "
+        run: python ../scripts/walk_forward_ci.py --csv data/exports/btc_usdt_1m.csv --output walk_forward_results.json
         working-directory: ai-signal-bot
 
       - name: Check performance regression
@@ -175,7 +78,7 @@ jobs:
           python -c "
           import json, sys
           with open('walk_forward_results.json') as f:
-              results = json.load(f)
+              results = json.load(f)['windows']
 
           failed = False
 
