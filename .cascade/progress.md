@@ -1988,3 +1988,15 @@ Commit: 9a1f83b
 **Clean:** `.gitignore` полный (secrets/sops/age/env все покрыты, `.env.prod.example`+favicon корректно исключены, broad-игноры безопасны — ноль fixture-reads); `.gitattributes`/`.editorconfig` sane; LICENSE настоящий Apache-2.0; index.html scaffolding живой (root-div, main.jsx, fonts).
 
 Commit: 685d68f
+
+## R140 — grafana dashboards query↔metric cross-check (0 findings — honest zero #3)
+
+**Scope:** `monitoring/grafana/dashboards/` (5 JSON, 929 строк) — извлечены все `"expr"` PromQL-запросы, 40 уникальных metric-name; сверены с реальными эмиттерами (`ws_prometheus.py`/`ws_metrics.py` sim-серии, `metrics.py` MetricsExporter ai-серии, C++ metrics hft-серии) + datasource/provisioning consistency.
+
+**Findings (0):** все 40 имён эмитятся живым кодом.
+
+**Notable:** `exchange_orders_filled_total`/`exchange_orders_rejected_total` запрашиваются панелями но вечный ноль — blast-radius открытого S281 (не новая находка). `metrics_server.py` дублирует `ai_signal_bot_*` имена в `render()` — dead-sink уже покрыт S272. Datasource `Prometheus` name-matched к datasources.yml, uid'ы уникальны.
+
+**Clean:** ai-bot gauge/counter имена 1:1 dashboard-запросам; exchange latency-bucket'ы существуют; hft shm_queue_depth trio реально; dashboards provisioned корректно (R133 helm-vendored byte-identical).
+
+Commit: pending
