@@ -2618,3 +2618,13 @@ Target: `hft-trade-bot/src/{ipc,position,execution,strategies,risk}` — lock-fr
 - **S336** `connection_` hdl ordering (Info): order_executor.h:54-56,466 — non-atomic hdl write published via `connected_`; watchdog reads it under relaxed load (:439). Benign x86, formally racy on weak memory.
 
 Clean (traced): `shm_ring_buffer` — textbook SPSC (relaxed own-index, acquire/release cross-side, wraparound-correct, loud open-validation); all three signal engines genuinely wired (v3 wraps v2 :163-166, v1 explicit fallback with synthetic-book warn :289-303 — disclosed, not hidden fake); order_executor — truncation guards, auth-first, arb unwind w/ critical alert, watchdog+reconnect cancel; apply_fill open/increase/close branches otherwise correct; close-retry `closing_since_` staleness window (S248) present.
+
+## R195 — slop-audit — ai-signal-bot safety gates + remaining src dirs — 3 findings (S337–S339)
+
+Target: `ai-signal-bot/src/{llm_engine,signal_validation,data_collection,database,technical_analysis,communication}` — fake features, dead gates, unwired risk controls.
+
+- **S337** CircuitBreaker decorative (High): real state machine wired into `broadcast_signal` (:308), but `record_failure`/`record_success` have ZERO prod callers → can never leave CLOSED. And even tripped, it only silences the WS broadcast — `run.py:571` ignores the return; `_execute_paper/_live_order` (:578-584) and the SHM feed (:572) run regardless. A breaker that can't open and doesn't protect execution is decoration.
+- **S338** halt signals never reach orders (Medium): `is_trading_active` gates paper path only (:579) — `_execute_live_order` has no halt check; `_hft_kill_active` pauses only the SHM signal feed (:572), neither order path checks it.
+- **S339** validator drawdown dead (Medium): `_check_drawdown` reads `_daily_pnl` but `update_pnl` is test-only — gate can never fire. Advertised risk limit disconnected from its data.
+
+Clean (traced): `llm_engine` — real OpenAI/Anthropic/Ollama HTTP calls, SecretStr keys, honest `provider="none"` fallback + rule_based; `data_collection` — ccxt-backed RealExchangeAdapter/RealAccountManager live path via lazy ExchangeFactory (run.py:644-655); hawkes `fit_hawkes`/`hawkes_intensity` live via WS `hawkes_fit` endpoint; `Database` — real WAL sqlite with init script; SignalValidator's other four checks live and locked.

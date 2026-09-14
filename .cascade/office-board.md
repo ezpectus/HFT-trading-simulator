@@ -11,11 +11,13 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1245 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84, scripts +13, helm +12, terraform +8, workflows +5, root/web-ui configs +9, dockerfiles/compose +10, docs-residue +3, .github meta +5) |
-| Всего находок | ~336 (S001–S336) |
+| Всего находок | ~339 (S001–S339) |
 | Закрыто | 226 |
-| Открыто | **15** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 · R193 sim fill-model: S330–S333 · R194 C++ core: S334–S336 |
+| Открыто | **18** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 · R193 sim fill-model: S330–S333 · R194 C++ core: S334–S336 · R195 safety-gates: S337–S339 |
 
-**Текущее состояние:** R194 hft-trade-bot C++ core audit — 3 находки: **S334** (Medium — partial-close fee double-count в `realized_pnl_total_`), **S335** (Medium — `sync_position` never removes → фантомные позиции на пропущенных филлах), **S336** (Info — `connection_` hdl опубликован без ordering). Чисто: SPSC ring buffer (текстбук-правильные acquire/release), 3 поколения signal engines все честно заведены (v3 оборачивает v2, v1 = explicit fallback с warn на synthetic book), order_executor (truncation-гарды, arb unwind, watchdog). Board: 15 open.
+**Текущее состояние:** R195 ai-signal-bot safety-gates audit — 3 находки, все про "защита, которая не защищает": **S337** (High — CircuitBreaker не может сработать: `record_failure` без prod-caller'ов; и даже сработав, гейтит только broadcast — ордера и SHM-фид идут дальше), **S338** (Medium — `is_trading_active` гейтит только paper; live-путь без halt-гейта; `_hft_kill_active` до ордеров не доходит), **S339** (Medium — validator drawdown-чек мёртв: `update_pnl` никто не вызывает). Чисто: llm_engine (реальные HTTP-клиенты + honest provider=none), real_account/exchange_factory (ccxt-backed live path), hawkes (живой WS-endpoint), Database (WAL sqlite), SignalValidator остальные чеки живые. Board: 18 open.
+
+R194 hft-trade-bot C++ core audit — 3 находки: **S334** (Medium — partial-close fee double-count в `realized_pnl_total_`), **S335** (Medium — `sync_position` never removes → фантомные позиции на пропущенных филлах), **S336** (Info — `connection_` hdl опубликован без ordering). Чисто: SPSC ring buffer (текстбук-правильные acquire/release), 3 поколения signal engines все честно заведены (v3 оборачивает v2, v1 = explicit fallback с warn на synthetic book), order_executor (truncation-гарды, arb unwind, watchdog). Board: 15 open.
 
 R193 exchange_simulator fill-model audit — 4 находки: **S332** (High — JS backtestEngine lookahead, twin of S329), **S330** (Medium — iceberg fills unconditional at stale limit price + dead slice model broadcast as static fake fields), **S331** (Medium — partial liquidation bypasses submit_order: no fee/slippage/audit), **S333** (Info — hardcoded round(·,2) tick + duplicated `_TYPICAL_VOLUME`). Clean: submit_order validation, margin math (traced all close branches — balances), SL/TP triggers, trailing-stop semantics, funding signs, order-book model. Board: 12 open.
 
@@ -48,6 +50,9 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 | **S334** | PositionManager: partial-close fee counted twice | `position_manager.h:105-117` — REDUCED realizes `slice_pnl - fee` into `realized_pnl_total_` (:110,:115) AND `it->fees_paid += fee` (:112); `update_pnl` then nets `fees_paid` off the remaining position (types.h:90), so the same fill fee is subtracted a second time at final close. Each partial close understates `realized_pnl_total_` by its fee — conservative direction, but realized PnL no longer reconciles with per-fill fees. Fix: on REDUCED either skip `fees_paid += fee` or don't subtract `fee` from the slice pnl — not both. | Medium | [ ] Open |
 | **S335** | `sync_position` never removes → phantom positions on missed fills | `position_manager.h:160-161` — sync adopts exchange-reported positions and refreshes qty/entry but deliberately never removes ("fills own removals"). Any exchange-side close whose fill we missed (disconnect gap, lost fills_batch) leaves a local ghost: `has_position()` blocks that symbol forever and `check_sl_tp` keeps evaluating a non-existent position — can fire close orders for ghosts. Fix: remove local positions absent from the account broadcast (or age-out after N syncs unseen). | Medium | [ ] Open |
 | **S336** | `connection_` hdl published without ordering | `order_executor.h:54-56,466` — the asio open-handler writes non-atomic `connection_` then sets `connected_`; submit/watchdog threads read `connection_` after a relaxed `connected_` load (:439). No formal happens-before — benign on x86, formally a data race on ARM/weak-memory. Fix: release-store `connected_` after writing `connection_`, or guard the hdl under `client_mtx_`. | Info | [ ] Open |
+| **S337** | CircuitBreaker can never trip — and wouldn't stop orders if it did | `communication/circuit_breaker.py` is a real CLOSED/OPEN/HALF_OPEN machine wired into `signal_publisher.broadcast_signal` (:308 `allow_signal`), but `record_failure`/`record_success` have **zero prod callers** (only tests) → `consecutive_failures` stays 0 → CLOSED forever. And even tripped it would only silence the WS broadcast: `run.py:571` ignores `broadcast_signal`'s return and `_execute_paper_order`/`_execute_live_order` (:578-584) run regardless; the SHM feed to the hft bot (:572) isn't breaker-gated either. A circuit breaker that can't open and doesn't protect execution is decoration. Fix: record failures on order/broadcast errors, and gate the order+SHM paths on breaker state — not just the publish. | High | [ ] Open |
+| **S338** | Halt signals never reach order execution | `run.py:578-584` — `exchange.is_trading_active` gates only `_execute_paper_order`; `_execute_live_order` has no halt check at all (live orders fire during a sim halt — real-money blast radius). Separately `_hft_kill_active` (:389,:572) pauses only the SHM signal feed — neither order path checks it. The order path needs the same halt gates the feed has. | Medium | [ ] Open |
+| **S339** | `SignalValidator` drawdown check is dead — `update_pnl` never called | `signal_validation/validator.py:64-68` + :103-105 — `_check_drawdown` reads `self._daily_pnl`, but `update_pnl` is called only by tests (prod caller count: 0; `run.py:725` is `metrics.update_pnl`, different object). `_daily_pnl` stays 0.0 → the advertised "max daily drawdown" gate can never fire. A risk limit that's disconnected from its data is worse than none — it reads as protected. Fix: call `validator.update_pnl` on realized trade results, or drop the check honestly. | Medium | [ ] Open |
 
 
 
@@ -328,9 +333,11 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 ## ПРИОРИТЕТЫ
 
-1. **S329 + S332** (High, R192/R193) — lookahead во ОБОИХ бэктест-движках (py `Backtester` и js `backtestEngine`): решение по бару `i`, филл по его же close. Фикс один и тот же: сигнал на `i-1`, филл на `i`.
-2. **S330/S331** (Medium, R193) — sim fill-model: iceberg без marketability-гейта + мёртвая slice-модель; partial-liquidation без fee/slippage/audit.
-3. **S334/S335** (Medium, R194) — C++ position book: fee-двойной-учёт на partial close; `sync_position` не удаляет → фантомные позиции.
-4. **S322** (Medium, R191) — copy-paste venue-runners ×3. **S328** (Medium, R192) — мёртвый backtest-стек ~580 строк.
-5. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering.
-6. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
+1. **S337** (High, R195) — CircuitBreaker декоративный: `record_failure` без prod-вызовов (не может сработать) + гейтит только broadcast, не execution. Самая опасная находка раунда — "защита", которой нет.
+2. **S329 + S332** (High, R192/R193) — lookahead во ОБОИХ бэктест-движках: сигнал на `i-1`, филл на `i`.
+3. **S338/S339** (Medium, R195) — halt-гейты не доходят до order path; validator drawdown мёртв.
+4. **S330/S331** (Medium, R193) — sim fill-model: iceberg без marketability + мёртвая slice-модель; partial-liquidation без fee/slippage/audit.
+5. **S334/S335** (Medium, R194) — C++ position book: fee-двойной-учёт; `sync_position` не удаляет → фантомы.
+6. **S322** (Medium, R191) — copy-paste venue-runners ×3. **S328** (Medium, R192) — мёртвый backtest-стек ~580 строк.
+7. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering.
+8. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
