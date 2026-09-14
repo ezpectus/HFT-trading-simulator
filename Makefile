@@ -9,10 +9,10 @@ install: ## Install all dependencies
 	cd web-ui && npm install
 
 dev: ## Start all services in development mode
-	docker-compose up
+	docker compose up
 
 dev-exchange: ## Start only exchange simulator
-	cd exchange_simulator && python -m exchange_simulator --no-visualizer
+	python -m exchange_simulator --no-visualizer
 
 dev-signals: ## Start only AI signal bot
 	cd ai-signal-bot && python run.py --dashboard --metrics
@@ -47,10 +47,10 @@ build: ## Build web UI for production
 	cd web-ui && npm run build
 
 docker-up: ## Start all services with Docker Compose
-	docker-compose up --build
+	docker compose up --build
 
 docker-down: ## Stop all Docker services
-	docker-compose down
+	docker compose down
 
 clean: ## Clean build artifacts
 	rm -rf web-ui/dist web-ui/node_modules web-ui/coverage
@@ -84,4 +84,4 @@ walk-forward: ## Run walk-forward optimization CI check
 	@python scripts/walk_forward_ci.py --output logs/walk_forward_report.json
 
 docker-hub: ## Start all services using pre-built Docker Hub images
-	@docker-compose -f docker-compose.hub.yml up -d
+	@docker compose -f docker-compose.hub.yml up -d
