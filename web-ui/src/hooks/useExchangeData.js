@@ -4,10 +4,6 @@ import { IS_MOCK } from './useMockData'
 import { isFlagEnabled } from '../featureFlags'
 
 export const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
-const WS_SIGNALS = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
-// Shared secret for the signal publisher handshake — matches the bot's
-// api.auth_token / AI_BOT_AUTH_TOKEN. Empty = server-side auth disabled.
-const SIGNAL_TOKEN = import.meta.env.VITE_SIGNAL_TOKEN || ''
 // Control-plane token for the exchange simulator — matches the server's
 // EXCHANGE_CONTROL_TOKEN. Empty = control commands unauthenticated (dev).
 const EXCHANGE_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
@@ -423,95 +419,7 @@ export function useExchangeData() {
   }
 }
 
-/**
- * AI Signal data hook — connects to AI Signal Bot publisher.
- * @param {object} options - { onBacktestResult }
- */
-export function useSignalData(options = {}) {
-  const [signals, setSignals] = useState([])
-  const [regime, setRegime] = useState(null)
-  const [backtestResult, setBacktestResult] = useState(null)
-  const [circuitBreaker, setCircuitBreaker] = useState(null)
-  const [portfolioResult, setPortfolioResult] = useState(null)
-  const [volSurfaceResult, setVolSurfaceResult] = useState(null)
-  const [cvarResult, setCvarResult] = useState(null)
-  const [stressTestResult, setStressTestResult] = useState(null)
-  const [positionSizeResult, setPositionSizeResult] = useState(null)
-  const [hawkesResult, setHawkesResult] = useState(null)
-  const [fundingArbResult, setFundingArbResult] = useState(null)
-  const [authState, setAuthState] = useState(SIGNAL_TOKEN ? 'pending' : 'disabled')
-  const onBacktestResultRef = useRef(options.onBacktestResult)
-
-  useEffect(() => {
-    onBacktestResultRef.current = options.onBacktestResult
-  })
-
-  const handleSignalMessage = useCallback((data) => {
-    switch (data.type) {
-      case 'signal_history':
-        setSignals(data.signals || [])
-        break
-      case 'signal':
-        setSignals(prev => [data, ...prev].slice(0, 50))
-        break
-      case 'market_regime':
-        setRegime(data)
-        break
-      case 'circuit_breaker_status':
-        setCircuitBreaker({
-          tripped: data.state === 'OPEN',
-          state: data.state,
-          consecutiveLosses: data.consecutive_failures || 0,
-          totalTrips: data.total_trips || 0,
-          totalBlocks: data.total_blocks || 0,
-        })
-        break
-      case 'backtest_result':
-        setBacktestResult(data)
-        onBacktestResultRef.current?.(data)
-        break
-      case 'comparison_result':
-        setBacktestResult(data)
-        break
-      case 'portfolio_result':
-        setPortfolioResult(data)
-        break
-      case 'vol_surface_result':
-        setVolSurfaceResult(data)
-        break
-      case 'cvar_result':
-        setCvarResult(data)
-        break
-      case 'stress_test_result':
-        setStressTestResult(data)
-        break
-      case 'position_size_result':
-        setPositionSizeResult(data)
-        break
-      case 'hawkes_result':
-        setHawkesResult(data)
-        break
-      case 'funding_arb_result':
-        setFundingArbResult(data)
-        break
-      case 'auth_ok':
-        setAuthState('ok')
-        break
-      case 'auth_failed':
-        setAuthState('failed')
-        break
-      default:
-        break
-    }
-  }, [])
-
-  const { connected, send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect } = useWebSocket(WS_SIGNALS, {
-    label: 'signal',
-    onMessage: handleSignalMessage,
-    authToken: SIGNAL_TOKEN || undefined,
-    onOpen: () => { if (SIGNAL_TOKEN) setAuthState('pending') },
-    autoConnect: !IS_MOCK && isFlagEnabled('auto-reconnect'),
-  })
-
-  return { signals, regime, backtestResult, circuitBreaker, portfolioResult, volSurfaceResult, cvarResult, stressTestResult, positionSizeResult, hawkesResult, fundingArbResult, authState, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }
-}
+// Re-export so existing `import { useSignalData } from './useExchangeData'`
+// sites (App.jsx, vi.mock paths) keep resolving — implementation lives in
+// ./useSignalData.js.
+export { useSignalData } from './useSignalData'
