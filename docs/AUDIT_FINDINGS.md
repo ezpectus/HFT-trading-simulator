@@ -2152,3 +2152,19 @@ Scope: the never-leaf-read remainder of `exchange_simulator/` — `ws_message_ha
 **Verified clean:** ws handler — `_CONTROL_TYPES` auth-gate with `secrets.compare_digest`, 1000-msg/60s rate limit, idempotent order dedup (bounded 10k LRU), `_sanitize_log` on every user-controlled log field, per-message try; order pipeline — margin lock/release, OCO sibling resolve, TIF/FOK `_depth_covers`, partial fills, residual position on side-flip; liquidation — real liq/partial/SL/TP triggers + insurance-fund deficit; arbitrage — real cross-exchange pair scan with TTL and auto-exec; options — canonical Black-Scholes with Greeks, Newton-Raphson IV, put-call parity; audit_logger — thread-safe deque + file persistence + callbacks; SHM publisher uses a proper seq-lock; `data_export`/`config_validator`/`visualizer` all wired from `__main__`.
 
 Commit: 1f468ce
+
+---
+
+## Round 127 — exchange_simulator tail: contracts + entrypoint + test suite (2 findings: S282–S283)
+
+Scope: `models.py` (488 — every `to_dict` wire contract), `__main__.py` (277), `data_export.py`, `config_validator.py`, `visualizer*.py` (771), and the untouched `tests/` directory — 32 files / 6,638 lines.
+
+**S282 (Low) — Open.** ~1,000 lines of `exchange_simulator/tests/` are `__main__`-only scripts dressed as tests. `test_chaos_enhanced.py` (429), `test_chaos_reconnect.py`, `test_load_10k.py` — the filename matches `test_*.py` so pytest imports the module, but they contain **zero `def test_*`** functions — all logic lives under `asyncio.run(main())` and needs a live server. `stress_test.py` (220) and `load_test_50_symbols.py` (which actually has 3 `def test_` functions!) don't match the `test_*.py` glob → never collected at all. CI's `pytest tests/` silently carries all five — the suite looks ~1k lines bigger than the assertions it runs.
+
+**S283 (Low) — Open.** `stress_test.py:14` sets `EXCHANGE_URL = "http://localhost:8765/api/v1"` and `submit_order` does `session.post(f"{EXCHANGE_URL}/orders")` — but the simulator has **no REST API**: it's a pure WebSocket server (orders arrive as `{"type":"order"}` messages; the only HTTP surface is the aiohttp metrics app on :8775 serving `/metrics`, `/health`, `/live`, `/ready`). `/api/v1` has zero hits across the source. Even run manually it can only collect 100% errors — a stress test for an interface that doesn't exist.
+
+**Retracted:** `__main__.py:163` unguarded `add_signal_handler` is the same Windows class as S220 (folded into the existing finding, not a new ID); shallow-assert density is low — only ~20 `isinstance`/`callable` asserts in 6.6k test lines.
+
+**Verified clean:** `models.py` — every wire contract correct (equity = balance + Σmargin + unrealized_pnl, trailing-stop ratchet, iceberg replenish, `OCOGroup.on_fill`); `__main__.py` is a real composition root (`validate_or_exit` → audit config before `build_exchanges` → `EXCHANGE_WS_HOST` env override with an honest container comment → signal handlers); `config_validator` does real range checks + prices↔volatility cross-refs; `data_export` is a real CSV/parquet writer with pyarrow fallback; `test_security` uses spec'd MagicMocks and real injection cases, `test_property_based` is genuine Hypothesis with `skipif` guards, `test_integration_dataflow` asserts real OHLC/symbol invariants; zero TODO/FIXME/NotImplementedError in the whole package.
+
+Commit: TBD

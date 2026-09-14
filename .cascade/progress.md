@@ -1797,3 +1797,17 @@ Commit: f018859
 **Clean:** auth-gate `_CONTROL_TYPES` + compare_digest + rate-limit + dedup-LRU + `_sanitize_log` (log-injection защита) + per-message try; order pipeline — margin-lock/release, OCO sibling-resolve, TIF/FOK `_depth_covers`, partial-fill, residual-on-flip; liquidation — liq/partial/SL/TP + insurance-fund deficit; arbitrage — pair-scan+TTL+auto-exec; options — канонический B-S+Greeks+NR-IV+parity; audit_logger — thread-safe + file + callbacks; SHM publisher с seq-lock; data_export/config_validator/visualizer — wired из __main__.
 
 Commit: 1f468ce
+
+## R127 — exchange_simulator tail: models.py + __main__ + support modules + tests/ sweep
+
+**Scope:** `models.py` (488 — все to_dict-контракты), `__main__.py` (277 полностью), `data_export.py` (245), `config_validator.py` (283), `visualizer*.py` (771), `tests/` — 32 файла / 6,638 строк.
+
+**Findings (2):**
+- S282 (Low): ~1,000 строк в `tests/` — main-only скрипты в одежде тестов. `test_chaos_enhanced.py` (429), `test_chaos_reconnect.py`, `test_load_10k.py` — имя матчит `test_*.py` (pytest импортирует модуль), но **0 `def test_*`** — код живёт под `asyncio.run(main())` и требует живой сервер. `stress_test.py` (220) + `load_test_50_symbols.py` (3 test-функции) — имена вне `test_*.py` глоба → вообще не собираются. CI `pytest tests/` молча несёт все 5 — сьют на вид больше, чем есть.
+- S283 (Low): `stress_test.py:14` — `EXCHANGE_URL = "http://localhost:8765/api/v1"`, `submit_order` → `session.post("…/orders")`. У сима НЕТ REST API — WS-only (ордера через `{"type":"order"}`); единственный HTTP — aiohttp metrics на :8775 (/metrics//health//live//ready). `/api/v1` — 0 хитов по src. Даже запущенный вручную собирает 100% errors — стресс-тест фантазийного интерфейса.
+
+**Retracted:** `__main__:163` unguarded `add_signal_handler` — тот же Windows-класс что S220 (свёрнуто в существующую находку, не новый ID); shallow-assert плотность низкая (20/6.6k).
+
+**Clean:** models.py — все контракты корректны (equity=balance+Σmargin+unrealized, trailing-ratchet, iceberg replenish, OCOGroup.on_fill); `__main__` — настоящий composition root (validate_or_exit, audit-config до exchanges, EXCHANGE_WS_HOST env-override с honest comment); config_validator — реальные range/cross-ref проверки; data_export — настоящий CSV/parquet; test_security/test_property_based/test_integration — честные (spec'd mocks, Hypothesis, реальные ассерты); 0 TODO/FIXME в пакете.
+
+Commit: TBD
