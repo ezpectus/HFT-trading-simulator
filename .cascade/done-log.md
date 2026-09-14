@@ -706,13 +706,13 @@ harnesses are un-unit-testable by design).
 - **Files:** `hft-trade-bot/tests/{test_shm.cpp,unit/test_monitoring.cpp,unit/test_network.cpp,integration/test_signal_flow.cpp}`, `hft-trade-bot/CMakeLists.txt`
 - **Commit:** 27bfe62
 
-### S293 — follow_threshold wired end-to-end ✅ · verified R169
+### S293 — follow_threshold wired end-to-end ✅ · verified R169 · re-verified R197
 - **Bug:** `SentimentConfig.follow_threshold` was read at sentiment.py:198/:202 but had no `SignalBotConfig` property, no yaml key, no `bot_helpers` passthrough — pinned at 0.3.
 - **Fix:** `sentiment_follow_threshold` property (default 0.3), `follow_threshold` keys in settings.yaml + settings.testnet.yaml, passthrough in `build_strategies`; S117 tunables regression extended.
 - **Files:** `ai-signal-bot/config/__init__.py`, `config/settings{,.testnet}.yaml`, `src/utils/bot_helpers.py`, `tests/unit/test_bot_helpers.py`
 - **Commit:** 15412eb
 
-### S294 — --tests now runs ctest; staged mode honest about deferral ✅ · verified R169
+### S294 — --tests now runs ctest; staged mode honest about deferral ✅ · verified R169 · re-verified R197
 - **Bug:** `check_cpp_build_and_test` ran only under `--full`/`--all`, so the documented `--tests` mode never ran ctest and staged `.cpp` commits got clang-format + green with zero build/test; header/CI-map implied equivalence that didn't exist.
 - **Fix:** gate condition admits `args.tests`; staged/quick prints an explicit `[SKIP] cmake+ctest` note naming covering modes; docstring states per-mode equivalence.
 - **Files:** `scripts/pre-commit-check.py`
@@ -720,7 +720,7 @@ harnesses are un-unit-testable by design).
 
 ## R170 — slop-fix — 10 findings closed
 
-### S316 — shared_config.yaml is now honest gate-reference, not dead authority ✅ · verified R173
+### S316 — shared_config.yaml is now honest gate-reference, not dead authority ✅ · verified R173 · re-verified R197
 - **Bug:** header claimed 'shared parameters used by all components'; runtime reads nothing. Dead sections: `system` (incl. fifth version `3.0.0`), `default_exchange`, `timeframe`/`timeframe_seconds`, `account`; `websocket.ai_signal_bot` loaded into `_shared_signal_ws` and never compared.
 - **Fix:** kept live gate inputs (`symbols`, `exchanges`, `risk`, `websocket`), cut the dead sections, honest header; `_shared_signal_ws` now compared against `hft_config.ai_signal_bot.websocket_url` — verified fails on drift (9999 vs 8766).
 - **Files:** `shared_config.yaml`, `scripts/test_config_consistency.py`
@@ -732,25 +732,25 @@ harnesses are un-unit-testable by design).
 - **Files:** `install-deps.bat`
 - **Commit:** 14dbb69
 
-### S300 — deploy.yml: honest notify, .env.prod fail-fast, master branch ✅ · verified R173
+### S300 — deploy.yml: honest notify, .env.prod fail-fast, master branch ✅ · verified R173 · re-verified R197
 - **Bug:** `notify` treated `skipped` needs as success — every master push announced 'Deployment SUCCESS' for a tag-only deploy that never ran; scp shipped only `.env.prod.example`, nothing materialized `.env.prod` so compose `--env-file` died on a clean server; netlify `production-branch: main`/`refs/heads/main` could never fire on a master-only repo.
 - **Fix:** verdict now reports FAILED/CANCELLED/'deploy skipped (tags v* only)'/SUCCESS from actual results; SSH step fail-fasts with an actionable error when `.env.prod` is absent; netlify production branch + gate moved to `master`.
 - **Files:** `.github/workflows/deploy.yml`
 - **Commit:** 2832f9c
 
-### S313 — dead numpy pin removed ✅ · verified R173
+### S313 — dead numpy pin removed ✅ · verified R173 · re-verified R197
 - **Bug:** `exchange_simulator/requirements.txt` pinned `numpy==2.1.3` — zero imports anywhere in the component (GBM runs on stdlib); ~50MB wheel + supply-chain surface baked into CI and the sim image for nothing.
 - **Fix:** pin cut.
 - **Files:** `exchange_simulator/requirements.txt`
 - **Commit:** 14dbb69
 
-### S317 + S308 — root .dockerignore and .clang-format deleted ✅ · verified R173
+### S317 + S308 — root .dockerignore and .clang-format deleted ✅ · verified R173 · re-verified R197
 - **Bug:** root `.dockerignore` described exclusions for a root-context build that doesn't exist (all 12 contexts are `./<component>`); root `.clang-format` (ColumnLimit 120 + include-sorting) had zero C++ files in scope — all 30 live under `hft-trade-bot/` with its own config (ColumnLimit 100) — and would misformat if ever applied.
 - **Fix:** both files deleted (proven-dead).
 - **Files:** `.dockerignore`, `.clang-format`
 - **Commit:** 14dbb69
 
-### S307 + S200 + S271 — version/panel numbers converged on canonical values ✅ · verified R173
+### S307 + S200 + S271 — version/panel numbers converged on canonical values ✅ · verified R173 · re-verified R197
 - **Bug:** index.html said "204 panels, 44+ math models"; package.json "278 panels, 52 quant models" (52 = deleted research/); vite PWA manifest "278 panels"; both py `__version__` said 1.0.0 — five divergent spaces.
 - **Fix:** all sites now say 271 registered panels + ~60 math-model panels (README:117/133 canonical); `__version__` = 4.1.0 (CHANGELOG's latest tagged release); TESTING.md CI-table claims in S271 were stale — the table is already accurate. Bonus: CONTRIBUTING.md tree fixed (deleted ml/+research/ dirs, phantom nested package, tools/, real counts).
 - **Files:** `web-ui/index.html`, `web-ui/package.json`, `web-ui/vite.config.js`, `ai-signal-bot/__init__.py`, `exchange_simulator/__init__.py`, `CONTRIBUTING.md`, `docs/theory/hft_architecture_en.md` (gitignored — local fix only)

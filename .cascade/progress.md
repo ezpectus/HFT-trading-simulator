@@ -2641,3 +2641,15 @@ Target: freshest done-log claims (R178–R183 era), re-verified adversarially ag
 - **S321** — ⚠ partial → **S341** (Info): cited files clean, but 28 `docker-compose ` v1 command sites survive in DEVELOPMENT_GUIDE/MONITORING_GUIDE/useful_info_en/WEB_UI.
 
 Board: 20 open (S340 High joins the top tier). Done-log marked inline per entry.
+
+## R197 — slop-verify — R163/R169/R173 batch — 7 entries: 7 verified, 0 reverts
+
+- **S293** ✅ — `sentiment_follow_threshold` property (config/__init__.py:293), yaml keys in settings+testnet, passthrough bot_helpers.py:56.
+- **S294** ✅ — `args.tests or run_build` admits ctest (pre-commit-check.py:914); staged SKIP note names covering modes (:918).
+- **S316** ✅ — shared_config.yaml free of system/default_exchange/timeframe/account; `_shared_signal_ws` compared in test_config_consistency.py:154/190.
+- **S300** ✅ — deploy.yml: netlify master (:41-42), `.env.prod` fail-fast w/ actionable error (:129-130), notify verdict distinguishes FAILED/CANCELLED/skipped/SUCCESS (:187/:197).
+- **S313** ✅ — numpy pin gone; zero numpy imports in exchange_simulator source.
+- **S317+S308** ✅ — root .dockerignore and .clang-format both absent.
+- **S307+S200+S271** ✅ — 271 panels + ~60 math-model panels converge across index.html/package.json/vite.config.js; `__version__` 4.1.0 in both py packages.
+
+Board unchanged: 20 open.
