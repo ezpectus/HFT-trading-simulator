@@ -686,3 +686,34 @@ harnesses are un-unit-testable by design).
 - **Fix:** rewritten to the actual protocol — orders as `{"type":"order"}` on a shared WS with fills correlated by `client_order_id` and direct `error` replies; latency via `ping`→`pong` round-trip; the orderbook-REST test became a broadcast symbol-coverage measurement (no orderbook request type exists).
 - **Files:** `exchange_simulator/tools/stress_load.py`, `tools/load_50_symbols.py`
 
+## R168 — slop-fix — 5 findings closed
+
+### S285 — integration tests run against a real in-process sim
+- **Bug:** every `test_integration.py` sim-dependent test did `pytest.skip` without a live sim on :8765 — CI jobs never started one, so the WS path was green-because-never-run. `ExchangeClient.connect()` also never consumed frames.
+- **Fix:** `sim_server` fixture boots a real `ExchangeWebSocketServer` on 127.0.0.1:18765 (MarketSimulator + SimulatedExchange, audit log to tmp_path); tests consume the `welcome` frame and drive `ExchangeClient.listen()` as a task.
+- **Files:** `ai-signal-bot/tests/test_integration.py` — 12 passed.
+- **Commit:** 4a79b00
+
+### S286 — zombie import tests removed
+- **Bug:** `test_monitoring_llm.py` had import-checks for `src.data_collection.market_replay` / `timescaledb_client` — modules that never existed; each armored with `ModuleNotFoundError -> pytest.skip`.
+- **Fix:** both tests + stale docstring reference removed.
+- **Files:** `ai-signal-bot/tests/unit/test_monitoring_llm.py`
+- **Commit:** 4a79b00
+
+### S287 — raw assert() converted to doctest
+- **Bug:** 79 raw `assert()` in `test_shm.cpp` / `test_monitoring.cpp` / `test_network.cpp` / `test_signal_flow.cpp` compiled to nothing under `-DNDEBUG` — Release ctest runs were vacuous greens.
+- **Fix:** converted to `TEST_CASE` + `REQUIRE` (doctest, NDEBUG-independent, abort-on-failure preserved); targets moved to `add_doctest_test`; hand-rolled `main()`s + `[PASS]` prints dropped. Verified: `g++ -DNDEBUG` build runs and reports all cases.
+- **Files:** `hft-trade-bot/tests/{test_shm.cpp,unit/test_monitoring.cpp,unit/test_network.cpp,integration/test_signal_flow.cpp}`, `hft-trade-bot/CMakeLists.txt`
+- **Commit:** 27bfe62
+
+### S293 — follow_threshold wired end-to-end
+- **Bug:** `SentimentConfig.follow_threshold` was read at sentiment.py:198/:202 but had no `SignalBotConfig` property, no yaml key, no `bot_helpers` passthrough — pinned at 0.3.
+- **Fix:** `sentiment_follow_threshold` property (default 0.3), `follow_threshold` keys in settings.yaml + settings.testnet.yaml, passthrough in `build_strategies`; S117 tunables regression extended.
+- **Files:** `ai-signal-bot/config/__init__.py`, `config/settings{,.testnet}.yaml`, `src/utils/bot_helpers.py`, `tests/unit/test_bot_helpers.py`
+- **Commit:** 15412eb
+
+### S294 — --tests now runs ctest; staged mode honest about deferral
+- **Bug:** `check_cpp_build_and_test` ran only under `--full`/`--all`, so the documented `--tests` mode never ran ctest and staged `.cpp` commits got clang-format + green with zero build/test; header/CI-map implied equivalence that didn't exist.
+- **Fix:** gate condition admits `args.tests`; staged/quick prints an explicit `[SKIP] cmake+ctest` note naming covering modes; docstring states per-mode equivalence.
+- **Files:** `scripts/pre-commit-check.py`
+- **Commit:** c58517f

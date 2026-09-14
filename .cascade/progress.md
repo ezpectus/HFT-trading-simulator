@@ -2309,3 +2309,12 @@ Done-log fully verified through R165. Board: 49 open.
 
 Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 43 open.
 
+## R168 — slop-fix — 5 findings closed
+
+- **S285** — in-process ExchangeWebSocketServer fixture; 12 integration tests really run (welcome frame + listen() task).
+- **S286** — zombie import tests (market_replay/timescaledb_client) removed.
+- **S287** — 79 raw assert() -> doctest REQUIRE across 4 hft test files; NDEBUG-proof (verified g++ -DNDEBUG).
+- **S293** — sentiment follow_threshold wired through config/yaml/bot_helpers; S117 regression extended.
+- **S294** — --tests runs cmake+ctest; staged/quick prints explicit SKIP note; docstring equivalence fixed.
+
+Gate: staged ALL GREEN (6/6 + SKIP note). Board: 38 open.
