@@ -2119,4 +2119,4 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S228** (Medium) — `paper_trading:false` without ccxt now exits(1) with a clear error at startup instead of per-signal RuntimeError under green health. ccxt not added — new deps need user approval.
 - **S318** (NEW, Medium) — Windows SHM IPC fully dead: C++ creates `/hft_*` mappings verbatim; Python stripped the leading `/` → different kernel object, all channels read zeros. Both `lstrip` sites fixed (shm_ring_buffer, shm_market_data_writer) + monitor.py verbatim tag.
 - **Verification:** pre-commit-check 8/8 ALL GREEN; shm_heartbeat g++ syntax+runtime+live-read; ruff clean on all touched py; py_compile clean.
-- **Commits:** pending
+- **Commits:** `91a39e3` (hft S224), `d294bda` (ai-bot S256/S228/S318), `4a9bf67` (docs+ledgers)
