@@ -1989,6 +1989,13 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R141 — ci.yml full leaf-read + changelog reverse-drift (1 finding)
+
+- **Areas:** `.github/workflows/ci.yml` (all 621 lines — largest workflow, previously edge-audited only); CHANGELOG «removed X» claims vs live tree; `run_backtest.py` argparse vs docs; untracked/stray-file sweep.
+- **Findings:** S309 — `docker-smoke` job permanently red (sim image DOA per S303 → `--wait` times out / :348 curl fails) and `test-summary` requires all 15 jobs → **every push shows red CI**, gate is decorative background.
+- **Verified clean:** `test-count` per-language floors satisfiable (126/12/12/~150 vs 20/10/6/30); all matrix jobs real; codeql py+js vs codeql.yml cpp — no overlap; `--no-visualizer` flag real; localhost defaults env-overridable; CHANGELOG removal claims all true (`test_ws_connection_pool.py`, `test_untested_modules.py`, `market_replay/timescaledb_client` [S286], `database/*.py`, `collaboration/`, `web-ui/src/exchanges/`, `helpers.py` fully removed); `deploy/k8s/secrets.enc.yaml` correctly gitignored; zero stray untracked files.
+- **Commit:** <pending>
+
 ## R140 — grafana dashboards query↔metric cross-check (0 findings — honest zero #3)
 
 **Scope:** `monitoring/grafana/dashboards/` (5 JSON, 929 строк) — извлечены все `"expr"` PromQL-запросы, 40 уникальных metric-name; сверены с реальными эмиттерами (`ws_prometheus.py`/`ws_metrics.py` sim-серии, `metrics.py` MetricsExporter ai-серии, C++ metrics hft-серии) + datasource/provisioning consistency.
