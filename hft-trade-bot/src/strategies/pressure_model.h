@@ -95,6 +95,7 @@ class PressureModel {
 
         // ── Trade flow imbalance ──
         result.trade_imbalance = compute_trade_imbalance(trades, n_trades);
+        result.has_trade_flow  = trades != nullptr && n_trades > 0;
 
         // ── Toxicity detection ──
         result.toxic_score = compute_toxicity(ob, trades, n_trades);
@@ -114,7 +115,8 @@ class PressureModel {
         return result;
     }
 
-    // Convenience: analyze with just order book (no trade flow)
+    // Convenience: analyze with just order book. No tape → has_trade_flow=false
+    // and trade_imbalance/toxic_score remain 0 (unmeasured, not a zero reading).
     PressureResult analyze(const OrderBook& ob) noexcept { return analyze(ob, nullptr, 0); }
 
     // Get the weighted OBI for use by signal engine

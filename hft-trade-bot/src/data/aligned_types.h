@@ -206,6 +206,11 @@ struct alignas(64) PressureResult {
     double queue_pos_ask{0.0};    // Estimated queue position at best ask (0-1)
     double predicted_impact{0.0}; // Predicted price impact (bps)
 
+    // true only when analyze() was fed a TradeTick tape — trade_imbalance and
+    // toxic_score are measured values then; otherwise they stay 0 and must not
+    // be treated as a zero reading (S247)
+    bool has_trade_flow{false};
+
     enum class SpreadRegime : uint8_t {
         TIGHT  = 0, // < 1 bp
         NORMAL = 1, // 1-5 bp
@@ -215,7 +220,7 @@ struct alignas(64) PressureResult {
     SpreadRegime spread_regime{SpreadRegime::NORMAL};
     double       spread_bps{0.0};
 
-    uint8_t padding_[24]{};
+    uint8_t padding_[23]{};
 };
 
 static_assert(sizeof(PressureResult) <= 192, "PressureResult should fit in 3 cache lines");

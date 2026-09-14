@@ -300,8 +300,13 @@ class SignalEngineV2 {
         }
         sig.adx_score   = ic.adx.value();
         double body_dir = compute_body_direction(candles, n);
+        // Trade legs are measured only when the model was fed a tape; without
+        // one they pin at 0, silently damping the composite to 70% of its
+        // intended scale — renormalize over live legs (S247).
+        double live_w = 0.7 + (pressure.has_trade_flow ? 0.3 : 0.0);
         double raw_pressure =
-            pressure.obi_weighted * 0.3 + pressure.trade_imbalance * 0.3 + body_dir * 0.4;
+            (pressure.obi_weighted * 0.3 + pressure.trade_imbalance * 0.3 + body_dir * 0.4) /
+            live_w;
         raw_pressure *= (1.0 - pressure.toxic_score * params_.toxic_penalty);
         sig.pressure_score =
             std::fmax(-1.0, std::fmin(1.0, std::fabs(raw_pressure) > params_.pressure_threshold
@@ -454,8 +459,13 @@ class SignalEngineV2 {
         }
         double total    = buy_p + sell_p;
         double body_dir = total > 1e-12 ? (buy_p - sell_p) / total : 0.0;
+        // Trade legs are measured only when the model was fed a tape; without
+        // one they pin at 0, silently damping the composite to 70% of its
+        // intended scale — renormalize over live legs (S247).
+        double live_w = 0.7 + (pressure.has_trade_flow ? 0.3 : 0.0);
         double raw_pressure =
-            pressure.obi_weighted * 0.3 + pressure.trade_imbalance * 0.3 + body_dir * 0.4;
+            (pressure.obi_weighted * 0.3 + pressure.trade_imbalance * 0.3 + body_dir * 0.4) /
+            live_w;
         raw_pressure *= (1.0 - pressure.toxic_score * params_.toxic_penalty);
         return std::fmax(-1.0, std::fmin(1.0, std::fabs(raw_pressure) > params_.pressure_threshold
                                                   ? (raw_pressure > 0 ? 1.0 : -1.0)
