@@ -2034,3 +2034,21 @@ Final rotation item: whole-repo dead-code sweep — importer graph over all 104 
 **Verified clean:** every non-test Python module has a prod importer; all web-ui files reachable; e2e wired through playwright config; `ai-signal-bot/scripts/` is an empty gitkeep dir (S227 class, already recorded).
 
 Commit: 9fe7ebb
+
+---
+
+## Round 120 — monitoring/ + .github/ + web-ui/e2e/ leaf-sweep (3 findings: S263–S265)
+
+Last uncovered surface: monitoring stack configs, all 5 GitHub workflows + dependabot + templates, e2e suite wiring.
+
+**S263 (High) — Open.** The documented prod-deploy path fails on a clean server. `docker-compose.prod.yml` has five `${VAR:?required}` interpolations (`GRAFANA_PASSWORD`, `EXCHANGE_CONTROL_TOKEN`, `VITE_WS_EXCHANGE`, `VITE_WS_SIGNALS`, `VITE_EXCHANGE_TOKEN`) resolved from the compose process env / `.env` only. The file every doc tells the operator to create — `.env.prod` (DEPLOYMENT.md:378, compose header :2) — is loaded via service-level `env_file:` (:136/:176), which feeds **container** env vars, never `${}` interpolation. The header's own usage line shows `--env-file .env.prod`, but `deploy.yml:132-133` (the SSH `up -d`), `Makefile.prod` (`prod-up`), and the DEPLOYMENT flow all omit the flag — so `docker compose -f docker-compose.prod.yml up -d` exits on `:?required` with error text that names the very file compose isn't reading.
+
+**S264 (Low) — Open.** `deploy.yml` notification gates check the wrong context: `if: vars.DISCORD_WEBHOOK_URL != ''` (:173) gates a step whose value is `secrets.DISCORD_WEBHOOK_URL` (:176); same for Telegram — `vars.TELEGRAM_BOT_TOKEN` gate (:181) vs `secrets.TELEGRAM_BOT_TOKEN` value (:185). An operator who sets only the secrets (the natural place for a webhook URL/bot token) gets silently skipped notifications forever; the pattern also nudges a bot token into `vars`, which is unmasked in repo settings.
+
+**S265 (Low) — Open.** ci.yml dead gate + unpinned clone. `audit-deps`: `npm audit --audit-level=high` (:323) already exits non-zero on high/critical — the second check (:325-334) greps `|| true` output for "critical|high" and can never fire. `test-cpp-msvc` (:207) clones `zaphoyd/websocketpp` with no ref/tag — an unpinned HEAD dependency in the build path while vcpkg beside it is commit-pinned (:200).
+
+**Retracted:** `web-ui/Dockerfile` exists (build-docker matrix valid); ai-bot `:9090/health` smoke check is real (`metrics.py:410` serves it; dev compose runs `run.py --metrics`); `web-ui/.env` is gitignored, not committed; nightly-backtest's inline `python -c` runs the real `Backtester` + real strategies (the S214 theater is the separate `walk_forward_ci.py`); `vcpkg/` is an untracked local tree.
+
+**Verified clean:** all 22 alert rules reference emitted metrics (8 `ai_signal_bot_*` in metrics_server.py, 9 `exchange_*` in ws_prometheus.py); `test_alerts.py` validates real group names; alertmanager honestly documents its no-op default receiver; grafana provider paths match compose mounts; prometheus targets match service names; codeql covers only the cpp leg (py/js in ci.yml — honest comment); release.yml changelog generation real; dependabot dirs all exist; issue/PR templates have no stale refs; e2e specs use real selectors/keybindings (Shift+\ ↔ App.jsx); `dev:mock` → `.env.mock` → `VITE_MOCK_MODE` wired end-to-end; staging 18xxx port offsets consistent.
+
+Commit: TBD

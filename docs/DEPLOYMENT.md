@@ -378,6 +378,13 @@ Server prerequisites (one-time): `docker login ghcr.io` if the package is not
 public, and a real `/opt/hft/.env.prod` (see `.env.prod.example`) — the
 workflow copies the example, not secrets.
 
+> **⚠ Audit note (S263):** `.env.prod` alone is not enough — service-level
+> `env_file:` loads it into containers but NOT into `${VAR}` interpolation.
+> The five `:?required` vars (`GRAFANA_PASSWORD`, `EXCHANGE_CONTROL_TOKEN`,
+> `VITE_WS_*`) must come from `.env` or an explicit
+> `docker compose --env-file .env.prod -f docker-compose.prod.yml …`.
+> Neither `deploy.yml` nor `Makefile.prod` passes `--env-file` today.
+
 `docker-compose.hub.yml` runs the same `:latest` ghcr images locally without
 building — `docker compose -f docker-compose.hub.yml up`.
 

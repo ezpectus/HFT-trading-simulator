@@ -218,7 +218,9 @@ cp .env.prod.example .env.prod
 # Edit .env.prod with your settings
 
 # Start production stack (includes Prometheus, Grafana)
-docker-compose -f docker-compose.prod.yml up -d
+# (⚠ S263: `.env.prod` is NOT auto-loaded for ${VAR} interpolation —
+#  the ?required vars fail without --env-file; both commands below lack it)
+docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
 
 # Or via Makefile
 make -f Makefile.prod prod-up

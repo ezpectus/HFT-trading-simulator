@@ -1686,3 +1686,20 @@ Commit: 2b71bea
 **Retracted/false positives:** `main.jsx` (загружается через index.html script-tag), `generateAccounts`/`bivariateNormalCDF`/`sqDistance`/`euclidean`/`baumWelchStep`/`kmeansPlusPlus`/`kmeansIterate`/`normInv`/`tCDF`/`get_tracer` (внутренние helpers, self-use ≥2), `market_making`/`statistical_arbitrage` (package-imports + build_strategies), factory-типы (внутри exchange_factory), `HawkesParams`/hawkes-функции (живут через analysis_requests — мёртв только result-класс), `error_monitor`/`price_monitor`/`trade_csv_logger`/`run_all_tests`/`build-all.bat` (документированы/операционны), `logs/trades_*.csv` (gitignored residue, не committed).
 
 Commit: 9fe7ebb
+
+---
+
+## R120 — monitoring/ + .github/ + web-ui/e2e/ leaf-sweep
+
+**Scope:** `monitoring/` (prometheus.yml, alerts.yml — все 22 правила против эмитимых метрик, alertmanager.yml, grafana dashboards/datasources provisioning ↔ compose-монты, ebpf=S202, tests/test_alerts.py), `.github/` (ci.yml 621 строк, deploy.yml, nightly-backtest.yml, release.yml, codeql.yml, dependabot.yml, ISSUE/PR templates), `web-ui/e2e/` (4 спека + dismiss-onboarding helper + playwright.config webServer wiring), docker-compose.staging/hub, committed-`.env` re-check.
+
+**Findings (3):**
+- S263 (High): `.env.prod` никогда не доходит до compose `${}`-интерполяции — 5 `:?required` vars (GRAFANA_PASSWORD, EXCHANGE_CONTROL_TOKEN, VITE_WS_EXCHANGE/SIGNALS/EXCHANGE_TOKEN) резолвятся из `.env`/shell; `env_file: .env.prod` (prod:136/176) кормит контейнеры, не интерполяцию; `--env-file .env.prod` задокументирован в хидере compose.prod:2, но отсутствует в deploy.yml:132-133, Makefile.prod и DEPLOYMENT-flow → prod `up` падает на чистом сервере, текст `:?` врёт про нечитаемый файл.
+- S264 (Low): deploy.yml notify-гейты `vars.DISCORD_WEBHOOK_URL != ''` (:173) и `vars.TELEGRAM_BOT_TOKEN != ''` (:181) проверяют vars, значения берутся из secrets (:176/:185) — secret-only настройка = вечный тихий skip; + bot-token в vars немаскирован.
+- S265 (Low): ci.yml — `audit-deps` второй гейт :325-334 недостижим (`npm audit --audit-level=high` на :323 падает раньше); `test-cpp-msvc` :207 клонирует websocketpp без ref (vcpkg рядом pinned :200).
+
+**Retracted/false positives:** `web-ui/Dockerfile` существует (build-docker matrix валиден); `:9090/health` smoke-check валиден (metrics.py:410 сервит /health + dev-compose `run.py --metrics`); `web-ui/.env` НЕ committed (check-ignore echo принял за ls-files); nightly-backtest `python -c` — реальный walk-forward через настоящий Backtester (S214-театр это отдельный walk_forward_ci.py); vcpkg/ — gitignored local tree.
+
+**Clean:** все 22 alert-rules → реальные метрики; grafana provider-paths ↔ compose-монты (S068-фикс живой); alertmanager честно документирует no-op default receiver; codeql/release/dependabot/templates честны; e2e селекторы+кейбиндинги реальны; staging 18xxx-порты консистентны.
+
+Commit: TBD
