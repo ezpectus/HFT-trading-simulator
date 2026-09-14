@@ -1734,4 +1734,4 @@ Commit: b1ed546
 
 **Clean:** все 12 npm-скриптов резолвятся; все 8 prod-deps + 22 dev-deps имеют consumers; оба pyproject честны; CMake targets↔sources; `shared_config.yaml` реально читается consistency-тестом+pre-commit+deploy-скриптами; `.windsurf/workflows/` — 8 файлов включая slop-fix.md.
 
-Commit: TBD
+Commit: 13c4862

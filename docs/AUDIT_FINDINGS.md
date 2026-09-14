@@ -2085,4 +2085,4 @@ Full pass on the build layer: all 12 npm scripts, vite/vitest/eslint/tsconfig, p
 
 **Verified clean:** all 12 npm scripts resolve to real tools/configs; all 8 prod deps + 22 dev deps have consumers (happy-dom=env, esbuild=minifier+override, autoprefixer/postcss via postcss.config.js); both pyproject files are honest ruff+pytest configs with documented per-file-ignores; requirements.txt entries all have importers (tabulate→tracker.py, matplotlib→plotter.py); CMake options real (PCH default-on, MIMALLOC/JEMALLOC with honest WARNING fallback, vcpkg autodetect, all 25 test targets↔sources); `shared_config.yaml` genuinely consumed by `test_config_consistency.py`, pre-commit, and deploy scripts; `.clang-format`/`.editorconfig` present for the CI format step; `.windsurf/workflows/` holds 8 workflow files incl. slop-fix.md.
 
-Commit: TBD
+Commit: 13c4862
