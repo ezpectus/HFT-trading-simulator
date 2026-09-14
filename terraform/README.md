@@ -4,7 +4,6 @@ Provisions cloud infrastructure for the HFT trading system:
 - VPC with public/private subnets
 - EKS cluster for Kubernetes workloads
 - S3 bucket for state and logs
-- CloudWatch log groups
 
 ## Usage
 

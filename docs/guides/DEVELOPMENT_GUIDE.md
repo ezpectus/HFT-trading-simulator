@@ -63,8 +63,9 @@ trading-system-lite/
 │   │   ├── exchange_liquidation.py
 │   │   ├── options_simulator.py
 │   │   └── ...
-│   ├── tests/              # 28 test files
-│   ├── config/
+│   ├── tests/              # ~28 test files
+│   ├── tools/              # Live-server harnesses (chaos, load, latency)
+│   ├── config.yaml
 │   └── requirements.txt
 ├── ai-signal-bot/          # Python — AI trading signals
 │   ├── src/
@@ -79,7 +80,7 @@ trading-system-lite/
 │   │   ├── llm_engine/     # LLM for signal explanations
 │   │   ├── database/       # SQLite persistence (signals, trades, equity)
 │   │   └── ...
-│   ├── tests/              # 88 test files
+│   ├── tests/              # ~94 test files
 │   ├── config/
 │   └── requirements.txt
 ├── hft-trade-bot/          # C++20 — low-latency execution engine
@@ -87,16 +88,18 @@ trading-system-lite/
 │   │   ├── strategies/     # Signal Engine V2/V3
 │   │   ├── core/           # Order management, risk
 │   │   ├── data/           # Market data handlers
-│   │   └── communication/  # WebSocket, SHM
-│   ├── tests/              # 25 test files (doctest)
+│   │   ├── communication/  # WebSocket, SHM
+│   │   └── pch.h           # Precompiled header
+│   ├── tests/              # ~25 test files (doctest)
 │   ├── config/
-│   ├── CMakeLists.txt
-│   └── pch.h
+│   └── CMakeLists.txt
 ├── web-ui/                 # React — trading dashboard
 │   ├── src/
-│   │   ├── components/     # 227 React components
-│   │   ├── contexts/       # React contexts
+│   │   ├── components/     # ~295 React components
+│   │   ├── panels/         # Panel system (registry.js, 271 registered)
+│   │   ├── stores/         # Zustand state stores
 │   │   ├── hooks/          # Custom hooks
+│   │   ├── utils/          # Helpers
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── e2e/                # Playwright E2E tests
@@ -243,7 +246,7 @@ class MyStrategy:
 ## Adding a New Web UI Panel
 
 1. Create component in `web-ui/src/components/`
-2. Register in `web-ui/src/panels/PanelRegistry.jsx`
+2. Register in `web-ui/src/panels/registry.js`
 3. Use `React.lazy` for code splitting (see `App.jsx` pattern)
 4. Add tests in `web-ui/src/test/`
 

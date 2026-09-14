@@ -336,13 +336,15 @@ Both AI Signal Bot and Exchange Simulator handle SIGTERM for clean shutdown:
 
 Kubernetes sends SIGTERM with 30s grace period. Docker Compose sends SIGTERM with 10s timeout.
 
-### Option 4: Terraform (AWS) — REMOVED
+### Option 4: Terraform (AWS)
 
-The `terraform/` directory (EKS + RDS PostgreSQL + ElastiCache modules) was
-removed in the S109 cleanup: the stack is now fully stateless — the signal bot
-persists to embedded SQLite (`data/trading.db`) and no external database or
-cache is provisioned. For cloud deployment use Option 3 (Helm) against your own
-cluster, or manage infra with your own IaC.
+The `terraform/` directory provisions the cloud substrate only: VPC, EKS
+cluster, and an S3 bucket for state/logs (`modules/{vpc,eks,s3}`,
+`environments/{dev,prod}`). The RDS PostgreSQL and ElastiCache modules were
+removed in the S109 cleanup — the stack is stateless (the signal bot persists
+to embedded SQLite at `data/trading.db`), so Terraform builds no database or
+cache tier. Apply `environments/dev` or `environments/prod`, then deploy the
+workload onto the resulting EKS cluster with Option 3 (Helm).
 
 ### Option 5: CI/CD Pipeline
 
