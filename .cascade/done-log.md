@@ -239,3 +239,35 @@
 | **S244** | throwing `from_msgpack` в unguarded handler → terminate на 1-м binary-фрейме | R147 fix — `signal_receiver.h:117-130` per-message try/catch вокруг opcode-диспетча (warn+drop кадра, event-loop жив); `:142-149` last-resort catch в `ws_thread_` lambda — escape из `client->run()` логируется, `connected_=false`, `schedule_reconnect()` (reconnect-thread джойнит мёртвый ws_thread_ и дёргает do_connect — дедлока нет, пост в dead io_service не используется). | Critical | R147 | — |
 | **S246** | `/health` статичный фасад; 6/11 метрик вечные нули; MemoryTracker мёртв | R147 fix — `update_health_status(ctx)` (bot_loop.cpp:372-401) зовётся каждую итерацию main.cpp:52: `exchange_connected` = receiver&&executor is_connected, `signal_engine_active` = v2_enabled?(v2||v3):v1, `shm_healthy` = !ipc_enabled || consumer!=nullptr, `last_signal_age_ms` = `receiver->last_activity_ms()` (новый accessor — signal_receiver.h:189), `last_fill_age_ms` из нового `ctx.last_fill_ms` (ставится в on_fill FILLED — bot_setup.cpp:311-315), `error_count_5min` — rolling 5-min baseline, `memory_usage_mb` = process_memory_mb. Счётчики: RECONNECTS — в reconnect-thread обоих сокетов (signal_receiver.h:285, order_executor.h:419) через `set_monitor(&sys_monitor)` в init_monitoring (bot_setup.cpp:219-221); HEARTBEATS_MISSED — на watchdog stale-trip (оба); ORDERS_CANCELED — CANCELLED отделён от REJECTED (bot_setup.cpp:330-332) + on_order_cancelled (:355); SHM_DROPS — на `push_fill` false (handlers:58-61, был [[nodiscard]]-ignored); ERRORS — ErrorCountSink (logger.h:26-41) подключён через новый `Logger::init(..., monitor)` (bot_setup.cpp:61). HEARTBEATS_SENT удалён — heartbeat-отправителя в боте не существует; MemoryTracker выпилен (0 прод-консьюмеров, жил только в своих тестах — удалены из test_doctest_system_monitor.cpp + tests/unit/test_monitoring.cpp); `health_` под `health_mtx_` (health_server.h:223) — update_health теперь реально зовётся, гонка закрыта; в /health JSON добавлен недостающий closing `}` — endpoint отдавал malformed JSON. | High | R147 | — |
 | **S279** | unguarded `trade_logger` в fill-path → broadcast-task умирал на первом fill | R147 fix — `ws_broadcast.py:284-297` `log_fill` и `:389-399` `log_batch` под `if self.trade_logger is not None:` — тот же guard-стиль, что ws_message_handler.py:337. Clean-clone/Docker без gitignored `trade_csv_logger.py` больше не роняет `_broadcast_loop`. py_compile + ruff clean. | High | R147 | — |
+
+### S207 — `run.py` hard-import gitignored `run_logger.py` (R148)
+
+**Было:** `ai-signal-bot/run.py:31` — `from run_logger import setup_run_logging` без guard; `run_logger.py` в `.gitignore` → fresh clone `python run.py` = ModuleNotFoundError, оба Dockerfile crash-loop.
+
+**Фикс:** guarded import (`try/except ImportError` → `setup_run_logging = None`) + stdlib-`logging` fallback в `setup_logging` — возвращает `(logger, "stdout")`, тот же contract что и sim-версия (`exchange_simulator/__main__.py:26-28`). Проверено: импорт `run.py` с meta-path-блокировкой `run_logger` проходит, `setup_logging` отдаёт рабочий logger + `stdout`.
+
+**Файлы:** `ai-signal-bot/run.py` (import-guard + fallback `setup_logging`).
+
+### S210 — compose data-path dead во всех 4 файлах (R148)
+
+**Было:** ai-bot не получал `WS_URL` ни в одном compose → `settings.yaml` default `ws://localhost:8765` = loopback собственного контейнера; hft dev-parse читал `websocket_url` без env-expansion; prod-default `ws://exchange_simulator:8765` (underscore) ≠ service `exchange-simulator` → NXDOMAIN. Healthcheck'и зелёные — self-contained. Весь sim→ai→hft путь мёртв в docker.
+
+**Фикс:**
+- `docker-compose.yml` / `.staging.yml` / `.hub.yml` / `.prod.yml` — ai-bot `WS_URL=ws://exchange-simulator:8765`; hft `HFT_EXCHANGE_WS_URL=ws://exchange-simulator:8765` + `HFT_AI_SIGNAL_WS_URL=ws://ai-signal-bot:8766` (prod: только exchange — AI идёт через SHM IPC, как в helm).
+- `hft-trade-bot/src/core/config_parser.h` — `parse_dev_config`/`parse_dev_extras` теперь `expand_env` для `websocket_url`/`ai_signal_bot.websocket_url` (prod-парсер уже expand'ил).
+- `hft-trade-bot/config/config.yaml` — `${HFT_EXCHANGE_WS_URL:-ws://localhost:8765}` / `${HFT_AI_SIGNAL_WS_URL:-ws://localhost:8766}`; `config.prod.yaml:38` — `${HFT_EXCHANGE_WS_URL:-ws://exchange-simulator:8765}` (hyphen).
+- `.env.prod.example` — описаны `HFT_EXCHANGE_WS_URL`/`WS_URL` дефолты.
+
+**Проверено:** все 4 compose парсятся (yaml.safe_load), effective env = `ws://exchange-simulator:8765` / `ws://ai-signal-bot:8766`; prod `command: /app/hft_trade_bot config/config.prod.yaml` + env-var резолвится через expand_env.
+
+**Файлы:** `docker-compose{,.staging,.hub,.prod}.yml`, `hft-trade-bot/src/core/config_parser.h`, `hft-trade-bot/config/config{,.prod}.yaml`, `.env.prod.example`.
+
+### S230 — backend-compute plane убит sync-слоем (R148)
+
+**Было:** `useTradingStoreSync` пушил только 7 базовых signal-полей и ронял `portfolioResult`/`volSurfaceResult`/`cvarResult`/`stressTestResult`/`positionSizeResult`/`hawkesResult`/`fundingArbResult`/`authState` (+ exchange-side `openOrders`/`cancelOrder`/`cancelAllOrders`/`reconnects`/`connect`/`nextReconnectIn`). Store их не объявлял, `usePanelContext` не форвардил → 7 панелей (registry ctx.signals.*Result) получали `undefined` и рисовали фейковый 30s-timeout при уже пришедшем ответе; WsManager-панель — вечный «Waiting...».
+
+**Фикс:** все поля прокинуты через всю цепочку: `useTradingStoreSync` (оба сеттера) → `useTradingStore` (declared initial state: 8 signal-results + `signalConnect`/`signalNextReconnectIn`; `openOrders`/`cancel*`/`exchangeReconnects`/`exchangeConnect`/`exchangeNextReconnectIn`) → `usePanelContext` (destructure + `ctx.exchange`/`ctx.signals` hook-shape names). Регресс-тесты: `usePanelContext.test` assert'ит все `*Result`/`authState`/`connect`/`nextReconnectIn` keys + data-flow; `useTradingStoreSync.test` — mirror result-fields в store.
+
+**Проверено:** vitest 12/12 на sync/store/context + registry.test 10/10 + 5 affected-panel suites 10/10; eslint clean.
+
+**Файлы:** `web-ui/src/hooks/useTradingStoreSync.js`, `web-ui/src/stores/useTradingStore.js`, `web-ui/src/stores/usePanelContext.js`, `web-ui/src/test/useTradingStoreSync.test.jsx`, `web-ui/src/test/usePanelContext.test.jsx`.

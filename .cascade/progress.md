@@ -2067,3 +2067,11 @@ Commit: f7c4710
 - **S279** (High) — `trade_logger.log_fill`/`log_batch` unguarded in `ws_broadcast.py` → AttributeError killed `_broadcast_loop` on first engine fill in any clean build (logger file is gitignored). Fixed: `is not None` guards matching `ws_message_handler.py:337`.
 - **Verification:** `system_monitor.h` + both monitor test binaries compile & pass (26/26 doctest, 9/9 unit) under llvm-mingw g++ -std=c++20; `ws_broadcast.py` py_compile + ruff clean. Full CMake build not runnable locally (vcpkg deps absent — stale `s:/` build cache) — edited regions re-read clean, all referenced APIs verified against real declarations.
 - **Commits:** `690e1d5` (hft), `91a64e9` (sim), `3e29693` (docs)
+
+## R148 — slop-fix — S207 + S210 + S230 (3 High)
+
+- **S207** (High) — `run.py` hard-import gitignored `run_logger.py` → fresh-clone/оба Dockerfile crash-loop. Fixed: guarded import + stdlib `logging` fallback в `setup_logging` (возвращает `stdout`-path), по образцу `exchange_simulator/__main__.py:26-28`. Верифицировано: импорт с meta-path-блоком `run_logger` проходит, fallback отдаёт рабочий logger.
+- **S210** (High) — compose data-path мёртв во всех 4 файлах. Fixed: `WS_URL=ws://exchange-simulator:8765` для ai-bot + `HFT_EXCHANGE_WS_URL`/`HFT_AI_SIGNAL_WS_URL` для hft во всех compose; `config_parser.h` dev-parse теперь `expand_env` для обоих `websocket_url`; prod-default `exchange_simulator`→`exchange-simulator` (NXDOMAIN-баг); `.env.prod.example` документирует ключи. Prod AI по-прежнему SHM IPC (как helm). Проверено: yaml.safe_load ×4 + effective env.
+- **S230** (High) — sync-слой ронял 7 `*Result` + `authState` + exchange `openOrders`/`cancel*`/`reconnects`/`connect`/`nextReconnectIn` → 7 панелей на фейковом 30s-timeout, WsManager вечный «Waiting...». Fixed: полная цепочка `useTradingStoreSync`→`useTradingStore`(declared state)→`usePanelContext`(ctx.exchange/ctx.signals hook-shape). Регресс-тесты: ключи + data-flow в sync/context test'ах.
+- **Verification:** vitest 12/12 (sync/store/context) + registry.test 10/10 + 5 affected-panel suites 10/10; eslint clean; compose YAML parse ×4; run.py import-test без run_logger.
+- **Commits:** TBD
