@@ -2537,3 +2537,17 @@ Oldest single-verification entries (R154, 31 rounds of drift exposure) re-opened
 - **S318** Windows SHM verbatim tags — holds: `"/hft_market"` writer default, `"/hft_heartbeat"` monitor tag, zero `lstrip` in ai-signal-bot/src/communication.
 
 Board: 0 open.
+
+## R188 — slop-verify — R158 cohort re-check: 7/7 hold, 0 reverts
+
+Second-oldest unrechecked marks (R158). Deletion claims re-proven by grep, mechanism claims opened:
+
+- **S259** dead walk_forward.py — holds: module gone (only stale .pyc in __pycache__), WalkForwardAnalyzer/BacktestEngineResult zero refs; test_walk_forward.py covers live StrategyOptimizer.walk_forward.
+- **S266** mock accounts = wire contract — holds: utils/mockData.js:197-212 emits exact Account.to_dict fields (S266 comment), positions LIST + findIndex/splice/push, trade_history 20-cap, sl/tp on positions; account-level invented fields gone (margin/unrealized_pnl at position level are legit wire fields).
+- **S261** useToasts/perf-alerts — holds: useToasts gone (removal comment only), test uses useToastStore, DashboardProfiler onAlert/offAlert :43-44, dead perf exports zero hits.
+- **S269** tsc gate — holds: vite-env.d.ts exists, "typecheck": "tsc --noEmit" (pkg:35), check_tsc pre-commit :214/:897, ci.yml:64 npm run typecheck.
+- **S260** 6 dead ai-bot API units — holds: simulate_hawkes/HawkesResult/validate_prices/macd/bind_context/clear_context all zero hits.
+- **S267** dead-code-warming tests — holds: TestMACD + bind_context no-crash tests gone, zero hits.
+- **S262** phantom hook variants + orphan scripts — holds: 4 dead hook variants + ci-equivalence.py + health-check.py gone; .pre-commit-config.yaml comment documents real path; *-git.sh canonical twins intact. (install-hooks.sh now exists — created as a real file later; no contradiction.)
+
+Board: 0 open.
