@@ -365,7 +365,10 @@ class TestBroadcastLoop:
 
         with patch("asyncio.sleep", new=_fast):
             task = asyncio.create_task(server._broadcast_loop())
-            await real_sleep(0.05)
+            for _ in range(200):
+                await real_sleep(0.005)
+                if mock_market.next_candle.call_count >= 2:
+                    break
             task.cancel()
             try:
                 await task
