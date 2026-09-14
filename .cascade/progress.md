@@ -2350,3 +2350,26 @@ Gate: staged ALL GREEN. Board: 23 open (0 Low left — only S309 Medium blocked 
 - **S205** — DEPLOYMENT Option 4 describes the live terraform (VPC/EKS/S3, DB removed in S109); terraform README's phantom CloudWatch claim dropped.
 
 Gate: staged ALL GREEN (9/9 on the tests-dir commit). Commits: 57f5773, 8d14a43, 8fe770d. Board: 18 open (S309 Medium Docker-blocked + 17 Info).
+
+## R173 — slop-verify — 20/20 claims VERIFIED, 0 reverts
+
+Re-checked every unverified done-log entry (R170×10 + R171×5 + R172×5) adversarially against committed code:
+
+- **S308/S313/S317** — root `.dockerignore` + `.clang-format` confirmed gone (hft keeps its own `.clang-format` — the gate still lints via it); numpy pin out of `exchange_simulator/requirements.txt`.
+- **S299** — `install-deps.bat:98` vcpkg flag behind `if defined VCPKG_ROOT`; no `start.bat` refs.
+- **S300** — deploy.yml: `.env.prod` fail-fast at :129-130, `production-branch: master` + `refs/heads/master` gate :41-42, verdict distinguishes failure/cancelled/skipped :187/197.
+- **S314/S273** — zero `*.tfvars*` under terraform/.
+- **S316** — shared_config.yaml honestly framed gate-reference; `ai_signal_bot` section now compared against hft `websocket_url` (test_config_consistency.py:188-192); dead `system`/`default_exchange`/`timeframe`/`account` sections absent.
+- **S307/S200/S271** — `2.2.0` in web-ui package.json, 271 panels across README/vite.config/package.json; the README "278" is honest context (registry ids incl. 7 category rows).
+- **S202** — `BPF_HASH(start_times)` + `sys_exit` TRACEPOINT_PROBE; `latency_ns = now - *start` real.
+- **S208** — Makefile test-cpp: missing build-dir → skip message; else `ctest --output-on-failure` propagates.
+- **S211** — missing bandit-report.json → `::error::` + exit (ci.yml:377-381).
+- **S214** — walk_forward_ci imports real Backtester + both strategies; nightly calls the script (:73); `make walk-forward` (:91).
+- **S218** — HISTORICAL banner present in working tree (gitignored file — local-only fix as recorded).
+- **S197** — risk drift injection proven failing this round; gate returns False on mismatch.
+- **S198** — 9 "— Fixed in R*" markers present; remaining "— Open." markers match live board ids only.
+- **S199** — file absent from tree and index.
+- **S201** — guide paths verified against fs (config.yaml, tools/, src/pch.h, registry.js).
+- **S205** — DEPLOYMENT Option 4 describes live terraform; README CloudWatch bullet gone.
+
+Zero unverified entries remain. Next: board has 18 open → R174 slop-fix continues the Info pack (S206, S209, S216, S217, S222, ...).

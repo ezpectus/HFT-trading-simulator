@@ -720,100 +720,100 @@ harnesses are un-unit-testable by design).
 
 ## R170 — slop-fix — 10 findings closed
 
-### S316 — shared_config.yaml is now honest gate-reference, not dead authority
+### S316 — shared_config.yaml is now honest gate-reference, not dead authority ✅ · verified R173
 - **Bug:** header claimed 'shared parameters used by all components'; runtime reads nothing. Dead sections: `system` (incl. fifth version `3.0.0`), `default_exchange`, `timeframe`/`timeframe_seconds`, `account`; `websocket.ai_signal_bot` loaded into `_shared_signal_ws` and never compared.
 - **Fix:** kept live gate inputs (`symbols`, `exchanges`, `risk`, `websocket`), cut the dead sections, honest header; `_shared_signal_ws` now compared against `hft_config.ai_signal_bot.websocket_url` — verified fails on drift (9999 vs 8766).
 - **Files:** `shared_config.yaml`, `scripts/test_config_consistency.py`
 - **Commit:** 14dbb69
 
-### S299 — install-deps.bat vcpkg flag gated + dead start.bat pointer removed
+### S299 — install-deps.bat vcpkg flag gated + dead start.bat pointer removed ✅ · verified R173
 - **Bug:** unconditional `-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\...` — with the var unset the path degraded to `\scripts\...` and cmake configure died; `build-all.bat` already guards correctly. Final echo pointed at nonexistent `start.bat`.
 - **Fix:** flag set only `if defined VCPKG_ROOT` (CMakeLists autodetects anyway); dead pointer removed.
 - **Files:** `install-deps.bat`
 - **Commit:** 14dbb69
 
-### S300 — deploy.yml: honest notify, .env.prod fail-fast, master branch
+### S300 — deploy.yml: honest notify, .env.prod fail-fast, master branch ✅ · verified R173
 - **Bug:** `notify` treated `skipped` needs as success — every master push announced 'Deployment SUCCESS' for a tag-only deploy that never ran; scp shipped only `.env.prod.example`, nothing materialized `.env.prod` so compose `--env-file` died on a clean server; netlify `production-branch: main`/`refs/heads/main` could never fire on a master-only repo.
 - **Fix:** verdict now reports FAILED/CANCELLED/'deploy skipped (tags v* only)'/SUCCESS from actual results; SSH step fail-fasts with an actionable error when `.env.prod` is absent; netlify production branch + gate moved to `master`.
 - **Files:** `.github/workflows/deploy.yml`
 - **Commit:** 2832f9c
 
-### S313 — dead numpy pin removed
+### S313 — dead numpy pin removed ✅ · verified R173
 - **Bug:** `exchange_simulator/requirements.txt` pinned `numpy==2.1.3` — zero imports anywhere in the component (GBM runs on stdlib); ~50MB wheel + supply-chain surface baked into CI and the sim image for nothing.
 - **Fix:** pin cut.
 - **Files:** `exchange_simulator/requirements.txt`
 - **Commit:** 14dbb69
 
-### S317 + S308 — root .dockerignore and .clang-format deleted
+### S317 + S308 — root .dockerignore and .clang-format deleted ✅ · verified R173
 - **Bug:** root `.dockerignore` described exclusions for a root-context build that doesn't exist (all 12 contexts are `./<component>`); root `.clang-format` (ColumnLimit 120 + include-sorting) had zero C++ files in scope — all 30 live under `hft-trade-bot/` with its own config (ColumnLimit 100) — and would misformat if ever applied.
 - **Fix:** both files deleted (proven-dead).
 - **Files:** `.dockerignore`, `.clang-format`
 - **Commit:** 14dbb69
 
-### S307 + S200 + S271 — version/panel numbers converged on canonical values
+### S307 + S200 + S271 — version/panel numbers converged on canonical values ✅ · verified R173
 - **Bug:** index.html said "204 panels, 44+ math models"; package.json "278 panels, 52 quant models" (52 = deleted research/); vite PWA manifest "278 panels"; both py `__version__` said 1.0.0 — five divergent spaces.
 - **Fix:** all sites now say 271 registered panels + ~60 math-model panels (README:117/133 canonical); `__version__` = 4.1.0 (CHANGELOG's latest tagged release); TESTING.md CI-table claims in S271 were stale — the table is already accurate. Bonus: CONTRIBUTING.md tree fixed (deleted ml/+research/ dirs, phantom nested package, tools/, real counts).
 - **Files:** `web-ui/index.html`, `web-ui/package.json`, `web-ui/vite.config.js`, `ai-signal-bot/__init__.py`, `exchange_simulator/__init__.py`, `CONTRIBUTING.md`, `docs/theory/hft_architecture_en.md` (gitignored — local fix only)
 - **Commit:** b7a6f1f
 
-### S314 — duplicate of S273
+### S314 — duplicate of S273 ✅ · verified R173
 - **Status:** same `terraform.tfvars.example` `db_password` finding as S273 — files were deleted in R167 (commit ff85c7a). Closed as duplicate.
 
 ## R171 — slop-fix — 5 findings closed (Low tier emptied)
 
-### S202 — ebpf_monitor: sys_enter/sys_exit pair, real latency
+### S202 — ebpf_monitor: sys_enter/sys_exit pair, real latency ✅ · verified R173
 - **Bug:** only a `sys_enter` probe existed — `ts_end` was never set, so `latency_ns` was 0 by construction and avg/max metrics permanently zero; docstring promised network/cache/memory/scheduling/file-IO that was never written; `syscall[32]` never filled; prom gauges registered but no http server ever exposed them.
 - **Fix:** `BPF_HASH(pid→start_ts)` + `sys_exit` probe submits one event per syscall with real `latency_ns` + `syscall_id`; docstring cut to implemented scope; gauges + never-populated stats buckets removed. Userspace aggregation verified (count/total/max accumulate real values).
 - **Files:** `monitoring/ebpf_monitor.py`
 - **Commit:** 41a84a8
 
-### S208 — Makefile test-cpp propagates real ctest failures
+### S208 — Makefile test-cpp propagates real ctest failures ✅ · verified R173
 - **Bug:** `ctest --output-on-failure || echo "skipped"` conflated missing build dir with failing tests — a red ctest exited 0.
 - **Fix:** explicit `[ ! -d build ]` → honest skip message; otherwise ctest's exit code propagates to `make test`.
 - **Files:** `Makefile`
 - **Commit:** 2e2ed33
 
-### S211 — bandit can't pass without a report
+### S211 — bandit can't pass without a report ✅ · verified R173
 - **Bug:** severity check was `if [ -f bandit-report.json ]` — a bandit crash before writing produced a green job with zero scan. (The finding's dead audit-grep step was already gone — stale.)
 - **Fix:** missing report → `::error::` + `exit 1`; the `|| echo "0"` JSON-parse swallow removed so a corrupt report also fails.
 - **Files:** `.github/workflows/ci.yml`
 - **Commit:** 2e2ed33
 
-### S214 — walk_forward_ci.py is the real walk-forward now
+### S214 — walk_forward_ci.py is the real walk-forward now ✅ · verified R173
 - **Bug:** the script set `WF_STRATEGY` but the subprocess never read it — every named strategy produced identical buy-and-hold metrics on the same candle stream, labeled 'Walk-Forward Optimization CI'. Meanwhile `nightly-backtest.yml` carried the real implementation inline and never called the script.
 - **Fix:** script rewritten as the real walk-forward (rolling 30d/7d windows, real `Backtester` × TrendFollowing+MeanReversion, per-strategy aggregates, `--baseline`/`--threshold` degradation gate); workflow calls the script (downstream check reads `report['windows']`); `make walk-forward` works standalone via embedded seeded-GBM fixture labeled `synthetic-gbm-seed42`. Verified live: 5 windows × 2 strategies, strategy-specific metrics.
 - **Files:** `scripts/walk_forward_ci.py`, `.github/workflows/nightly-backtest.yml`
 - **Commit:** 19a1ea4
 
-### S218 — README_PROJECT_OVERVIEW disclaimed as HISTORICAL
+### S218 — README_PROJECT_OVERVIEW disclaimed as HISTORICAL ✅ · verified R173
 - **Bug:** root-level snapshot presented deleted code as live (Rust hft-executor FFI, ml/, research/, "kept" slop modules) with no disclaimer — two contradictory root READMEs.
 - **Fix:** HISTORICAL banner added (same pattern as REFACTORING_PLAN_10DAYS.md) naming the dead claims and pointing at README.md + the audit ledger. File is gitignored/untracked — fix lives in the working tree.
 - **Files:** `README_PROJECT_OVERVIEW.md` (local-only)
-### S197 — consistency gate can fail now
+### S197 — consistency gate can fail now ✅ · verified R173
 - **Bug:** `test_risk_parameter_consistency` printed WARNINGs but always returned True — shared/AI/HFT risk drift could never break the gate; `_shared_signal_ws` loaded but never compared (fixed in R170/S316 wiring); duplicated `audit` section check.
 - **Fix:** all three configs now compared on `max_risk_per_trade_pct`/`max_daily_drawdown_pct`/`min_confidence` — mismatch → ERROR + `False`; duplicate audit block removed. Proven live: `min_confidence: 99.0` in shared → `✗ FAIL` + nonzero; revert → all 5 checks pass.
 - **Files:** `scripts/test_config_consistency.py:215-227`
 - **Commit:** 57f5773
 
-### S198 — stale Open markers corrected
+### S198 — stale Open markers corrected ✅ · verified R173
 - **Bug:** `docs/AUDIT_FINDINGS.md` catalog entries still said "— Open." for findings already fixed and verified: S116/S117 (fixed R40), S157/S158/S164 (R86), S178/S179/S180/S188 (R84). (S109/S155/S156 carried no false-Open marker.) 9 flips, not 12 — the finding's count was itself stale.
 - **Fix:** each marker rewritten to its real fix round (`— Fixed in R40.` etc.); historical finding text untouched.
 - **Files:** `docs/AUDIT_FINDINGS.md` (catalog entries)
 - **Commit:** 8fe770d
 
-### S199 — dead tests/requirements.txt removed
+### S199 — dead tests/requirements.txt removed ✅ · verified R173
 - **Bug:** `exchange_simulator/tests/requirements.txt` pinned only `pytest>=7.0` with zero repo references; real deps live in `requirements-dev.txt`. Installing it gives pytest without pytest-asyncio → async suite silently skipped.
 - **Fix:** file deleted; no CI/Makefile/docs/Dockerfile referenced it (only historical ledger notes mention the path).
 - **Files:** `exchange_simulator/tests/requirements.txt` (deleted)
 - **Commit:** 8d14a43
 
-### S201 — development guide tree refreshed
+### S201 — development guide tree refreshed ✅ · verified R173
 - **Bug:** `docs/guides/DEVELOPMENT_GUIDE.md` showed `exchange_simulator/config/` (real: `config.yaml`), `web-ui/src/contexts/` (nonexistent), `hft-trade-bot/pch.h` (real: `src/pch.h`), "88 test files" (real ~94), "227 React components" (real ~295), `panels/PanelRegistry.jsx` (real `registry.js`); sim `tools/` dir absent. ("28 test files" was accurate post-R167 — 28 `test_*.py` remain after the tools move.)
 - **Fix:** every claim corrected against the live tree; nonexistent dirs replaced by real `panels/`/`stores/`/`utils/`; counts made approximate (`~`) where churn is high.
 - **Files:** `docs/guides/DEVELOPMENT_GUIDE.md` project-tree + panel-registration sections
 - **Commit:** 8fe770d
 
-### S205 — terraform docs match reality
+### S205 — terraform docs match reality ✅ · verified R173
 - **Bug:** `docs/DEPLOYMENT.md` Option 4 claimed "terraform/ … was removed in the S109 cleanup" — the directory exists (VPC/EKS/S3 modules; only RDS/ElastiCache went). `terraform/README.md` promised "CloudWatch log groups" — no such resource exists.
 - **Fix:** DEPLOYMENT.md Option 4 rewritten to describe the real substrate (VPC/EKS/S3, stateless — no DB/cache tier, deploy via Helm onto EKS); README's phantom CloudWatch bullet dropped. The `db_password` tfvars part was already closed via S273/S314 (R167/R170).
 - **Files:** `docs/DEPLOYMENT.md` (Option 4), `terraform/README.md`
