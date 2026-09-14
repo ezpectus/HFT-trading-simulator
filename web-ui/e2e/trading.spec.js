@@ -86,9 +86,11 @@ test.describe('Trading System UI — Trading Flows', () => {
   test('mock mode banner shows when in mock mode', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    // In mock mode, the banner should be visible
-    // In real mode, it won't be — this test just checks the page loads
-    await expect(page.locator('header')).toBeVisible()
+    // Playwright always serves the app via `npm run dev:mock`, so the
+    // MockModeBanner (role="alert", "DEMO MODE") must be rendered.
+    const banner = page.getByRole('alert')
+    await expect(banner).toBeVisible()
+    await expect(banner).toContainText('DEMO MODE')
   })
 
   test('panel settings toggle works', async ({ page }) => {

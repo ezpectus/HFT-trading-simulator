@@ -13,14 +13,14 @@ export async function dismissOnboarding(page) {
       // ignore
     }
 
-    // Inject CSS to hide onboarding modal and notification toasts
-    // !important overrides React's display:flex/inline styles across re-renders
+    // Belt-and-suspenders: hide ONLY the onboarding modal if it still renders
+    // (e.g. a race between localStorage seed and first paint). The broad
+    // '.fixed.inset-0.z-50' selector used to also hide error dialogs, and the
+    // notifications-region rule hid all toasts — e2e was structurally blind to
+    // error overlays, so this is scoped to the modal's testid.
     const style = document.createElement('style')
     style.id = 'e2e-overlay-hider'
-    style.textContent = [
-      '.fixed.inset-0.z-50 { display: none !important; }',
-      '[role="region"][aria-label="Notifications"] { display: none !important; }',
-    ].join('\n')
+    style.textContent = '[data-testid="onboarding-modal"] { display: none !important; }'
     ;(document.head || document.documentElement).appendChild(style)
   })
 }
@@ -48,10 +48,7 @@ export async function closeOverlays(page) {
 
   if (!hasStyle) {
     await page.addStyleTag({
-      content: [
-        '.fixed.inset-0.z-50 { display: none !important; }',
-        '[role="region"][aria-label="Notifications"] { display: none !important; }',
-      ].join('\n'),
+      content: '[data-testid="onboarding-modal"] { display: none !important; }',
     }).catch(() => {})
   }
 }

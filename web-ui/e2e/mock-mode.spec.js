@@ -64,9 +64,17 @@ test.describe('Web UI — Navigation', () => {
   test('can toggle sidebar', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    
-    // Just verify the page is still functional after load
-    await expect(page.locator('body')).toBeVisible()
+
+    // Desktop sidebar has an explicit collapse/expand button pair
+    const collapseBtn = page.getByRole('button', { name: 'Collapse sidebar' })
+    if (await collapseBtn.count() === 0) {
+      test.skip(true, 'sidebar collapse control not rendered (mobile/tablet viewport)')
+    }
+    await collapseBtn.click()
+    const expandBtn = page.getByRole('button', { name: 'Expand sidebar' })
+    await expect(expandBtn).toBeVisible()
+    await expandBtn.click()
+    await expect(collapseBtn).toBeVisible()
   })
 })
 
@@ -147,17 +155,14 @@ test.describe('Web UI — No Console Errors', () => {
     await closeOverlays(page)
     await page.waitForTimeout(3000)
     
-    // Filter out expected errors (WebSocket connection failures in mock mode, etc.)
-    const criticalErrors = errors.filter(e => 
-      !e.includes('WebSocket') && 
+    // Filter only transport-level noise the harness guarantees: the dev server
+    // runs without live backends, so connection-refused WebSocket errors are
+    // expected. Semantic swallows (NaN, attribute, SVG, Warning, generic
+    // 'network') previously let real app errors through — removed on purpose.
+    const criticalErrors = errors.filter(e =>
+      !e.includes('WebSocket') &&
       !e.includes('favicon') &&
-      !e.includes('ERR_CONNECTION') &&
-      !e.includes('network') &&
-      !e.includes('React.jsx') &&
-      !e.includes('Warning:') &&
-      !e.includes('attribute') &&
-      !e.includes('SVG') &&
-      !e.includes('NaN')
+      !e.includes('ERR_CONNECTION_REFUSED')
     )
     
     expect(criticalErrors).toHaveLength(0)

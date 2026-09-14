@@ -66,7 +66,7 @@ test.describe('Trading System UI — Smoke Tests', () => {
   test('status bar is visible at bottom', async ({ page }) => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
-    // Status bar should be at the bottom — check for status text
-    await expect(page.locator('body')).toBeVisible()
+    // The real status bar: <footer role="contentinfo" aria-label="System status bar">
+    await expect(page.getByRole('contentinfo')).toBeVisible()
   })
 })

@@ -7,7 +7,7 @@ const STEPS = [
   {
     icon: Zap,
     title: 'Welcome to Trading Sim',
-    body: 'A full-featured HFT trading simulator with 3 exchanges, 3 symbols, live AI signals, and real-time order execution. Includes 204 analytic panels and 44+ mathematical models.',
+    body: 'A full-featured HFT trading simulator with 3 exchanges, 3 symbols, live AI signals, and real-time order execution. Includes 271 analytic panels and ~60 mathematical models.',
   },
   {
     icon: CandlestickChart,
@@ -60,7 +60,7 @@ export default memo(function OnboardingTutorial() {
   const isLast = step === STEPS.length - 1
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div data-testid="onboarding-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-bg-800 rounded-xl border border-bg-600 p-6 max-w-md w-full mx-4 shadow-2xl">
         {/* Close */}
         <button
