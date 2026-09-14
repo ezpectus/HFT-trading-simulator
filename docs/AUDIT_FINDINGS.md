@@ -2168,3 +2168,16 @@ Scope: `models.py` (488 — every `to_dict` wire contract), `__main__.py` (277),
 **Verified clean:** `models.py` — every wire contract correct (equity = balance + Σmargin + unrealized_pnl, trailing-stop ratchet, iceberg replenish, `OCOGroup.on_fill`); `__main__.py` is a real composition root (`validate_or_exit` → audit config before `build_exchanges` → `EXCHANGE_WS_HOST` env override with an honest container comment → signal handlers); `config_validator` does real range checks + prices↔volatility cross-refs; `data_export` is a real CSV/parquet writer with pyarrow fallback; `test_security` uses spec'd MagicMocks and real injection cases, `test_property_based` is genuine Hypothesis with `skipif` guards, `test_integration_dataflow` asserts real OHLC/symbol invariants; zero TODO/FIXME/NotImplementedError in the whole package.
 
 Commit: adc54f4
+
+
+---
+
+## Round 128 — web-ui/src/test/ + stores/ (1 finding: S284)
+
+Scope: the entire `web-ui/src/test/` directory — 154 files / 11,757 lines, never leaf-read. Swept for fixture-vs-wire schema drift, shallow-assert density, orphan tests, skips, mock drift. Plus `stores/` (3 Zustand stores, 323 lines) — the last untouched web-ui internal.
+
+**S284 (Medium) — Open.** Test fixtures encode a fantasy wire schema — the suite can't catch the S276/S278 drift because it *replicates* it. Five test files feed panels fields the wire never sends: `auditTrail.test.jsx:6`, `tickReplay.test.jsx:7`, `costBasis.test.jsx:18` use `order_id`/`filled_qty`/`price` (real `Order.to_dict`: `id`/`filled_quantity`/`filled_price`); `drawdownAnalysis.test.jsx:8` `makeFill` returns `{pnl, timestamp}` — fills carry no `pnl`; `taxReport.test.jsx:4` uses correct names but attaches `pnl`/`fee` to fills that have neither. Worst: `useSessionRecorder.test.jsx:50` asserts `totalTrades === 2` for one cumulative `trade_history` entry across two snapshots — the S278 inflation is written down as *correct* behavior. Fixing S276/S278 will fail these tests — the fixtures are the lie the suite believes.
+
+**Verified clean:** zero `it.skip`/`.todo` across the suite; zero orphan tests (all 154 imports resolve to existing modules); math tests are honest — seeded mulberry32 PRNG + exact-value asserts (`beta toBeCloseTo 2,5`, residuals <1e-8, ADF vs critical values); `vi.mock` in 23 files where warranted; ~913 weak asserts out of 1,973 expects — acceptable for render tests; `performance.test.jsx`/`.ts` test different modules (not dupes); the three Zustand stores are honest — batch setters driven by hooks, derived data via App memo, dual-signature `addToast` with auto-expire; no `contexts/` dir exists.
+
+Commit: TBD

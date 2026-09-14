@@ -1811,3 +1811,15 @@ Commit: 1f468ce
 **Clean:** models.py — все контракты корректны (equity=balance+Σmargin+unrealized, trailing-ratchet, iceberg replenish, OCOGroup.on_fill); `__main__` — настоящий composition root (validate_or_exit, audit-config до exchanges, EXCHANGE_WS_HOST env-override с honest comment); config_validator — реальные range/cross-ref проверки; data_export — настоящий CSV/parquet; test_security/test_property_based/test_integration — честные (spec'd mocks, Hypothesis, реальные ассерты); 0 TODO/FIXME в пакете.
 
 Commit: adc54f4
+
+
+## R128 — web-ui/src/test/ (154 files / 11.7k lines) + stores/ leaf-read
+
+**Scope:** весь `web-ui/src/test/` — quality-sweep: fixture-vs-wire schema, shallow-assert density, orphan-тесты, skips, mock-drift. Плюс `stores/` (323 строки, 3 Zustand-store) — последний нетронутый web-ui internal.
+
+**Findings (1):**
+- S284 (Medium): тестовые фикстуры кодируют фантазийную wire-схему — сьют не может поймать S276/S278, потому что сам их повторяет. `auditTrail.test.jsx:6`, `tickReplay.test.jsx:7`, `costBasis.test.jsx:18` — fills с `order_id`/`filled_qty`/`price` (реальные `id`/`filled_quantity`/`filled_price`); `drawdownAnalysis.test.jsx:8` — `makeFill(pnl,timestamp)` даёт `pnl` которого fills не несут; `taxReport.test.jsx:4` — правильные имена, но `pnl`/`fee` на fills — полей нет в Order.to_dict. И главное: `useSessionRecorder.test.jsx:50` ассертит `totalTrades===2` для 1 кумулятивной записи × 2 снапшота — баг S278 записан как корректное поведение. Фикс S276/S278 сломает эти тесты — то есть сьют активно охраняет дрейф.
+
+**Clean:** 0 skips/todo; 0 orphan-тестов (154/154 импорта резолвятся); мат-тесты честные (seeded PRNG, точные значения); vi.mock у 23 файлов и по делу; ~913 weak-asserts из 1973 — приемлемо; stores честные.
+
+Commit: TBD
