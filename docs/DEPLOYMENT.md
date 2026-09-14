@@ -119,7 +119,13 @@ docker-compose build web-ui
 
 #### 2. Configure Environment
 
-Create `.env` file in project root:
+Create `.env` file in project root.
+
+> **⚠ Audit note (S253):** the template below is stale — none of its 8 variable
+> names are read by any compose file or service. The variables that actually
+> work today are `EXCHANGE_WS_HOST`, `EXCHANGE_CONTROL_TOKEN`, `GRAFANA_USER`,
+> `GRAFANA_PASSWORD`, `LOG_FORMAT`, `HFT_EXCHANGE_WS_URL` (see `.env.example` /
+> `.env.prod.example`).
 
 ```bash
 # Exchange Simulator
@@ -194,8 +200,10 @@ pip install -r requirements.txt
 cp config.yaml config.prod.yaml
 # Edit config.prod.yaml with production settings
 
-# Run
-python -m exchange_simulator --config config.prod.yaml
+# Run — ⚠ audit note (S254): `python -m exchange_simulator` must run from the
+# REPO ROOT (the package is not importable from inside its own directory):
+cd ..
+python -m exchange_simulator --config exchange_simulator/config.prod.yaml
 ```
 
 #### 2. AI Signal Bot
@@ -210,8 +218,9 @@ pip install -r requirements.txt
 cp config/settings.yaml config/settings.prod.yaml
 # Edit settings.prod.yaml with production settings
 
-# Run
-python -m ai_signal_bot --config config/settings.prod.yaml
+# Run — ⚠ audit note (S254): `python -m ai_signal_bot` cannot work (the
+# directory name has hyphens and is not a module). The real entry point:
+python run.py --config config/settings.prod.yaml
 ```
 
 #### 3. HFT Trade Bot
@@ -228,8 +237,9 @@ make -j$(nproc)
 cp ../config/config.yaml ../config/config.prod.yaml
 # Edit config.prod.yaml with production settings
 
-# Run
-./hft_trade_bot --config ../config/config.prod.yaml
+# Run — ⚠ audit note (S254): the binary takes the config path POSITIONALLY
+# (argv[1]); `--config` is treated as the path itself and fails:
+./hft_trade_bot ../config/config.prod.yaml
 ```
 
 #### 4. Web UI
@@ -323,7 +333,7 @@ Docker Compose healthchecks in all 3 compose files use HTTP endpoints:
 | AI Signal Bot | `http://localhost:8080/ready` | 15s |
 | HFT Trade Bot | `http://localhost:9091/health` | 10s |
 | Web UI | `http://localhost:3000/health` | 5s |
-| Prometheus | `http://localhost:9090/-/healthy` | 10s |
+| Prometheus | `http://localhost:9099/-/healthy` (dev compose publishes 9099→9090; :9090 is the AI bot's metrics port) | 10s |
 | Alertmanager | `http://localhost:9093/-/healthy` | 10s |
 
 #### 5. Graceful Shutdown
@@ -586,9 +596,11 @@ services:
 Store API keys in environment variables or secret management:
 
 ```bash
-# Never commit to git
-export BINANCE_API_KEY="your_key"
-export BINANCE_API_SECRET="your_secret"
+# Never commit to git — ⚠ audit note (S255): the exchange factory reads
+# EXCHANGE_API_KEY / EXCHANGE_API_SECRET (see .env.prod.example), not
+# BINANCE_* names:
+export EXCHANGE_API_KEY="your_key"
+export EXCHANGE_API_SECRET="your_secret"
 ```
 
 ### Network Security
@@ -607,7 +619,7 @@ audit:
   enabled: true
   log_file_path: /var/log/hft/audit.log
   max_memory_entries: 100000
-  retention_days: 90
+  # ⚠ audit note (S255): `retention_days` has no reader — removed from example
 ```
 
 ## Backup and Recovery
@@ -701,11 +713,14 @@ docker-compose restart
 
 ### Log Locations
 
-**Exchange Simulator:** `logs/exchange_simulator.log`
-**AI Signal Bot:** `logs/ai_signal_bot.log`
-**HFT Trade Bot:** `logs/hft_trade_bot.log`
+**Exchange Simulator:** `logs/exchange_simulator_<YYYYMMDD_HHMMSS>.log` (timestamped)
+**AI Signal Bot:** `logs/ai_signal_bot_<YYYYMMDD_HHMMSS>.log` (timestamped — the `logging.file` key in settings.yaml is currently ignored, audit S256)
+**HFT Trade Bot:** `logs/hft_trade_bot_<ts>.log` + `hft_trade_bot_latest.log` (the `log_file` config key is likewise ignored, audit S224)
 **Web UI:** Browser console
-**Audit Logs:** `logs/audit.log`
+**Audit Logs:** `audit.log_file_path` value (`logs/audit.log` by default)
+
+> ⚠ audit note (S255): the fixed filenames previously listed here are never
+> written — all loggers create timestamped files.
 
 ### Getting Help
 
@@ -719,11 +734,8 @@ docker-compose restart
 ### Exchange Simulator
 
 ```yaml
-# Increase WebSocket buffer size
-websocket:
-  buffer_size: 65536
-
-# Optimize order book depth
+# ⚠ audit note (S255): `websocket.buffer_size` has no reader — no such key.
+# Optimize order book depth (real key):
 market:
   order_book_depth: 10  # Reduce from 20
 ```

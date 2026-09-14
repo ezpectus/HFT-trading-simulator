@@ -1652,3 +1652,21 @@ Findings:
 Clean: SHM structs byte-identical with Python (32/28/28/16B); shm_market_data seqlock correct; KillSwitch real (file-trigger+SHM notify+callbacks, activated by daily-loss/drawdown); V1 real FFT/EMA/RSI/ATR; V2 real composite math; V3 real online-HMM; order_executor real (manual JSON, auth-first, reconnect/backoff); watchdog steady_clock correct; health_server real raw-socket HTTP (data is facade, server honest); config loader unified; ai_signal_queue mutex-serialized SPSC correctly; reconnect machinery honest (cancelable sleeper, join-before-reassign, backoff 1s->30s).
 
 Commit: d38e263
+
+## Round R118 — docs-vs-reality sweep (2026-09-14)
+
+Scope: все claim-bearing docs — README.md, docs/{ARCHITECTURE,DEPLOYMENT,WEBSOCKET_PROTOCOL,TESTING,PERFORMANCE,MONITORING_GUIDE,WEB_UI,RISK_MANAGEMENT,ADVANCED_ORDER_TYPES,TRADING_STRATEGIES}.md, docs/guides/{QUICK_START,CONFIGURATION,TRADING,DEVELOPMENT}.md, CONTRIBUTING.md, terraform/README, README_PROJECT_OVERVIEW.md, audit/*, PROJECT_AUDIT.md, CHANGELOG.md, docs/theory/* (20.7k строк). Метод: извлечение проверяемых claims (env-имена, команды, порты, ключи, счётчики, компоненты) → сверка с кодом/compose/parser'ами.
+
+Findings: 6 (S253–S258)
+- S253 (High): DEPLOYMENT.md:125-141 `.env`-шаблон — 8 имён с нулём читателей (EXCHANGE_SIMULATOR_HOST/_PORT, AI_SIGNAL_BOT_HOST/_PORT, WEB_UI_PORT, DATABASE_PATH, PROMETHEUS_PORT, GRAFANA_PORT); реальные рычаги (EXCHANGE_WS_HOST, EXCHANGE_CONTROL_TOKEN, GRAFANA_USER/_PASSWORD, LOG_FORMAT, HFT_EXCHANGE_WS_URL) не документированы.
+- S254 (High): native-deploy команды мертвы во всех 3 компонентах — DEPLOYMENT:196 `python -m exchange_simulator` изнутри package-дира (S220-класс); :214 `python -m ai_signal_bot` — hyphen-dir unimportable (реально `python run.py`); :230 `./hft_trade_bot --config` + DEV_GUIDE:320 `--profile` — argv[1] позиционный → флаг=config-path → YAML-фейл; QUICK_START:175 `docker.bat` не существует; :54 clone-URL `HFT-trading-simulator` ≠ `HFT-TradeBot--Lite-version`.
+- S255 (Medium): DEPLOYMENT мёртвые имена/пути — `BINANCE_API_*` (:589-590) vs реальные `EXCHANGE_API_*`; `audit.retention_days` (:607) + `websocket.buffer_size` (:721) — 0 читателей; 4 fixed log-пути (:702-708) никем не пишутся (все timestamped); prometheus `localhost:9090/-/healthy` (:326) — dev публикует :9099, :9090 = ai-bot metrics.
+- S256 (Medium): ai-bot `logging.file` — code-side dead key: config.log_file парсится (__init__.py:340) → передаётся run.py:722 → дропается в setup_logging :56-59 → всегда timestamped `logs/ai_signal_bot_*.log`. Близнец S224.
+- S257 (Medium): протухшие feature-claims — PERFORMANCE.md:15,43-50 целая «Rust HFT Executor» бенчмарк-секция для удалённого компонента; ARCHITECTURE:216 «3 strategies» (5 enabled), :640 «no dedup on client_order_id (S149)» прямо противоречит R117-верифицированному dedup+fill-replay; WEBSOCKET_PROTOCOL:1078-1085 msgpack-claim half-false — `_client_encodings` честится только в `_send_json` point-send'ах, hot-бродкасты (candles/fills_batch/audit_logs/arb) всегда orjson; MONITORING_GUIDE:373-389 helm-сниппет `/health:9090` vs реальные `/live`+`/ready` на :8080.
+- S258 (Info): числовой дрейф — TESTING «311/316 test files» → 304 (126py/153js/25cpp); «278 panels» ×6 мест → 271 component-mapped; «291 components» → 295; «50 symbols» в 3 доках → 49.
+
+Re-checks: S218 (README_PROJECT_OVERVIEW фоссил) подтверждён и усилен — шапка «COMPLETE/production-ready» противоречит 62-open-леджеру.
+
+Clean: MONITORING_GUIDE — 5 dashboards + 22 alerts имя-в-имя; TRADING_STRATEGIES/ADVANCED_ORDER_TYPES/RISK_MANAGEMENT — параметры и реализации совпадают с кодом; CONFIGURATION_GUIDE ~60 ключей все с читателями; audit/+theory/+PROJECT_AUDIT/REFACTORING_PLAN — честные point-in-time дисклеймеры; DEPLOYMENT endpoint-URLs и `data/trading.db` валидны; `ipc.*.capacity`/`order_book_depth`/`audit.*`/`latency_optimization.*` парсятся; helm sidecar-архитектура легитимна.
+
+Commit: <pending>

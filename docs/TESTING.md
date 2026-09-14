@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 129 Python + 25 C++ + 157 JS = 311 unit test files.
+  individual functions. 126 Python + 25 C++ + 153 JS = 304 unit test files.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,18 +81,18 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **316 test files** across three languages:
+The system has **304 unit test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
-| **Python** | 129 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
+| **Python** | 126 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
 | **C++** | 25 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | 162 | Vitest + Playwright | `web-ui/src/test/` (157), `web-ui/e2e/` (4 specs + 1 helper) |
-| **Total** | **316** | | |
+| **JavaScript** | 153 | Vitest + Playwright | `web-ui/src/test/` (153), `web-ui/e2e/` (4 specs + 1 helper) |
+| **Total** | **304** (+ 5 e2e files) | | |
 
 ---
 
-## Python Tests (129 files)
+## Python Tests (126 files)
 
 ### AI Signal Bot (99 files)
 
@@ -191,7 +191,7 @@ Randomized invariant testing for C++ components.
 
 ## JavaScript Tests (162 files)
 
-### Unit Tests (157 files)
+### Unit Tests (153 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`

@@ -23,7 +23,7 @@ flowchart LR
         CPP["Signal Engine V2/V3 · HMM regime<br/>lock-free · kill switch"]
     end
     subgraph UI["Web UI — React 18"]
-        WEB["291 components · 278 panels<br/>PWA · WCAG AA · mock mode"]
+        WEB["295 components · 271 panels<br/>PWA · WCAG AA · mock mode"]
     end
 
     ES -- "WS :8765 market data" --> AI
@@ -114,7 +114,7 @@ Open **http://localhost:3000**.
 - Direct WebSocket order execution to the configured exchange
 
 ### Web UI (React 18)
-- 291 component files, 278 registered panels with React.lazy code splitting
+- 295 component files, 271 registered panels (278 registry ids incl. 7 category rows) with React.lazy code splitting
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
@@ -192,7 +192,7 @@ hft-trading-system/
 │   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
-├── web-ui/                      # React 18: dashboard (291 components, 157 test files)
+├── web-ui/                      # React 18: dashboard (295 components, 153 test files)
 ├── docs/                        # 13 documentation files + 4 guides + 8 theory docs
 ├── monitoring/                  # Prometheus + Alertmanager + Grafana config
 ├── docker-compose.yml           # Development

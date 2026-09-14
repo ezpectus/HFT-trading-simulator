@@ -10,7 +10,7 @@ Get the HFT Trading System running in under 10 minutes.
 
 1. **Exchange Simulator (port 8765):** Generates synthetic market
    data (GBM + Student-t + Merton jumps). WebSocket server broadcasts
-   candles, order books, fills. 50 symbols, 3 exchanges.
+   candles, order books, fills. 49 symbols, 3 exchanges.
 
 2. **AI Signal Bot (port 8766):** Connects to Exchange Simulator,
    receives candles. Runs 5+ strategies (trend, meanrev, fft, statarb,
@@ -51,8 +51,8 @@ issues. Multiple terminal windows.
 ## Option 1: Docker (Recommended)
 
 ```bash
-git clone https://github.com/ezpectus/HFT-trading-simulator.git
-cd HFT-trading-simulator
+git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
+cd HFT-TradeBot--Lite-version
 docker-compose up -d
 ```
 
@@ -106,7 +106,7 @@ cmake --build . -j$(nproc)
 ### Step 2: Start Exchange Simulator
 
 ```bash
-cd exchange_simulator
+# run from the repo root — the package is not importable from inside itself
 python -m exchange_simulator
 ```
 
@@ -169,12 +169,9 @@ REM Start all services
 no-docker.bat
 ```
 
-Or use the provided scripts:
+Or use the provided script:
 ```bat
-REM Using docker
-docker.bat up
-
-REM Without docker
+REM Without docker (no docker.bat exists — use docker compose directly)
 no-docker.bat start
 ```
 
@@ -207,7 +204,7 @@ no-docker.bat start
    ```
 3. **Connection banners** — Green = connected, red = disconnected
 4. **Select exchange** — Binance, Bybit, or OKX from the header dropdown
-5. **Select symbol** — BTC/USDT or any of the 50 available pairs
+5. **Select symbol** — BTC/USDT or any of the 49 available pairs
 6. **View data** — Candlestick chart, order book, and signals should appear in real-time
 7. **Check signals** — Navigate to the Signals tab to see AI-generated trading signals
 

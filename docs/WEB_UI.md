@@ -1,6 +1,6 @@
 # Web UI Dashboard
 
-Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **291 React component files**, **278 registered panels** across 7 categories, **60+ advanced mathematical model components** (educational visualizations), **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
+Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **295 React component files**, **271 registered panels** (278 registry ids incl. 7 category rows) across 7 categories, **60+ advanced mathematical model components** (educational visualizations), **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
 ## Theory: UI architecture and why this stack
 

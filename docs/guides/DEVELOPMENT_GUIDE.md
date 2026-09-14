@@ -317,7 +317,9 @@ python -c "import pstats; pstats.Stats('profile.out').sort_stats('cumulative').p
 # Build with profiling
 cmake -DCMAKE_BUILD_TYPE=Debug ..
 cmake --build .
-./hft_trade_bot --profile
+# ⚠ audit note (S254): the binary takes argv[1] positionally as config path —
+# there is no --profile flag. Profile via cmake flags + external profiler instead.
+./hft_trade_bot ../config/config.yaml
 ```
 
 ### Web UI

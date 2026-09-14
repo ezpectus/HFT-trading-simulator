@@ -12,7 +12,7 @@ The system has a dual signal path with different latency requirements:
 |------|-----------|---------------|----------|
 | **Fast path** | C++ HFT engine main loop | < 1ms | 1ms (configurable) |
 | **Fast path** | V2 signal generation | < 5ms | ~2ms (100ms cooldown) |
-| **Fast path** | Rust executor WebSocket send | < 1ms | ~0.5ms (local) |
+| ~~Fast path~~ | ~~Rust executor WebSocket send~~ | — | REMOVED — `hft-executor` crate deleted (audit S058-era; table kept for history) |
 | **Fast path** | SHM IPC (Python → C++) | 10-50us | ~30us |
 | **Slow path** | Python AI signal bot | ~50ms | 30-80ms |
 | **Slow path** | Strategy analysis (per symbol) | ~5ms | 2-10ms |
@@ -42,6 +42,10 @@ The system has a dual signal path with different latency requirements:
 
 ### Rust HFT Executor
 
+> **REMOVED (audit S058-era):** the `hft-executor` crate no longer exists — orders go
+> over the C++ bot's own WebSocket client (`order_executor.h`). The table below is
+> kept as history only.
+
 | Metric | Target | Notes |
 |--------|--------|-------|
 | Order serialization (serde_json) | < 100us | Pre-allocated, SmallVec for batches |
@@ -54,7 +58,7 @@ The system has a dual signal path with different latency requirements:
 | Metric | Target | Notes |
 |--------|--------|-------|
 | Signal interval | 60s (configurable) | Not HFT — this is the "slow" path |
-| Strategy analysis (50 symbols) | ~2.5s | 5ms × 50 symbols |
+| Strategy analysis (49 symbols) | ~2.5s | 5ms × 49 symbols |
 | Ensemble voting | ~1.5s | Majority vote across 5 strategies |
 | Risk validation | < 1ms | In-memory checks, no I/O |
 | Database write | < 5ms | SQLite WAL mode |
@@ -64,7 +68,7 @@ The system has a dual signal path with different latency requirements:
 
 | Metric | Target | Notes |
 |--------|--------|-------|
-| Initial load | < 3s | 204 lazy-loaded panels |
+| Initial load | < 3s | 271 lazy-loaded panels |
 | Panel render | < 16ms | React.lazy + Suspense, 60fps |
 | VirtualList scroll | < 8ms | Windowed rendering for 1000+ items |
 | WebSocket message processing | < 5ms | Batched updates, useWebSocket hook |

@@ -90,7 +90,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>291 Components | 278 Panels<br/>React.lazy | PWA | WCAG AA<br/>Vitest (153 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>295 Components | 271 Panels<br/>React.lazy | PWA | WCAG AA<br/>Vitest (153 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -213,7 +213,7 @@ The system implements production-grade observability across all components:
 3. **Trend Following** — EMA crossover + ADX strength filter
 4. **Mean Reversion** — RSI extremes + Bollinger Band touches
 5. **FFT Cycle Strategy** — Spectral analysis, cycle detection, regime classification (TRENDING/RANGING/MIXED)
-6. **Ensemble Voter** — Majority or confidence-weighted voting (3 strategies)
+6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 of 5 enabled strategies)
 7. **Signal Validation** — Confidence, R:R ratio, drawdown, position limits
 8. **Order Execution** — Sends orders to exchange simulator
 
@@ -373,7 +373,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 ### 4. Web UI Dashboard (`web-ui/`)
 
 **Language:** JavaScript (React 18 + Vite 8)
-**Role:** Browser-based trading dashboard with 291 components and 278 registered panels
+**Role:** Browser-based trading dashboard with 295 component files and 271 registered panels (278 registry ids incl. 7 category rows)
 
 | Feature | Implementation |
 |---------|---------------|
@@ -476,7 +476,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 
 - **Zero-touch extensibility** — Adding a panel = 1 entry in registry.js, 0 changes to App.jsx
 - **Categorized rendering** — 7 categories: Order Flow, Technical Analysis, Risk and Analytics, Portfolio, Strategy, Export, Config
-- **278 registered panels** — 291 component files across all categories
+- **271 registered panels** — 295 component files across all categories (278 registry ids incl. 7 category rows)
 - **User-toggleable visibility** — Each panel can be shown/hidden, persisted in localStorage
 - **Collapsible categories** — Users can collapse entire sections
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
@@ -637,7 +637,7 @@ Each service (Exchange Simulator, AI Signal Bot, HFT Trade Bot, Web UI) runs as 
 
 5. **Reversibility** — Every architectural change must be reversible. The V1 signal engine is preserved alongside V2. Config sections are optional — removing a section reverts to defaults. No migration is one-way.
 
-6. **Idempotent operations** — Order submission includes `client_order_id` (sent by clients; the simulator does not yet deduplicate on it — see audit S149). Position updates are state-based, not delta-based. Reconnecting and re-syncing state is safe.
+6. **Idempotent operations** — Order submission includes `client_order_id`; the simulator deduplicates on `exchange_id:client_order_id` (10k-entry window, `ws_message_handler.py`) and replays the original fill with `deduplicated: true` on a repeat. Clients must therefore generate unique cids — the hft engine loops currently do not (audit S243). Position updates are state-based, not delta-based. Reconnecting and re-syncing state is safe.
 
 7. **Observable by default** — Every service logs timestamped events. Latency histograms track per-stage timing. Error boundaries count failures. CSV trade logs provide audit trail. Prometheus metrics expose health endpoints in production.
 

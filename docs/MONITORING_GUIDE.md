@@ -371,22 +371,26 @@ healthcheck:
 ### Kubernetes Probes
 
 Helm templates (`helm/templates/ai-signal-bot.yaml`, `helm/templates/exchange-simulator.yaml`)
-use `httpGet` probes (not `tcpSocket`):
+use `httpGet` probes (not `tcpSocket`). AI Signal Bot probes hit its health port
+(`aiSignalBot.ports.health` = 8080) with the aiohttp probe paths:
 
 ```yaml
 livenessProbe:
   httpGet:
-    path: /health
-    port: 9090
+    path: /live
+    port: 8080        # aiSignalBot.ports.health
   initialDelaySeconds: 15
   periodSeconds: 30
 readinessProbe:
   httpGet:
-    path: /health
-    port: 9090
+    path: /ready
+    port: 8080        # aiSignalBot.ports.health
   initialDelaySeconds: 10
   periodSeconds: 10
 ```
+
+(When `hftTradeBot.enabled`, the HFT bot runs as a sidecar in the same pod with its
+own `/health` probes on port 9091.)
 
 ---
 
