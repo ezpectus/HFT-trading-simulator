@@ -107,17 +107,4 @@ class WebSocketMetrics:
         bytes_per_sec = self.bytes_sent / elapsed
         return (bytes_per_sec * 8) / 1_000_000
 
-    def get_metrics(self) -> dict:
-        """Get all metrics as a dictionary."""
-        return {
-            "message_count": self.message_count,
-            "bytes_sent": self.bytes_sent,
-            "avg_message_size_bytes": self.get_avg_message_size(),
-            "p95_message_size_bytes": self.get_p95_message_size(),
-            "compression_ratio": self.compression_ratio,
-            "delta_update_ratio": self.delta_update_ratio,
-            "client_count": self.client_count,
-            "p95_broadcast_latency_ms": self.get_p95_broadcast_latency(),
-            "bandwidth_mbps": self.get_bandwidth_mbps(),
-            "uptime_seconds": time.time() - self._start_time,
-        }
+

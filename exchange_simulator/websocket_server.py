@@ -263,6 +263,3 @@ class ExchangeWebSocketServer(
             await client.close()
         logger.info("WebSocket server stopped")
 
-    def get_metrics(self) -> dict:
-        """Get WebSocket broadcasting metrics."""
-        return self.metrics.get_metrics()

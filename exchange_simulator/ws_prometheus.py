@@ -100,6 +100,37 @@ class PrometheusMixin:
             "exchange_simulator_websocket_latency_seconds",
             "Client message handling latency (seconds)"))
 
+        # WebSocket-layer counters — previously reachable only via the
+        # test-consumed get_metrics() dict; expose them on /metrics.
+        lines.append("# HELP exchange_simulator_messages_total Messages broadcast to clients")
+        lines.append("# TYPE exchange_simulator_messages_total counter")
+        lines.append(f"exchange_simulator_messages_total {m.message_count}")
+        lines.append("# HELP exchange_simulator_bytes_sent_total Bytes sent to clients")
+        lines.append("# TYPE exchange_simulator_bytes_sent_total counter")
+        lines.append(f"exchange_simulator_bytes_sent_total {m.bytes_sent}")
+        lines.append("# HELP exchange_simulator_clients_connected Current WS client count")
+        lines.append("# TYPE exchange_simulator_clients_connected gauge")
+        lines.append(f"exchange_simulator_clients_connected {m.client_count}")
+        lines.append("# HELP exchange_simulator_compression_ratio Last frame compression ratio")
+        lines.append("# TYPE exchange_simulator_compression_ratio gauge")
+        lines.append(f"exchange_simulator_compression_ratio {m.compression_ratio:.4f}")
+        lines.append("# HELP exchange_simulator_delta_update_ratio EWMA delta-vs-full update ratio")
+        lines.append("# TYPE exchange_simulator_delta_update_ratio gauge")
+        lines.append(f"exchange_simulator_delta_update_ratio {m.delta_update_ratio:.4f}")
+        lines.append("# HELP exchange_simulator_bandwidth_mbps Send bandwidth (Mbps)")
+        lines.append("# TYPE exchange_simulator_bandwidth_mbps gauge")
+        lines.append(f"exchange_simulator_bandwidth_mbps {m.get_bandwidth_mbps():.4f}")
+        lines.append("# HELP exchange_simulator_broadcast_latency_p95_ms p95 broadcast latency (ms)")
+        lines.append("# TYPE exchange_simulator_broadcast_latency_p95_ms gauge")
+        lines.append(
+            f"exchange_simulator_broadcast_latency_p95_ms {m.get_p95_broadcast_latency():.4f}")
+        lines.append("# HELP exchange_simulator_message_size_bytes_avg Average message size (bytes)")
+        lines.append("# TYPE exchange_simulator_message_size_bytes_avg gauge")
+        lines.append(f"exchange_simulator_message_size_bytes_avg {m.get_avg_message_size():.2f}")
+        lines.append("# HELP exchange_simulator_message_size_bytes_p95 p95 message size (bytes)")
+        lines.append("# TYPE exchange_simulator_message_size_bytes_p95 gauge")
+        lines.append(f"exchange_simulator_message_size_bytes_p95 {m.get_p95_message_size():.2f}")
+
         cpu_pct, rss = _process_metrics()
         if cpu_pct is not None:
             lines.append("# HELP exchange_simulator_cpu_usage_percent Process CPU usage (percent)")

@@ -385,19 +385,19 @@ class TestWebSocketMetrics:
         assert server.metrics.bytes_sent == 0
         assert server.metrics.client_count == 0
 
-    def test_get_metrics(self, server):
-        """Test that get_metrics returns correct structure."""
-        metrics = server.get_metrics()
-        assert "message_count" in metrics
-        assert "bytes_sent" in metrics
-        assert "avg_message_size_bytes" in metrics
-        assert "p95_message_size_bytes" in metrics
-        assert "compression_ratio" in metrics
-        assert "delta_update_ratio" in metrics
-        assert "client_count" in metrics
-        assert "p95_broadcast_latency_ms" in metrics
-        assert "bandwidth_mbps" in metrics
-        assert "uptime_seconds" in metrics
+    def test_prometheus_exposes_ws_metrics(self, server):
+        """WS-layer counters must appear in the /metrics exposition."""
+        prom = server._get_prometheus_metrics()
+        for name in (
+            "exchange_simulator_messages_total",
+            "exchange_simulator_bytes_sent_total",
+            "exchange_simulator_clients_connected",
+            "exchange_simulator_compression_ratio",
+            "exchange_simulator_delta_update_ratio",
+            "exchange_simulator_bandwidth_mbps",
+            "exchange_simulator_broadcast_latency_p95_ms",
+        ):
+            assert name in prom, name
 
     def test_record_message(self, server):
         """Test that message recording works correctly."""
