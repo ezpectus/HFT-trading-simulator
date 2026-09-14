@@ -1651,4 +1651,4 @@ Findings:
 
 Clean: SHM structs byte-identical with Python (32/28/28/16B); shm_market_data seqlock correct; KillSwitch real (file-trigger+SHM notify+callbacks, activated by daily-loss/drawdown); V1 real FFT/EMA/RSI/ATR; V2 real composite math; V3 real online-HMM; order_executor real (manual JSON, auth-first, reconnect/backoff); watchdog steady_clock correct; health_server real raw-socket HTTP (data is facade, server honest); config loader unified; ai_signal_queue mutex-serialized SPSC correctly; reconnect machinery honest (cancelable sleeper, join-before-reassign, backoff 1s->30s).
 
-Commit: (below)
+Commit: d38e263
