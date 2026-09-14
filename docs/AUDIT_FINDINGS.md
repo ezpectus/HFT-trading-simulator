@@ -2180,4 +2180,4 @@ Scope: the entire `web-ui/src/test/` directory — 154 files / 11,757 lines, nev
 
 **Verified clean:** zero `it.skip`/`.todo` across the suite; zero orphan tests (all 154 imports resolve to existing modules); math tests are honest — seeded mulberry32 PRNG + exact-value asserts (`beta toBeCloseTo 2,5`, residuals <1e-8, ADF vs critical values); `vi.mock` in 23 files where warranted; ~913 weak asserts out of 1,973 expects — acceptable for render tests; `performance.test.jsx`/`.ts` test different modules (not dupes); the three Zustand stores are honest — batch setters driven by hooks, derived data via App memo, dual-signature `addToast` with auto-expire; no `contexts/` dir exists.
 
-Commit: TBD
+Commit: c2add83

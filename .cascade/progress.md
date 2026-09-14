@@ -1822,4 +1822,4 @@ Commit: adc54f4
 
 **Clean:** 0 skips/todo; 0 orphan-тестов (154/154 импорта резолвятся); мат-тесты честные (seeded PRNG, точные значения); vi.mock у 23 файлов и по делу; ~913 weak-asserts из 1973 — приемлемо; stores честные.
 
-Commit: TBD
+Commit: c2add83
