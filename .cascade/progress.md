@@ -1929,3 +1929,18 @@ Commit: f0d4554
 **Clean:** оба ai-bot Dockerfile корректны (помимо S207); hft Dockerfiles — bookworm-ABI-consistent, binary-paths верны под свои layout'ы; staging порты/health/limits согласованы; hub depends_on service_healthy цепочки верны; sim `--export` флаги реальны; SECURITY/templates честные.
 
 Commit: 9d26be8
+
+## R136 — repo-wide residue sweep (финальный хвост ротации)
+
+**Scope:** `git ls-files -i -c --exclude-standard` (tracked-but-ignored sweep), все 10 `.gitkeep` пересчитаны по `git ls-files`, `.windsurf/workflows/` leaf-read (7 файлов, 403 строки), `web-ui/` non-src файлы (e2e/dismiss-onboarding.js, .env.mock, playwright/vitest/tailwind/postcss/eslint/tsconfig — большинство R122), `hft-trade-bot/fpga/fpga_orderbook.vhd` + `scripts/{build,run,monitor}.py` + `package-lock.json` re-check, `ai-signal-bot/{run_backtest,monitor,conftest,__init__}.py` re-check, cross-ref sweep удалённых лаунчеров (`start.bat`/`start.sh`/`run_all_tests.py`/`scripts/run_*`) по всем tracked .md/Makefile/yml/bat/sh.
+
+**Findings (1):**
+- S306 (Info): `docs/WEB_UI.md:498` — «Use `start.bat` (Windows) or `start.sh` (Linux/Mac) to launch all 4 services + 4 monitors in 8 terminal windows» — оба файла удалены (CHANGELOG:62); «8 windows» ложь даже исторически (start.bat открывал 6 — audit-report). Третий сайт deleted-launcher-pointer класса (S305: CONTRIBUTING ×2 + install-deps.bat; S209 покрывает соседние :495-496 gitignored-мониторы). Живые пути — `no-docker.{bat,sh}`/Docker — в абзаце не упомянуты.
+
+**Board hygiene:** S227 уточнён в строке — 8 stale `.gitkeep` (добавлены `ai-signal-bot/src/utils/`, `hft-trade-bot/src/{monitoring,network,utils}/`), и `ai-signal-bot/scripts/.gitkeep` снова легитимен — директория опустела после удаления scripts в Пачке A (S227-claim частично протух в обратную сторону).
+
+**Dedup:** `benchmark_suite`/`walk_forward_ci`/`test_config_consistency` — S197/S214; `monitor.py`/`run_backtest.py`/hft-scripts/fpga — R112/R113 verified-clean; `.env.mock`+`VITE_MOCK_MODE` — R122.
+
+**Clean:** tracked-but-ignored = только 3 `.cascade/` ledger'а; `docs/theory/`+`audit/` gitignored+untracked (не repo-weight); fpga_orderbook.vhd честно задокументирован как academic sketch; hft scripts — реальные CMake-wrapper'ы; mock-mode оба пути консистентны; e2e-helper импортируется всеми 4 spec'ами; workflow-файлы самосогласованы; `ai-signal-bot/scripts/.gitkeep` легитимен.
+
+Commit: pending
