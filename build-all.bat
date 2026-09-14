@@ -45,15 +45,17 @@ goto :skip_exchange
 :exchange
 echo [1/5] Python — Exchange Simulator
 echo -------------------------------------------
-cd /d "%PROJECT_ROOT%exchange_simulator"
 
-REM Check imports
+REM Import check must run from repo root — the package is not
+REM importable from inside its own directory.
+cd /d "%PROJECT_ROOT%"
 python -c "import exchange_simulator; print('[OK] exchange_simulator imports')" 2>&1
 if errorlevel 1 (
     echo [FAIL] exchange_simulator import failed
     set EXIT_CODE=1
 ) else (
     REM Run tests
+    cd /d "%PROJECT_ROOT%exchange_simulator"
     python -m pytest tests/ -v --tb=short -q 2>&1
     if errorlevel 1 (
         echo [FAIL] Exchange Simulator tests failed
@@ -90,12 +92,12 @@ echo.
 REM ── 2b. Live module import checks ──
 echo --- Module import checks ---
 
-echo   [Strategies] cross_exchange_arb...
-python -c "from src.strategies.cross_exchange_arb import CrossExchangeArbEngine; print('    [OK]')" 2>&1
+echo   [Strategies] funding_arb_detector...
+python -c "from src.strategies.funding_arb_detector import FundingRateArbitrageDetector; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
-echo   [Strategies] marketplace...
-python -c "from src.strategies.marketplace import StrategyMarketplace; print('    [OK]')" 2>&1
+echo   [Strategies] statistical_arbitrage...
+python -c "from src.strategies.statistical_arbitrage import StatisticalArbitrage; print('    [OK]')" 2>&1
 if errorlevel 1 ( echo    [FAIL] & set EXIT_CODE=1 )
 
 echo   [Pricing] volatility_surface...
