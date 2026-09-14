@@ -2098,4 +2098,4 @@ Batch: freshest unverified — S243/S244/S246/S279 (R147) + S207/S210/S230 (R148
 - **S230 VERIFIED** — `*Result` fields present in sync (8 refs), store (8), panelContext (19: destructure+obj+deps).
 
 Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` ×7.
-- **Commits:** TBD
+- **Commits:** `131c610` (docs)
