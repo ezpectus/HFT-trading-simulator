@@ -566,3 +566,36 @@
 **Deferred:** S309 — Docker daemon still unreachable on this host (npipe missing); static verification from R156 stands.
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN.
+
+## Round 162 — slop-fix (5 closed)
+
+### S280 — broadcast loop contained + update_config validated ✅
+- **Bug:** `_broadcast_loop` had zero try/except — any exception in `next_candle()`/arb/serialization killed the task silently while `/health` stayed green. `_handle_update_config` wrote `updates["volatility"][symbol]` straight into `market._volatility` unchecked → string → `sigma = "abc" / sqrt_cpy` TypeError in the tick path → feed dead (dev: unauthenticated, prod: authed-DoS).
+- **Fix:** tick body wrapped — `logger.exception` + 1s backoff + continue (CancelledError still propagates). `_valid_number` gate rejects non-finite/non-numeric (bool/nan/str) writes for volatility/fees/slippage/leverage; rejected keys reported in `config_updated.rejected`. 3 regression tests (non-numeric reject, NaN reject, loop survives tick failure).
+- **Files:** `exchange_simulator/ws_broadcast.py`, `ws_message_handler.py`, `tests/test_websocket_server.py`
+
+### S304 — hub compose runs the prod-image path ✅
+- **Bug:** `docker-compose.hub.yml` hft command `./build/hft_trade_bot config/config.yaml` — dev-layout path absent from the `Dockerfile.prod` runtime stage (binary at `/app/hft_trade_bot`) → service could never start via hub. Staging header claimed "Signal Engine V3 enabled (HMM)" with nothing enabling it; staging grafana had no provisioning mounts → empty Grafana under a monitoring claim.
+- **Fix:** hub command → `/app/hft_trade_bot config/config.prod.yaml` (env `HFT_EXCHANGE_WS_URL` resolves identically). Staging: V3 header line removed; grafana mounts `monitoring/grafana/{datasources,dashboards}` + `GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH` (matches main compose).
+- **Files:** `docker-compose.hub.yml`, `docker-compose.staging.yml`
+
+### S302 — Makefile dev-exchange works + compose v2 ✅
+- **Bug:** `dev-exchange` ran `cd exchange_simulator && python -m exchange_simulator` — guaranteed ModuleNotFoundError (5th broken-from-inside site); `dev`/`docker-up`/`docker-down`/`docker-hub` called EOL `docker-compose` v1.
+- **Fix:** `dev-exchange` runs `python -m exchange_simulator --no-visualizer` from repo root; all four targets use `docker compose`.
+- **Files:** `Makefile`
+
+### S305 — CONTRIBUTING/CHANGELOG truth pass ✅
+- **Bug:** `CONTRIBUTING.md` pointed at deleted `start.bat` in two quick-start blocks and claimed prod-compose carries PostgreSQL/Redis (it ships Prometheus/Alertmanager/Grafana only). CHANGELOG versions don't map to any shipped version.
+- **Fix:** both blocks now name `no-docker.bat` + `docker compose`; install note → `no-docker.bat install`; prod-compose comment corrected; CHANGELOG gains a versioning note explaining dated `[Unreleased]` sprints vs component versions (package.json 2.2.0, `__version__` 1.0.0).
+- **Files:** `CONTRIBUTING.md`, `CHANGELOG.md`
+
+### S306 — WEB_UI.md dead launchers ✅
+- **Bug:** "Use `start.bat`/`start.sh` to launch all 4 services + 4 monitors in 8 terminal windows" — both files deleted, the 8-window count was never true, real launchers unnamed.
+- **Fix:** line now names `no-docker.{bat,sh}` / `docker compose up` and states monitors run as separate commands.
+- **Files:** `docs/WEB_UI.md`
+
+**Stale queue entries removed:** S279 (fixed R147), S162 (verified R96 — control-point note, not an open row).
+
+**Deferred:** S309 — Docker daemon still unreachable.
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN.

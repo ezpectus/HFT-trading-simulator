@@ -2235,3 +2235,12 @@ Re-checked R155 + R159 claims adversarially against committed code:
 Cleanup: stale CostBasis docstring claimed realized_pnl — corrected to trade_history pnl.
 
 Still unverified: R160 six (S281/S289/S215/S295/S296/S298) — next verify round.
+
+### R162 — 2026-09-15 — slop-fix: 5 closed, 4 domain commits, gate 9/9 ALL GREEN
+
+- **S280** — `_broadcast_loop` tick body wrapped (log+backoff+continue); `update_config` rejects non-finite/non-numeric writes for volatility/fees/slippage/leverage with `rejected` in `config_updated`. 3 regression tests.
+- **S304** — hub hft command → `/app/hft_trade_bot config/config.prod.yaml`; staging V3 header removed; grafana provisioning mounted + home-dashboard env.
+- **S302** — Makefile `dev-exchange` from repo root; 4 targets → `docker compose` v2.
+- **S305** — CONTRIBUTING: `no-docker.bat`/`docker compose`, prod-compose deps corrected; CHANGELOG versioning note.
+- **S306** — WEB_UI.md launcher line corrected.
+- Stale queue entries dropped: S279 (R147), S162 (verified R96). S309 still deferred (daemon down).
