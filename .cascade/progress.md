@@ -2425,3 +2425,10 @@ Re-checked every unverified done-log entry (R174×5 + R175×5 + R176×5) against
 - **S268** — root `tests/` holds only `__init__.py`; 85 unit files; `test_integration.py` under `tests/integration/`; no stray mocks dir.
 
 Done-log fully verified through R176 — zero unverified. Board: 3 open (S297, S301 Info; S309 Medium Docker-blocked).
+
+## R178 — slop-fix — 2 findings closed (board nearly empty)
+
+- **S297** — rollback restores all 4 backup artifacts in deploy.sh + deploy.bat: ai_data atomic swap (WAL-safety), audit merge (post-backup entries survive), stop_deployment moved before file swaps. Verified end-to-end in a sandboxed rollback.
+- **S301** — nightly-backtest dedup: persistent failure now comments on the existing open issue (title-matched, PRs excluded) instead of filing a new one nightly; dead `pip install pytest pytest-asyncio` removed. walk_forward_ci.py sub-claim was stale (S214/R171 already wired it). YAML + embedded JS parse-verified.
+
+Gate: 9/9 ALL GREEN. Commit: f30058e. Board: 1 open — S309 (Medium, Docker-blocked). Done-log fully verified through R176.

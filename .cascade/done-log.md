@@ -908,3 +908,15 @@ harnesses are un-unit-testable by design).
 - **Fix:** canonical = `tests/unit/` (per TESTING.md). Ported root-unique coverage first — kelly min_risk negative regression, TF/MR directional signals, `Signal.rr_ratio_neutral`, breakeven+trailing interaction, SHORT peak/trough tracking, ATR gap/missing-prev_close edges, backtest-request param pass-through — then deleted the 6 root files, moved the remaining 24 verbatim, `test_integration.py` → `tests/integration/`, removed phantom `tests/mocks/` (only `__pycache__`). 1360 passed, 2 skipped.
 - **Files:** `ai-signal-bot/tests/` (30 files: 6 deleted, 24 moved), `tests/unit/test_{kelly,strategies,risk_manager,backtest_requests}.py`
 - **Commit:** c0ba78c
+
+## R178 — slop-fix — 2 findings closed (Info tier emptied)
+
+### S297 — rollback restores all four backup artifacts
+- **Bug:** `backup_deployment` wrote config tar + exchange `data` + `ai_data` + `audit` (`deploy.sh:53-69`, `deploy.bat:51-66`) but `rollback` restored only config + exchange data — the AI bot's SQLite/WAL signals/trades db and the audit snapshot were write-only; "Rollback completed" reported on a half-rolled-back system.
+- **Fix:** both rollback paths now restore all four artifacts — `ai_data` via atomic swap (a merged old/new WAL pair can corrupt the db), `audit` via merge-copy so post-backup entries survive; `stop_deployment` moved before the file swaps (was after — live writers could race the restore). Verified end-to-end in a sandbox: all four restore, post-backup audit entries survive, order is stop→restore→start.
+- **Files:** `scripts/deploy.sh`, `scripts/deploy.bat`
+
+### S301 — nightly issue dedup + dead pytest install removed
+- **Bug:** `nightly-backtest.yml` `Create issue on regression` (`if: failure()`) called `issues.create` unconditionally — a persistent failure opened a new issue every night forever; `pip install pytest pytest-asyncio` (:37) installed packages no step invoked. (The third sub-claim — `walk_forward_ci.py` orphaned — was already stale: wired in R171/S214, called at :73.)
+- **Fix:** the step now lists open issues, finds an existing one by title (PRs excluded via `!pull_request`), and comments with the latest run URL instead of duplicating; dead pip install removed. YAML + embedded JS both parse-verified.
+- **Files:** `.github/workflows/nightly-backtest.yml`
