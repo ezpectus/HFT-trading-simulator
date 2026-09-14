@@ -1896,4 +1896,4 @@ Commit: b44ca41
 
 **Clean:** оба docker-smoke-test честные (compose `--metrics` → `:9090/health` валиден, errorlevel-пропагация); commit-msg/pre-commit хуки проксируют exit-коды; health-check.py — честный report-only dashboard; helm — shareProcessNamespace SHM-sidecar, реальные probes, vendored alerts/dashboards byte-identical monitoring/, grafana provisioning корректен, ingress/network-policy sane; terraform — textbook VPC (public-IGW/private-NAT), EKS-открытость уже в S204.
 
-Commit: <pending>
+Commit: f27711e
