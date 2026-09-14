@@ -11,9 +11,9 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1245 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84, scripts +13, helm +12, terraform +8, workflows +5, root/web-ui configs +9, dockerfiles/compose +10, docs-residue +3, .github meta +5) |
-| Всего находок | ~321 (S001–S321) |
+| Всего находок | ~327 (S001–S327) |
 | Закрыто | 226 |
-| Открыто | **0** — все ~321 находка закрыта или верифицирована чистой |
+| Открыто | **6** — R191 bloat-audit: S322–S327 |
 
 **Текущее состояние:** R182 slop-fix — закрыта последняя открытая находка **S309** (docker-smoke был красным by construction — убраны все 3 структурные причины: `GRAFANA_PASSWORD:?` убивал `up` на интерполяции ещё до S303-образа [воспроизведено через `docker compose config`], мёртвый `--timeout 60` → `--wait-timeout 240`, job-budget 10→20 мин; тот же дефект-паттерн пофикшен в `docker-smoke-test.{sh,bat}`). Runtime-подтверждение healthy-цепочки = следующий CI-прогон (daemon на хосте недоступен). Gate ALL GREEN. **Board: 0 open.**
 
@@ -26,6 +26,13 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
+
+| **S322** | market_data_feed venue-runners — copy-paste ×3 | `ai-signal-bot/src/data_collection/market_data_feed.py:101-359` — `_run_binance`/`_run_okx`/`_run_bybit` share an identical ~45-line skeleton (import-guard, connect, state-lock register, gap-fill, json-loop+drop-oldest, exp-backoff); only URL + sub-arg build differ; spawn site (:56-63) is already a name→runner if/elif. Binance logs `websockets not installed`, okx/bybit return silently — divergent error path already. Fix: `_run_feed(name,url,build_subs)` + 3 builders; ~181→~95 lines. | Medium | [ ] Open |
+| **S323** | backtestEngine close-block duplicated | `web-ui/src/utils/backtestEngine.js:251-279` ≈ `:325-351` — 25-line close-position block (side-flip exitPrice, pnl sign, fee, short borrowFee, 9-field trades.push) duplicated for CLOSE_ALL/END; `entryNotional1`/`entryNotional2` rename scar proves the copy. Extract `closePosition(position,candle,reason)` → one body. | Low | [ ] Open |
+| **S324** | WsManager "Retry" button is a no-op affordance | `web-ui/src/components/WsManager.jsx:100-102` — `handleReconnect` only `addToast('info','…reconnect initiated')`; never calls `exchange.connect`/`signals.connect` (both exist in ctx; mock supplies `connect:()=>{}` so the fix is mock-safe). User clicks Retry → toast says it happened, nothing did. | Low | [ ] Open |
+| **S325** | stress_test scenario methods share ~18-line tail | `ai-signal-bot/src/risk/stress_test.py:40-155` — financial_crisis/covid/ftx/custom each end with the same value-sums→pnl→pnl_pct→StressTestResult→return block; only shock math + margin_pct/liquidity/threshold/name differ. `_evaluate_scenario(name, shocked, margin_pct, liquidity, threshold)` → ~120→~60 lines. | Low | [ ] Open |
+| **S326** | `_init_alert_metrics` — 15 hand-rolled ctor blocks | `ai-signal-bot/src/monitoring/metrics.py:155-216` — every metric spelled `self.x = Counter/Gauge("name","doc",registry=self.registry)`; pure table data masquerading as code. `[(attr,cls,name,doc),…]` + setattr loop → ~62→~22 lines; keeps names grep-able via the table literal. | Info | [ ] Open |
+| **S327** | useExchangeData `*_result` dispatch — 9 identical cases | `web-ui/src/hooks/useExchangeData.js:469-496` — `comparison_result…funding_arb_result` + `auth_ok` are all `setX(data); break`. Setter-map `{type: setter}` + lookup collapses ~27→~9 lines. | Info | [ ] Open |
 
 
 

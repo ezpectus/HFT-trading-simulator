@@ -2431,3 +2431,23 @@ Scope: `docs/` non-theory corpus (~9.5k lines) — WEBSOCKET_PROTOCOL.md message
 **S321 (Info) — Fixed in R180.** `docker-compose` v1 syntax across command docs: DEPLOYMENT.md ×14, QUICK_START.md ×7, README.md ×2 — all `docker-compose build/up/ps/logs/down` while the EOL v1 binary is absent on modern setups (S302 fixed the Makefile, docs were left). ~23 sites.
 
 **Verified clean this round:** WEBSOCKET_PROTOCOL.md — all ~65 documented message types match the real dispatch table (`ws_message_handler.py:170-210` = 15 sim-incoming types; `signal_publisher.py:219-254` = 11 signal-incoming; all outgoing types incl. `arbitrage_scan` from `arbitrage.py:261`, `order_cancelled`/`orders_cancelled`, `fills_batch`, `replay_*` exist); snapshot example matches real emitter fields. REST_API.md is the post-S074 honest version (explicitly documents no REST + correct per-component endpoints). ADVANCED_ORDER_TYPES.md classes all exist in `models.py`. All env vars in CONFIGURATION_GUIDE have real code readers.
+
+---
+
+## R191 — bloat/duplication audit (S322–S327)
+
+Longest-function ranking + normalized-window duplication sweep over ai-signal-bot/src, exchange_simulator, web-ui/src. Six copy-paste/hand-rolled findings — all "same behavior, ~half the code" candidates, no logic changes implied.
+
+**S322 (Medium) — Open.** `market_data_feed.py:101-359` — `_run_binance`/`_run_okx`/`_run_bybit` are one ~45-line runner copied 3×: websockets import-guard, `connect(ping_interval=20,ping_timeout=10)`, state-lock register (`_ws_connections[name]`/`_reconnect_delays[name]=1.0`), gap-fill via `on_reconnect`, `json.loads` loop with QueueFull drop-oldest, `except (ConnectionError,OSError)` exp-backoff. Only the URL and the subscribe-args builder differ. Spawn site (:56-63) is already a name→runner if/elif — a `(name,url,builder)` table turns both into loops. Latent bug shape: fix reconnect logic in one venue, forget the other two. Also divergent ImportError handling — binance logs, okx/bybit return silently.
+
+**S323 (Low) — Open.** `backtestEngine.js:251-279` ≈ `:325-351` — the close-position block (~25 lines: side-flip exitPrice, pnl sign, fee, SHORT borrowFee, 9-field `trades.push`) duplicated for `CLOSE_ALL` vs `END`; `entryNotional1`/`entryNotional2` renamed purely to dodge redeclare — a copy-paste scar. One `closePosition(position,candle,reason)` removes both.
+
+**S324 (Low) — Open.** `WsManager.jsx:100-102` — `handleReconnect` fires `addToast('info','… reconnect initiated')` and nothing else; the Retry button never calls `exchange.connect`/`signals.connect` (both exist in ctx — `usePanelContext.js:106,140`; mock-mode supplies `connect:()=>{}` so wiring it is safe). Affordance claims an action it doesn't perform.
+
+**S325 (Low) — Open.** `stress_test.py:40-155` — `financial_crisis`/`covid_crash`/`ftx_collapse`/`custom_scenario` each end with the identical ~18-line tail (value sums → pnl → pnl_pct → margin/liquidity → `StressTestResult(...)` → return). Only shock math + 3 scalars + name differ. `_evaluate_scenario(name, shocked_prices, margin_pct, liquidity, threshold)` → ~120→~60.
+
+**S326 (Info) — Open.** `metrics.py:155-216` — `_init_alert_metrics` spells out 15 `self.x = Counter/Gauge("name","doc",registry=self.registry)` blocks (~62 lines). A `(attr, cls, name, doc)` table + setattr loop → ~22 lines; names stay grep-able in the literal.
+
+**S327 (Info) — Open.** `useExchangeData.js:469-496` — 9 dispatch cases (`comparison_result`…`funding_arb_result`, `auth_ok`) are all `setX(data); break`. A `{type: setter}` map + lookup → ~27→~9 lines.
+
+**Checked, clean (not findings):** `shm_ring_buffer.__init__` (platform-split SHM setup + S318 validation — dense, not padded); `signal_publisher._handle_client` 134 lines (real auth+rate-limit+dispatch); `submit_order` 108 lines (20 params all consumed, honest validation chain); `usePanelContext`/`useTradingStoreSync` (boundary adapters — triple field-list is destructure→reshape→memoize, required by React); `market_data_types` dup windows (dataclass similarity); the ~440-line ML components (per-component param state, not shared padding); `indicators.js` dup windows (canonical formula structure); `useNotifications` (head-identity edge detection, documented); `WsManager.ConnectionCard` (already factored).

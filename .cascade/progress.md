@@ -2575,3 +2575,16 @@ Board: 0 open.
 - **S215** deploy.sh — holds: repo-root `python3 -m exchange_simulator` (:166-169, S215 comment), pid-file stop (:125-131), ENVIRONMENT branch (:21), docker compose v2 (:96,:120).
 
 R161 cohort fully re-checked. Board: 0 open.
+
+## R191 — slop-audit — bloat/duplication sweep: 6 findings (S322–S327)
+
+Target per user request: "same work in half the lines" — longest-function ranking (AST py / file-size C++/JS) + normalized-window dup-detector across ai-signal-bot, exchange_simulator, web-ui/src.
+
+- **S322** market_data_feed `_run_{binance,okx,bybit}` — identical ~45-line runner skeleton ×3; only URL+sub-args differ; spawn if/elif already table-shaped. Medium.
+- **S323** backtestEngine close-position block ×2 (entryNotional1/2 scar). Low.
+- **S324** WsManager Retry → toast only, never `exchange.connect`. Low.
+- **S325** stress_test 4 scenarios share ~18-line result tail. Low.
+- **S326** `_init_alert_metrics` 15 hand-rolled ctor blocks → table. Info.
+- **S327** useExchangeData 9 identical `*_result` cases → setter map. Info.
+
+Not findings (checked, clean): shm_ring_buffer.__init__ (real platform-split SHM setup), signal_publisher._handle_client (dense auth+dispatch), submit_order (20 used params, real validation), usePanelContext/useTradingStoreSync (boundary adapters — destructure→reshape→memoize), WsManager ConnectionCard (already factored), market_data_types (dataclass field similarity = false positive), ML components (param-state blocks, individual), indicators.js dup windows (canonical formula structure).
