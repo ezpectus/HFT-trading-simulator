@@ -151,7 +151,7 @@ def test_websocket_consistency():
     
     # Get WebSocket settings
     shared_exchange_ws = shared_config["websocket"]["exchange_simulator"]
-    _shared_signal_ws = shared_config["websocket"]["ai_signal_bot"]
+    shared_signal_ws = shared_config["websocket"]["ai_signal_bot"]
     
     exchange_ws = exchange_config["websocket"]
     ai_ws = ai_config["exchange"]
@@ -183,7 +183,15 @@ def test_websocket_consistency():
     if hft_url != expected_hft_url:
         print(f"ERROR: HFT bot WebSocket URL mismatch (expected {expected_hft_url}, got {hft_url})")
         return False
-    
+
+    # The HFT bot also consumes the AI signal publisher — its endpoint must
+    # match the shared ai_signal_bot section.
+    hft_signal_url = expand_env(hft_config["ai_signal_bot"]["websocket_url"])
+    expected_signal_url = f"ws://{shared_signal_ws['host']}:{shared_signal_ws['port']}"
+    if hft_signal_url != expected_signal_url:
+        print(f"ERROR: HFT ai_signal_bot WebSocket URL mismatch (expected {expected_signal_url}, got {hft_signal_url})")
+        return False
+
     print("✓ WebSocket consistency check passed")
     return True
 

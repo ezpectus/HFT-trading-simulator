@@ -1,23 +1,15 @@
-# Shared Configuration — Global Trading System Settings
+# Shared Configuration — Consistency-Gate Reference
 # =======================================================
-# This file defines shared parameters used by all components.
-# Individual components have their own config files for component-specific
-# settings (exchange_simulator/config.yaml, ai-signal-bot/config/settings.yaml,
-# hft-trade-bot/config/config.yaml).
-#
-# Sections:
-#   system     — global system metadata and trading mode
-#   symbols    — trading pairs shared across all components
-#   exchanges  — simulated exchange identifiers
-#   risk       — global risk limits (overridden by component configs if set)
-#   timeframe  — candle interval shared between simulator and bots
-#   account    — starting balance and leverage defaults
-#   websocket  — host/port for inter-component communication
-
-system:
-  name: "HFT Trading System"
-  version: "3.0.0"
-  mode: "paper_trading"  # paper_trading | live (live not implemented)
+# NOT loaded at runtime. This file is the canonical reference consumed by
+# scripts/test_config_consistency.py, which verifies the component configs
+# carry matching values:
+#   symbols   — identical symbol set across all four component configs
+#   exchanges — exchange ids shared/sim + default_exchange refs valid
+#   risk      — shared vs component risk params (warning-level drift report)
+#   websocket — exchange host:port + ai-signal-bot endpoint vs component urls
+# Per-component runtime settings live in their own configs:
+#   exchange_simulator/config.yaml, ai-signal-bot/config/settings.yaml,
+#   hft-trade-bot/config/config.yaml
 
 # Symbols traded across all components — must match exchange simulator config
 # Expanded to 50+ cryptocurrency pairs for comprehensive trading
@@ -78,10 +70,6 @@ exchanges:
   - binance
   - bybit
   - okx
-
-# Default exchange for order execution when no preference is specified
-default_exchange: binance
-
 # Global risk parameters (shared between AI Signal Bot and HFT Trade Bot)
 # Component-specific configs may override these values
 risk:
@@ -91,17 +79,6 @@ risk:
   min_rr_ratio: 1.5              # Minimum risk:reward ratio
   max_open_positions: 10         # Concurrent positions across all symbols (increased for 50+ symbols)
   max_position_size_pct: 10.0    # Max notional per position as % of balance
-
-# Timeframe — must match across all components for consistent candle data
-timeframe: "5m"                  # 1m | 3m | 5m | 15m | 30m | 1h | 4h | 1d
-timeframe_seconds: 300           # Numeric equivalent (5m = 300s)
-
-# Account defaults — starting balance and leverage for all exchanges
-account:
-  initial_balance: 10000.0       # Starting USDT balance per exchange
-  currency: "USDT"
-  leverage: 10                   # Default leverage (1-50, higher = more risk)
-
 # Communication — WebSocket endpoints for inter-component messaging
 # Hosts default to localhost for dev. In Docker/K8s, override via env vars
 # or Helm values — do not modify this file for production deployments.
@@ -113,4 +90,3 @@ websocket:
   ai_signal_bot:
     host: localhost              # AI signal publisher WebSocket server (override in Docker/K8s)
     port: 8766                   # Signals, regime, backtest results
-    metrics_port: 9090           # Prometheus metrics

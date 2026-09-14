@@ -94,7 +94,9 @@ if "!HAS_CMAKE!"=="1" (
     if not exist build mkdir build
     cd build
     echo [INFO] Running cmake configure...
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake -DWEBSOCKETPP_INCLUDE_DIR="%WEBSOCKETPP_DIR%"
+    set "VCPKG_FLAG="
+    if defined VCPKG_ROOT set "VCPKG_FLAG=-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake"
+    cmake .. -DCMAKE_BUILD_TYPE=Release !VCPKG_FLAG! -DWEBSOCKETPP_INCLUDE_DIR="%WEBSOCKETPP_DIR%"
     if errorlevel 1 (
         echo [ERROR] CMake configuration failed
         echo        Make sure you have a C++20 compiler (MSVC 19.29+, GCC 13+, or Clang 17+)
@@ -137,7 +139,6 @@ echo  All dependencies installed successfully!
 echo ============================================
 echo.
 echo  Next step: Run no-docker.bat to start all services
-echo    or:   Run start.bat to start with CLI monitors
 echo.
 echo  Services:
 echo    Exchange Simulator  — ws://localhost:8765
