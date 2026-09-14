@@ -1685,4 +1685,4 @@ Commit: 2b71bea
 
 **Retracted/false positives:** `main.jsx` (загружается через index.html script-tag), `generateAccounts`/`bivariateNormalCDF`/`sqDistance`/`euclidean`/`baumWelchStep`/`kmeansPlusPlus`/`kmeansIterate`/`normInv`/`tCDF`/`get_tracer` (внутренние helpers, self-use ≥2), `market_making`/`statistical_arbitrage` (package-imports + build_strategies), factory-типы (внутри exchange_factory), `HawkesParams`/hawkes-функции (живут через analysis_requests — мёртв только result-класс), `error_monitor`/`price_monitor`/`trade_csv_logger`/`run_all_tests`/`build-all.bat` (документированы/операционны), `logs/trades_*.csv` (gitignored residue, не committed).
 
-Commit: TBD
+Commit: 9fe7ebb

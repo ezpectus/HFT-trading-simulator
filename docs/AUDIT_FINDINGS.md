@@ -2033,4 +2033,4 @@ Final rotation item: whole-repo dead-code sweep — importer graph over all 104 
 
 **Verified clean:** every non-test Python module has a prod importer; all web-ui files reachable; e2e wired through playwright config; `ai-signal-bot/scripts/` is an empty gitkeep dir (S227 class, already recorded).
 
-Commit: TBD
+Commit: 9fe7ebb
