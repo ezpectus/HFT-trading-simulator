@@ -82,6 +82,15 @@ async def _drain(ws: FakeWs, adapter: SimulatorAdapter):
             return
 
 
+async def _next_sent(ws: FakeWs, timeout: float = 2.0) -> dict:
+    """Wait for the adapter's next wire request."""
+    for _ in range(int(timeout / 0.01)):
+        if ws.sent:
+            return ws.sent[-1]
+        await asyncio.sleep(0.01)
+    raise AssertionError("no wire request sent")
+
+
 class TestExchangeMode:
     def test_values(self):
         assert ExchangeMode.SIMULATOR.value == "simulator"
@@ -154,18 +163,50 @@ class TestSimulatorAdapter:
         adapter = SimulatorAdapter()
         await adapter.initialize()
         await _drain(fake_ws, adapter)  # sets _default_exchange
+        task = asyncio.create_task(adapter.place_order("BTC/USDT", "BUY", 0.5))
+        req = await _next_sent(fake_ws)
         fake_ws.push({"type": "fill", "order": {
-            "id": "ord_1", "symbol": "BTC/USDT", "side": "BUY",
+            "id": "ord_1", "client_order_id": req["client_order_id"],
+            "symbol": "BTC/USDT", "side": "BUY",
             "status": "FILLED", "filled_price": 65001.0, "filled_quantity": 0.5,
             "fee": 0.01,
         }})
-        order = await adapter.place_order("BTC/USDT", "BUY", 0.5)
+        order = await task
         assert order["id"] == "ord_1"
         assert order["status"] == "FILLED"
         # verify the wire request
-        assert fake_ws.sent[0]["type"] == "order"
-        assert fake_ws.sent[0]["side"] == "BUY"
-        assert fake_ws.sent[0]["quantity"] == 0.5
+        assert req["type"] == "order"
+        assert req["side"] == "BUY"
+        assert req["quantity"] == 0.5
+        await adapter.close()
+
+    @pytest.mark.asyncio
+    async def test_foreign_fill_does_not_resolve_pending_order(self, fake_ws):
+        """S229 regression: the sim broadcasts every fill to all *other*
+        clients — a stranger's fill must not resolve our pending order."""
+        adapter = SimulatorAdapter()
+        await adapter.initialize()
+        await _drain(fake_ws, adapter)
+        task = asyncio.create_task(adapter.place_order("BTC/USDT", "BUY", 0.5))
+        req = await _next_sent(fake_ws)
+        # Another bot's fill broadcast to us — different client_order_id.
+        fake_ws.push({"type": "fill", "order": {
+            "id": "ord_X", "client_order_id": "other-bot-1",
+            "symbol": "ETH/USDT", "side": "SELL",
+            "status": "FILLED", "filled_price": 3000.0,
+            "filled_quantity": 9.0, "fee": 0.5,
+        }})
+        await asyncio.sleep(0.05)  # let the recv loop consume the broadcast
+        assert not task.done()
+        fake_ws.push({"type": "fill", "order": {
+            "id": "ord_1", "client_order_id": req["client_order_id"],
+            "symbol": "BTC/USDT", "side": "BUY",
+            "status": "FILLED", "filled_price": 65001.0,
+            "filled_quantity": 0.5, "fee": 0.01,
+        }})
+        order = await task
+        assert order["id"] == "ord_1"
+        assert order["symbol"] == "BTC/USDT"
         await adapter.close()
 
     @pytest.mark.asyncio
@@ -192,15 +233,18 @@ class TestSimulatorAdapter:
 
     @pytest.mark.asyncio
     async def test_cancel_order_round_trip(self, fake_ws):
-        """cancel_order sends the protocol message and resolves on
-        order_cancelled via the in-order response FIFO."""
+        """cancel_order sends the protocol message and resolves on the
+        order_cancelled reply matched by order id."""
         adapter = SimulatorAdapter()
         await adapter.initialize()
         await _drain(fake_ws, adapter)  # sets _default_exchange
-        fake_ws.push({"type": "order_cancelled", "order_id": "ord_9",
-                      "symbol": "BTC/USDT"})
-        assert await adapter.cancel_order("ord_9", "BTC/USDT") is True
-        sent = fake_ws.sent[0]
+        task = asyncio.create_task(adapter.cancel_order("ord_9", "BTC/USDT"))
+        sent = await _next_sent(fake_ws)
+        # Real wire: {"type": "order_cancelled", "order": order.to_dict()}
+        fake_ws.push({"type": "order_cancelled",
+                      "order": {"id": "ord_9", "symbol": "BTC/USDT",
+                                "status": "CANCELLED"}})
+        assert await task is True
         assert sent["type"] == "cancel_order"
         assert sent["order_id"] == "ord_9"
         assert sent["exchange"] == "binance"
@@ -211,14 +255,17 @@ class TestSimulatorAdapter:
         adapter = SimulatorAdapter()
         await adapter.initialize()
         await _drain(fake_ws, adapter)
+        task = asyncio.create_task(adapter.place_order(
+            "BTC/USDT", "BUY", 0.1, client_order_id="sig_42"))
+        req = await _next_sent(fake_ws)
         fake_ws.push({"type": "fill", "order": {
-            "id": "ord_2", "symbol": "BTC/USDT", "side": "BUY",
+            "id": "ord_2", "client_order_id": "sig_42",
+            "symbol": "BTC/USDT", "side": "BUY",
             "status": "FILLED", "filled_price": 65000.0,
             "filled_quantity": 0.1, "fee": 0.0,
         }})
-        await adapter.place_order("BTC/USDT", "BUY", 0.1,
-                                  client_order_id="sig_42")
-        assert fake_ws.sent[0]["client_order_id"] == "sig_42"
+        await task
+        assert req["client_order_id"] == "sig_42"
         await adapter.close()
 
     @pytest.mark.asyncio
