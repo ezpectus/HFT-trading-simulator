@@ -1914,3 +1914,18 @@ Commit: f27711e
 **Clean:** release.yml честный; codeql.yml осознанная cpp-only матрица; nightly импорты/сигнатуры резолвятся и пайплайн реальный (seeded-GBM + Backtester + walk-forward окна); prod-compose порты/mounts согласованы со scp-листом; оба Dockerfile объявляют 4 VITE_* ARG; nginx.conf честный (/health, security-headers, SW-cache); screenshots.spec реальный; Makefile.prod/.env.prod.example консистентны; dependabot — 8 живых экосистем; shared_config.yaml — подтверждённый reference (S136).
 
 Commit: f0d4554
+
+## R135 — backend Dockerfiles + compose hub/staging + CHANGELOG/CONTRIBUTING drift (~4.5k lines)
+
+**Scope:** `ai-signal-bot/Dockerfile{,.prod}`, `exchange_simulator/Dockerfile{,.prod}`, `hft-trade-bot/Dockerfile{,.prod}`, `docker-compose.hub.yml` (121), `docker-compose.staging.yml` (245), `CHANGELOG.md` (2,722 — крупнейший непрочитанный файл), `CONTRIBUTING.md` (614), `SECURITY.md`, `.github/` templates.
+
+**Findings (3):**
+- S303 (High): exchange_simulator Docker-образ DOA — `context: ./exchange_simulator` + `COPY . .` кладёт содержимое пакета плоско в /app → `python -m exchange_simulator` не находит `/app/exchange_simulator/` → ModuleNotFoundError → crash-loop `restart: unless-stopped`. Проверено: pyproject = только ruff/pytest (нет packaging), requirements без `-e .`, volume-маунты не включают исходники. Мёртв на всех путях: dev/staging/prod compose, deploy.yml ghcr-образы, build-all.bat docker-шаг. Тот же корень что S215/S220, механизм другой (flat COPY в образе).
+- S304 (Medium): `docker-compose.hub.yml:81` `command: ./build/hft_trade_bot config/config.yaml` — prod-образ (Dockerfile.prod) кладёт бинарь в `/app/hft_trade_bot`, `/app/build/` отсутствует → hft не стартует через hub. Staging :104 — тот же путь, но верный: dev-Dockerfile сохраняет `/app/build/` (Dockerfile:50). Плюс staging-шапка «Signal Engine V3 enabled (HMM regime detection)» — ничто в файле его не включает; staging-grafana без provisioning → пустая grafana при заявленном «monitoring».
+- S305 (Info): docs-residue — `CONTRIBUTING.md:105,:241` ссылаются на удалённый `start.bat` (CHANGELOG:62 сам его удалил); `:470` prod-compose «(+ PostgreSQL, Redis…)» — фантомные зависимости; `CHANGELOG.md` — версионируются только [v4.0]/[v4.1] на дне файла, ~2,200 строк `[Unreleased]` с внутренними v4.2–v5.3, package.json заявляет 2.2.0 — ни одна changelog-запись не соответствует шипнутой версии.
+
+**Dedup:** ai-bot Dockerfile crash (run_logger) — S207; compose WS_URL/env — S210/S263; `python -m` host-side — S215/S220; CONTRIBUTING:256 — S217.
+
+**Clean:** оба ai-bot Dockerfile корректны (помимо S207); hft Dockerfiles — bookworm-ABI-consistent, binary-paths верны под свои layout'ы; staging порты/health/limits согласованы; hub depends_on service_healthy цепочки верны; sim `--export` флаги реальны; SECURITY/templates честные.
+
+Commit: <pending>
