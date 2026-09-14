@@ -2211,3 +2211,20 @@ Scope: all of `hft-trade-bot/tests/` — 26 files / ~5,185 lines (doctest suites
 **Verified clean:** hundreds of doctest `CHECK`s with exact values; V3-HMM tests run on deterministic synthetic price series (LCG seed=42); `test_signal_flow` is a real SHM ring-buffer push/pop pipeline; all 26 files wired into CMake (`v2_*` via foreach, `integration_shm` correctly POSIX-gated); CI `test-cpp` genuinely runs `ctest --output-on-failure` on gcc-14 + clang-17 with coverage; the `max_drawdown_pct` percent-vs-fraction ambiguity is already S251 (config `8.0` percent vs params `0.15` fraction — both paths internally consistent).
 
 Commit: c4b7bdb
+
+
+---
+
+## Round 131 — ai-signal-bot src tail + config + monitoring internals (2 findings: S288–S289)
+
+Scope: `src/database/db.py`, `src/pricing/volatility_surface.py`, `src/utils/bot_helpers.py`, `src/monitoring/` internals (alerting/health_server/metrics/tracker), `config/settings.yaml` + `settings.testnet.yaml`, `monitoring/` root (prometheus.yml, alertmanager.yml, alerts.yml, ebpf_monitor.py, test_alerts.py).
+
+**S288 (Medium) — Open.** Six `monitoring/alerts.yml` rules query metrics whose setters are dead (the S272 dead-setter list): `HighBotErrorRate`/`CriticalBotErrorRate` (`rate(ai_signal_bot_errors_total)` — `record_error` never called), `HighDrawdown`/`CriticalDrawdown` (`ai_signal_bot_drawdown` — `set_bot_drawdown` dead), `LowWinRate` (`ai_signal_bot_win_rate` — dead), `NegativePnL` (`ai_signal_bot_pnl_total` — dead). The `CriticalDrawdown >15%` page can never fire — a safety net that exists only on paper. Worse than a flat dashboard: a zeroed panel might get noticed; a silent alert never does.
+
+**S289 (Medium) — Open.** The exchange ratio alerts are broken by S281's eternal-zero metrics in opposite directions: `alerts.yml:160` `HighOrderRejectionRate` (`rejected/submitted > 0.1`) can never fire, while `alerts.yml:171` `LowFillRate` (`filled/submitted < 0.8` for 10m) fires **permanently** whenever orders flow — `0/x < 0.8` is always true. A crying-wolf alert trains operators to ignore the channel real pages arrive on.
+
+**Retracted:** `portfolio_requests._calibrate`'s double `fitted` comprehension — the first is dead work when `eval_strikes` is provided but correct when None (zips parallel training arrays). Wasteful, not wrong.
+
+**Verified clean:** `Database` is fully live (save_signal/save_trade/save_equity/close_trade/purge all called from run.py); `VolatilitySurface` is real SVI+SABR via scipy least_squares, wired into `vol_surface_request` with point validation; `AlertSystem`/`PerformanceTracker`/`HealthServer`/`bot_helpers` all instantiated in run.py; circuit-breaker state map CLOSED/OPEN/HALF_OPEN→0/1/2 is consistent across both metric systems and alerts.yml; prometheus scrape topology + helm ports agree; alertmanager ships an honestly-empty default receiver with docs; `test_alerts` validates the real file; `settings.testnet.yaml` is an honest preset (its live path dies on missing ccxt — already S228).
+
+Commit: TBD

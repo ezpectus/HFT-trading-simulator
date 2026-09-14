@@ -1850,3 +1850,18 @@ Commit: 2736402
 **Clean:** сотни doctest CHECK с точными значениями; V3-HMM тесты на детерминированных synthetic-сериях (LCG seed=42); test_signal_flow — реальный SHM ring-buffer push/pop pipeline; все 26 файлов wired в CMake (v2_* через foreach-loop, integration_shm под `if(NOT WIN32)`); CI test-cpp честно бежит `ctest --output-on-failure` на gcc-14+clang-17 с coverage; max_drawdown unit-амбивалентность — уже S251 (config percent 8.0 vs params fraction 0.15, оба пути самосогласованы).
 
 Commit: c4b7bdb
+
+
+## R131 — ai-signal-bot src tail + config yaml + monitoring/ internals
+
+**Scope:** `src/database/db.py`, `src/pricing/volatility_surface.py`, `src/utils/bot_helpers.py`, `src/monitoring/` (alerting/health_server/metrics/tracker internals), `config/settings.yaml` + `settings.testnet.yaml`, `monitoring/` root (prometheus.yml, alertmanager.yml, alerts.yml, ebpf_monitor.py, test_alerts.py).
+
+**Findings (2):**
+- S288 (Medium): 6 alert-правил в `monitoring/alerts.yml` опираются на метрики с мёртвыми сеттерами (S272-список): `HighBotErrorRate`/`CriticalBotErrorRate` (`rate(ai_signal_bot_errors_total)` — `record_error` не вызывается), `HighDrawdown`/`CriticalDrawdown` (`ai_signal_bot_drawdown` — `set_bot_drawdown` мёртв), `LowWinRate` (`ai_signal_bot_win_rate`), `NegativePnL` (`ai_signal_bot_pnl_total`). CriticalDrawdown>15% не может сработать никогда — safety-net на бумаге. Хуже дашборда: плоский ноль хоть кто-то заметит, молчащий алерт — никто.
+- S289 (Medium): exchange ratio-алерты сломаны вечным-нулём S281 — `alerts.yml:160` `HighOrderRejectionRate` (`rejected/submitted>0.1`) не сработает никогда; `alerts.yml:171` `LowFillRate` (`filled/submitted<0.8` for 10m) орёт перманентно при любом потоке ордеров — false-warning тренирует игнорировать алерты.
+
+**Retracted:** `portfolio_requests._calibrate` двойная fitted-comprehension — первая мёртвая-работа при eval_strikes, но корректна при None (zip(strikes,mats) — параллельные массивы); wasteful-not-wrong.
+
+**Clean:** Database полностью живая (save_signal/save_trade/save_equity/close_trade/purge — все коллеры в run.py); VolatilitySurface — реальный SVI+SABR через scipy-least_squares, wired в vol_surface_request с валидацией точек; AlertSystem/PerformanceTracker/HealthServer/bot_helpers — все в run.py; CB-маппинг CLOSED/OPEN/HALF_OPEN→0/1/2 корректен; prometheus scrape-топология + helm ports согласованы; alertmanager — честный пустой receiver с документацией; test_alerts валидирует реальный файл; testnet.yaml честный preset.
+
+Commit: TBD
