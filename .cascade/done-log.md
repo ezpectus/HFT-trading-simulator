@@ -599,3 +599,24 @@
 **Deferred:** S309 — Docker daemon still unreachable.
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN.
+
+### S274 — MarketDepthReplay replays the real orderbook prop
+- **Bug:** `orderbooks: _orderbooks` — the real prop deliberately ignored while the panel synthesized a 10-level book from candle OHLC (`mid ± spread×levels` + jitter): a "depth replay" of depth that never existed. Bonus: `f.timestamp || f.received_at` mixed seconds vs ms in the fill-join window.
+- **Fix:** panel renders the real `ctx.exchange.orderbooks` book for the replayed symbol — labeled as the live book (no client-side L2 history exists on the wire, so a true depth replay cannot be honest); candle+fill replay still scrubs real data. `f.timestamp` normalized s→ms before the join.
+- **Files:** `web-ui/src/components/MarketDepthReplay.jsx`, `web-ui/src/test/marketDepthReplay.test.jsx`
+
+### S233 — notification diffs survive the 50-cap
+- **Bug:** new-event detection was `len - prevLen`; `fills`/`signals` hard-cap at `.slice(0,50)` in `useExchangeData` → once saturated, length stays 50 → fill + strong-signal toasts permanently silent while events stream.
+- **Fix:** diff by head-identity (first element's timestamp+symbol+direction / fill key) instead of array length — a new head fires regardless of cap saturation. Tests model the real newest-first producer order + a cap-saturation regression test.
+- **Files:** `web-ui/src/hooks/useNotifications.js`, `web-ui/src/test/useNotifications.test.jsx`
+
+### S234 — registry addToast passes the real function through
+- **Bug:** 12 panels got `addToast: (type,msg) => ctx.addToast({type, title: msg})`; the store's object branch renders `` `${title}: ${message}` `` with `message` undefined → every toast read "…: undefined".
+- **Fix:** all 12 sites pass `ctx.addToast` through directly — the store's positional `(type, message)` branch already handles the panel contract.
+- **Files:** `web-ui/src/panels/registry.js`
+
+### S235 — detachable panels cut to the reachable surface
+- **Bug:** `PANEL_CONFIG` declared 6 panels and `updatePopupContent` rendered all 6, `useDetachedPanelSync` synced 5 — but only `chart`/`orderbook` have `<DetachablePanel>` wrappers → account/signals/arbitrage/performance branches unreachable (`handleDetach` dataMap didn't even carry 'performance'). `BroadcastChannel('trading-sim-panel')` posted into a channel nobody listens on. `:41` used a real blocking `alert('Popup blocked…')`.
+- **Fix:** config + renderers + sync trimmed to chart/orderbook; BroadcastChannel removed; popup-blocked notice routed through `useToastStore` instead of `alert()`. Tests updated to the real surface.
+- **Files:** `web-ui/src/hooks/useDetachablePanels.js`, `useDetachedPanelSync.js`, `App.jsx`, `web-ui/src/test/useDetachablePanels.test.jsx`, `useDetachedPanelSync.test.jsx`
+

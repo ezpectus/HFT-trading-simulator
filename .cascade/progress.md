@@ -2262,3 +2262,13 @@ Re-checked R160 + R162 claims adversarially against committed code:
 - **S306** — WEB_UI.md launcher line corrected.
 
 Done-log now fully verified through R162.
+
+## R164 — slop-fix (web-ui notification/panel cluster) — 4 closed
+
+- **S274** — MarketDepthReplay renders the real `orderbooks` prop (labeled live book; no client-side L2 history exists to replay); `f.timestamp` s→ms normalized in the fill-join window.
+- **S233** — notification diffs now keyed on head-identity (timestamp+symbol+direction / fill key), not array length → toasts survive the 50-cap.
+- **S234** — all 12 registry `addToast` wrappers pass `ctx.addToast` through → no more "…: undefined".
+- **S235** — PANEL_CONFIG/renderers/sync trimmed to the wired chart+orderbook surface; vestigial BroadcastChannel removed; `alert('Popup blocked…')` → toast store.
+
+Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 55 open.
+
