@@ -35,7 +35,7 @@ Max drawdown = worst peak-to-trough. Walk-forward = overfitting check.
 ### Risk management while trading — theory
 
 - **Position size:** 2% risk per trade (Half-Kelly). Don't override.
-- **Daily drawdown:** 8% limit. System auto-stops. Respect it.
+- **Daily drawdown:** An 8% limit exists in config, but the enforcing check is currently unwired (audit S339) — monitor it yourself; don't rely on auto-stop.
 - **Diversification:** Don't concentrate in one symbol. 49 symbols
   available for a reason.
 - **Stop loss:** Always set. No "hoping it comes back."

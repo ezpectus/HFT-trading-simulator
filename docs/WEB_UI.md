@@ -251,7 +251,7 @@ This generates synthetic candle, orderbook, and signal data so the UI is fully i
 ### Production (Docker)
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Open http://localhost:3000
@@ -279,16 +279,15 @@ Browser (React 18 + Vite 8)
   |     |-- subscribe -> signal_history, signal, market_regime
   |     |-- run_backtest -> backtest_result
   |
-  Panel Registry (src/panels/registry.js)
-  |-- Category: Order Flow         (14 panels)
-  |-- Category: Technical Analysis  (18 panels)
-  |-- Category: Risk and Analytics  (20 panels)
-  |-- Category: Portfolio            (7 panels)
-  |-- Category: Strategy             (6 panels)
-  |-- Category: Export               (3 panels)
-  |-- Category: Config               (2 panels)
-  |-- Advanced Math Models           (75+ panels, V1-V15)
-  +-- Total: 278 registered panels, 289 component files
+  Panel Registry (src/panels/registry.js) — 271 panels by category:
+  |-- risk        (113 panels — incl. the math-model suite)
+  |-- technical    (50 panels)
+  |-- portfolio    (33 panels)
+  |-- config       (26 panels)
+  |-- strategy     (25 panels)
+  |-- orderflow    (18 panels)
+  |-- export        (6 panels)
+  +-- Total: 271 registered panels (278 registry ids incl. 7 category rows), 295 component files
 ```
 
 ## Configuration

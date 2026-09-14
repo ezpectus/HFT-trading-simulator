@@ -174,7 +174,7 @@ docker run -d \
   prom/prometheus
 
 # Or via docker-compose
-docker-compose up prometheus
+docker compose up prometheus
 ```
 
 ---
@@ -518,7 +518,7 @@ services:
 Start the monitoring stack:
 
 ```bash
-docker-compose up -d prometheus grafana
+docker compose up -d prometheus grafana
 ```
 
 ---

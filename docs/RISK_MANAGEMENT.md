@@ -306,7 +306,7 @@ new_sl = rm.update_stop_loss(position, current_price, candle)
 
 **Source:** `hft-trade-bot/src/risk/risk_manager.h`
 
-8 pre-trade checks: blacklist, max leverage, position size, total exposure, daily loss, max drawdown, order rate throttle, margin.
+8 pre-trade checks: blacklist, max leverage, position size, total exposure, daily loss, max drawdown, order rate throttle, margin — invoked via `precheck_order` in `bot_loop.cpp` before every order.
 
 ---
 
@@ -317,7 +317,7 @@ Risk parameters in `ai-signal-bot/config/settings.yaml`:
 ```yaml
 risk:
   max_risk_per_trade_pct: 2.0    # 2% per trade
-  max_daily_drawdown_pct: 8.0    # 8% daily drawdown limit
+  max_daily_drawdown_pct: 8.0    # 8% daily drawdown — config exists; enforcing check unwired (audit S339)
   min_confidence: 65             # 65% minimum signal confidence
   min_rr_ratio: 1.5              # 1.5 minimum risk:reward
   max_position_size_pct: 10.0    # 10% max position

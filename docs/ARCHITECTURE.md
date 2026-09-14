@@ -213,8 +213,8 @@ The system implements production-grade observability across all components:
 3. **Trend Following** — EMA crossover + ADX strength filter
 4. **Mean Reversion** — RSI extremes + Bollinger Band touches
 5. **FFT Cycle Strategy** — Spectral analysis, cycle detection, regime classification (TRENDING/RANGING/MIXED)
-6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 votes across the enabled strategies; 6 implemented — trend, mean-reversion, FFT, sentiment, market-making, ML-ensemble — 4 enabled by default)
-7. **Signal Validation** — Confidence, R:R ratio, drawdown, position limits
+6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 votes across the enabled strategies; 7 implemented — trend, mean-reversion, FFT, statistical-arbitrage, sentiment, market-making, ML-ensemble — 5 enabled by default, market-making and ML-ensemble off)
+7. **Signal Validation** — Confidence, R:R ratio, position limits (**audit S339:** the drawdown gate is configured but its `update_pnl` feed has no production caller — currently dead)
 8. **Order Execution** — Sends orders to exchange simulator
 
 **Additional features:**
@@ -227,7 +227,7 @@ The system implements production-grade observability across all components:
 - CSV logging for signals and trades
 - Timestamped file logging via `run_logger.py` (local dev script — gitignored, optional)
 - CLI monitor script (`monitor.py`) for live signal feed
-- Circuit breaker: signal protection with CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery
+- Circuit breaker: CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery (**audit S337:** trips and reports state but does not gate order execution — currently decorative)
 - Prometheus metrics server: counters (signals sent/blocked, backtests, circuit breaker trips) and gauges (WS clients, CB state, uptime) on `:9090/metrics`
 - Health server: `/health` detail + `/live` + `/ready` probe endpoints on `:8080`
 - SHM IPC: lock-free SPSC ring buffer for Python ↔ C++ communication (signal producer, fill consumer, market data writer)
@@ -576,10 +576,10 @@ from this series.
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| Exchange Simulator | Python 3.12, asyncio, websockets | v2.2.0 |
-| AI Signal Bot | Python 3.12, asyncio, SQLite (WAL), matplotlib | v2.2.0 |
+| Exchange Simulator | Python 3.12, asyncio, websockets | v4.1.0 |
+| AI Signal Bot | Python 3.12, asyncio, SQLite (WAL), matplotlib | v4.1.0 |
 | HFT Trade Bot | C++20, Boost, websocketpp, spdlog, yaml-cpp | v2.0.0 |
-| Web UI | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, PWA | v2.2.0 |
+| Web UI | React 18, Vite 8, TailwindCSS 3, lightweight-charts 4, PWA | v4.1.0 |
 | Communication | WebSocket (JSON), per-message deflate compression | - |
 | Database | SQLite (WAL mode), embedded in the AI Signal Bot | - |
 | Containerization | Docker, docker-compose (dev), docker-compose.prod (prod) | - |
@@ -697,9 +697,9 @@ The system uses Prometheus for metrics collection and Grafana for visualization:
 
 | Service | Metrics Endpoint | Key Metrics |
 |---------|-----------------|-------------|
-| **Exchange Simulator** | `:9090/metrics` | `ws_connections`, `broadcasts_total`, `candles_generated_total`, `arbitrage_opportunities_active`, `arbitrage_profit_estimated` |
+| **Exchange Simulator** | `:8775/metrics` | `exchange_ws_connections_total`, `exchange_simulator_messages_total`, `exchange_simulator_price_updates_total`, `exchange_orders_{submitted,filled,rejected}_total`, `exchange_total_pnl`, `exchange_trading_active`, `exchange_simulator_*_latency_seconds` histograms |
 | **HFT Trade Bot** | Internal `LatencyHistogram` | `signal_to_order_p50_us`, `signal_to_order_p99_us`, `orders_sent_total`, `positions_open`, `circuit_breaker_state` — **audit S250:** `circuit_breaker_state` does not exist (CircuitBreaker is test-only); **S246:** 6 of 11 exported counters (`errors_total`, `reconnects_total`, `orders_canceled_total`, `shm_drops_total`, `heartbeats_*`) are permanent zeros |
-| **AI Signal Bot** | `:9091/metrics` | `signals_sent_total`, `signals_blocked_total`, `ws_clients_connected`, `backtests_run_total`, `circuit_breaker_trips_total`, `circuit_breaker_state`, `uptime_seconds` |
+| **AI Signal Bot** | `:9090/metrics` (prod maps `:9092`) | `ai_signal_bot_signals_sent_total`, `ai_signal_bot_signals_blocked_total`, `ai_signal_bot_ws_clients_connected`, `ai_signal_bot_backtests_run_total`, `ai_signal_bot_circuit_breaker_trips_total`, `ai_signal_bot_circuit_breaker_state`, `ai_signal_bot_uptime_seconds` |
 | **Web UI** | N/A (client-side) | Connection quality, latency (displayed in StatusBar) |
 
 **Grafana dashboards** (in `monitoring/grafana/dashboards/`):
@@ -725,13 +725,13 @@ The system runs as a set of independent containers connected via a shared Docker
 │  │  Exchange     │◄───────────►│  HFT Trade Bot    │          │
 │  │  Simulator    │   WS:8766   │  (C++ binary)     │          │
 │  │  (Python)     │◄────┐       └──────────────────┘          │
-│  │  :9090/metrics│     │                    │                 │
+│  │  :8775/metrics│     │                    │                 │
 │  └──────────────┘     │                    │ signals          │
 │                       │                    │ via WS           │
 │  ┌──────────────┐     │       ┌──────────────────┐          │
 │  │  AI Signal    │◄────┘       │  Web UI           │          │
 │  │  Bot (Python) │  WS:8766    │  (Vite/React)     │          │
-│  │  :9091/metrics│◄───────────►│  :5173/:80        │          │
+│  │  :9090/metrics│◄───────────►│  :3000            │          │
 │  └──────────────┘             └──────────────────┘          │
 │                                                              │
 │  ┌──────────────┐             ┌──────────────────┐          │
@@ -760,7 +760,7 @@ The system runs as a set of independent containers connected via a shared Docker
 2. **AI Signal Bot** connects to Exchange Simulator as client, generates signals, broadcasts via WS:8766
 3. **HFT Trade Bot** connects to both WS servers — receives market data (:8765) and signals (:8766)
 4. **Web UI** connects to Exchange Simulator (:8765) for market data and AI Signal Bot (:8766) for signals
-5. **Prometheus** scrapes metrics from Exchange Simulator (:9090) and AI Signal Bot (:9091)
+5. **Prometheus** scrapes metrics from Exchange Simulator (:8775), AI Signal Bot (:9090), and HFT Trade Bot (:9091)
 6. **Grafana** reads from Prometheus for dashboard visualization
 
 **Design rules:**

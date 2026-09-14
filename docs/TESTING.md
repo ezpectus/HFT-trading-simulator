@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. ~124 Python + 25 C++ + ~158 JS ≈ 307 unit test files.
+  individual functions. 118 Python + 26 C++ + 159 JS ≈ 303 unit test files.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.

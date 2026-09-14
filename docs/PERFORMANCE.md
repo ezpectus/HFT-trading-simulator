@@ -15,7 +15,7 @@ The system has a dual signal path with different latency requirements:
 | **Fast path** | SHM IPC (Python → C++) | 10-50us | ~30us |
 | **Slow path** | Python AI signal bot | ~50ms | 30-80ms |
 | **Slow path** | Strategy analysis (per symbol) | ~5ms | 2-10ms |
-| **Slow path** | Ensemble voting (6 strategies) | ~25ms | 15-40ms |
+| **Slow path** | Ensemble voting (5 enabled strategies) | ~25ms | 15-40ms |
 | **Network** | WebSocket (exchange simulator) | 1-5ms | ~2ms (localhost) |
 
 > The exchange simulator has **no REST API** — all commands and market data

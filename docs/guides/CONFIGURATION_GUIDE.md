@@ -7,12 +7,13 @@ format and are validated at startup.
 
 ### Key parameters and their theoretical meaning
 
-**Risk parameters:**
-- `max_risk_per_trade: 0.02` — Half-Kelly. Balance growth vs safety.
+**Risk parameters** (real keys in `ai-signal-bot/config/settings.yaml`):
+- `max_risk_per_trade_pct: 2.0` — Half-Kelly. Balance growth vs safety.
   Too high = risk of ruin. Too low = underutilization.
-- `max_daily_drawdown: 0.08` — Circuit breaker. Stop trading at 8%
-  daily loss. Prevents emotional revenge trading.
-- `min_confidence: 0.65` — Signal quality filter. 65% = 2:1 odds.
+- `max_daily_drawdown_pct: 8.0` — intended daily-loss stop. Config exists,
+  but the enforcing check is currently unwired (audit S339) — do not
+  rely on it as an active protection.
+- `min_confidence: 65` — Signal quality filter (0-100 scale).
   Below = noise, not actionable.
 - `min_rr_ratio: 1.5` — Risk:Reward. Expected value positive if
   win_rate x (R:R) > (1 - win_rate). R:R=1.5, win_rate=40% → EV=0.
