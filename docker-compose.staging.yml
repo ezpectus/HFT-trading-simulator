@@ -68,6 +68,7 @@ services:
     command: python run.py --metrics
     environment:
       - LOG_FORMAT=json
+      - WS_URL=ws://exchange-simulator:8765
     restart: on-failure:5
     deploy:
       resources:
@@ -104,6 +105,8 @@ services:
     command: ./build/hft_trade_bot config/config.yaml
     environment:
       - LOG_FORMAT=json
+      - HFT_EXCHANGE_WS_URL=ws://exchange-simulator:8765
+      - HFT_AI_SIGNAL_WS_URL=ws://ai-signal-bot:8766
     restart: on-failure:5
     deploy:
       resources:

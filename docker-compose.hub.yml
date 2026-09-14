@@ -55,6 +55,9 @@ services:
       - ai-data:/app/data
       - ai-logs:/app/logs
     command: python run.py --metrics
+    environment:
+      # S210: service DNS, not the container's own loopback.
+      - WS_URL=ws://exchange-simulator:8765
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready', timeout=5)"]
@@ -79,6 +82,11 @@ services:
     ports:
       - "9091:9091"
     command: ./build/hft_trade_bot config/config.yaml
+    environment:
+      # S210: config.yaml resolves ${HFT_*_WS_URL:-localhost} — inject the
+      # compose service names or the bot dials its own loopback.
+      - HFT_EXCHANGE_WS_URL=ws://exchange-simulator:8765
+      - HFT_AI_SIGNAL_WS_URL=ws://ai-signal-bot:8766
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/health"]

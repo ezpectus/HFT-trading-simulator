@@ -6,6 +6,8 @@ Verifies that configuration is consistent across all components:
 - ai-signal-bot/config/settings.yaml
 - hft-trade-bot/config/config.yaml
 """
+import os
+import re
 import sys
 
 import yaml
@@ -19,6 +21,21 @@ def load_yaml(path: Path) -> dict:
     """Load a YAML file."""
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+_ENV_VAR = re.compile(r"\$\{([^}:]+)(?::-([^}]*))?\}")
+
+
+def expand_env(value: str) -> str:
+    """Resolve ${VAR} / ${VAR:-default} placeholders the way the C++ and
+    Python config parsers do (hft config_parser.h::expand_env)."""
+    def repl(m: re.Match) -> str:
+        name, default = m.group(1), m.group(2)
+        env = os.environ.get(name)
+        if env:
+            return env
+        return default if default is not None else ""
+    return _ENV_VAR.sub(repl, value)
 
 
 def test_symbol_consistency():
@@ -142,8 +159,10 @@ def test_websocket_consistency():
     
     print(f"Shared exchange WebSocket: {shared_exchange_ws['host']}:{shared_exchange_ws['port']}")
     print(f"Exchange simulator WebSocket: {exchange_ws['host']}:{exchange_ws['port']}")
-    print(f"AI bot WebSocket: {ai_ws['websocket_url']}")
-    print(f"HFT bot WebSocket: {hft_ws['websocket_url']}")
+    ai_url = expand_env(ai_ws["websocket_url"])
+    hft_url = expand_env(hft_ws["websocket_url"])
+    print(f"AI bot WebSocket: {ai_url}")
+    print(f"HFT bot WebSocket: {hft_url}")
     
     # Check consistency
     if exchange_ws["host"] != shared_exchange_ws["host"]:
@@ -156,13 +175,13 @@ def test_websocket_consistency():
     
     # AI bot connects to exchange simulator for market data, not signal bot
     expected_ai_url = f"ws://{shared_exchange_ws['host']}:{shared_exchange_ws['port']}"
-    if ai_ws["websocket_url"] != expected_ai_url:
-        print(f"ERROR: AI bot WebSocket URL mismatch (expected {expected_ai_url}, got {ai_ws['websocket_url']})")
+    if ai_url != expected_ai_url:
+        print(f"ERROR: AI bot WebSocket URL mismatch (expected {expected_ai_url}, got {ai_url})")
         return False
-    
+
     expected_hft_url = f"ws://{shared_exchange_ws['host']}:{shared_exchange_ws['port']}"
-    if hft_ws["websocket_url"] != expected_hft_url:
-        print("ERROR: HFT bot WebSocket URL mismatch")
+    if hft_url != expected_hft_url:
+        print(f"ERROR: HFT bot WebSocket URL mismatch (expected {expected_hft_url}, got {hft_url})")
         return False
     
     print("✓ WebSocket consistency check passed")

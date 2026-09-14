@@ -71,8 +71,9 @@ trading:
   max_open_positions: 10        # Increased for 50+ symbols (was 3)
 
 exchange:
-  # Dev default — override ws_url in Docker/K8s via config mount or env var
-  websocket_url: "ws://localhost:8765"
+  # Dev default — compose/k8s inject service DNS via env; ${VAR:-default}
+  # keeps native `localhost` when unset (S210).
+  websocket_url: "${HFT_EXCHANGE_WS_URL:-ws://localhost:8765}"
   default_exchange: "binance"   # binance | bybit | okx
 
 # Risk management — all percentages are of total account balance
@@ -156,4 +157,4 @@ logging:
 # AI Signal Bot connection (slow path, optional)
 ai_signal_bot:
   enabled: true                 # If false, only V2 native engine is used
-  websocket_url: "ws://localhost:8766"
+  websocket_url: "${HFT_AI_SIGNAL_WS_URL:-ws://localhost:8766}"

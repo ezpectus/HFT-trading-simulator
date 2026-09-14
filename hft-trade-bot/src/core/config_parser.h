@@ -48,7 +48,7 @@ inline std::string expand_env(const std::string& s) {
 
 inline void parse_dev_config(Config& cfg, const YAML::Node& root) {
     if (auto ex = root["exchange"]) {
-        if (ex["websocket_url"]) cfg.ws_url = ex["websocket_url"].as<std::string>();
+        if (ex["websocket_url"]) cfg.ws_url = expand_env(ex["websocket_url"].as<std::string>());
         if (ex["default_exchange"]) cfg.default_exchange = ex["default_exchange"].as<std::string>();
     }
     if (auto t = root["trading"]) {
@@ -171,7 +171,8 @@ inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
     }
     if (auto ai = root["ai_signal_bot"]) {
         if (ai["enabled"]) cfg.ai_signal_enabled = ai["enabled"].as<bool>();
-        if (ai["websocket_url"]) cfg.ai_signal_ws_url = ai["websocket_url"].as<std::string>();
+        if (ai["websocket_url"])
+            cfg.ai_signal_ws_url = expand_env(ai["websocket_url"].as<std::string>());
     }
 }
 

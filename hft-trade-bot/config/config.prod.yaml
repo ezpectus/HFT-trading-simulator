@@ -35,7 +35,7 @@ system:
 exchange:
   # ${VAR:-default} — k8s injects the release-scoped DNS name via
   # HFT_EXCHANGE_WS_URL; compose/prod falls back to the compose service name.
-  simulator_ws_url: "${HFT_EXCHANGE_WS_URL:-ws://exchange_simulator:8765}"
+  simulator_ws_url: "${HFT_EXCHANGE_WS_URL:-ws://exchange-simulator:8765}"
 
 # ── SHM IPC configuration ──
 # Shared memory ring buffers for Python↔C++ communication
