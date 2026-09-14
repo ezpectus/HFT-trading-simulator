@@ -2551,3 +2551,15 @@ Second-oldest unrechecked marks (R158). Deletion claims re-proven by grep, mecha
 - **S262** phantom hook variants + orphan scripts — holds: 4 dead hook variants + ci-equivalence.py + health-check.py gone; .pre-commit-config.yaml comment documents real path; *-git.sh canonical twins intact. (install-hooks.sh now exists — created as a real file later; no contradiction.)
 
 Board: 0 open.
+
+## R189 — slop-verify — R161 cohort re-check: 7/7 hold, 0 reverts
+
+- **S240** hft prod config keys — holds: blacklisted_symbols/per_symbol_max_qty/adaptive_toxic_threshold in config.h (:96,:156-157), parsed (config_parser:303-309), wired into RiskManager::Params (bot_setup:89-90); `ai_signal_bot.enabled: false` at config/config.prod.yaml:64-65. (Path drift: file lives under config/.)
+- **S232** web-ui facades — holds: featureFlags.js writes real keys + dispatches feature-flag-changed (:58,:60); useFeatureFlag live-binds (:70-71); consumers real (useExchangeData, PanelContainer, OrderForm, useDetachablePanels); Auth.jsx sends real {type:'auth'} and waits auth_ok (:64). (Path note: file is web-ui/src/featureFlags.js.)
+- **S231** useWebSocket hollow API — holds: all 8 dead knobs gone (zero hits); maxReconnects cap checked on failure path (:92-93); manualCloseRef/isRetryRef present; error state wired.
+- **S257** stale docs — holds: ARCHITECTURE:216 correct (6 impl/4 default); WEBSOCKET_PROTOCOL:1078-1085 rewritten post-S212 (frame discrimination + fallback); PERFORMANCE Rust table gone.
+- **S272** MetricsExporter producers — holds: record_fill :381, update_shm_buffer :383/:576, record_order_sent :619/:684, observe_order_latency :680, record_order_rejected :559/:693, set_bot_* :732-735, record_error at error paths.
+- **S288** alert rules live — holds: HighBotErrorRate/CriticalBotErrorRate/HighDrawdown+ all present in monitoring/alerts.yml (:68,:79,:90); metrics produced per S272.
+- **S292** MetricsCollector fallback — holds: full surface at metrics_server.py:43-112 (kill_switch, drawdown, win_rate, pnl, uptime, fills, orders, signals, errors, shm buffer, both observers).
+
+Board: 0 open.

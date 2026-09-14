@@ -404,17 +404,17 @@
 
 ## R155 — slop-fix (5 findings)
 
-### S240 — hft `config.prod.yaml` dead/miswired keys ✅ · verified R161
+### S240 — hft `config.prod.yaml` dead/miswired keys ✅ · verified R161 · re-verified R189
 - **Bug:** `risk.blacklisted_symbols` + `risk.per_symbol_max_qty` were documented in prod yaml but parsed nowhere; `bot_setup.cpp` passed `{}` to `RiskManager::Params`. `pressure_model.toxicity_threshold` was parsed into `v2_pressure_threshold` (wrong semantic — it's the adaptive selector's toxic→IOC gate). No `ai_signal_bot` section in prod → `ai_signal_enabled=true` defaulted to a dead `ws://localhost:8766` dial while real signals arrive over SHM.
 - **Fix:** `config.h` gains `blacklisted_symbols`/`per_symbol_max_qty` + `adaptive_toxic_threshold`; `config_parser.h` parses all three (prod format); `config.cpp` duplicate miswired pressure block removed; `bot_setup.cpp` wires Params + `ap.toxic_threshold`; prod yaml adds `ai_signal_bot.enabled: false` + `toxic_size_threshold` doc; `CONFIGURATION_GUIDE.md` stale `smart_order_router` section removed. 2 doctests added (`test_doctest_hft_config.cpp`).
 - **Files:** `hft-trade-bot/src/core/config.h`, `config_parser.h`, `config.cpp`, `bot_setup.cpp`, `config/config.prod.yaml`, `tests/test_doctest_hft_config.cpp`, `docs/guides/CONFIGURATION_GUIDE.md`
 
-### S232 — web-ui facades wired real ✅ · verified R161
+### S232 — web-ui facades wired real ✅ · verified R161 · re-verified R189
 - **Bug:** Auth accepted any non-empty credentials into an unread localStorage key; 8 feature-flag toggles wrote an orphan `trading-feature-flags` blob (0 readers) — `mock-mode`/`advanced-panels` didn't even touch the real keys; AlertWebhook CRUD had no dispatcher — `_fills`/`_toasts` props ignored.
 - **Fix (user decision: wire fully real):** `featureFlags.js` module — 6 flags write real keys + `feature-flag-changed` event; consumers: `useMockData` (`mock-mode`), `PanelContainer` (`trading-sim-advanced-panels` via useFeatureFlag), `useUIStore`/`useSoundAlerts` (sound, App syncs both ways), `useExchangeData` autoConnect (`auto-reconnect`), `detachPanel` gate (`detachable-panels`), OrderForm TRAILING_STOP option (`trailing-stop`). 5 unwireable backend-strategy toggles removed. Auth.jsx — real token probe: `{type:'auth'}` on a throwaway socket → `auth_ok` stores `trading-sim-auth-token` + `auth-token-changed` event → live socket reconnects with it; `auth_failed`/timeout never marks Authenticated; register-mode facade removed. AlertWebhook — dispatcher: new fills POST fill/sl_tp/liquidation (classified via new server-side `close_reason` on fills_batch), price-alert toasts → price_alert, UTC-midnight rollover → daily_summary; mount-seed fills treated as history (no replay spam). 7 regression tests (3 webhook dispatch, 4 auth flow) + facade-era tests rewritten.
 - **Files:** `web-ui/src/featureFlags.js` (new), `components/{Auth,FeatureFlags,AlertWebhook,OrderForm}.jsx`, `panels/PanelContainer.jsx`, `hooks/{useDetachablePanels,useExchangeData}.js`, `App.jsx`, `exchange_simulator/ws_broadcast.py` (close_reason), tests `auth/featureFlags/alertWebhook/App.test.jsx`
 
-### S231 — `useWebSocket` hollow API fixed ✅ · verified R161
+### S231 — `useWebSocket` hollow API fixed ✅ · verified R161 · re-verified R189
 - **Bug:** `perMessageDeflate:true` sent `['permessage-deflate']` as a WebSocket SUBPROTOCOL (never negotiates extensions); `reconnectCount++` incremented in `onopen` while the cap was checked in `onclose` — a never-connecting server retried forever; `error` returned but no prod consumer destructured it; ring-buffer/batch API had zero consumers.
 - **Fix:** dead knobs removed (`perMessageDeflate`, `batchTypes`, `batchInterval`, `maxBufferSize`, `getBufferedMessages`, `clearBuffer`, `bufferSize`, `queueSize`); attempts counted per onclose failure → `maxReconnects` actually caps (regression-tested); `isRetryRef` distinguishes auto-retry from manual `connect()` (which resets the budget); `disconnect()` sets `manualCloseRef` — no more auto-reconnect after manual close; `error` wired to `useExchangeData.lastError` → toast pipeline. 3 new tests (no bogus subprotocol, cap-reachable, disconnect-stays-down); buffer tests removed with the API.
 - **Files:** `web-ui/src/hooks/useWebSocket.ts`, `hooks/useExchangeData.js`, `test/useWebSocket.test.jsx`
@@ -424,7 +424,7 @@
 - **Fix:** `_encode()` returns str for JSON (TEXT frame) / bytes for msgpack (binary); `_encoded_variants()` pre-encodes shared payloads per negotiated encoding; audit-drain, fills_batch, arb, and the per-client market-data path all send the negotiated variant; `_send_json` unified on the same helper; protocol_version stamping preserved. 4 regression tests in `test_ws_broadcast.py` (text frame to json client, binary to msgpack, mixed-client fan-out, `_send_json` honors encoding).
 - **Files:** `exchange_simulator/ws_broadcast.py`, `tests/test_ws_broadcast.py`
 
-### S257 — stale doc claims corrected ✅ · verified R161
+### S257 — stale doc claims corrected ✅ · verified R161 · re-verified R189
 - **Bug:** PERFORMANCE kept a struck-through "Rust HFT Executor" benchmark table for the deleted crate; ARCHITECTURE said "min 2 of 5 enabled strategies" (6 implemented, 4 default); WEBSOCKET_PROTOCOL documented msgpack as point-sends-only (stale the other way post-S212); MONITORING helm snippet needed re-verification.
 - **Fix:** Rust section + struck row deleted from PERFORMANCE.md; ARCHITECTURE ensemble line → "min 2 votes across enabled strategies; 6 implemented, 4 default" (dedup paragraph already correct); WEBSOCKET_PROTOCOL encoding section rewritten for post-S212 behavior (text-vs-binary frame discrimination, msgpack fallback note); MONITORING snippet verified against `helm/templates/ai-signal-bot.yaml` (/live+/ready on `ports.health`) — already correct, no edit.
 - **Files:** `docs/PERFORMANCE.md`, `docs/ARCHITECTURE.md`, `docs/WEBSOCKET_PROTOCOL.md`
@@ -489,17 +489,17 @@
 
 ## Round 159 — slop-fix (8 closed)
 
-### S272 — dead MetricsExporter setters wired to live producers ✅ · verified R161
+### S272 — dead MetricsExporter setters wired to live producers ✅ · verified R161 · re-verified R189
 - **Bug:** 17 of ~25 exporter methods never called → three Grafana dashboards + six alert rules rendered eternal zeros; dashboard queried `trading_signals_total` (dead `record_signal`) while the publisher incremented `ai_signal_bot_signals_sent_total`.
 - **Fix:** wired real producers — `record_signal` (symbol/direction/confidence) + `observe_signal_latency` (creation→broadcast) in `broadcast_signal`; `record_fill` in `_on_shm_fills`; `record_order_sent`/`record_order_rejected`/`observe_order_latency` in `_execute_live_order`; `update_pnl`/`update_positions`/`update_ws_status`/`set_bot_drawdown`/`set_bot_win_rate`/`set_bot_pnl_total`/`set_bot_uptime`/`record_error` in `_snapshot_equity` + error paths; `update_shm_buffer` reads ring `.pending()`. Cut what has no honest producer: `observe_shm_round_trip` (SHM fills carry `signal_id=None` — no correlation key), `observe_position_hold_time`, `reset_kill_switch` (no reset path — gauge latches honestly). DB gained equity-history/stat queries to feed the setters.
 - **Files:** `ai-signal-bot/run.py`, `src/monitoring/metrics.py`, `src/communication/{signal_publisher,metrics_server}.py`, `src/database/db.py`, `tests/unit/test_monitoring_metrics.py`
 
-### S288 — alert rules now have live producers ✅ · verified R161
+### S288 — alert rules now have live producers ✅ · verified R161 · re-verified R189
 - **Bug:** 6 `alerts.yml` rules (`HighBotErrorRate`/`CriticalBotErrorRate`/`HighDrawdown`/`CriticalDrawdown`/`LowWinRate`/`NegativePnL`) queried metrics whose setters were dead — `CriticalDrawdown >15%` could never fire.
 - **Fix:** closed by the S272 wiring — `record_error`, `set_bot_drawdown`, `set_bot_win_rate`, `set_bot_pnl_total` now called from `_snapshot_equity` and the live-order error paths every tick.
 - **Files:** `ai-signal-bot/run.py`, `src/monitoring/metrics.py`
 
-### S292 — MetricsCollector fallback interface completed ✅ · verified R161
+### S292 — MetricsCollector fallback interface completed ✅ · verified R161 · re-verified R189
 - **Bug:** `record_kill_switch` (and the other bot-* setters) existed on `MetricsExporter` but not the `MetricsCollector` fallback → first kill-switch activation without `--metrics` raised `AttributeError` in the unguarded consumer callback.
 - **Fix:** fallback collector now exposes the full producer surface the bot calls (kill-switch, drawdown, win-rate, pnl, uptime, fills, orders, signals, errors, shm buffer) — same names, same signatures.
 - **Files:** `ai-signal-bot/src/communication/metrics_server.py`
