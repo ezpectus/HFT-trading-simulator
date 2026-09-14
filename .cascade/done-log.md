@@ -314,3 +314,35 @@
 **Фикс:** `--env-file .env.prod` добавлен в `deploy.yml` SSH-шаг (pull + up) и `Makefile.prod` `DOCKER_COMPOSE` (включая `prod-stats` который звал compose напрямую). DEPLOYMENT-note переписан: документирует `make prod-up` как рабочий путь.
 
 **Файлы:** `.github/workflows/deploy.yml`, `Makefile.prod`, `docs/DEPLOYMENT.md`.
+
+## R151 — slop-fix (9 findings)
+
+### S291 — ai-bot: один malformed candle убивал market-data listener навсегда
+- `ai-signal-bot/src/communication/ws_client.py` — `_process_message` валидирует candle-словари (symbol/close) вместо слепого `candle["symbol"]`; per-message catch-all с логом — ни одно кривое сообщение не роняет listen-loop.
+- `ai-signal-bot/run.py` — `_listen_loop` ловит `Exception` (не только IO-классы), `_listen_task` сохранён в self, `_on_task_done` при неожиданной смерти таска во время работы бота планирует `_reconnect`/restart вместо голого лога.
+- Регресс: `ai-signal-bot/tests/unit/test_listen_restart.py` — 5 тестов: malformed-candle пропуск, non-IO исключение → restart, cancelled-task не рестартует, stop-флаг блокирует restart, повторный crash рестартует снова.
+- Проверено: pytest 5/5 + полный ai-signal-bot suite зелёный.
+
+### S303 — exchange_simulator Docker-образ DOA: `python -m` на плоском /app
+- `exchange_simulator/Dockerfile` + `Dockerfile.prod` — `COPY . .` → `COPY . ./exchange_simulator/` — пакет лежит как `/app/exchange_simulator/`, `python -m exchange_simulator` резолвится из WORKDIR /app.
+- Все 4 compose-файла — config-mount `./exchange_simulator/config.yaml:/app/exchange_simulator/config.yaml:ro` (package-relative путь `__main__.py`).
+- Проверено: локальный макет образа (tmpdir + `cp` layout) — `python -m exchange_simulator --no-visualizer` стартует, печатает баннер, биндит сервер.
+
+### S220 — no-docker лаунчеры мёртвы на всех ОС
+- `no-docker.bat` — `cd exchange_simulator && python -m exchange_simulator` → запуск из корня репо (пакет резолвится снаружи, не изнутри себя).
+- `no-docker.sh` — та же правка (`cd "$PROJECT_ROOT"` перед `python3 -m exchange_simulator`).
+- `exchange_simulator/__main__.py` — `loop.add_signal_handler` под `try/except NotImplementedError` (Windows ProactorEventLoop) с warning + KeyboardInterrupt-фолбэком.
+- Проверено: `bash -n` чистый; живой прогон на этом хосте напечатал "add_signal_handler unsupported on this platform" и продолжил старт.
+
+### S203 + S310 + S312 — helm: мёртвые PDB + битый grafana subpath (3 находки-дубля одного комплекса)
+- `helm/templates/pdb.yaml` — selector `app.kubernetes.io/component: exchange-simulator` → `exchange_simulator` (матчит реальные pod-лейблы Deployment'а); hft-trade-bot PDB удалён целиком — hft живёт сайдкаром в ai-signal-bot поде, отдельная PDB выбирала бы 0 подов навсегда (покрытие даёт ai-signal-bot PDB на shared pod).
+- `helm/templates/grafana.yaml` — при `ingress.enabled` добавлены `GF_SERVER_SERVE_FROM_SUB_PATH=true` + `GF_SERVER_ROOT_URL=<scheme>://<ingress.hostname>/grafana/` — `/grafana` prefix из ingress.yaml теперь отдаёт ассеты корректно.
+- Проверено: шаблоны перечитаны вручную (helm binary недоступен локально); selector-матчинг сверен с exchange-simulator.yaml:9/15/20.
+
+### S311 — helm image-дефолты недостижимы (ImagePullBackOff ×4)
+- `helm/values.yaml` — 4 репозитория `hft-*:v2.0.0` → `ghcr.io/ezpectus/hft-tradebot--lite-version/<service>:latest` — совпадает с deploy.yml push-path (`github.repository`/`matrix.service`) и `latest`-тегом default-branch сборок.
+
+### S204 + S315 — terraform eks: открытый API, секреты без KMS, EOL-версия, ноды наружу
+- `terraform/modules/eks/main.tf` — `version` → `var.cluster_version` (default "1.32", в пределах standard support); `endpoint_private_access = true`, `endpoint_public_access = length(cidrs) > 0` — private-only по умолчанию, public API включается только с явным CIDR-whitelist; `encryption_config` на `aws_kms_key.eks_secrets` (rotation on, alias) → secrets в etcd зашифрованы; `enabled_cluster_log_types` = api/audit/authenticator/controllerManager/scheduler; node_group → `var.node_subnet_ids`.
+- `terraform/environments/dev/main.tf` + `prod/main.tf` — `node_subnet_ids = module.vpc.private_subnet_ids` (воркеры только в private); dev получил комментарий как включить kubectl-доступ.
+- Проверено: HCL перечитан (terraform binary недоступен); module inputs/outputs консистентны с обоими env-вызовами.

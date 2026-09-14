@@ -2099,3 +2099,14 @@ Batch: freshest unverified — S243/S244/S246/S279 (R147) + S207/S210/S230 (R148
 
 Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` ×7.
 - **Commits:** `131c610` (docs)
+
+## R151 — slop-fix — 9 findings closed (S291, S303, S220, S203+S310+S312, S311, S204+S315)
+
+- **S291** (High) — malformed WS candle killed the listener forever. `ws_client.py` validates candle dicts + per-message catch-all; `run.py` `_listen_loop` catches `Exception`, tracks `_listen_task`, `_on_task_done` restarts on unexpected death. Regression: `tests/unit/test_listen_restart.py` (5 tests).
+- **S303** (High) — sim Docker image DOA. Both Dockerfiles `COPY . ./exchange_simulator/` (package preserved under /app); all 4 compose files mount config to `/app/exchange_simulator/config.yaml`. Proven by live `python -m exchange_simulator` run in an image-layout mock.
+- **S220** (Medium) — `no-docker.bat`/`no-docker.sh` launch sim from repo root; `__main__.py` guards `add_signal_handler` (NotImplementedError → warning + KeyboardInterrupt). Confirmed on this Windows host.
+- **S203+S310+S312** (Medium+Medium+Low, one helm complex) — PDB selector `exchange-simulator`→`exchange_simulator`; zero-pod hft PDB deleted (sidecar covered by ai-signal-bot PDB); grafana.yaml sets `GF_SERVER_SERVE_FROM_SUB_PATH`+`GF_SERVER_ROOT_URL` when ingress.enabled.
+- **S311** (Medium) — values.yaml image defaults → `ghcr.io/ezpectus/hft-tradebot--lite-version/<svc>:latest` (matches deploy.yml push path + v-stripped tags).
+- **S204+S315** (Medium+Medium, one eks complex) — `cluster_version` var default 1.32; private-only API default with `cluster_endpoint_public_access_cidrs` whitelist; KMS `encryption_config` for secrets (rotated key + alias); all 5 control-plane log types; `node_subnet_ids` var fed `private_subnet_ids` in both envs.
+- **Verification:** pre-commit-check 8/8 ALL GREEN; `python -m exchange_simulator` live-run in image-mock layout (starts, binds, warns on signal-handler); `bash -n` clean; ruff clean; helm/terraform binaries absent — templates/HCL re-read manually.
+- **Commits:** pending
