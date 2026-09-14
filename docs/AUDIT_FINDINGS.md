@@ -2227,4 +2227,4 @@ Scope: `src/database/db.py`, `src/pricing/volatility_surface.py`, `src/utils/bot
 
 **Verified clean:** `Database` is fully live (save_signal/save_trade/save_equity/close_trade/purge all called from run.py); `VolatilitySurface` is real SVI+SABR via scipy least_squares, wired into `vol_surface_request` with point validation; `AlertSystem`/`PerformanceTracker`/`HealthServer`/`bot_helpers` all instantiated in run.py; circuit-breaker state map CLOSED/OPEN/HALF_OPEN→0/1/2 is consistent across both metric systems and alerts.yml; prometheus scrape topology + helm ports agree; alertmanager ships an honestly-empty default receiver with docs; `test_alerts` validates the real file; `settings.testnet.yaml` is an honest preset (its live path dies on missing ccxt — already S228).
 
-Commit: TBD
+Commit: bfc0454

@@ -1864,4 +1864,4 @@ Commit: c4b7bdb
 
 **Clean:** Database полностью живая (save_signal/save_trade/save_equity/close_trade/purge — все коллеры в run.py); VolatilitySurface — реальный SVI+SABR через scipy-least_squares, wired в vol_surface_request с валидацией точек; AlertSystem/PerformanceTracker/HealthServer/bot_helpers — все в run.py; CB-маппинг CLOSED/OPEN/HALF_OPEN→0/1/2 корректен; prometheus scrape-топология + helm ports согласованы; alertmanager — честный пустой receiver с документацией; test_alerts валидирует реальный файл; testnet.yaml честный preset.
 
-Commit: TBD
+Commit: bfc0454
