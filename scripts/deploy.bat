@@ -11,6 +11,16 @@ if "%DEPLOYMENT_MODE%"=="" set DEPLOYMENT_MODE=docker
 set ENVIRONMENT=%ENVIRONMENT%
 if "%ENVIRONMENT%"=="" set ENVIRONMENT=production
 
+REM ENVIRONMENT selects the configs the native path passes to each
+REM service (mirrors docker-compose.yml dev vs docker-compose.prod.yml).
+if "%ENVIRONMENT%"=="dev" (
+    set AI_CONFIG=config\settings.testnet.yaml
+    set HFT_CONFIG=config\config.yaml
+) else (
+    set AI_CONFIG=config\settings.yaml
+    set HFT_CONFIG=config\config.prod.yaml
+)
+
 set BACKUP_DIR=.\backup
 set LOG_DIR=.\logs
 
@@ -69,9 +79,9 @@ if "%DEPLOYMENT_MODE%"=="docker" (
         exit /b 1
     )
     
-    docker-compose --version >nul 2>&1
+    docker compose version >nul 2>&1
     if errorlevel 1 (
-        call :log_error "Docker Compose is not installed"
+        call :log_error "Docker Compose (v2 plugin) is not installed"
         exit /b 1
     )
 ) else (
@@ -96,12 +106,13 @@ REM Stop current deployment
 call :log_info "Stopping current deployment..."
 
 if "%DEPLOYMENT_MODE%"=="docker" (
-    docker-compose down
+    docker compose down
 ) else (
-    taskkill /F /IM python.exe /FI "WINDOWTITLE eq exchange_simulator*" 2>nul
-    taskkill /F /IM python.exe /FI "WINDOWTITLE eq ai_signal_bot*" 2>nul
+    REM start /B processes share the console — WINDOWTITLE filters never
+    REM match. Kill by command line via CIM instead.
+    powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -match 'exchange_simulator --no-visualizer|run\.py --metrics' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
     taskkill /F /IM hft_trade_bot.exe 2>nul
-    taskkill /F /IM node.exe /FI "WINDOWTITLE eq vite*" 2>nul
+    powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { $_.CommandLine -match 'vite.*preview|preview.*vite' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" >nul 2>&1
 )
 
 call :log_info "Deployment stopped"
@@ -110,14 +121,14 @@ goto :eof
 REM Build Docker images
 :build_docker
 call :log_info "Building Docker images..."
-docker-compose build --no-cache
+docker compose build --no-cache
 call :log_info "Docker images built"
 goto :eof
 
 REM Start Docker deployment
 :start_docker
 call :log_info "Starting Docker deployment..."
-docker-compose up -d
+docker compose up -d
 call :log_info "Docker deployment started"
 call :log_info "Web UI available at http://localhost:3000"
 goto :eof
@@ -126,24 +137,24 @@ REM Start native deployment
 :start_native
 call :log_info "Starting native deployment..."
 
-REM Start exchange simulator
+REM Start exchange simulator — run from repo root: `python -m
+REM exchange_simulator` cannot resolve the package from inside itself.
 call :log_info "Starting Exchange Simulator..."
-cd exchange_simulator
 start /B python -m exchange_simulator --no-visualizer > "%LOG_DIR%\exchange_simulator.log" 2>&1
-cd ..
 timeout /t 5 /nobreak >nul
 
-REM Start AI signal bot
-call :log_info "Starting AI Signal Bot..."
+REM Start AI signal bot — --metrics starts the HealthServer on :8080
+REM (same as docker-compose.yml) so the :8080/ready probe can pass.
+call :log_info "Starting AI Signal Bot (env=%ENVIRONMENT%, config=%AI_CONFIG%)..."
 cd ai-signal-bot
-start /B python run.py > "%LOG_DIR%\ai_signal_bot.log" 2>&1
+start /B python run.py --metrics --config "%AI_CONFIG%" > "%LOG_DIR%\ai_signal_bot.log" 2>&1
 cd ..
 timeout /t 5 /nobreak >nul
 
 REM Start HFT trade bot
-call :log_info "Starting HFT Trade Bot..."
+call :log_info "Starting HFT Trade Bot (config=%HFT_CONFIG%)..."
 cd hft-trade-bot
-start /B build\hft_trade_bot.exe config\config.yaml > "%LOG_DIR%\hft_trade_bot.log" 2>&1
+start /B build\hft_trade_bot.exe %HFT_CONFIG% > "%LOG_DIR%\hft_trade_bot.log" 2>&1
 cd ..
 timeout /t 5 /nobreak >nul
 
@@ -164,46 +175,69 @@ call :log_info "Running health checks..."
 
 set MAX_RETRIES=30
 set RETRY_DELAY=2
+set ALL_HEALTHY=0
 
 for /L %%i in (1,1,%MAX_RETRIES%) do (
     call :log_info "Health check attempt %%i/%MAX_RETRIES%"
-    
+    set HEALTHY=0
+
     REM Check exchange simulator (HTTP health on :8775; :8765 is WS-only)
     curl -s http://localhost:8775/health >nul 2>&1
     if errorlevel 1 (
         call :log_warn "Exchange Simulator: Not healthy yet"
     ) else (
         call :log_info "Exchange Simulator: Healthy"
+        set /a HEALTHY+=1
     )
-    
+
     REM Check AI signal bot (real HealthServer on :8080; :8766 is WS-only)
     curl -s http://localhost:8080/ready >nul 2>&1
     if errorlevel 1 (
         call :log_warn "AI Signal Bot: Not healthy yet"
     ) else (
         call :log_info "AI Signal Bot: Healthy"
+        set /a HEALTHY+=1
     )
-    
+
     REM Check HFT trade bot
     curl -s http://localhost:9091/health >nul 2>&1
     if errorlevel 1 (
         call :log_warn "HFT Trade Bot: Not healthy yet"
     ) else (
         call :log_info "HFT Trade Bot: Healthy"
+        set /a HEALTHY+=1
     )
-    
-    REM Check web UI (nginx serves exact /health; bare :3000 is SPA fallback)
-    curl -s http://localhost:3000/health >nul 2>&1
+
+    REM Check web UI — docker nginx serves exact /health; native vite
+    REM preview answers 200 for ANY path (SPA fallback), so verify the
+    REM root page actually contains the app mount point.
+    if "%DEPLOYMENT_MODE%"=="docker" (
+        curl -s http://localhost:3000/health >nul 2>&1
+    ) else (
+        curl -s http://localhost:3000/ | findstr /C:"id=\"root\"" >nul 2>&1
+    )
     if errorlevel 1 (
         call :log_warn "Web UI: Not healthy yet"
     ) else (
         call :log_info "Web UI: Healthy"
+        set /a HEALTHY+=1
     )
-    
+
+    if !HEALTHY!==4 (
+        set ALL_HEALTHY=1
+        goto :health_done
+    )
+
     timeout /t %RETRY_DELAY% /nobreak >nul
 )
 
-call :log_info "Health checks completed"
+:health_done
+if "%ALL_HEALTHY%"=="1" (
+    call :log_info "Health checks completed: all services healthy"
+) else (
+    call :log_error "Health checks failed: one or more services unhealthy"
+    exit /b 1
+)
 goto :eof
 
 REM Main deployment
@@ -225,6 +259,7 @@ if "%DEPLOYMENT_MODE%"=="docker" (
 )
 
 call :health_check
+if errorlevel 1 exit /b 1
 
 call :log_info "Deployment completed successfully"
 goto :eof
@@ -298,7 +333,11 @@ if "%1"=="" (
     call :stop_deployment
     call :deploy
 ) else if "%1"=="status" (
-    docker-compose ps 2>nul || tasklist | findstr /I "python node"
+    if "%DEPLOYMENT_MODE%"=="docker" (
+        docker compose ps
+    ) else (
+        tasklist | findstr /I "python.exe node.exe hft_trade_bot.exe"
+    )
 ) else (
     call :usage
     exit /b 1

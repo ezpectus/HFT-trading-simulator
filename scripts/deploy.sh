@@ -16,6 +16,16 @@ ENVIRONMENT=${ENVIRONMENT:-production}
 BACKUP_DIR="./backup"
 LOG_DIR="./logs"
 
+# ENVIRONMENT selects the configs the native path passes to each service
+# (mirrors docker-compose.yml dev vs docker-compose.prod.yml mounts).
+if [ "$ENVIRONMENT" = "dev" ]; then
+    AI_CONFIG="config/settings.testnet.yaml"
+    HFT_CONFIG="config/config.yaml"
+else
+    AI_CONFIG="config/settings.yaml"
+    HFT_CONFIG="config/config.prod.yaml"
+fi
+
 # Functions
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -83,8 +93,8 @@ check_prerequisites() {
             exit 1
         fi
         
-        if ! command -v docker-compose &> /dev/null; then
-            log_error "Docker Compose is not installed"
+        if ! docker compose version &> /dev/null; then
+            log_error "Docker Compose (v2 plugin) is not installed"
             exit 1
         fi
     else
@@ -107,13 +117,24 @@ stop_deployment() {
     log_info "Stopping current deployment..."
     
     if [ "$DEPLOYMENT_MODE" = "docker" ]; then
-        docker-compose down
+        docker compose down
     else
-        # Stop native processes
-        pkill -f "exchange_simulator" || true
-        pkill -f "ai_signal_bot" || true
-        pkill -f "hft_trade_bot" || true
-        pkill -f "vite" || true
+        # Stop native processes via the pid files start_native writes —
+        # pkill patterns can't match e.g. `python run.py` for the bot.
+        local svc pid
+        for svc in exchange_simulator ai_signal_bot hft_trade_bot web_ui; do
+            local pidfile="$LOG_DIR/$svc.pid"
+            if [ -f "$pidfile" ]; then
+                pid=$(cat "$pidfile")
+                if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                    log_info "Stopping $svc (pid $pid)..."
+                    kill "$pid" 2>/dev/null || true
+                fi
+                rm -f "$pidfile"
+            else
+                log_warn "$svc: no pid file — not started by deploy.sh?"
+            fi
+        done
     fi
     
     log_info "Deployment stopped"
@@ -123,7 +144,7 @@ stop_deployment() {
 build_docker() {
     log_info "Building Docker images..."
     
-    docker-compose build --no-cache
+    docker compose build --no-cache
     
     log_info "Docker images built"
 }
@@ -132,7 +153,7 @@ build_docker() {
 start_docker() {
     log_info "Starting Docker deployment..."
     
-    docker-compose up -d
+    docker compose up -d
     
     log_info "Docker deployment started"
     log_info "Web UI available at http://localhost:3000"
@@ -142,32 +163,32 @@ start_docker() {
 start_native() {
     log_info "Starting native deployment..."
     
-    # Start exchange simulator
+    # Start exchange simulator — run from repo root: `python -m
+    # exchange_simulator` cannot resolve the package from inside itself.
     log_info "Starting Exchange Simulator..."
-    cd exchange_simulator
-    python -m exchange_simulator --no-visualizer > "$LOG_DIR/exchange_simulator.log" 2>&1 &
+    python3 -m exchange_simulator --no-visualizer > "$LOG_DIR/exchange_simulator.log" 2>&1 &
     EXCHANGE_PID=$!
     echo $EXCHANGE_PID > "$LOG_DIR/exchange_simulator.pid"
-    cd ..
-    
+
     # Wait for exchange simulator to start
     sleep 5
-    
-    # Start AI signal bot
-    log_info "Starting AI Signal Bot..."
+
+    # Start AI signal bot — --metrics starts the HealthServer on :8080
+    # (same as docker-compose.yml) so the health_check /ready probe works.
+    log_info "Starting AI Signal Bot (env=$ENVIRONMENT, config=$AI_CONFIG)..."
     cd ai-signal-bot
-    python run.py > "$LOG_DIR/ai_signal_bot.log" 2>&1 &
+    python3 run.py --metrics --config "$AI_CONFIG" > "$LOG_DIR/ai_signal_bot.log" 2>&1 &
     AI_PID=$!
     echo $AI_PID > "$LOG_DIR/ai_signal_bot.pid"
     cd ..
-    
+
     # Wait for AI signal bot to start
     sleep 5
-    
+
     # Start HFT trade bot
-    log_info "Starting HFT Trade Bot..."
+    log_info "Starting HFT Trade Bot (config=$HFT_CONFIG)..."
     cd hft-trade-bot
-    ./build/hft_trade_bot config/config.yaml > "$LOG_DIR/hft_trade_bot.log" 2>&1 &
+    ./build/hft_trade_bot "$HFT_CONFIG" > "$LOG_DIR/hft_trade_bot.log" 2>&1 &
     HFT_PID=$!
     echo $HFT_PID > "$LOG_DIR/hft_trade_bot.pid"
     cd ..
@@ -222,8 +243,15 @@ health_check() {
             log_warn "HFT Trade Bot: Not healthy yet"
         fi
         
-        # Check web UI (nginx serves exact /health; bare :3000 is the SPA fallback)
-        if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+        # Check web UI — docker nginx serves exact /health; native vite
+        # preview answers 200 for ANY path (SPA fallback), so verify the
+        # root page actually contains the app mount point.
+        if [ "$DEPLOYMENT_MODE" = "docker" ]; then
+            web_check="curl -s http://localhost:3000/health"
+        else
+            web_check="curl -s http://localhost:3000/ | grep -q 'id=\"root\"'"
+        fi
+        if eval "$web_check" > /dev/null 2>&1; then
             log_info "Web UI: Healthy"
             healthy_count=$((healthy_count + 1))
         else
@@ -352,7 +380,20 @@ case "${1:-deploy}" in
         deploy
         ;;
     status)
-        docker-compose ps 2>/dev/null || ps aux | grep -E "(exchange_simulator|ai_signal_bot|hft_trade_bot)" | grep -v grep
+        if [ "$DEPLOYMENT_MODE" = "docker" ]; then
+            docker compose ps
+        else
+            # Report from the pid files start_native writes — process
+            # names like `python run.py` don't contain the service names.
+            for svc in exchange_simulator ai_signal_bot hft_trade_bot web_ui; do
+                pidfile="$LOG_DIR/$svc.pid"
+                if [ -f "$pidfile" ] && kill -0 "$(cat "$pidfile")" 2>/dev/null; then
+                    log_info "$svc: running (pid $(cat "$pidfile"))"
+                else
+                    log_warn "$svc: not running"
+                fi
+            done
+        fi
         ;;
     *)
         usage
