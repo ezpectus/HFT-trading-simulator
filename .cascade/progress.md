@@ -2110,3 +2110,13 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S204+S315** (Medium+Medium, one eks complex) — `cluster_version` var default 1.32; private-only API default with `cluster_endpoint_public_access_cidrs` whitelist; KMS `encryption_config` for secrets (rotated key + alias); all 5 control-plane log types; `node_subnet_ids` var fed `private_subnet_ids` in both envs.
 - **Verification:** pre-commit-check 8/8 ALL GREEN; `python -m exchange_simulator` live-run in image-mock layout (starts, binds, warns on signal-handler); `bash -n` clean; ruff clean; helm/terraform binaries absent — templates/HCL re-read manually.
 - **Commits:** `38a0960` (ai-bot S291), `0274513` (sim S303/S220), `7cf6442` (helm S203/S310/S311/S312), `a608904` (terraform S204/S315), `849bbd0` (docs)
+
+## R152 — slop-fix — 4 findings + S318 (found+fixed in-frame)
+
+- **S224** (Medium) — hft `log_file` honored: `Logger::init` derives dir/stem/ext from the configured path; `bot_setup` passes `ctx.config.log_file`; `monitor.py` tails `hft_trade_bot_latest.log`; `scripts/monitor.py` now reads a REAL `/hft_heartbeat` — new `ipc/shm_heartbeat.h` producer created in `init_monitoring`, `beat()` every loop iteration from `update_health_status`. Proven: live C++→Python cross-process read returned real counters on this Windows host.
+- **S256** (Medium) — ai-bot `logging.file` honored: `run.py::setup_logging` fallback delegates to in-repo `observability.logging.setup_logging(log_file=...)` (RotatingFileHandler). Proven: writes `logs/test_s256.log` with run_logger blocked.
+- **S255** (Medium) — DEPLOYMENT: all five items were already fixed earlier; removed the two now-stale "key ignored" caveats (S224/S256 keys are live).
+- **S228** (Medium) — `paper_trading:false` without ccxt now exits(1) with a clear error at startup instead of per-signal RuntimeError under green health. ccxt not added — new deps need user approval.
+- **S318** (NEW, Medium) — Windows SHM IPC fully dead: C++ creates `/hft_*` mappings verbatim; Python stripped the leading `/` → different kernel object, all channels read zeros. Both `lstrip` sites fixed (shm_ring_buffer, shm_market_data_writer) + monitor.py verbatim tag.
+- **Verification:** pre-commit-check 8/8 ALL GREEN; shm_heartbeat g++ syntax+runtime+live-read; ruff clean on all touched py; py_compile clean.
+- **Commits:** pending

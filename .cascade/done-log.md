@@ -346,3 +346,27 @@
 - `terraform/modules/eks/main.tf` — `version` → `var.cluster_version` (default "1.32", в пределах standard support); `endpoint_private_access = true`, `endpoint_public_access = length(cidrs) > 0` — private-only по умолчанию, public API включается только с явным CIDR-whitelist; `encryption_config` на `aws_kms_key.eks_secrets` (rotation on, alias) → secrets в etcd зашифрованы; `enabled_cluster_log_types` = api/audit/authenticator/controllerManager/scheduler; node_group → `var.node_subnet_ids`.
 - `terraform/environments/dev/main.tf` + `prod/main.tf` — `node_subnet_ids = module.vpc.private_subnet_ids` (воркеры только в private); dev получил комментарий как включить kubectl-доступ.
 - Проверено: HCL перечитан (terraform binary недоступен); module inputs/outputs консистентны с обоими env-вызовами.
+
+## R152 — slop-fix (4 findings + S318 found-and-fixed in-frame)
+
+### S224 — hft `log_file` мёртвый ключ + оба монитора слепые
+- `src/core/logger.h` — `Logger::init(level, log_file, json, monitor)` принимает полный путь: parent_path/stem/extension выводятся из конфига → `<stem>_<ts><ext>` + `<stem>_latest<ext>`; дефолт `logs/hft_trade_bot.log` воспроизводит исторические имена 1:1.
+- `bot_setup.cpp` — передаёт `ctx.config.log_file` (было hardcode `"logs"`); избыточный `create_directories("logs")` убран.
+- `monitor.py` — тейлит `logs/hft_trade_bot_latest.log` (файл который реально пишется) вместо несуществующего `hft_trade_bot.log`.
+- `scripts/monitor.py` — SHM `/hft_heartbeat` теперь СУЩЕСТВУЕТ: новый `src/ipc/shm_heartbeat.h` (CreateFileMappingW/shm_open, 64B layout Q+4q) создаётся в `init_monitoring` (независимо от ipc_enabled) и `beat(orders,fills,signals,errors)` вызывается из `update_health_status` каждый тик цикла; monitor.py tag — verbatim `/hft_heartbeat` (см. S318).
+- Проверено: g++ syntax+runtime компилируется и бежит; C++ writer → Python reader кросс-процессное чтение вернуло реальные счётчики (11,22,33,44) на этом Windows-хосте.
+
+### S256 — ai-bot `logging.file` param-drop
+- `run.py::setup_logging` fallback теперь делегирует в in-repo `src/observability/logging.py::setup_logging(log_file=...)` — RotatingFileHandler(10MB×5) на настроенном пути + console; external gitignored `run_logger` override сохранён.
+- Проверено: с заблокированным `run_logger` бот пишет `logs/test_s256.log` (StreamHandler + RotatingFileHandler wired, контент на месте).
+
+### S255 — DEPLOYMENT мёртвые имена/ключи/пути
+- Все 5 пунктов уже исправлены ранее (audit-notes на месте: EXCHANGE_API_*, :9099, timestamped logs, removed retention_days/buffer_size). Остаток — убраны устаревшие «key ignored» оговорки (S224/S256 теперь живые ключи — log-locations переписаны под реальную семантику).
+
+### S228 — live-path без ccxt = молчаливый per-signal RuntimeError
+- `run.py::main` — fail-fast gate: `paper_trading:false` + `CCXT_AVAILABLE=False` → `logger.error` + `sys.exit(1)` до старта бота (was: зелёный health + «Live order error» на каждый сигнал, 0 ордеров).
+- ccxt НЕ добавлен в requirements — новые зависимости требуют одобрения пользователя; gate — честный минимум.
+
+### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch)
+- C++ `CreateFileMappingW` использует имя `/hft_*` дословно; Python-сторона делала `name.lstrip("/")` в `shm_ring_buffer.py` и `shm_market_data_writer.py` → разные kernel-объекты → Python attach'ился к свежесозданному пустому region, все SHM-каналы (signals/fills/market/kill_switch) молча читали нули на Windows.
+- Исправлено: verbatim-tag в обоих сайтах (+ `scripts/monitor.py`). Подтверждено живым кросс-процессным чтением.
