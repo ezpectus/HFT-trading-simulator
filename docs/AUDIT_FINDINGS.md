@@ -2151,4 +2151,4 @@ Scope: the never-leaf-read remainder of `exchange_simulator/` — `ws_message_ha
 
 **Verified clean:** ws handler — `_CONTROL_TYPES` auth-gate with `secrets.compare_digest`, 1000-msg/60s rate limit, idempotent order dedup (bounded 10k LRU), `_sanitize_log` on every user-controlled log field, per-message try; order pipeline — margin lock/release, OCO sibling resolve, TIF/FOK `_depth_covers`, partial fills, residual position on side-flip; liquidation — real liq/partial/SL/TP triggers + insurance-fund deficit; arbitrage — real cross-exchange pair scan with TTL and auto-exec; options — canonical Black-Scholes with Greeks, Newton-Raphson IV, put-call parity; audit_logger — thread-safe deque + file persistence + callbacks; SHM publisher uses a proper seq-lock; `data_export`/`config_validator`/`visualizer` all wired from `__main__`.
 
-Commit: TBD
+Commit: 1f468ce

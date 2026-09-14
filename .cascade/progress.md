@@ -1796,4 +1796,4 @@ Commit: f018859
 
 **Clean:** auth-gate `_CONTROL_TYPES` + compare_digest + rate-limit + dedup-LRU + `_sanitize_log` (log-injection защита) + per-message try; order pipeline — margin-lock/release, OCO sibling-resolve, TIF/FOK `_depth_covers`, partial-fill, residual-on-flip; liquidation — liq/partial/SL/TP + insurance-fund deficit; arbitrage — pair-scan+TTL+auto-exec; options — канонический B-S+Greeks+NR-IV+parity; audit_logger — thread-safe + file + callbacks; SHM publisher с seq-lock; data_export/config_validator/visualizer — wired из __main__.
 
-Commit: TBD
+Commit: 1f468ce
