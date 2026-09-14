@@ -2322,3 +2322,18 @@ Commit: b44ca41
 - `test_ws_prometheus.py` checks only the attribute surface and cannot catch **S281**'s lowercase-status bug — coverage gap stays inside the open finding.
 
 **Verified clean:** 863 asserts across 31 sim test files, zero bare skips or `assert True`, zero zombie imports; `hypothesis` is in `requirements-dev.txt` and CI installs it — property tests really run; `prometheus-client==0.21.1` is a pinned optional dep and `HAS_PROMETHEUS` test guards honestly mirror prod guards; `asyncio_mode = "auto"` in both pyprojects; all 26 hft test `.cpp`s are wired into CMake targets (POSIX-gated SHM, doctest integration round-trips are real in-process producer→consumer/kill-switch/YAML tests); e2e specs carry 34 real expects (aria-pressed toggles, regex on button text).
+
+---
+
+## R138 — mechanical sweeps on unverified surfaces (0 findings — honest zero round #2)
+
+**Scope:** marker sweep (TODO/FIXME/XXX/HACK/NotImplementedError) across `web-ui/src`, `scripts`, `monitoring`, and both test trees (the three src trees were already 0-marker since R78/R80/R127); `console.*` sweep; suppression-comment audit (`noqa`/`type: ignore`/`@ts-ignore`/`eslint-disable`); localStorage key read/write symmetry; `JSON.parse` guard sweep across web-ui prod source; bare `assert` in prod Python; eval-surface (`new Function`/`eval`/`innerHTML`/`sessionStorage`); `monitoring/prometheus.yml` + `alertmanager.yml` leaf-read; full `docker-compose.yml` (dev) leaf-read.
+
+**No new findings.** All mechanical sweeps are clean or land inside existing IDs:
+
+- `new Function` in `CustomIndicatorPlugin.jsx:155` is the feature's design (user-typed formula, restricted ctx of 7 indicator fns + `n`, `'use strict'`, try/catch, `Array.isArray` result check) — self-XSS surface only, not a hole.
+- Dev compose header claims verify exactly: "22 rules in alerts.yml" = 22, `GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH` → existing `trading-overview.json`, `./exchange_simulator/config.yaml` mounts onto `__main__.py:43`'s default path, all `depends_on: service_healthy` chains and wget/python healthchecks hit real ports. Its only flaw is the already-recorded S303 dead entrypoint.
+- `prometheus.yml` scrape targets match real metric ports (sim:8775, ai-bot:9090, hft:9091, alertmanager:9093, self:9090); `alertmanager.yml` is an honest receiver-less template.
+- README quick-start pointing at `no-docker` + `docker-compose up` is the doc-side blast radius of S220/S303 — already covered.
+
+**Verified clean:** 12/12 `JSON.parse` sites sit inside try/catch (corrupt localStorage can't break mount); all localStorage keys have symmetric get/set via constants; all 6 `console.*` are `IS_DEV`-gated with documented `eslint-disable` reasons; zero prod asserts; zero real TODO/FIXME markers (the hits are `EventType.HACK` enum values and `health-check.py`'s own TODO-counter).

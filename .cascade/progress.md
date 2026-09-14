@@ -1960,3 +1960,19 @@ Commit: 23d174d
 **Clean:** `hypothesis>=6.100` в requirements-dev → property-тесты реально бегут в CI; `prometheus-client==0.21.1` pinned optional dep — `HAS_PROMETHEUS` тест-гарды зеркалят prod; `asyncio_mode=auto` оба pyproject; все 26 hft .cpp в CMake-таргетах (SHM POSIX-gated, doctest web); e2e — 34 реальных expect.
 
 Commit: dce61db
+
+## R138 — mechanical repo-wide sweeps on unverified surfaces (0 findings — honest zero #2)
+
+**Scope:** TODO/FIXME/XXX/HACK/NotImplementedError sweep на web-ui/src + scripts + monitoring + обоих tests-деревьях (src-деревья = 0 ещё с R78/R80/R127); `console.*` sweep web-ui; suppression-комменты (noqa/type:ignore/ts-ignore/eslint-disable) всех src; localStorage key-symmetry cross-check (все getItem↔setItem пары); JSON.parse guard-sweep web-ui prod-src; bare `assert` в prod-python; eval-surface (`new Function`/`eval`/`innerHTML`/`sessionStorage`); `monitoring/prometheus.yml` + `alertmanager.yml` leaf-read; `docker-compose.yml` (dev) полный leaf-read; README quick-start vs известные broken-paths.
+
+**Findings (0):** второй честный нулевой раунд — все механические свипы чистые или покрыты существующими ID.
+
+**Notable verifications:**
+- `new Function` в CustomIndicatorPlugin.jsx:155 — restricted-ctx (`ema/rsi/stddev/atr/min/max/macd` + `n`), `'use strict'`, try/catch, `Array.isArray` валидация — user-formula фича по дизайну, не eval-дыра
+- Dev-compose claims точны: 22 alert-правила (header «22» = факт), trading-overview.json существует и provisioned, `./exchange_simulator/config.yaml` → `/app/config.yaml` = `__main__.py:43` default
+- `prometheus.yml` — все 5 scrape-job'ов на реальные metric-порты; `alertmanager.yml` — честный receiver-less template
+- README quick-start на `no-docker`+`docker-compose` — blast-radius S220/S303, не новая находка
+
+**Clean:** 12/12 JSON.parse guarded; localStorage ключи все парные; 6 console.* за IS_DEV; 0 prod-asserts; suppressions все justified.
+
+Commit: pending
