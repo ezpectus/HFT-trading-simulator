@@ -433,22 +433,22 @@
 
 ## Round 156 — slop-fix (4 closed, S309 deferred — no Docker daemon)
 
-### S259 — dead `walk_forward.py` duplicate removed ✅
+### S259 — dead `walk_forward.py` duplicate removed ✅ · verified R158
 - **Bug:** `ai-signal-bot/src/backtesting/walk_forward.py` (201 lines) was a parallel `WalkForwardAnalyzer` engine invisible to prod — `backtest_requests.py`/`run_backtest.py` call `StrategyOptimizer.walk_forward` (`optimizer.py`); only `tests/unit/{test_backtest,test_walk_forward}.py` imported it (the test_backtest one a dead import — never used). `backtesting/__init__.py` also re-exported `BacktestResult as BacktestEngineResult` in `__all__` — zero references.
 - **Fix:** module deleted; `test_walk_forward.py` rewritten against the live `StrategyOptimizer.walk_forward` — 5 tests covering window stepping (each `backtester.run` sees only the test slice), insufficient-data→`[]`, per-window failure isolation, params propagation into `strategy_class(**params)`, fitness on every result. Dead import dropped from `test_backtest.py:9`; `BacktestEngineResult` import+`__all__` entry removed from `__init__.py`.
 - **Files:** `ai-signal-bot/src/backtesting/walk_forward.py` (deleted), `src/backtesting/__init__.py`, `tests/unit/test_walk_forward.py` (rewritten), `tests/unit/test_backtest.py`
 
-### S266 — mock accounts now match the wire contract ✅
+### S266 — mock accounts now match the wire contract ✅ · verified R158
 - **Bug:** `mockData.js` generated `accounts[].positions` as a symbol-keyed **map** while the wire sends a **list** (`models.py:438`); `CostBasis` iterated it → TypeError, `AccountPanel`/`BotStatus` `.length` → always 0. The mock also invented `margin`/`free_margin`/`unrealized_pnl`/`realized_pnl` account fields the real `to_dict` never sends, and omitted `total_pnl`/`win_rate`/`trade_history` — mock mode validated a shape the feed doesn't have.
 - **Fix:** `generateAccounts` emits the real `Account.to_dict` shape (exchange/balance/equity/currency/leverage/positions-list/trade_history/total_pnl/total_fees/total_trades/winning_trades/win_rate); `maybeUpdatePosition` uses findIndex/splice/push, books closes into `total_pnl`+`total_trades`+`trade_history` (20-cap like the wire), positions carry `stop_loss`/`take_profit`/`opened_at`/`margin`; `useMockData.closePosition` splices by symbol. `MultiAccountView` no longer reads phantom `acc.unrealized_pnl`/`realized_pnl` (uPnl=equity−balance, rPnl=`total_pnl`); 5 components moved off `Object.values(acc.positions||{})` — the map-tolerant idiom that hid the bug — onto `(acc.positions||[])`. 2 regression tests (positions is list; stays list through updates).
 - **Files:** `web-ui/src/utils/mockData.js`, `hooks/useMockData.js`, `components/MultiAccountView.jsx`, `components/{AutoRebalance,HedgingSuggestions,LiquidationCascade,LiquidationMap,PnLAttribution}.jsx`, `test/{mockData.test.js,useMockData.test.jsx}`
 
-### S261 — `useToasts` dead dup removed; perf alerts wired ✅
+### S261 — `useToasts` dead dup removed; perf alerts wired ✅ · verified R158
 - **Bug:** `Toast.jsx` exported a local-state `useToasts` duplicate of `useToastStore` — only `toast.test.jsx` consumed it (prod uses the store via `App.jsx:101`). In `performanceMonitor.js`, `checkBudgets`/vitals handlers fired `triggerAlert` into an always-empty `alertCallbacks` list — budget violations were silently dropped; `getMetricsHistory` accumulated arrays nobody read; `getPerformanceSummary`/`recordCustomMetric`/`customMetrics` had zero prod consumers.
 - **Fix:** `useToasts` deleted from `Toast.jsx`; `toast.test.jsx` migrated to `useToastStore` (+store reset in `beforeEach`). `DashboardProfiler` now subscribes `onAlert`/`offAlert` — immediate over-budget banners alongside the existing 2s `checkBudgets` poll. Dead exports cut: `getMetricsHistory` (+`metricsHistory` store + 5 push sites), `getPerformanceSummary`, `recordCustomMetric` (+`customMetrics` state). Tests rewritten onto the live alert path (`onAlert` fires on over-budget vital, `offAlert` detaches, under-budget silent).
 - **Files:** `web-ui/src/components/Toast.jsx`, `components/DashboardProfiler.jsx`, `utils/performanceMonitor.js`, `test/{toast.test.jsx,performanceMonitor.test.js,performance.test.jsx}`
 
-### S269 — `.ts` sources under a real check ✅
+### S269 — `.ts` sources under a real check ✅ · verified R158
 - **Bug:** `eslint.config.js` matched only `**/*.{js,jsx}` and no gate ran `tsc` — 16 `.ts` files (incl. `useWebSocket.ts`, `useSessionRecorder.ts`, `useStrategyMarketplace.ts`) were outside every static check.
 - **Fix:** `web-ui/src/vite-env.d.ts` added (`vite/client` types → fixes `import.meta.env` TS2339); `tsc --noEmit` clean under strict; `typecheck` script in `package.json`; `check_tsc()` added to `scripts/pre-commit-check.py` as a 9th check (staged-aware, runs with the js lint block); CI `lint-js` job now runs `npm run typecheck` after `npm run lint`. No new dependencies — `typescript` was already in devDeps.
 - **Files:** `web-ui/{package.json,src/vite-env.d.ts}`, `scripts/pre-commit-check.py`, `.github/workflows/ci.yml`
@@ -460,27 +460,27 @@
 
 ## Round 157 — slop-fix (5 closed)
 
-### S260 — dead public API in ai-signal-bot cut ✅
+### S260 — dead public API in ai-signal-bot cut ✅ · verified R158
 - **Bug:** six units of public surface with zero production consumers: `simulate_hawkes` (hawkes_funcs.py — Ogata thinning, zero refs incl. tests), `validate_prices` (indicators.py — zero refs), `HawkesResult` (hawkes_model.py — the params/functions are live via analysis_requests, the result class orphaned), `macd` (indicators.py — 2 test trees, 0 prod), `bind_context`/`clear_context` (observability/logging.py — structlog contextvars wrappers existing only for no-crash tests).
 - **Fix:** all six deleted at the definition site; `import random` in hawkes_funcs went with `simulate_hawkes`; module docstrings updated. Nothing else referenced them — verified by grep over src/ + tests/ + run*.py.
 - **Files:** `ai-signal-bot/src/technical_analysis/{hawkes_funcs,hawkes_model,indicators}.py`, `src/observability/logging.py`
 
-### S267 — tests no longer warm dead code ✅
+### S267 — tests no longer warm dead code ✅ · verified R158
 - **Bug:** ~6 test files asserted exclusively on zero-prod-consumer surface — the dead `WalkForwardAnalyzer` (S259), `useToasts` (S261), perf-monitor test-only exports (S261), `bind_context`/`clear_context` no-crash asserts, and `TestMACD` classes in both `test_indicators` trees.
 - **Fix:** the S259/S261 legs closed in R156 (tests migrated to live APIs). This round: `TestMACD` + the `macd` import removed from both `tests/unit/test_indicators.py` and `tests/test_indicators.py`; `test_bind_context_no_crash`/`test_clear_context_no_crash` + the dead import removed from `test_observability.py`. Remaining S267 surface: none — the finding's list is fully covered.
 - **Files:** `ai-signal-bot/tests/{test_indicators.py,unit/test_indicators.py,unit/test_observability.py}`
 
-### S262 — dead hook variants + phantom installer + orphans ✅
+### S262 — dead hook variants + phantom installer + orphans ✅ · verified R158
 - **Bug:** `scripts/pre-commit-hook.{sh,bat}` + `commit-msg-hook.{sh,bat}` (~118 lines) claimed "Installed by install-hooks.{sh,bat}" — but `install-hooks.sh` never existed and `install-hooks.bat` installs only the `*-git.sh` twins; the `.bat` variants are doubly dead (git can't spawn .bat hooks). `.pre-commit-config.yaml` referenced the phantom `install-hooks.sh`. `scripts/ci-equivalence.py` + `scripts/health-check.py` had zero references in docs/Makefile/CI/docker.
 - **Fix:** six files deleted; `.pre-commit-config.yaml` comment now documents the real install path (`install-hooks.bat` → `*-git.sh` via git's sh spawn). Canonical hook `pre-commit-hook-git.sh` untouched.
 - **Files:** `scripts/{pre-commit-hook.sh,pre-commit-hook.bat,commit-msg-hook.sh,commit-msg-hook.bat,ci-equivalence.py,health-check.py}` (deleted), `.pre-commit-config.yaml`
 
-### S264 — deploy.yml notify gates read the right context ✅
+### S264 — deploy.yml notify gates read the right context ✅ · verified R158
 - **Bug:** `if: vars.DISCORD_WEBHOOK_URL != ''` / `vars.TELEGRAM_BOT_TOKEN != ''` gated steps whose values come from `secrets.*` — secrets aren't allowed in `if:` conditions, so the author reached for `vars`; an operator setting only the secrets (the natural place) gets notifications silently skipped forever, and the pattern nudges a bot token into unmasked `vars`.
 - **Fix:** both secrets hoisted to job-level `env:` (`DISCORD_WEBHOOK_URL`, `TELEGRAM_BOT_TOKEN`) — allowed there — and the step gates now read `env.*`. Notifications fire when the secrets are actually set.
 - **Files:** `.github/workflows/deploy.yml`
 
-### S265 — ci.yml dead gate removed + websocketpp pinned ✅
+### S265 — ci.yml dead gate removed + websocketpp pinned ✅ · verified R158
 - **Bug:** `audit-deps` ran `npm audit --audit-level=high` (already non-zero on high/critical) then a second step grepped `|| true` output for "critical|high" — unreachable dead check. `test-cpp-msvc` cloned `zaphoyd/websocketpp` at unpinned HEAD while the vcpkg clone beside it was commit-pinned.
 - **Fix:** dead second step deleted (the single real gate remains); clone pinned `--branch 0.8.2 --depth 1` (last stable release, matching the repo's dormant upstream).
 - **Files:** `.github/workflows/ci.yml`

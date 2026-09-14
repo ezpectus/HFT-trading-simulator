@@ -2173,3 +2173,18 @@ Commits: `cbd2686` (ai-bot S260/S267), `4b11cef` (scripts S262), `0d635cc` (ci S
 - **S262** — `pre-commit-hook.{sh,bat}` + `commit-msg-hook.{sh,bat}` + orphan `ci-equivalence.py`/`health-check.py` deleted; `.pre-commit-config.yaml` comment now names the real install path.
 - **S264** — deploy.yml: notify secrets hoisted to job `env:`; step gates read `env.*` (secrets can't sit in `if:`) — notifications actually send now.
 - **S265** — unreachable second audit-deps gate deleted; websocketpp clone pinned `--branch 0.8.2 --depth 1`.
+
+### R158 — 2026-09-15 — slop-verify: 9/9 VERIFIED, 0 reverts
+
+Re-checked R156+R157 claims adversarially against committed code:
+
+- **S259** — `walk_forward.py` absent; zero `WalkForwardAnalyzer`/`BacktestEngineResult` refs; `test_walk_forward.py` exercises `StrategyOptimizer.walk_forward`.
+- **S266** — `positions: []` list in `generateAccounts`; `maybeUpdatePosition` list-ops; `MultiAccountView` derives uPnl=equity−balance / rPnl=`total_pnl`.
+- **S261** — `useToasts` gone from src (comment-only ref in test); `onAlert`/`offAlert` subscribed+unsubscribed in DashboardProfiler:43-44.
+- **S269** — `check_tsc` at pre-commit-check.py:206, dispatched :886; `npm run typecheck` in ci.yml:64 + package.json:35.
+- **S260/S267** — zero residual refs to `simulate_hawkes`/`HawkesResult`/`validate_prices`/`macd`/`bind_context`/`clear_context` in src+tests.
+- **S262** — only `*-git.sh`+`install-hooks.bat` remain in scripts/; `.pre-commit-config.yaml` names the real path.
+- **S264** — `env.DISCORD_WEBHOOK_URL`/`env.TELEGRAM_BOT_TOKEN` hoisted at deploy.yml:174-175; step gates read `env.*` at :178/:186.
+- **S265** — dead "Check for vulnerabilities" step gone; websocketpp pinned `--branch 0.8.2 --depth 1` at ci.yml:210.
+
+Also fixed: duplicate priority-queue lines on the board (R156 script residue).

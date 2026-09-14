@@ -380,9 +380,6 @@
 3. **S275** (Medium, R124) — registry:755 `ctx.exchange.circuitBreaker` → `ctx.signals.circuitBreaker`.
 4. **S309** (Medium, R141) — docker-smoke: ждёт Docker daemon (R156 статика проверена).
 5. **S263/S270/S268** — следующие по доске.
-6. **S272** (Medium, R123) — 17 мёртвых MetricsExporter-сеттеров: либо провести вызовы (update_pnl из equity-snapshot, record_fill из fill-handler, set_bot_uptime ticker, record_error в exception-paths), либо выпилить метрики+панели — сейчас trading-performance целиком zero-board.
-7. **S276** (Medium, R124) — wire-field drift: починить имена (`realized_pnl`→`pnl` из trade_history, `closed_at` для time-buckets, `id`/`filled_quantity`/`filled_price` для fills, fills↔trade_history для pnl-панелей) — 7 панелей рисуют нули/1970/epoch-бакеты.
-8. **S275** (Medium, R124) — registry:755 `ctx.exchange.circuitBreaker` → `ctx.signals.circuitBreaker` — однострочник оживляет CB-секцию BotStatus.
 9. **S288** (Medium, R131) — 6 alert-правил на мёртвых метриках (errors_total/drawdown/win_rate/pnl_total — сеттеры не вызываются); CriticalDrawdown>15% никогда не страницит.
 10. **S289** (Medium, R131) — `LowFillRate` орёт перманентно (filled_total≡0 через S281 → 0/x<0.8 всегда), `HighOrderRejectionRate` молчит навсегда — кричащий волк + слепая зона.
 11. **S290** (Medium, R132) — `no_fills` alert-правило мертво: `uptime_seconds()` на property → TypeError; убрать скобки + починить wiring-тест-мок (`uptime_seconds=0` атрибут, не lambda).
