@@ -316,11 +316,6 @@ pressure_model:
   pressure_threshold: 0.2       # |pressure| > 0.2 = significant
 ```
 
-### Smart Order Router V2 — REMOVED
-
-The SmartOrderRouter was deleted (audit S058-era purge) — this section is
-kept as a historical note only; no `smart_order_router` keys are parsed.
-
 ### Adaptive Order Type Selection
 
 ```yaml

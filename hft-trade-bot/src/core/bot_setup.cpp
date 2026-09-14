@@ -85,8 +85,8 @@ void init_core_components(BotContext& ctx) {
         ctx.config.max_orders_per_second,
         ctx.config.min_margin_ratio,
         static_cast<double>(ctx.config.max_leverage),
-        {},
-        {},
+        ctx.config.blacklisted_symbols,
+        ctx.config.per_symbol_max_qty,
     });
     ctx.executor = std::make_unique<OrderExecutor>(ctx.config.ws_url, ctx.config.default_exchange);
     ctx.balance.store(ctx.config.initial_balance, std::memory_order_relaxed);
@@ -184,6 +184,7 @@ void init_order_routing(BotContext& ctx) {
     ap.low_confidence       = ctx.config.adaptive_low_confidence;
     ap.emergency_confidence = ctx.config.adaptive_emergency_confidence;
     ap.gtd_seconds          = ctx.config.adaptive_gtd_seconds;
+    ap.toxic_threshold      = ctx.config.adaptive_toxic_threshold;
     ctx.adaptive_selector   = std::make_unique<AdaptiveOrderSelectorV2>(ap);
 }
 

@@ -57,6 +57,13 @@ ipc:
     trigger_file: "${HFT_KILL_SWITCH_FILE:-/tmp/kill_switch}"
     poll_interval_ms: 1000                 # Check interval
 
+# ── AI Signal Bot ──
+# Prod receives ai-bot signals over SHM (ipc.signals above) — the WS receiver
+# would dial ai_signal_ws_url (default localhost:8766 = this container's own
+# loopback) for nothing on every start (S240).
+ai_signal_bot:
+  enabled: false
+
 # ── Signal engine v2 ──
 # 6-indicator weighted composite (weights must sum to 1.0)
 signal_engine_v2:
@@ -96,7 +103,8 @@ signal_engine_v3:
 # L2 microstructure toxicity detection
 pressure_model:
   enabled: true
-  toxicity_threshold: 0.7                  # Toxicity score above this = toxic
+  toxicity_threshold: 0.7                  # Toxic score → selector picks IOC (adaptive selector gate)
+  # toxic_size_threshold: 5.0              # Trades > N× median size count as toxic
   microprice_enabled: true                 # Include microprice-dev in impact score
 
 # ── Adaptive order selector ──
@@ -124,7 +132,9 @@ risk:
   min_margin_ratio: 0.05                   # 5% minimum maintenance margin
   max_leverage: 10                         # Max leverage allowed
 
-  blacklisted_symbols: []                  # Symbols to never trade
+  blacklisted_symbols: []                  # Symbols to never trade (enforced by RiskManager)
+  # per_symbol_max_qty:                    # Per-symbol overrides of max_position_qty
+  #   BTCUSDT: 2.0
 
 # Kill switch lives under `ipc.kill_switch` — a single home; a second
 # `risk.kill_switch` block would shadow the env-aware trigger_file.

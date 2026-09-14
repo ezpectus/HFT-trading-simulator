@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
@@ -91,6 +93,7 @@ struct Config {
     uint8_t adaptive_low_confidence{60};
     uint8_t adaptive_emergency_confidence{95};
     int     adaptive_gtd_seconds{30};
+    double  adaptive_toxic_threshold{0.5}; // score at/above → IOC (avoid pick-off)
 
     // Latency optimization
     bool thread_pinning_enabled{false};
@@ -147,6 +150,11 @@ struct Config {
     int    max_orders_per_second{100};
     double min_margin_ratio{0.05};
     int    max_leverage{20};
+
+    // risk.blacklisted_symbols / risk.per_symbol_max_qty (prod format) —
+    // enforced by RiskManager::Params; previously parseable nowhere (S240).
+    std::unordered_set<std::string>         blacklisted_symbols;
+    std::unordered_map<std::string, double> per_symbol_max_qty;
 
     // Signal Engine V2 weights (prod format)
     double v2_weight_ema{0.20};

@@ -124,4 +124,47 @@ risk:
         CHECK(cfg.symbols.size() == 2);
         std::filesystem::remove(path);
     }
+
+    // S240: prod-format risk.blacklisted_symbols / per_symbol_max_qty were
+    // documented in config.prod.yaml but parsed nowhere.
+    TEST_CASE("Config: prod risk blacklist + per-symbol qty parse (S240)") {
+        std::string path = "test_config_s240_risk.yaml";
+        {
+            std::ofstream f(path);
+            f << R"(
+risk:
+  max_position_qty: 1.0
+  blacklisted_symbols: ["DOGE/USDT", "SHIB/USDT"]
+  per_symbol_max_qty:
+    BTC/USDT: 2.5
+    ETH/USDT: 10.0
+)";
+        }
+        auto cfg = hft::Config::load(path);
+        CHECK(cfg.blacklisted_symbols.count("DOGE/USDT") == 1);
+        CHECK(cfg.blacklisted_symbols.count("BTC/USDT") == 0);
+        CHECK(cfg.per_symbol_max_qty.at("BTC/USDT") == 2.5);
+        CHECK(cfg.per_symbol_max_qty.at("ETH/USDT") == 10.0);
+        std::filesystem::remove(path);
+    }
+
+    // S240: pressure_model.toxicity_threshold was miswired into
+    // v2_pressure_threshold — it gates the adaptive selector's toxic->IOC
+    // branch instead.
+    TEST_CASE("Config: toxicity_threshold maps to adaptive selector (S240)") {
+        std::string path = "test_config_s240_toxic.yaml";
+        {
+            std::ofstream f(path);
+            f << R"(
+pressure_model:
+  enabled: true
+  toxicity_threshold: 0.9
+  pressure_threshold: 0.35
+)";
+        }
+        auto cfg = hft::Config::load(path);
+        CHECK(cfg.adaptive_toxic_threshold == doctest::Approx(0.9));
+        CHECK(cfg.v2_pressure_threshold == doctest::Approx(0.35));
+        std::filesystem::remove(path);
+    }
 }

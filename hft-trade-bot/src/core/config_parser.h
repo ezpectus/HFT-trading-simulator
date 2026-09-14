@@ -300,6 +300,14 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
         if (r["min_margin_ratio"]) cfg.min_margin_ratio = r["min_margin_ratio"].as<double>();
         if (r["max_leverage"]) cfg.max_leverage = r["max_leverage"].as<int>();
         if (r["initial_balance"]) cfg.initial_balance = r["initial_balance"].as<double>();
+        if (r["blacklisted_symbols"] && r["blacklisted_symbols"].IsSequence()) {
+            for (const auto& sym : r["blacklisted_symbols"])
+                cfg.blacklisted_symbols.insert(sym.as<std::string>());
+        }
+        if (r["per_symbol_max_qty"] && r["per_symbol_max_qty"].IsMap()) {
+            for (const auto& kv : r["per_symbol_max_qty"])
+                cfg.per_symbol_max_qty[kv.first.as<std::string>()] = kv.second.as<double>();
+        }
         // kill_switch is configured under `ipc.kill_switch` only — a second
         // block here would shadow the env-aware trigger_file (S196).
     }
@@ -308,8 +316,12 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
 inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
+        // toxicity_threshold is the SCORE gate — it belongs to the adaptive
+        // selector's toxic→IOC branch, not V2's pressure normalizer (S240).
         if (pm["toxicity_threshold"])
-            cfg.v2_pressure_threshold = pm["toxicity_threshold"].as<double>();
+            cfg.adaptive_toxic_threshold = pm["toxicity_threshold"].as<double>();
+        if (pm["toxic_size_threshold"])
+            cfg.v2_toxic_size_threshold = pm["toxic_size_threshold"].as<double>();
         if (pm["toxic_penalty"]) cfg.v2_toxic_penalty = pm["toxic_penalty"].as<double>();
         if (pm["microprice_enabled"])
             cfg.pressure_microprice_enabled = pm["microprice_enabled"].as<bool>();
