@@ -1669,4 +1669,4 @@ Re-checks: S218 (README_PROJECT_OVERVIEW фоссил) подтверждён и
 
 Clean: MONITORING_GUIDE — 5 dashboards + 22 alerts имя-в-имя; TRADING_STRATEGIES/ADVANCED_ORDER_TYPES/RISK_MANAGEMENT — параметры и реализации совпадают с кодом; CONFIGURATION_GUIDE ~60 ключей все с читателями; audit/+theory/+PROJECT_AUDIT/REFACTORING_PLAN — честные point-in-time дисклеймеры; DEPLOYMENT endpoint-URLs и `data/trading.db` валидны; `ipc.*.capacity`/`order_book_depth`/`audit.*`/`latency_optimization.*` парсятся; helm sidecar-архитектура легитимна.
 
-Commit: <pending>
+Commit: 2b71bea
