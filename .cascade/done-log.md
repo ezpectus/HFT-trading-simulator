@@ -650,3 +650,39 @@
 - **Fix:** missing tools now increment FAIL; exchange_simulator suite added; `make ci-full` wires `run-all.sh` into the reachable surface.
 - **Files:** `scripts/ci/test.sh`, `Makefile`
 
+## R167 — slop-fix — 6 findings closed
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN (staged-hook run for the
+tools commit used the documented `WD_SKIP_COVERAGE=1` — live-server
+harnesses are un-unit-testable by design).
+
+### S229 — SimulatorAdapter correlates replies by id, not FIFO
+- **Bug:** `_recv_loop` popped the head pending future on ANY `fill`/`error`/`order_cancelled`; the sim broadcasts every fill to all *other* clients → a stranger's fill resolved our future, `place_order` returned a foreign order dict.
+- **Fix:** `_pending_orders` keyed by correlation id (auto-generated `sim-<uuid>` client_order_id per order, `order_id` for cancels); broadcast messages without a matching key ignored; `error` replies stay FIFO via `_request_order` (direct-addressed only). Regression test: foreign fill no longer resolves a pending order.
+- **Files:** `ai-signal-bot/src/data_collection/exchange_factory.py`, `tests/unit/test_exchange_factory.py`
+
+### S273 — dead tfvars db_password removed
+- **Bug:** `terraform/environments/{dev,prod}/terraform.tfvars.example` set `db_password` with zero `variable` blocks and zero DB resources in the roots — undeclared-variable warning into nowhere, plus a password literal in dev.
+- **Fix:** both example files deleted.
+- **Files:** `terraform/environments/{dev,prod}/terraform.tfvars.example`
+
+### S277 — marketplace strategies reach the backtest engine
+- **Bug:** `trading-sim-strategy-marketplace` packages were stored/imported/exported but nothing could run them — zero run/load/apply actions; the backtest read a different key.
+- **Fix:** `listMarketplaceStrategies()` exported (built-ins + imported); `StrategyBacktest` gained a library select merging builder saves + marketplace packages into runnable `rules` (identical condition vocabulary); aria-labels disambiguate the selects.
+- **Files:** `web-ui/src/hooks/useStrategyMarketplace.ts`, `web-ui/src/components/StrategyBacktest.jsx`, `web-ui/src/test/strategyBacktest.test.jsx`
+
+### S278 — SessionRecorder totalTrades no longer N_snapshots× inflated
+- **Bug:** `stopRecording` summed `acc.trade_history.length` across every snapshot, but history is cumulative → count multiplied by snapshot count.
+- **Fix:** `totalTrades` reads the last snapshot's cumulative history length per account. Regression test: grown history → final count, not the sum.
+- **Files:** `web-ui/src/hooks/useSessionRecorder.ts`, `web-ui/src/test/useSessionRecorder.test.jsx`
+
+### S282 — live-server harnesses unmasqueraded from tests/
+- **Bug:** 5 files (~1200 lines) in `exchange_simulator/tests/` — three `test_*.py` with zero `def test_*` (pytest imported, ran nothing), two non-matching names never collected.
+- **Fix:** moved to `exchange_simulator/tools/` under honest names (`chaos_enhanced.py`, `chaos_reconnect.py`, `load_10k.py`, `stress_load.py`, `load_50_symbols.py`); usage docstrings updated; `chaos_enhanced` `project_root` fixed (was `exchange_simulator/` — one level short, sim subprocess could never launch); `TESTING.md` paths updated.
+- **Files:** `exchange_simulator/{tests→tools}/*`, `docs/TESTING.md`
+
+### S283 — stress/load harnesses use the real WS protocol
+- **Bug:** `stress_test.py` POSTed orders to `http://localhost:8765/api/v1/orders` and `load_test_50_symbols.py` GET `/symbols` + `/orderbook/` — a REST API the sim has never had → guaranteed 100% errors.
+- **Fix:** rewritten to the actual protocol — orders as `{"type":"order"}` on a shared WS with fills correlated by `client_order_id` and direct `error` replies; latency via `ping`→`pong` round-trip; the orderbook-REST test became a broadcast symbol-coverage measurement (no orderbook request type exists).
+- **Files:** `exchange_simulator/tools/stress_load.py`, `tools/load_50_symbols.py`
+

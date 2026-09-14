@@ -2298,3 +2298,14 @@ Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 49 open.
 
 Done-log fully verified through R165. Board: 49 open.
 
+## R167 — slop-fix — 6 findings closed
+
+- **S229** — pending-order futures keyed by client_order_id/order_id; broadcast fills without a match ignored; errors stay FIFO (direct-addressed). Foreign-fill regression test added.
+- **S273** — both tfvars.example files deleted (undeclared db_password + password literal).
+- **S277** — `listMarketplaceStrategies()` exported; StrategyBacktest library select runs marketplace+builder rules.
+- **S278** — totalTrades from last snapshot's cumulative history; grown-history regression test.
+- **S282** — 5 main-only scripts moved tests/ → tools/ (honest names); chaos_enhanced project_root fixed one level up to repo root; TESTING.md updated.
+- **S283** — REST /api/v1 calls rewritten to real WS protocol (order→fill by cid, ping→pong latency, symbol coverage).
+
+Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 43 open.
+
