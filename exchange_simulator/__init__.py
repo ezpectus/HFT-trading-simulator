@@ -8,4 +8,4 @@ No real exchange API is used — this is a fully self-contained simulation
 designed for paper trading and strategy testing.
 """
 
-__version__ = "1.0.0"
+__version__ = "4.1.0"

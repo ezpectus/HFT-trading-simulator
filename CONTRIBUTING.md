@@ -427,20 +427,18 @@ python -m exchange_simulator --export --export-format parquet
 ```
 hft-trading-system/
 ├── exchange_simulator/           # Python: simulated crypto exchange
-│   ├── exchange_simulator/        # Core package
 │   ├── tests/                     # pytest tests
+│   ├── tools/                     # live-server chaos/load harnesses
 │   ├── config.yaml
 │   └── Dockerfile
 ├── ai-signal-bot/                # Python: AI signal generation
 │   ├── src/
-│   │   ├── strategies/           # 13 trading strategies
+│   │   ├── strategies/           # 7 wired trading strategies
 │   │   ├── technical_analysis/   # Indicators, FFT, Hawkes, Kalman, etc.
 │   │   ├── communication/        # WebSocket, SHM, FIX
 │   │   ├── backtesting/          # Backtester, optimizer, walk-forward
 │   │   ├── risk/                 # VaR, CVaR, Kelly, stress tests
 │   │   ├── portfolio/            # Markowitz, BL, risk parity
-│   │   ├── ml/                   # LSTM, Transformer, RL, AutoML
-│   │   ├── research/             # 52 quant models
 │   │   └── signal_validation/    # Signal validator
 │   ├── tests/                     # pytest tests
 │   ├── run.py                    # Main entry point
@@ -451,18 +449,18 @@ hft-trading-system/
 │   ├── tests/                    # C++ tests
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
-├── web-ui/                       # React 18: dashboard (295 components, 162 test files)
+├── web-ui/                       # React 18: dashboard (295 components, 157 test files)
 │   ├── src/
 │   │   ├── components/           # UI components (React.lazy)
 │   │   ├── panels/               # Panel registry
 │   │   ├── hooks/                # WebSocket, exchange, signals, theme
 │   │   └── utils/                # Indicators, format, mock data
 │   └── package.json
-├── docs/                         # Documentation (15 files)
+├── docs/                         # Documentation (13 top-level files)
 ├── monitoring/                   # Prometheus + Grafana config
 ├── docker-compose.yml            # Development
 ├── docker-compose.prod.yml       # Production (+ Prometheus, Alertmanager, Grafana)
-├── shared_config.yaml            # 50 symbol definitions
+├── shared_config.yaml            # Canonical symbol/exchange/ws reference for the consistency gate
 ├── Makefile                      # install, dev, test, lint, build, docker
 └── install-deps.bat              # One-command dependency installer
 ```

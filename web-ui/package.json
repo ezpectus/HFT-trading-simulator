@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.2.0",
   "type": "module",
-  "description": "HFT Trading System Dashboard \u2014 278 panels, 52 quant models, React 18 + Vite 8",
+  "description": "HFT Trading System Dashboard — 271 panels, ~60 math-model panels, React 18 + Vite 8",
   "keywords": [
     "trading",
     "hft",
