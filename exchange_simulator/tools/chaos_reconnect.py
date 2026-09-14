@@ -10,13 +10,12 @@ Simulates exchange simulator crash during active trading:
 6. Verify position state is preserved via sync_state
 
 Usage:
-    python tests/test_chaos_reconnect.py
+    python tools/chaos_reconnect.py
 
 Requirements:
     pip install websockets
 """
 import asyncio
-import http.server
 import json
 import os
 import signal

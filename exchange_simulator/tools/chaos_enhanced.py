@@ -12,9 +12,9 @@ Runs the exchange simulator as subprocess, connects via WebSocket,
 opens positions, then kills the exchange at critical moments.
 
 Usage:
-    python tests/test_chaos_enhanced.py
-    python tests/test_chaos_enhanced.py --verbose
-    python tests/test_chaos_enhanced.py --scenario kill_during_order
+    python tools/chaos_enhanced.py
+    python tools/chaos_enhanced.py --verbose
+    python tools/chaos_enhanced.py --scenario kill_during_order
 
 Requirements:
     pip install websockets
@@ -385,7 +385,10 @@ async def main():
                         default="all", help="Which scenario to run")
     args = parser.parse_args()
 
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # tools/ -> exchange_simulator/ -> repo root (python -m exchange_simulator
+    # resolves only from the root, not from inside the package)
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     result = ChaosTestResult()
     exch = ExchangeProcess(project_root)
 

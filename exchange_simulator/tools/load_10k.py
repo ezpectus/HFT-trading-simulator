@@ -8,7 +8,7 @@ Connects to the exchange simulator WebSocket and measures:
 - Memory usage
 
 Usage:
-    python tests/test_load_10k.py --url ws://localhost:8765 --duration 30 --target 10000
+    python tools/load_10k.py --url ws://localhost:8765 --duration 30 --target 10000
 
 Requirements:
     pip install websockets psutil
@@ -16,7 +16,6 @@ Requirements:
 import argparse
 import asyncio
 import json
-import statistics
 import sys
 import time
 from collections import deque

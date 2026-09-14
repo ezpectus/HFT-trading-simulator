@@ -131,8 +131,8 @@ The system has **304 unit test files** across three languages:
 | WebSocket | test_websocket_orderbook, test_websocket_server, test_ws_message_handler |
 | Property-based | test_property_based (Hypothesis) |
 | Security | test_security (log injection, order validation, overflow) |
-| Load testing | test_load_10k, load_test_50_symbols |
-| Chaos | test_chaos_enhanced, test_chaos_reconnect |
+| Load testing | tools/load_10k, tools/load_50_symbols, tools/stress_load (live-server harnesses, not pytest) |
+| Chaos | tools/chaos_enhanced, tools/chaos_reconnect (live-server harnesses, not pytest) |
 | Other | test_arbitrage, test_audit_logger, test_config_validator, test_correlation_funding, test_data_export, test_integration_dataflow, test_models, test_visualizer, test_visualizer_charts |
 
 ### Monitoring (1 file)
