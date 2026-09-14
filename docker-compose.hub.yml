@@ -58,6 +58,7 @@ services:
     environment:
       # S210: service DNS, not the container's own loopback.
       - WS_URL=ws://exchange-simulator:8765
+      - AI_BOT_BIND_HOST=0.0.0.0
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/ready', timeout=5)"]

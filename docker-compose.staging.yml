@@ -69,6 +69,7 @@ services:
     environment:
       - LOG_FORMAT=json
       - WS_URL=ws://exchange-simulator:8765
+      - AI_BOT_BIND_HOST=0.0.0.0
     restart: on-failure:5
     deploy:
       resources:

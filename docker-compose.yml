@@ -78,6 +78,7 @@ services:
       # S210: service DNS, not loopback — config/settings.yaml exchange URL
       # defaults to localhost which is the bot's OWN container.
       - WS_URL=ws://exchange-simulator:8765
+      - AI_BOT_BIND_HOST=0.0.0.0
     command: python run.py --metrics
     restart: unless-stopped
     deploy:

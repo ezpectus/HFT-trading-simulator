@@ -154,7 +154,9 @@ async def run_websocket_server(
         control_token=control_token,
         metrics_enabled=bool(metrics_cfg.get("enabled", True)),
         metrics_port=metrics_cfg.get("port"),
-        metrics_host=metrics_cfg.get("host"),
+        # Falls back to the websocket host (EXCHANGE_WS_HOST) when unset —
+        # a literal 'localhost' here strand-scopes the scrape port (S239).
+        metrics_host=os.environ.get("EXCHANGE_METRICS_HOST") or metrics_cfg.get("host"),
     )
 
     # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C).

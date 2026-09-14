@@ -139,6 +139,7 @@ services:
       - LOG_FORMAT=json
       # S210: service DNS, not loopback — settings.yaml defaults to localhost.
       - WS_URL=ws://exchange-simulator:8765
+      - AI_BOT_BIND_HOST=0.0.0.0
     volumes:
       - ./ai-signal-bot/config/settings.yaml:/app/config/settings.yaml:ro
       - ai-data:/app/data
