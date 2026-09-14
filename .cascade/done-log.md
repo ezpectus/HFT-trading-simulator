@@ -367,7 +367,7 @@
 - `run.py::main` — fail-fast gate: `paper_trading:false` + `CCXT_AVAILABLE=False` → `logger.error` + `sys.exit(1)` до старта бота (was: зелёный health + «Live order error» на каждый сигнал, 0 ордеров).
 - ccxt НЕ добавлен в requirements — новые зависимости требуют одобрения пользователя; gate — честный минимум.
 
-### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154 ✅ · verified R181
+### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154
 - C++ `CreateFileMappingW` использует имя `/hft_*` дословно; Python-сторона делала `name.lstrip("/")` в `shm_ring_buffer.py` и `shm_market_data_writer.py` → разные kernel-объекты → Python attach'ился к свежесозданному пустому region, все SHM-каналы (signals/fills/market/kill_switch) молча читали нули на Windows.
 - Исправлено: verbatim-tag в обоих сайтах (+ `scripts/monitor.py`). Подтверждено живым кросс-процессным чтением.
 
