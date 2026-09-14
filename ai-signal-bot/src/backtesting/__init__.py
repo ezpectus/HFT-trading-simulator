@@ -1,5 +1,4 @@
 from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine
-from src.backtesting.backtest_engine import BacktestResult as BacktestEngineResult
 from src.backtesting.backtester import Backtester, BacktestResult, Trade
 from src.backtesting.optimizer import StrategyOptimizer
 from src.backtesting.plotter import BacktestPlotter
@@ -13,7 +12,7 @@ from src.backtesting.pnl_calculator import (
 
 __all__ = [
     "Backtester", "BacktestResult", "Trade",
-    "BacktestEngine", "BacktestConfig", "BacktestEngineResult",
+    "BacktestEngine", "BacktestConfig",
     "BacktestPlotter", "StrategyOptimizer",
     "AssetType", "OptionType", "PnLBreakdown", "PnLCalculator", "PnLConfig",
 ]

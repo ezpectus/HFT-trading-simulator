@@ -6,7 +6,6 @@ import pytest
 
 from src.backtesting.backtest_comparison import BacktestComparison
 from src.backtesting.backtest_engine import BacktestConfig, BacktestEngine, BacktestResult
-from src.backtesting.walk_forward import WalkForwardAnalyzer
 
 
 def make_candles(n=200, start_price=50000.0, seed=42):
