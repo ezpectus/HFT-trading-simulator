@@ -47,7 +47,26 @@ describe('useSessionRecorder', () => {
     expect(rec.metadata.maxDrawdown).toBeCloseTo(0.2)
     // impl: finalBalance is Math.max over snapshots (peak balance, not last)
     expect(rec.metadata.finalBalance).toBe(10000)
-    expect(rec.metadata.totalTrades).toBe(2)
+    // trade_history is cumulative — last snapshot's count, not a sum
+    // across snapshots (2 snaps × 1 trade would wrongly report 2)
+    expect(rec.metadata.totalTrades).toBe(1)
+  })
+
+  it('totalTrades reflects the final cumulative history, not a per-snapshot sum', () => {
+    const { result } = renderHook(() => useSessionRecorder())
+    act(() => result.current.startRecording('trades', 'BTC/USDT', 'binance'))
+    const data = marketData(10000)
+    act(() => result.current.updateData(data))
+    act(() => result.current.captureSnapshot())
+    // history grows to 3 trades — cumulative list in the next snapshot
+    data.accounts.binance.trade_history = [{ id: 1 }, { id: 2 }, { id: 3 }]
+    act(() => result.current.updateData(data))
+    act(() => result.current.captureSnapshot())
+
+    let rec
+    act(() => { rec = result.current.stopRecording() })
+    // 1 + 3 = 4 would be the inflated sum; true session count is 3
+    expect(rec.metadata.totalTrades).toBe(3)
   })
 
   it('persists recordings to localStorage and deletes by id', () => {

@@ -109,6 +109,24 @@ const DEFAULT_STRATEGIES: StrategyPackage[] = [
   },
 ]
 
+/**
+ * Built-in + imported marketplace strategies — the read path that lets
+ * other panels (e.g. StrategyBacktest) actually run marketplace packages.
+ */
+export function listMarketplaceStrategies(): StrategyPackage[] {
+  let imported: StrategyPackage[] = []
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed)) imported = parsed
+    }
+  } catch {
+    // corrupt storage — fall back to built-ins only
+  }
+  return [...DEFAULT_STRATEGIES, ...imported]
+}
+
 export function useStrategyMarketplace() {
   const [strategies, setStrategies] = useState<StrategyPackage[]>([])
   const [importedStrategies, setImportedStrategies] = useState<StrategyPackage[]>([])

@@ -131,8 +131,17 @@ export function useSessionRecorder() {
         if (equity > peak) peak = equity
         const dd = peak > 0 ? (peak - equity) / peak : 0
         if (dd > maxDD) maxDD = dd
-        totalTrades += (acc.trade_history?.length || 0)
         finalBalance = Math.max(finalBalance, acc.balance || 0)
+      }
+    }
+
+    // trade_history is cumulative per snapshot — the LAST snapshot already
+    // holds the full session count; summing across snapshots multiplies
+    // the count by the snapshot count.
+    const lastSnap = rec.snapshots[rec.snapshots.length - 1]
+    if (lastSnap) {
+      for (const acc of Object.values<any>(lastSnap.accounts)) {
+        totalTrades += acc.trade_history?.length || 0
       }
     }
 

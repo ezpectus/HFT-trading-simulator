@@ -4,6 +4,7 @@ import { Play, Loader2, TrendingUp, TrendingDown, BarChart3, Download } from 'lu
 import { runBacktest } from '../utils/backtestEngine'
 import { useTradingStore } from '../stores/useTradingStore'
 import { useUIStore } from '../stores/useUIStore'
+import { listMarketplaceStrategies } from '../hooks/useStrategyMarketplace'
 
 const SAVED_KEY = 'trading-sim-strategies'
 
@@ -35,19 +36,26 @@ function StrategyBacktest() {
   const [serverStrategy, setServerStrategy] = useState('all')
   const [serverRunning, setServerRunning] = useState(false)
 
-  // Load saved strategies
+  // Strategy library = StrategyBuilder saves + Strategy Marketplace packages
+  // (same {condition, value, action, qty} rule shape the engine consumes).
+  const [library, setLibrary] = useState([])
   useEffect(() => {
+    const lib = []
     try {
-      const saved = localStorage.getItem(SAVED_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed.length > 0 && parsed[0].rules) {
-          setRules(parsed[0].rules)
+      const saved = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]')
+      if (saved.length > 0 && saved[0].rules) setRules(saved[0].rules)
+      saved.forEach((s, i) => {
+        if (s?.rules?.length) {
+          lib.push({ id: `builder:${i}`, name: s.name || `Builder strategy ${i + 1}`, rules: s.rules })
         }
-      }
+      })
     } catch {
       // ignore
     }
+    for (const p of listMarketplaceStrategies()) {
+      if (p?.rules?.length) lib.push({ id: `mkt:${p.id}`, name: p.name, rules: p.rules })
+    }
+    setLibrary(lib)
   }, [])
 
   const backtestCandles = useMemo(() => {
@@ -206,6 +214,7 @@ function StrategyBacktest() {
         <div className="text-[9px] text-gray-500 uppercase">Server engine — named strategies on live candles</div>
         <div className="flex gap-1">
           <select
+            aria-label="Server strategy"
             value={serverStrategy}
             onChange={e => setServerStrategy(e.target.value)}
             className="flex-1 bg-bg-700 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none"
@@ -266,6 +275,23 @@ function StrategyBacktest() {
       </div>
 
       <div className="text-[9px] text-gray-500 uppercase">Client engine — custom rules on live candles</div>
+
+      {/* Strategy library — builder saves + marketplace packages become runnable */}
+      {library.length > 0 && (
+        <select
+          aria-label="Load strategy rules"
+          value=""
+          onChange={e => {
+            const s = library.find(l => l.id === e.target.value)
+            if (s) setRules(s.rules.map((r, i) => ({ id: i + 1, ...r })))
+          }}
+          className="w-full bg-bg-800 border border-bg-600  px-1.5 py-0.5 text-[10px] text-gray-200 outline-none"
+          title="Load rules from a saved builder strategy or marketplace package"
+        >
+          <option value="">Load strategy rules…</option>
+          {library.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+      )}
 
       {/* Config */}
       <div className="grid grid-cols-3 gap-1">

@@ -50,7 +50,7 @@ describe('StrategyBacktest', () => {
     const send = vi.fn(() => true)
     useTradingStore.setState({ sendSignalMessage: send, signalConnected: true })
     render(<StrategyBacktest />)
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'trend' } })
+    fireEvent.change(screen.getByLabelText('Server strategy'), { target: { value: 'trend' } })
     fireEvent.click(screen.getByText('Run on server'))
     expect(send).toHaveBeenCalledWith(expect.objectContaining({
       type: 'run_backtest',
