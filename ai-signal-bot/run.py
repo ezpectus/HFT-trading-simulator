@@ -59,13 +59,14 @@ from src.utils.bot_helpers import (  # noqa: E402
 
 
 def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
-    """Setup logging with timestamped file output."""
+    """Setup logging; honors config logging.file via a rotating file handler."""
     fmt = os.environ.get("LOG_FORMAT", "text")
     if setup_run_logging is not None:
         return setup_run_logging("ai_signal_bot", level=level, format_type=fmt)
-    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO),
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    return logging.getLogger("ai_signal_bot"), "stdout"
+    from src.observability.logging import setup_logging as setup_obs_logging
+    setup_obs_logging("ai-signal-bot", level=level, json_logs=(fmt == "json"),
+                      log_file=log_file or None)
+    return logging.getLogger("ai_signal_bot"), (log_file or "stdout")
 
 
 class AISignalBot:
@@ -754,6 +755,18 @@ def main():
         run_backtest(config, logger)
         logger.info("Backtest complete. Log file: %s", log_path)
         return
+
+    # S228: live mode needs ccxt (not in requirements — optional dep). Without
+    # it every signal fails with a per-signal RuntimeError while the bot looks
+    # alive; refuse to start instead.
+    if not config.paper_trading:
+        from src.data_collection.real_account import CCXT_AVAILABLE
+        if not CCXT_AVAILABLE:
+            logger.error(
+                "paper_trading=false requires the optional ccxt dependency "
+                "(pip install ccxt). Refusing to start a live bot that cannot "
+                "route orders.")
+            sys.exit(1)
 
     bot = AISignalBot(config)
 

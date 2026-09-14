@@ -127,8 +127,12 @@ class ShmRingBuffer[T]:
         self._total_size = total_size
 
         if IS_WINDOWS:
-            # Windows: page-file-backed shared memory via mmap tagname
-            tag = name.lstrip("/")
+            # Windows: page-file-backed shared memory via mmap tagname.
+            # The tag is the CreateFileMappingW object name used VERBATIM by
+            # the C++ side — the leading "/" is part of the name (S318:
+            # stripping it attached to a different, empty region and every
+            # SHM channel was silently dead on Windows).
+            tag = name
             access = mmap.ACCESS_WRITE
             if create:
                 self._mm = mmap.mmap(-1, total_size, tagname=tag, access=access)
