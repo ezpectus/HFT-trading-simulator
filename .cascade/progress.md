@@ -1735,3 +1735,19 @@ Commit: b1ed546
 **Clean:** все 12 npm-скриптов резолвятся; все 8 prod-deps + 22 dev-deps имеют consumers; оба pyproject честны; CMake targets↔sources; `shared_config.yaml` реально читается consistency-тестом+pre-commit+deploy-скриптами; `.windsurf/workflows/` — 8 файлов включая slop-fix.md.
 
 Commit: 13c4862
+
+---
+
+## R123 — monitoring data-path + helm/terraform re-sweep
+
+**Scope:** 5 grafana dashboard JSON (56 exprs → 40 метрик) vs emitters И vs живые сеттеры; `helm/` 20 файлов (шаблоны re-verify — первично покрыты R107/S203–S206); `helm/files/` vs `monitoring/` drift; terraform env-roots + 3 модуля + tfvars.example; двойная metrics-архитектура ai-bot (MetricsCollector vs MetricsExporter).
+
+**Findings (2):**
+- S272 (Medium): 17 из ~25 `MetricsExporter`-методов (`metrics.py`) никогда не вызываются в prod — `record_signal`(:235), `record_fill`(:241), `record_order_sent/rejected`(:246/253), `update_pnl`(:264), `update_positions`(:272), `update_ws_status`(:278), `update_shm_buffer`(:283), `observe_signal_latency`/`observe_order_latency`/`observe_shm_round_trip`/`observe_position_hold_time`(:288-303), `record_error`(:340), `set_bot_drawdown`/`set_bot_win_rate`/`set_bot_pnl_total`/`set_bot_uptime`(:345-360). Дашборды рисуют вечные нули: `trading-performance.json` — zero-board (5 из 6 метрик плоские, жив только sharpe через run.py:641), `ai_signal_bot_metrics` — errors_total/uptime_seconds = 0, `latency-monitoring` — trading_signal_latency_seconds пуст. Тонкость: publisher инкрементит `ai_signal_bot_signals_sent_total` (живой), дашборд спрашивает `trading_signals_total` (мёртвый `record_signal`). hft-половина trading-overview — blast-radius S246.
+- S273 (Low): `terraform/environments/{dev,prod}/terraform.tfvars.example` задают `db_password` — env-roots имеют НОЛЬ `variable`-блоков, DB-ресурса не существует (модули eks/s3/vpc). `terraform plan` → «Value for undeclared variable». Dev-файл несёт password-литерал `ChangeMeInProduction123!`.
+
+**Retracted/false positives:** helm PDB-селекторы и ingress /grafana — уже S203 (R107 покрыл helm templates); все 40 dashboard-метрик по имени существуют в emitters (проблема в сеттерах, не именах); `helm/files/` — идентичные vendored-копии monitoring/ (drift=0, sync-комментарии честные); cpu/memory метрики — self-sample на scrape-time через resource.getrusage (не мёртвые); MetricsCollector — намеренный write-only sink когда --metrics выключен.
+
+**Clean:** helm templates — fail-fast на обязательных values, верные env-имена (WS_URL/HFT_EXCHANGE_WS_URL/EXCHANGE_CONTROL_TOKEN/EXCHANGE_WS_HOST — S253-verified), probes на реальных endpoints, hft-sidecar + SHM-Memory + kill-switch на writable-volume, .Files.Get vendoring честный; terraform s3 — public-access-block+versioning+encryption; backend s3 с dynamodb-lock.
+
+Commit: TBD
