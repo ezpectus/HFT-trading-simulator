@@ -1,7 +1,10 @@
 # ── Production Makefile ──
 # Usage: make prod-up, make prod-down, make prod-logs, etc.
 
-DOCKER_COMPOSE = docker compose -f docker-compose.prod.yml
+# --env-file is required: env_file: loads .env.prod into containers, but
+# ${VAR:?required} interpolation in the compose file only reads --env-file
+# (or the default .env). Without it every prod command fails on :?required.
+DOCKER_COMPOSE = docker compose --env-file .env.prod -f docker-compose.prod.yml
 SERVICES = exchange-simulator ai-signal-bot hft-trade-bot web-ui prometheus grafana
 
 .PHONY: prod-up prod-down prod-build prod-rebuild prod-logs prod-ps prod-restart \
@@ -66,7 +69,7 @@ prod-clean:
 
 prod-stats:
 	@echo "Docker container stats:"
-	@docker stats --no-stream $$(docker compose -f docker-compose.prod.yml ps -q)
+	@docker stats --no-stream $$($(DOCKER_COMPOSE) ps -q)
 
 # ── Deploy ──
 

@@ -129,8 +129,8 @@ jobs:
             # Tag pushed images are semver without the leading v (v2.0.0 → 2.0.0)
             export IMAGE_TAG="${{ github.ref_name }}"
             export IMAGE_TAG="${IMAGE_TAG#v}"
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d --force-recreate
+            docker compose --env-file .env.prod -f docker-compose.prod.yml pull
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --force-recreate
             docker image prune -f
 
   health-check:
