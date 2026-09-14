@@ -1881,3 +1881,19 @@ Commit: bfc0454
 **Clean:** SHM ring-buffer layout байт-в-байт = C++ (192B/head@64/tail@128/magic), SPSC корректен; seq-lock market-writer настоящий; 70/70 config-properties имеют потребителей; SignalPublisher — auth+rate-limit+bounded history; backtest_requests честный (synthetic помечен, params clamped); portfolio/analysis handlers — bounded+validated+to_thread; paper/live exec реальны; CB state-machine корректен.
 
 Commit: b44ca41
+
+## R133 — scripts/ remainder + helm/ + terraform/ leaf-read (~4.5k lines)
+
+**Scope:** `scripts/` non-CI: `pre-commit-check.py` (911-line gate), `ci-equivalence.py`, `health-check.py`, `deploy.sh`/`deploy.bat`, `docker-smoke-test.{sh,bat}`, `pre-commit-hook.{sh,bat}` + `-git` twins, `commit-msg-hook.{sh,bat}`, `install-hooks.bat`. `helm/` — values.yaml + all 11 templates + vendored files/. `terraform/` — vpc/eks/s3 modules + dev/prod envs + README + tfvars.example.
+
+**Findings (4):**
+- S295 (Medium): `deploy.sh` native — health-гейт непроходим. `health_check` curl'ит `:8080/ready` (:210), но `start_native` (:159) зовёт `python run.py` без `--metrics` и `metrics.enabled: false` → `run.py:199` не стартует HealthServer → 30 ретраев → `exit 1` при живых процессах. Плюс `:3000/health` в native — вакуумный vite-preview SPA-fallback 200 (комментарий :225 про nginx верен только в docker); pid-файлы пишутся (:150-181) но stop их не читает; `status` (:355) grep'ит нематчащийся `ai_signal_bot`.
+- S296 (Medium): `deploy.bat` — театр в обе стороны. Health-цикл (:168-206) — 30 итераций без счётчика/break/exit-path → безусловный «Health checks completed» + «Deployment completed successfully» при мёртвых сервисах. `taskkill /FI "WINDOWTITLE eq …"` (:101-104) не матчит `start /B`-процессы (нет окна/title) → python.exe×2 и node.exe никогда не убиваются → рестарты копят дубли на 8765/8766/3000.
+- S294 (Low): pre-commit гейт никогда не исполняет `check_cpp_build_and_test` — `run_build = args.full or args.all` (:835), вызов под `(run_build or args.full or args.all)` (:878); установленные хуки зовут `--staged`/`--staged --quick` → staged `.cpp` проходит на clang-format без cmake/ctest при рекламируемом «ctest (C++)» (:7).
+- S297 (Info): rollback write-only backup'ы — backup берёт config+exchange data+ai_data+audit (sh:48-59/bat:49-56), restore — только config + exchange data (sh:284-304/bat:241-253); `ai_data_$TS`/`audit_$TS` копятся и не читаются нигде — откат теряет SQLite-базу ai-бота молча.
+
+**Dedup:** `pkill -f ai_signal_bot` / `python -m` изнутри пакета / docker-compose v1 / dead ENVIRONMENT — уже S215; ci-equivalence phantom `test-rust`→`check_rust_build_and_test` + несверка маппинга + cargo-claims + phantom install-hooks.sh — S216/S262; scripts/ci orphan — S226; tfvars db_password — S273.
+
+**Clean:** оба docker-smoke-test честные (compose `--metrics` → `:9090/health` валиден, errorlevel-пропагация); commit-msg/pre-commit хуки проксируют exit-коды; health-check.py — честный report-only dashboard; helm — shareProcessNamespace SHM-sidecar, реальные probes, vendored alerts/dashboards byte-identical monitoring/, grafana provisioning корректен, ingress/network-policy sane; terraform — textbook VPC (public-IGW/private-NAT), EKS-открытость уже в S204.
+
+Commit: <pending>
