@@ -3,12 +3,7 @@
 eBPF monitoring agent for ultra-low-overhead system observability.
 
 Uses eBPF (Extended Berkeley Packet Filter) to monitor:
-  - Syscall latency (read, write, sendto, recvfrom)
-  - Network packet latency (kernel → userspace)
-  - CPU cache misses (L1, LLC)
-  - Memory allocations (malloc/free tracking)
-  - Thread scheduling latency
-  - File I/O latency
+  - Per-process syscall count and latency (enter/exit tracepoint pair)
 
 Overhead: <0.1% CPU (eBPF runs in kernel, no context switches)
 
@@ -40,42 +35,45 @@ try:
 except ImportError:
     BCC_AVAILABLE = False
 
-try:
-    from prometheus_client import Counter as PromCounter, Gauge as PromGauge  # noqa: F401
-    _HAS_PROMETHEUS = True
-except ImportError:
-    _HAS_PROMETHEUS = False
-
-if _HAS_PROMETHEUS:
-    _prom_syscall_count = PromGauge("ebpf_syscall_count_total", "eBPF syscall count by comm", labelnames=["comm"])
-    _prom_syscall_latency_us = PromGauge("ebpf_syscall_avg_latency_us", "eBPF average syscall latency in microseconds", labelnames=["comm"])
-
-
-# eBPF program for syscall tracing
+# eBPF program for syscall tracing — sys_enter stores the start timestamp
+# keyed by pid; sys_exit pairs it and submits one event per syscall with a
+# real latency (a lone sys_enter probe can never observe ts_end).
 SYSCALL_BPF = r"""
 #include <uapi/linux/ptrace.h>
 #include <uapi/linux/bpf_perf_event.h>
 
 struct syscall_event_t {
     u64 pid;
-    u64 ts_start;
-    u64 ts_end;
+    u64 syscall_id;
     char comm[16];
-    char syscall[32];
     u64 latency_ns;
 };
 
 BPF_PERF_OUTPUT(events);
+BPF_HASH(start_times, u64, u64);
 
 TRACEPOINT_PROBE(raw_syscalls, sys_enter) {
     u64 pid = bpf_get_current_pid_tgid() >> 32;
     u64 ts = bpf_ktime_get_ns();
-    
+    start_times.update(&pid, &ts);
+    return 0;
+}
+
+TRACEPOINT_PROBE(raw_syscalls, sys_exit) {
+    u64 pid = bpf_get_current_pid_tgid() >> 32;
+    u64 *start = start_times.lookup(&pid);
+    if (start == 0) {
+        return 0;
+    }
+    u64 now = bpf_ktime_get_ns();
+
     struct syscall_event_t event = {};
     event.pid = pid;
-    event.ts_start = ts;
+    event.syscall_id = args->id;
+    event.latency_ns = now - *start;
     bpf_get_current_comm(&event.comm, sizeof(event.comm));
-    
+
+    start_times.delete(&pid);
     events.perf_submit(args, &event, sizeof(event));
     return 0;
 }
@@ -90,11 +88,7 @@ class EBPFMonitor:
         self.interval = interval
         self._bpf: object | None = None
         self._running = False
-        self._stats: dict[str, Any] = {
-            "syscalls": {},
-            "network": {},
-            "latency_histogram": {},
-        }
+        self._stats: dict[str, Any] = {"syscalls": {}}
 
     def initialize(self) -> bool:
         if not BCC_AVAILABLE:
@@ -118,9 +112,7 @@ class EBPFMonitor:
                 return
 
             comm = event.comm.decode("utf-8", errors="replace").strip("\x00")
-            latency_ns = event.ts_end - event.ts_start if event.ts_end > event.ts_start else 0
-
-            key = comm
+            key = f"{comm}:{event.syscall_id}"
             if key not in self._stats["syscalls"]:
                 self._stats["syscalls"][key] = {
                     "count": 0, "total_latency_ns": 0, "max_latency_ns": 0,
@@ -128,9 +120,9 @@ class EBPFMonitor:
 
             s = self._stats["syscalls"][key]
             s["count"] += 1
-            s["total_latency_ns"] += latency_ns
-            if latency_ns > s["max_latency_ns"]:
-                s["max_latency_ns"] = latency_ns
+            s["total_latency_ns"] += event.latency_ns
+            if event.latency_ns > s["max_latency_ns"]:
+                s["max_latency_ns"] = event.latency_ns
 
         except (KeyError, TypeError, ValueError, struct.error) as e:
             logger.debug(f"[eBPF] Event parse error: {e}")
@@ -174,12 +166,6 @@ class EBPFMonitor:
             }
 
         logger.info(json.dumps(report, indent=2))
-
-        if _HAS_PROMETHEUS:
-            for comm, stats in self._stats["syscalls"].items():
-                _prom_syscall_count.labels(comm=comm).set(stats["count"])
-                avg_ns = stats["total_latency_ns"] / max(stats["count"], 1)
-                _prom_syscall_latency_us.labels(comm=comm).set(round(avg_ns / 1000, 2))
 
     def get_stats(self) -> dict[str, Any]:
         return self._stats.copy()
