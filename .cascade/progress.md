@@ -2002,7 +2002,7 @@ Commit: 685d68f
   - **S131** — dashboards query real names (R140 full cross-check re-proved: 40/40 resolve).
   - **S130** — registry reverse-drift fixed (perf-dashboard:490 accounts+fills+signals; backtest-runner:723 signals-connected+sendSignalMessage+backtestResult; indicator-builder:358 onIndicatorsChange→setCustomIndicators).
 - **Done-log:** 8 entries marked `✅ verified R146`. Unverified backlog: ~109 remain.
-- **Commit:** <pending>
+- **Commit:** `f489db7`
 
 ## R145 — terraform/ tree + root stragglers (4 findings)
 
