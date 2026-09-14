@@ -527,39 +527,70 @@ class MessageHandlerMixin:
         state_msg = json.dumps({"type": "trading_state", "trading_active": active})
         await self._broadcast_to_clients(state_msg)
 
+    @staticmethod
+    def _valid_number(value) -> bool:
+        """Only finite real numbers may be hot-reloaded — a string written into
+        _volatility/fee_pct detonates later inside the unguarded tick path."""
+        import math
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and math.isfinite(value)
+        )
+
     def _handle_update_config(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle hot-reload config updates."""
         import asyncio
         updates = data.get("updates", {})
+        rejected = []
         if "volatility" in updates:
             for symbol, vol in updates["volatility"].items():
                 if symbol in self.market._volatility:
+                    if not self._valid_number(vol):
+                        rejected.append(f"volatility.{symbol}")
+                        continue
                     old = self.market._volatility[symbol]
                     self.market._volatility[symbol] = vol
                     logger.info("  Config hot-reload: %s volatility %s → %s", _sanitize_log(symbol), _sanitize_log(str(old)), _sanitize_log(str(vol)))
         if "fees" in updates:
             for ex_id, fee in updates["fees"].items():
                 if ex_id in self.exchanges:
+                    if not self._valid_number(fee):
+                        rejected.append(f"fees.{ex_id}")
+                        continue
                     old = self.exchanges[ex_id].fee_pct
                     self.exchanges[ex_id].fee_pct = fee
                     logger.info("  Config hot-reload: %s fee %s% → %s%", _sanitize_log(ex_id), _sanitize_log(str(old)), _sanitize_log(str(fee)))
         if "slippage" in updates:
             for ex_id, slip in updates["slippage"].items():
                 if ex_id in self.exchanges:
+                    if not self._valid_number(slip):
+                        rejected.append(f"slippage.{ex_id}")
+                        continue
                     old = self.exchanges[ex_id].slippage_bps
                     self.exchanges[ex_id].slippage_bps = slip
                     logger.info("  Config hot-reload: %s slippage %sbps → %sbps", _sanitize_log(ex_id), _sanitize_log(str(old)), _sanitize_log(str(slip)))
         if "leverage" in updates:
             for ex_id, lev in updates["leverage"].items():
                 if ex_id in self.exchanges:
+                    if not self._valid_number(lev):
+                        rejected.append(f"leverage.{ex_id}")
+                        continue
                     self.exchanges[ex_id].account.leverage = lev
                     logger.info("  Config hot-reload: %s leverage → %sx", _sanitize_log(ex_id), _sanitize_log(str(lev)))
+        if rejected:
+            logger.warning("Config hot-reload rejected non-numeric values: %s",
+                           _sanitize_log(", ".join(rejected)))
         if updates:
             self._audit_logger.log(
                 event_type=AuditEventType.CONFIG_CHANGE,
                 metadata={"keys": [_sanitize_log(str(k)) for k in updates]},
             )
-        asyncio.create_task(websocket.send(json.dumps({"type": "config_updated", "updates": updates})))
+        asyncio.create_task(websocket.send(json.dumps({
+            "type": "config_updated",
+            "updates": updates,
+            "rejected": rejected,
+        })))
 
     async def _handle_options_chain(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle options chain request."""

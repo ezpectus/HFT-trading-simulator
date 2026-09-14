@@ -233,20 +233,26 @@ class BroadcastMixin:
                 continue
 
             feed_t0 = time.monotonic()
-            candles = self.market.next_candle()
-            self.market.auto_check_weekend()
-            self.metrics.price_updates_total += len(candles)
+            try:
+                candles = self.market.next_candle()
+                self.market.auto_check_weekend()
+                self.metrics.price_updates_total += len(candles)
 
-            await self._process_exchange_events()
-            arb_data = await self._process_arbitrage()
+                await self._process_exchange_events()
+                arb_data = await self._process_arbitrage()
 
-            orderbooks, orderbook_deltas = self._build_orderbook_data()
+                orderbooks, orderbook_deltas = self._build_orderbook_data()
 
-            self._publish_shm_snapshot(int(time.time_ns()))
+                self._publish_shm_snapshot(int(time.time_ns()))
 
-            await self._broadcast_market_data(candles, orderbooks, orderbook_deltas, arb_data)
-            self.metrics.feed_latency.observe(time.monotonic() - feed_t0)
-            await self._broadcast_audit_events()
+                await self._broadcast_market_data(candles, orderbooks, orderbook_deltas, arb_data)
+                self.metrics.feed_latency.observe(time.monotonic() - feed_t0)
+                await self._broadcast_audit_events()
+            except Exception:
+                # One bad tick must not kill the feed — log and continue.
+                # CancelledError is BaseException and still propagates.
+                logger.exception("Broadcast tick failed — continuing")
+                await asyncio.sleep(1.0)
 
     async def _broadcast_audit_events(self) -> None:
         """Drain queued audit-log events and push them to all clients."""

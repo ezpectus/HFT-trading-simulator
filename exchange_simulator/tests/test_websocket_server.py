@@ -198,6 +198,41 @@ class TestHandleMessage:
         assert mock_exchange.slippage_bps == 10
 
     @pytest.mark.asyncio
+    async def test_update_config_rejects_non_numeric(self, server, mock_market, mock_exchange):
+        """A string volatility written to _volatility poisons the tick path —
+        the write must be rejected at the boundary, not stored."""
+        ws = AsyncMock(spec=ServerConnection)
+        await server._handle_message(ws, {
+            "type": "update_config",
+            "updates": {
+                "volatility": {"BTC/USDT": "abc"},
+                "fees": {"binance": "high"},
+                "leverage": {"binance": True},
+            },
+        })
+        await asyncio.sleep(0)
+        assert mock_market._volatility["BTC/USDT"] == 0.75
+        assert mock_exchange.fee_pct == 0.075
+        assert mock_exchange.account.leverage == 1
+        msg = json.loads(ws.send.call_args[0][0])
+        assert msg["type"] == "config_updated"
+        assert "volatility.BTC/USDT" in msg["rejected"]
+        assert "fees.binance" in msg["rejected"]
+        assert "leverage.binance" in msg["rejected"]
+
+    @pytest.mark.asyncio
+    async def test_update_config_rejects_nan(self, server, mock_market):
+        ws = AsyncMock(spec=ServerConnection)
+        await server._handle_message(ws, {
+            "type": "update_config",
+            "updates": {"volatility": {"BTC/USDT": float("nan")}},
+        })
+        await asyncio.sleep(0)
+        assert mock_market._volatility["BTC/USDT"] == 0.75
+        msg = json.loads(ws.send.call_args[0][0])
+        assert "volatility.BTC/USDT" in msg["rejected"]
+
+    @pytest.mark.asyncio
     async def test_start_trading(self, server):
         server._trading_active = False
         ws = AsyncMock(spec=ServerConnection)
@@ -314,6 +349,29 @@ class TestBroadcastLoop:
             except asyncio.CancelledError:
                 pass
         mock_market.next_candle.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_tick_exception_does_not_kill_loop(self, server, mock_market):
+        """A failing tick must be contained — the loop logs and continues
+        instead of silently dying with /health still green."""
+        server._running = True
+        server._tick_interval = 0.001
+        server.clients.add(AsyncMock(spec=ServerConnection))
+        mock_market.next_candle.side_effect = RuntimeError("poisoned config")
+        real_sleep = asyncio.sleep
+
+        async def _fast(delay):
+            await real_sleep(min(delay, 0.001))
+
+        with patch("asyncio.sleep", new=_fast):
+            task = asyncio.create_task(server._broadcast_loop())
+            await real_sleep(0.05)
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        assert mock_market.next_candle.call_count >= 2
 
 
 class TestWebSocketMetrics:
