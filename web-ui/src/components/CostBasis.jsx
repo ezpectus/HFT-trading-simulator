@@ -28,7 +28,7 @@ const CostBasis = memo(function CostBasis({ fills, accounts, prices }) {
           .filter(f => f.exchange === ex && f.symbol === sym)
           .slice(0, 10)
           .map(f => ({
-            qty: (f.filled_qty ?? f.filled_quantity ?? f.quantity ?? 0) * (f.side === 'SELL' ? -1 : 1),
+            qty: (f.filled_quantity ?? f.quantity ?? 0) * (f.side === 'SELL' ? -1 : 1),
             price: f.filled_price ?? f.price,
             date: f.timestamp ? new Date(f.timestamp * 1000).toLocaleTimeString() : '',
           }))

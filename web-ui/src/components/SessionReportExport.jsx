@@ -21,8 +21,8 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
     if (dd > maxDD) maxDD = dd
 
     for (const trade of trades) {
-      const ts = trade.timestamp || trade.time || now.getTime()
-      const tradePnl = trade.realized_pnl || 0
+      const ts = trade.closed_at ? trade.closed_at * 1000 : now.getTime()
+      const tradePnl = trade.pnl || 0
       equityCurve.push({ t: ts, pnl: tradePnl })
       if (tradePnl > 0) totalWins++
       else if (tradePnl < 0) totalLosses++
@@ -70,11 +70,11 @@ function generateReportHTML(accounts, fills, candles, symbol, exchange) {
 
   const recentTrades = fills.slice(-20).map(f => `
     <tr>
-      <td>${new Date(f.timestamp || Date.now()).toLocaleTimeString()}</td>
+      <td>${new Date(f.timestamp ? f.timestamp * 1000 : Date.now()).toLocaleTimeString()}</td>
       <td>${f.symbol || symbol}</td>
-      <td style="color:${f.side === 'buy' ? '#0ecb81' : '#f6465d'}">${(f.side || '').toUpperCase()}</td>
-      <td>${f.quantity}</td>
-      <td>$${(f.price || 0).toFixed(2)}</td>
+      <td style="color:${f.side === 'BUY' ? '#0ecb81' : '#f6465d'}">${(f.side || '').toUpperCase()}</td>
+      <td>${f.filled_quantity ?? f.quantity}</td>
+      <td>$${(f.filled_price || f.price || 0).toFixed(2)}</td>
     </tr>
   `).join('')
 

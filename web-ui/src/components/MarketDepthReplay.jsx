@@ -268,7 +268,7 @@ function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, ex
                     <span className={f.side === 'BUY' ? 'text-accent-green' : 'text-accent-red'}>
                       {f.side} {f.filled_quantity?.toFixed(4) || '--'}
                     </span>
-                    <span className="font-mono text-gray-400">{formatPrice(f.price || f.fill_price)}</span>
+                    <span className="font-mono text-gray-400">{formatPrice(f.filled_price ?? f.price)}</span>
                   </div>
                 ))}
               </div>

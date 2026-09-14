@@ -2,22 +2,22 @@ import { memo, useMemo } from 'react'
 import { TrendingDown } from 'lucide-react'
 import { formatUsd } from '../utils/format'
 
-function DrawdownAnalysis({ fills }) {
+function DrawdownAnalysis({ accounts }) {
   const analysis = useMemo(() => {
-    if (!fills?.length) {
+    const trades = Object.values(accounts || {}).flatMap(a => a.trade_history || [])
+    if (!trades.length) {
       return { maxDD: 0, maxDDPct: 0, maxDDDuration: 0, recoveries: 0, currentDD: 0, underwaterPct: 0, currentEquity: 10000, peakEquity: 10000, peaks: [] }
     }
 
-    // Build equity curve from fills
+    // Build equity curve from closed trades (realized pnl)
     let equity = 10000
     const equityPoints = [{ t: 0, eq: equity, peak: equity }]
     let peak = equity
 
-    for (const f of [...fills].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) {
-      const pnl = f.pnl || 0
-      equity += pnl
+    for (const t of [...trades].sort((a, b) => (a.closed_at || 0) - (b.closed_at || 0))) {
+      equity += t.pnl || 0
       if (equity > peak) peak = equity
-      equityPoints.push({ t: f.timestamp, eq: equity, peak })
+      equityPoints.push({ t: t.closed_at, eq: equity, peak })
     }
 
     // Calculate drawdowns
@@ -48,7 +48,7 @@ function DrawdownAnalysis({ fills }) {
       if (dd < currentDD) currentDD = dd
     }
 
-    // Max drawdown duration (in fill count)
+    // Max drawdown duration (in trade count)
     let maxDuration = 0
     let currentDuration = 0
     for (const p of equityPoints) {
@@ -77,7 +77,7 @@ function DrawdownAnalysis({ fills }) {
       currentEquity: last.eq,
       peakEquity: last.peak,
     }
-  }, [fills])
+  }, [accounts])
 
   return (
     <div className="bg-bg-700  p-2.5">
@@ -100,7 +100,7 @@ function DrawdownAnalysis({ fills }) {
         />
         <Stat
           label="Max DD Duration"
-          value={`${analysis.maxDDDuration} fills`}
+          value={`${analysis.maxDDDuration} trades`}
           color="text-accent-yellow"
         />
         <Stat

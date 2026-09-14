@@ -31,12 +31,12 @@ const AuditTrail = memo(function AuditTrail({ fills, signals }) {
     const out = []
     for (const f of fills || []) {
       out.push({
-        id: `fill-${f.order_id}`,
+        id: `fill-${f.id}`,
         ts: f.received_at ?? (f.timestamp ? f.timestamp * 1000 : 0),
         user: f.exchange || '?',
         action: 'ORDER_FILL',
         resource: f.symbol,
-        newValue: `${f.side} ${f.filled_qty ?? f.quantity} @ ${f.price}`,
+        newValue: `${f.side} ${f.filled_quantity ?? f.quantity} @ ${f.filled_price ?? f.price}`,
         icon: 'dollar',
       })
     }

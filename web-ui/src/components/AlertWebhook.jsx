@@ -104,11 +104,11 @@ export default memo(function AlertWebhook({ fills, toasts }) {
     // First run marks the pre-existing fill list as seen — those are history,
     // not new events; alerting on them would spam hooks on every page load.
     if (seenFillsRef.current === null) {
-      seenFillsRef.current = new Set(fills.map(f => f.id ?? f.order_id ?? JSON.stringify(f)))
+      seenFillsRef.current = new Set(fills.map(f => f.id ?? JSON.stringify(f)))
       return
     }
     for (const f of fills) {
-      const key = f.id ?? f.order_id ?? JSON.stringify(f)
+      const key = f.id ?? JSON.stringify(f)
       if (seenFillsRef.current.has(key)) continue
       seenFillsRef.current.add(key)
       if (f.status && f.status !== 'FILLED') continue

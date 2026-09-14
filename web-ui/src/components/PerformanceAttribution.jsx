@@ -25,7 +25,7 @@ function PerformanceAttribution({ accounts, fills, signals }) {
       const pnl = t.pnl || 0
       const sym = t.symbol || 'unknown'
       const reason = t.reason || t.strategy || 'manual'
-      const ts = t.timestamp || t.time || 0
+      const ts = t.closed_at || 0
       const date = new Date(ts * 1000)
       const hour = date.getUTCHours()
       const dow = date.getUTCDay()

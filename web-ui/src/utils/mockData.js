@@ -158,15 +158,20 @@ export function generateSignal(symbol, exchange, price) {
 export function generateFill(symbol, exchange, price, _accounts) {
   const side = Math.random() > 0.5 ? 'BUY' : 'SELL'
   const qty = Number((0.01 + Math.random() * 0.5).toFixed(4))
+  const filledPrice = Number(price.toFixed(6))
   const order = {
+    id: `mock-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
     exchange, symbol, side,
-    price: Number(price.toFixed(6)),
+    order_type: 'MARKET',
     quantity: qty,
-    filled_qty: qty,
-    order_id: `mock-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    price: filledPrice,
+    filled_price: filledPrice,
+    filled_quantity: qty,
+    fee: Number((qty * filledPrice * 0.001).toFixed(6)),
+    slippage: 0,
+    status: 'FILLED',
     timestamp: Date.now() / 1000,
-    type: 'market',
-    status: 'filled',
+    received_at: Date.now(),
   }
   return order
 }

@@ -2,7 +2,7 @@ import { memo, useState, useMemo, useEffect } from 'react'
 import { SkipForward, SkipBack, Play, Pause, Rewind, FastForward } from 'lucide-react'
 import { formatPrice, formatTime } from '../utils/format'
 
-function TradeReplay({ fills, candles, symbol, selectedExchange }) {
+function TradeReplay({ fills, candles, accounts, symbol, selectedExchange }) {
   const [playing, setPlaying] = useState(false)
   const [step, setStep] = useState(0)
   const [speed, setSpeed] = useState(1)
@@ -12,39 +12,42 @@ function TradeReplay({ fills, candles, symbol, selectedExchange }) {
       .filter(f => f.status === 'FILLED' && (!symbol || f.symbol === symbol) && (!selectedExchange || f.exchange === selectedExchange))
       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
 
+    const symTrades = Object.values(accounts || {})
+      .flatMap(a => a.trade_history || [])
+      .filter(t => (!symbol || t.symbol === symbol) && (!selectedExchange || t.exchange === selectedExchange))
+      .sort((a, b) => (a.closed_at || 0) - (b.closed_at || 0))
+
     const symCandles = (candles || [])
       .filter(c => (!symbol || c.symbol === symbol) && (!selectedExchange || c.exchange === selectedExchange))
       .sort((a, b) => (a.time || 0) - (b.time || 0))
 
-    // Merge into timeline
+    // Merge into timeline; pnl lives on closed trades, not fills
     const events = []
-    let runningPnl = 0
-    let runningEquity = 10000
-
     for (const c of symCandles) {
       events.push({ type: 'candle', time: c.time, data: c })
     }
     for (const f of symFills) {
-      runningPnl += f.pnl || 0
-      runningEquity += f.pnl || 0
-      events.push({ type: 'fill', time: f.timestamp, data: f, runningPnl, runningEquity })
+      events.push({ type: 'fill', time: f.timestamp, data: f })
+    }
+    for (const t of symTrades) {
+      events.push({ type: 'trade', time: t.closed_at, data: t })
     }
 
     events.sort((a, b) => (a.time || 0) - (b.time || 0))
 
-    // Calculate running equity at each point
     let eq = 10000
+    let runningPnl = 0
     for (const e of events) {
-      if (e.type === 'fill') {
+      if (e.type === 'trade') {
+        runningPnl += e.data.pnl || 0
         eq += e.data.pnl || 0
-        e.equity = eq
-      } else {
-        e.equity = eq
       }
+      e.equity = eq
+      e.runningPnl = runningPnl
     }
 
     return events
-  }, [fills, candles, symbol, selectedExchange])
+  }, [fills, candles, accounts, symbol, selectedExchange])
 
   const currentEvent = replayData[step]
   const totalSteps = replayData.length
@@ -114,17 +117,20 @@ function TradeReplay({ fills, candles, symbol, selectedExchange }) {
           ) : (
             <div>
               <div className="flex items-center gap-1.5 mb-1">
+                {currentEvent.type === 'trade' && <span className="text-[8px] text-gray-500 uppercase mr-1">CLOSED</span>}
                 <span className={'text-[10px] font-bold ' + (currentEvent.data.side === 'BUY' ? 'text-accent-green' : 'text-accent-red')}>
                   {currentEvent.data.side}
                 </span>
-                <span className="text-[10px] text-gray-300">{currentEvent.data.quantity?.toFixed(4)}</span>
+                <span className="text-[10px] text-gray-300">{(currentEvent.data.filled_quantity ?? currentEvent.data.quantity)?.toFixed(4)}</span>
                 <span className="text-[9px] text-gray-600">@</span>
-                <span className="text-[10px] font-mono text-gray-300">${formatPrice(currentEvent.data.price)}</span>
-                <span className="text-[8px] text-gray-600 ml-auto">{formatTime(currentEvent.data.timestamp)}</span>
+                <span className="text-[10px] font-mono text-gray-300">${formatPrice(currentEvent.data.filled_price ?? currentEvent.data.exit_price ?? currentEvent.data.price)}</span>
+                <span className="text-[8px] text-gray-600 ml-auto">{formatTime(currentEvent.data.closed_at ?? currentEvent.data.timestamp)}</span>
               </div>
               <div className="flex justify-between text-[9px]">
                 <span className="text-gray-600">Equity: <span className="text-gray-300 font-mono">${currentEvent.equity?.toFixed(2)}</span></span>
-                <span className="text-gray-600">PnL: <span className={'font-mono ' + ((currentEvent.data.pnl || 0) >= 0 ? 'text-accent-green' : 'text-accent-red')}>{(currentEvent.data.pnl || 0) >= 0 ? '+' : ''}{(currentEvent.data.pnl || 0).toFixed(2)}</span></span>
+                {currentEvent.type === 'trade' && (
+                  <span className="text-gray-600">PnL: <span className={'font-mono ' + ((currentEvent.data.pnl || 0) >= 0 ? 'text-accent-green' : 'text-accent-red')}>{(currentEvent.data.pnl || 0) >= 0 ? '+' : ''}{(currentEvent.data.pnl || 0).toFixed(2)}</span></span>
+                )}
               </div>
             </div>
           )}

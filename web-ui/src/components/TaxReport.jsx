@@ -3,22 +3,23 @@ import { FileText, Download, Calculator, DollarSign, TrendingUp, TrendingDown } 
 import { formatUsd } from '../utils/format'
 import { EmptyState } from './LoadingSkeleton'
 
-const TaxReport = memo(function TaxReport({ fills, addToast }) {
+const TaxReport = memo(function TaxReport({ accounts, addToast }) {
   const [year, setYear] = useState(new Date().getFullYear())
 
   const trades = useMemo(() => {
-    if (!fills?.length) return []
-    return fills.slice(0, 50).map((f, i) => ({
-      id: f.id || i,
-      symbol: f.symbol,
-      side: f.side,
-      quantity: f.filled_quantity || f.quantity || 0,
-      price: f.filled_price || f.price || 0,
-      timestamp: f.timestamp ? new Date(f.timestamp * 1000).toISOString().split('T')[0] : '—',
-      pnl: f.pnl || 0,
-      fee: (f.fee || (f.filled_price || 0) * (f.filled_quantity || 0) * 0.001),
+    const all = Object.values(accounts || {}).flatMap(a => a.trade_history || [])
+    if (!all.length) return []
+    return all.slice(0, 50).map((t, i) => ({
+      id: `${t.exchange}-${t.closed_at}-${i}`,
+      symbol: t.symbol,
+      side: t.side,
+      quantity: t.quantity || 0,
+      price: t.exit_price || 0,
+      timestamp: t.closed_at ? new Date(t.closed_at * 1000).toISOString().split('T')[0] : '—',
+      pnl: t.pnl || 0,
+      fee: t.fee || 0,
     }))
-  }, [fills])
+  }, [accounts])
 
   const summary = useMemo(() => {
     const realizedPnl = trades.reduce((s, t) => s + t.pnl, 0)
@@ -122,7 +123,7 @@ const TaxReport = memo(function TaxReport({ fills, addToast }) {
       </button>
 
       {trades.length === 0 && (
-        <EmptyState icon={FileText} title="No fills yet" subtitle="Realized PnL is computed from live fills — nothing to report yet" />
+        <EmptyState icon={FileText} title="No closed trades yet" subtitle="Realized PnL is computed from closed trades — nothing to report yet" />
       )}
     </div>
   )

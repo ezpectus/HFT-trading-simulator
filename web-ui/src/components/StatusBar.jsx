@@ -13,11 +13,11 @@ export default memo(function StatusBar({ exchange, signals, selectedExchange, se
     (s, a) => s + (a.balance || 0), 0
   )
   const totalPnl = Object.values(exchange.accounts || {}).reduce(
-    (s, a) => s + (a.unrealized_pnl || 0), 0
+    (s, a) => s + ((a.equity || 0) - (a.balance || 0)), 0
   )
 
   const pnlBreakdown = Object.entries(exchange.accounts || {})
-    .map(([id, a]) => `${id}: $${(a.unrealized_pnl || 0).toFixed(2)} (${(a.positions?.length ?? 0)} pos)`)
+    .map(([id, a]) => `${id}: $${(((a.equity || 0) - (a.balance || 0))).toFixed(2)} (${(a.positions?.length ?? 0)} pos)`)
     .join('\n')
 
   const simTime = exchange.candles.length > 0

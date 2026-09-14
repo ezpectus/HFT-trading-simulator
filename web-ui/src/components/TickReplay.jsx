@@ -22,10 +22,10 @@ const TickReplay = memo(function TickReplay({ symbol, fills }) {
       .slice()
       .reverse()
       .map((f, i) => ({
-        id: f.order_id || i,
+        id: f.id || i,
         ts: fmtTime(f.received_at ?? (f.timestamp ? f.timestamp * 1000 : Date.now())),
-        price: f.price,
-        size: f.filled_qty ?? f.quantity ?? 0,
+        price: f.filled_price ?? f.price,
+        size: f.filled_quantity ?? f.quantity ?? 0,
         side: f.side,
         exch: f.exchange,
       }))
