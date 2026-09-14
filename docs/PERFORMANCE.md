@@ -12,7 +12,6 @@ The system has a dual signal path with different latency requirements:
 |------|-----------|---------------|----------|
 | **Fast path** | C++ HFT engine main loop | < 1ms | 1ms (configurable) |
 | **Fast path** | V2 signal generation | < 5ms | ~2ms (100ms cooldown) |
-| ~~Fast path~~ | ~~Rust executor WebSocket send~~ | — | REMOVED — `hft-executor` crate deleted (audit S058-era; table kept for history) |
 | **Fast path** | SHM IPC (Python → C++) | 10-50us | ~30us |
 | **Slow path** | Python AI signal bot | ~50ms | 30-80ms |
 | **Slow path** | Strategy analysis (per symbol) | ~5ms | 2-10ms |
@@ -40,18 +39,6 @@ The system has a dual signal path with different latency requirements:
 - Spinlocks instead of mutexes for hot paths
 - Stack allocation for order book entries (no heap allocation per update)
 
-### Rust HFT Executor
-
-> **REMOVED (audit S058-era):** the `hft-executor` crate no longer exists — orders go
-> over the C++ bot's own WebSocket client (`order_executor.h`). The table below is
-> kept as history only.
-
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Order serialization (serde_json) | < 100us | Pre-allocated, SmallVec for batches |
-| WebSocket send | < 500us | tokio-tungstenite, async |
-| FFI call overhead | < 1us | `extern "C"`, no allocation |
-| Reconnect backoff | 500ms → 10s | Exponential, capped |
 
 ### Python AI Signal Bot
 

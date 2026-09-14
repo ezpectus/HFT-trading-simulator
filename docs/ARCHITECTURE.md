@@ -213,7 +213,7 @@ The system implements production-grade observability across all components:
 3. **Trend Following** — EMA crossover + ADX strength filter
 4. **Mean Reversion** — RSI extremes + Bollinger Band touches
 5. **FFT Cycle Strategy** — Spectral analysis, cycle detection, regime classification (TRENDING/RANGING/MIXED)
-6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 of 5 enabled strategies)
+6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 votes across the enabled strategies; 6 implemented — trend, mean-reversion, FFT, sentiment, market-making, ML-ensemble — 4 enabled by default)
 7. **Signal Validation** — Confidence, R:R ratio, drawdown, position limits
 8. **Order Execution** — Sends orders to exchange simulator
 

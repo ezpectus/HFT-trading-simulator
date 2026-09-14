@@ -1075,14 +1075,14 @@ When `VITE_MOCK_MODE=true` is set, the Web UI generates synthetic data locally w
 
 ## Message Encoding
 
-Clients can request binary MessagePack frames by sending `encoding: "msgpack"` in the `subscribe` message — but the preference is honored **only for point-sent messages** (`snapshot`, `sync_state`, and other `_send_json` replies). The high-rate broadcasts (`candles`, `fills_batch`, `audit_logs`, arbitrage) are always serialized with `orjson` as UTF-8 JSON in **binary** WebSocket frames regardless of the negotiated encoding (audit S212/S257). A client that decodes broadcast frames as msgpack will fail on the first tick.
+Clients can request binary MessagePack frames by sending `encoding: "msgpack"` in the `subscribe` message. The negotiated encoding is honored on **every** send — point-sends (`snapshot`, `sync_state`, other `_send_json` replies) and the high-rate broadcasts (`candles`, `fills_batch`, `audit_logs`, arbitrage) alike (fixed in S212).
 
-| Encoding | Format | Honored for |
-|----------|--------|-------------|
-| `json` (default) | UTF-8 JSON text (binary opcode via orjson) | All messages |
-| `msgpack` | MessagePack binary frames | Point-sends only — **not** the broadcast feed |
+| Encoding | Format | Wire frame |
+|----------|--------|------------|
+| `json` (default) | UTF-8 JSON | **Text** frame |
+| `msgpack` | MessagePack | **Binary** frame |
 
-Both encodings carry the same message structure — only the wire format differs. The server tracks per-client encoding preference but does not apply it to broadcast traffic.
+Frame type discriminates the encoding: clients should parse text frames as JSON and binary frames as MessagePack (msgpack must be installed server-side for `msgpack` to take effect — otherwise the server falls back to JSON). Both encodings carry the same message structure; only the wire format differs.
 
 ---
 
