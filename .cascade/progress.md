@@ -1782,3 +1782,18 @@ Commit: 427c5c0
 **Clean:** ВСЯ quant-math настоящая — scaled fwd/bwd+Viterbi+Baum-Welch (hmm), GARCH(1,1)+MLE-градиент (garch), predict/update (kalman 1D/2D), OLS/ADF/half-life (cointegration), канонические формулы ×20 индикаторов (indicators, 91 импортер), MI/FNN/simplex/CCM (edm), k-means++/silhouette (kmeans); backtestEngine честен + tested; все хуки имеют consumers; `trading-sim-strategies` key-chain живой; exchange engine — реальный matching (margin-lock/release, OCO-resolve, TIF/FOK-depth, partial-fill, residual-on-flip, pending-eval per tick, GTD-expiry, trailing-stop ratchet, iceberg slices, audit-log на каждом шаге).
 
 Commit: f018859
+
+## R126 — exchange_simulator remainder leaf-sweep (ws_* + models + engine extras)
+
+**Scope:** `ws_message_handler.py` (609), `ws_broadcast.py` (540), `websocket_server.py` (268), `ws_metrics.py`+`ws_prometheus.py`+`ws_constants.py` (305), `models.py` (488), `arbitrage.py` (296), `options_simulator.py` (236), `exchange_liquidation.py` (150), `audit_logger.py` (315), `data_export.py`, `config_validator.py`, `visualizer*` — ~4.5k строк, wire-producer + engine-extras сторона.
+
+**Findings (3):**
+- S279 (High): `trade_csv_logger.py` — gitignored+untracked (check-ignore подтверждён, живёт только в локали; docker build context `./exchange_simulator` его не видит) → `TradeCsvLogger=None` в любом clean deploy → `ws_broadcast.py:284` `self.trade_logger.log_fill` и `:389` `log_batch` — БЕЗ None-guard (ws_message_handler:337 тот же вызов защищён). `_open_new_position` ставит SL/TP каждой позиции → первый engine-fill = AttributeError в unguarded `_broadcast_loop` → весь market-feed мёртв навсегда, `/health` продолжает `healthy` (`_running` True). Классический works-on-my-machine: в dev файл есть, в контейнере — нет.
+- S280 (Medium): `_broadcast_loop` (ws_broadcast:208-235) — ноль try/except; `_handle_update_config` (ws_message_handler:534-538) пишет `updates["volatility"][s]` прямо в `market._volatility` без type/range-check → строка → `sigma = "abc" / sqrt_cpy` TypeError в `_generate_symbol_candles` → та же тихая смерть фида. Dev: `update_config` открыт (нет EXCHANGE_CONTROL_TOKEN). fee/slippage/leverage-пойзон ловится message-level catch — volatility исполняется в tick-path, некем ловить.
+- S281 (Low): `ws_prometheus.py:129-130` — `o.status.value == "filled"`/`"rejected"` lowercase vs `OrderStatus.FILLED`/`REJECTED` uppercase (models.py:41-42) → `exchange_orders_filled_total`/`exchange_orders_rejected_total` вечные нули. Комментарий признаёт порт из never-started health.py — портировали с case-багом.
+
+**Retracted:** dedup-resubmit шлёт `{"type":"fill"}` для любого stored-статуса — клиент (useExchangeData:51 `trackOrderStatus` + `resolveAck` с order.status) разруливает корректно; `set_speed` неизвестные значения → дефолт 1.0 — harmless; GTD-cancel в filled_orders — caller фильтрует FILLED.
+
+**Clean:** auth-gate `_CONTROL_TYPES` + compare_digest + rate-limit + dedup-LRU + `_sanitize_log` (log-injection защита) + per-message try; order pipeline — margin-lock/release, OCO sibling-resolve, TIF/FOK `_depth_covers`, partial-fill, residual-on-flip; liquidation — liq/partial/SL/TP + insurance-fund deficit; arbitrage — pair-scan+TTL+auto-exec; options — канонический B-S+Greeks+NR-IV+parity; audit_logger — thread-safe + file + callbacks; SHM publisher с seq-lock; data_export/config_validator/visualizer — wired из __main__.
+
+Commit: TBD
