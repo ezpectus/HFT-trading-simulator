@@ -121,6 +121,24 @@ class TestCalculate:
         assert result.quantity > 0
         # risk_per_unit = |100 - 102| = 2
 
+    def test_min_risk_not_applied_for_small_edge(self):
+        """Ported from legacy tests/test_kelly.py (S268) — the only negative
+        regression: min_risk_pct must not force size on a near-zero edge."""
+        # kelly = (0.51 - 0.49)/1 = 0.02; adjusted = 0.02 * 0.5 = 0.01
+        # With confidence 0.3: adjusted = 0.003 < 0.01 → min_risk_pct skipped
+        sizer = KellyPositionSizer(
+            win_rate=0.51, avg_win=100, avg_loss=100,
+            kelly_fraction=0.5, max_risk_pct=5.0,
+            min_risk_pct=2.0,
+        )
+        result = sizer.calculate(
+            balance=10000, entry_price=100, stop_loss=95,
+            confidence=0.3,
+        )
+        # risk_pct should be ~0.3% (not forced to the 2% floor)
+        expected_risk = 10000 * 0.3 / 100.0
+        assert result.risk_amount <= expected_risk + 1.0
+
 
 class TestUpdateStats:
     def test_update(self, sizer):

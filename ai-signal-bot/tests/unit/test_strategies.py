@@ -55,6 +55,12 @@ class TestSignal:
         assert d["symbol"] == "BTC"
         assert d["direction"] == "LONG"
 
+    # Ported from legacy tests/test_strategies.py (S268) — NEUTRAL rr_ratio
+    # was only covered there.
+    def test_rr_ratio_neutral(self):
+        s = Signal("BTC", SignalDirection.NEUTRAL, 0, "test", 0, 0, 0)
+        assert s.rr_ratio == 0.0
+
 
 class TestTrendFollowing:
     def test_insufficient_data(self):
@@ -69,12 +75,44 @@ class TestTrendFollowing:
         assert signal.strategy == "trend_following"
         assert signal.symbol == "BTCUSDT"
 
+    # Directional coverage ported from legacy tests/test_strategies.py (S268).
+    def test_uptrend_generates_long(self):
+        closes = [100 + i * 0.5 for i in range(50)]
+        candles = [{"timestamp": 1704067200 + i * 300,
+                    "open": closes[i - 1] if i > 0 else c,
+                    "high": c * 1.01, "low": c * 0.99, "close": c,
+                    "volume": 100.0} for i, c in enumerate(closes)]
+        strat = TrendFollowingStrategy(ema_fast=9, ema_slow=21, adx_threshold=0)
+        signal = strat.analyze("BTC/USDT", candles)
+        assert signal.direction in (SignalDirection.LONG, SignalDirection.NEUTRAL)
+
+    def test_downtrend_generates_short(self):
+        closes = [100 - i * 0.5 for i in range(50)]
+        candles = [{"timestamp": 1704067200 + i * 300,
+                    "open": closes[i - 1] if i > 0 else c,
+                    "high": c * 1.01, "low": c * 0.99, "close": c,
+                    "volume": 100.0} for i, c in enumerate(closes)]
+        strat = TrendFollowingStrategy(ema_fast=9, ema_slow=21, adx_threshold=0)
+        signal = strat.analyze("BTC/USDT", candles)
+        assert signal.direction in (SignalDirection.SHORT, SignalDirection.NEUTRAL)
+
 
 class TestMeanReversion:
     def test_insufficient_data(self):
         strat = MeanReversionStrategy()
         signal = strat.analyze("BTCUSDT", make_candles(5))
         assert signal.direction == SignalDirection.NEUTRAL
+
+    # Ported from legacy tests/test_strategies.py (S268).
+    def test_oversold_generates_long(self):
+        closes = [100 - i for i in range(25)]
+        candles = [{"timestamp": 1704067200 + i * 300,
+                    "open": closes[i - 1] if i > 0 else c,
+                    "high": c * 1.01, "low": c * 0.99, "close": c,
+                    "volume": 100.0} for i, c in enumerate(closes)]
+        strat = MeanReversionStrategy(rsi_oversold=30, rsi_overbought=70)
+        signal = strat.analyze("BTC/USDT", candles)
+        assert signal.direction in (SignalDirection.LONG, SignalDirection.NEUTRAL)
 
 
 class TestKalmanFilter:

@@ -223,3 +223,95 @@ class TestUpdateActions:
         assert long_state.peak_price == 101.0
         rm.update(long_state, 99.0)
         assert long_state.peak_price == 101.0  # peak doesn't decrease
+
+
+def _make_state(entry=100, side="LONG", sl=95, tp=110, qty=1.0, atr=0.0):
+    """Direct PositionRiskState construction — complements the rm.init_position fixtures."""
+    return PositionRiskState(
+        entry_price=entry,
+        side=side,
+        original_stop_loss=sl,
+        current_stop_loss=sl,
+        take_profit=tp,
+        quantity=qty,
+        peak_price=entry,
+        trough_price=entry,
+        atr=atr,
+    )
+
+
+class TestBreakevenTrailingInteraction:
+    """Ported from legacy tests/test_risk_manager.py (S268) — the only file
+    that exercised breakeven+trailing together and the wrong-direction guard."""
+
+    def test_breakeven_never_moves_sl_wrong_direction(self):
+        rm = RiskManager(RiskConfig(breakeven_enabled=True, breakeven_trigger_pct=1.0,
+                                    breakeven_buffer_pct=0.0))
+        state = _make_state(entry=100, side="LONG", sl=101)  # SL already above entry
+        actions = rm.update(state, current_price=102)
+        if "new_stop_loss" in actions:
+            assert actions["new_stop_loss"] >= 101
+
+    def test_breakeven_then_trailing(self):
+        """Breakeven fires first, then trailing continues from new SL."""
+        rm = RiskManager(RiskConfig(
+            breakeven_enabled=True,
+            breakeven_trigger_pct=1.0,
+            breakeven_buffer_pct=0.0,
+            trailing_stop_enabled=True,
+            trailing_distance_pct=2.0,
+        ))
+        state = _make_state(entry=100, side="LONG", sl=95)
+        rm.update(state, current_price=102)
+        assert state.breakeven_moved is True
+        assert state.current_stop_loss >= 100
+        actions = rm.update(state, current_price=105)
+        assert "new_stop_loss" in actions
+        assert abs(actions["new_stop_loss"] - 102.9) < 0.01
+
+
+class TestPeakTroughTracking:
+    """Ported from legacy tests/test_risk_manager.py (S268) — SHORT-side and
+    trough tracking that the rewrite only covered for LONG peaks."""
+
+    def test_long_trough_tracks_lowest(self):
+        rm = RiskManager(RiskConfig(trailing_stop_enabled=False, breakeven_enabled=False))
+        state = _make_state(entry=100, side="LONG", sl=95)
+        rm.update(state, current_price=98)
+        rm.update(state, current_price=96)
+        rm.update(state, current_price=99)
+        assert state.trough_price == 96
+
+    def test_short_peak_tracks_lowest(self):
+        """For SHORT, peak = best (lowest) price."""
+        rm = RiskManager(RiskConfig(trailing_stop_enabled=False, breakeven_enabled=False))
+        state = _make_state(entry=100, side="SHORT", sl=105)
+        rm.update(state, current_price=95)
+        rm.update(state, current_price=97)
+        rm.update(state, current_price=92)
+        assert state.peak_price == 92
+
+    def test_short_trough_tracks_highest(self):
+        """Regression: For SHORT, trough = worst (highest) price, not lowest."""
+        rm = RiskManager(RiskConfig(trailing_stop_enabled=False, breakeven_enabled=False))
+        state = _make_state(entry=100, side="SHORT", sl=105)
+        rm.update(state, current_price=103)
+        rm.update(state, current_price=106)
+        rm.update(state, current_price=101)
+        assert state.trough_price == 106
+
+
+class TestCalcAtrFromCandle:
+    """Ported from legacy tests/test_risk_manager.py (S268) — TR edge cases."""
+
+    def test_atr_with_gap(self):
+        candle = {"high": 110, "low": 105, "close": 108, "prev_close": 95}
+        atr = RiskManager._calc_atr_from_candle(candle)
+        # TR = max(110-105, |110-95|, |105-95|) = max(5, 15, 10) = 15
+        assert atr == 15
+
+    def test_atr_missing_prev_close(self):
+        candle = {"high": 105, "low": 98, "close": 102}
+        atr = RiskManager._calc_atr_from_candle(candle)
+        # prev_close defaults to close=102; TR = max(7, 3, 4) = 7
+        assert atr == 7

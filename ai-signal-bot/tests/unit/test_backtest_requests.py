@@ -153,6 +153,45 @@ class TestRunBacktestRequest:
         assert result["data_source"] == "synthetic"
         assert result["candles"] == 30
 
+    # ── Ported from legacy tests/test_signal_publisher.py (S268) — these
+    # exercise param pass-through the rewrite didn't cover. ──
+
+    async def test_all_strategies_returns_all_results(self):
+        result = await run_backtest_request({"strategy": "all", "candles": 300})
+        assert result["type"] == "backtest_result"
+        assert "Trend Following" in result["results"]
+        assert "Mean Reversion" in result["results"]
+        assert "FFT Cycle" in result["results"]
+
+    async def test_default_params(self):
+        result = await run_backtest_request({})
+        assert result["type"] == "backtest_result"
+        assert result["strategy"] == "all"
+        assert result["candles"] == 500
+        assert result["symbol"] == "BTC/USDT"
+
+    async def test_risk_options_pass_through(self):
+        result = await run_backtest_request({
+            "strategy": "trend", "candles": 200,
+            "trailing_stop": True, "breakeven": True,
+        })
+        assert result["type"] == "backtest_result"
+        assert "Trend Following" in result["results"]
+
+    async def test_equity_curve_length_matches_candles(self):
+        result = await run_backtest_request({"strategy": "trend", "candles": 200})
+        r = result["results"]["Trend Following"]
+        assert len(r["equity_curve"]) == 151  # 200 candles - warmup 50 + initial
+
+    async def test_custom_price_and_volatility(self):
+        result = await run_backtest_request({
+            "strategy": "trend", "candles": 100,
+            "initial_price": 100, "volatility": 1.5,
+        })
+        r = result["results"]["Trend Following"]
+        assert isinstance(r["final_balance"], float)
+        assert isinstance(r["total_return_pct"], float)
+
 
 class TestCompareBacktests:
     def _bt(self, name, ret):
