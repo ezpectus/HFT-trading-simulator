@@ -38,8 +38,8 @@ jobs:
         uses: nwtgck/actions-netlify@v3.0
         with:
           publish-dir: web-ui/dist
-          production-branch: main
-          production-deploy: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+          production-branch: master
+          production-deploy: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v') }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from ${{ github.sha }}"
         env:
@@ -126,6 +126,10 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd /opt/hft
+            if [ ! -f .env.prod ]; then
+              echo "::error::/opt/hft/.env.prod missing on the server — copy .env.prod.example to .env.prod and set real values before deploying"
+              exit 1
+            fi
             # Tag pushed images are semver without the leading v (v2.0.0 → 2.0.0)
             export IMAGE_TAG="${{ github.ref_name }}"
             export IMAGE_TAG="${IMAGE_TAG#v}"
@@ -180,7 +184,7 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         with:
-          args: "Deployment ${{ github.ref_name }}: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && 'SUCCESS' || 'FAILED' }}"
+          args: "Deployment ${{ github.ref_name }}: ${{ contains(needs.*.result, 'failure') && 'FAILED' || contains(needs.*.result, 'cancelled') && 'CANCELLED' || (needs.deploy.result == 'skipped' && 'BUILD OK — deploy skipped (tags v* only)') || 'SUCCESS' }}"
 
       - name: Telegram notification
         if: ${{ env.TELEGRAM_BOT_TOKEN != '' }}
@@ -190,5 +194,5 @@ jobs:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
             HFT Trading System deployment ${{ github.ref_name }}
-            Status: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && 'SUCCESS ✅' || 'FAILED ❌' }}
+            Status: ${{ contains(needs.*.result, 'failure') && 'FAILED ❌' || contains(needs.*.result, 'cancelled') && 'CANCELLED' || (needs.deploy.result == 'skipped' && 'BUILD OK — deploy skipped (tags v* only)') || 'SUCCESS ✅' }}
             Commit: ${{ github.sha }}
