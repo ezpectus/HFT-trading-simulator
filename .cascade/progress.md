@@ -2283,3 +2283,18 @@ Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 55 open.
 
 Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 49 open.
 
+## R166 — slop-verify (R164+R165 batch) — 10/10 VERIFIED, 0 reverts
+
+- **S274** — real `orderbooks` prop consumed at MarketDepthReplay.jsx:14 (`exchange|symbol` key); `c.timestamp * 1000` normalization at :54.
+- **S233** — head-key diffs via `prevFillHead`/`prevSignalHead` (useNotifications.js:48-54,:69-75) — no length diffs.
+- **S234** — `addToast: ctx.addToast` pass-through at all 16 registry sites.
+- **S235** — PANEL_CONFIG = {chart, orderbook} only; DetachablePanel wrappers at App.jsx:235,:267 only; toast at useDetachablePanels.js:34; zero BroadcastChannel/alert.
+- **S250** — 0 dead classes in low_latency.h; `top5_depth` computed :208-210, passed :213; shm comment states consumer-only truth.
+- **S225** — zero `paper` refs in run.py.
+- **S213** — `_exchange_dev`/`_dev_kappa`/`_dev_sigma` at market_simulator.py:93-97; OU step :194-196.
+- **S221** — `_CountingOrderHistory` exchange.py:32-53; `Order.__setattr__` models.py:136-144; cumulative counters + TYPE counter ws_prometheus.py:127-144.
+- **S219** — `RotatingFileHandler` audit_logger.py:64-67; `close()` :136; config keys __main__.py:234-235.
+- **S226** — test.sh FAIL increments + exchange_simulator suite (:25); `ci-full` Makefile:80.
+
+Done-log fully verified through R165. Board: 49 open.
+
