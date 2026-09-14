@@ -6,7 +6,7 @@ import { pnlColor, StatCard } from '../utils/ui-helpers'
 /**
  * Cost Basis Tracker — positions from live account state (entry_price is the
  * simulator's weighted-average cost), unrealized from live prices, realized
- * from account realized_pnl, lot history from recent fills.
+ * from trade_history pnl, lot history from recent fills.
  */
 const CostBasis = memo(function CostBasis({ fills, accounts, prices }) {
   const data = useMemo(() => {
