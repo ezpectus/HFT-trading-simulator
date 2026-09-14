@@ -2465,3 +2465,9 @@ Re-checked every unverified done-log entry (R178×2 + R180×4) against committed
 - **S321** — zero `docker-compose <verb>` commands remain in DEPLOYMENT/QUICK_START/README; `docker compose` v2 at 18/8/2 sites; compose file names preserved.
 
 Done-log fully verified — zero unverified entries. Board: 1 open (S309 Medium, Docker-blocked).
+
+## R182 — slop-fix — 1 finding closed (board empty)
+
+- **S309** — docker-smoke red-by-construction: found an earlier blocker the original entry missed — `GRAFANA_PASSWORD:?` killed `docker compose up` at interpolation before any image built (reproduced via `docker compose config` on this host). Fix: job-level throwaway `GRAFANA_PASSWORD: ci-smoke`, `build`/`up` split into separate steps, `--wait-timeout 240` replaces the meaningless `--timeout 60` (shutdown timeout — never bounded `--wait`), `timeout-minutes` 10→20 for cold 4-image build + healthy chain. Same `:?` + flag pair fixed in `scripts/docker-smoke-test.{sh,bat}` — local smoke also died for any dev without the var.
+
+Gate: 9/9 ALL GREEN. Board: 0 open — every finding closed or verified-clean; S309 runtime confirmation delegated to next CI run.
