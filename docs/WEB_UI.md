@@ -495,4 +495,4 @@ Four CLI monitor scripts provide terminal-based monitoring alongside the Web UI:
 | `error_monitor.py` | root | Unified error+warning viewer across all services |
 | `price_monitor.py` | root | Dual WS connection, live prices + signals + fills |
 
-Use `start.bat` (Windows) or `start.sh` (Linux/Mac) to launch all 4 services + 4 monitors in 8 terminal windows.
+Launch the services with `no-docker.bat` (Windows) / `no-docker.sh` (Linux/Mac) or `docker compose up`; each monitor script is a separate terminal command — they are not spawned automatically.

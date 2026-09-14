@@ -101,11 +101,8 @@ cd %USERPROFILE%\trading-system
 REM Option A: 4 service windows (no monitors)
 no-docker.bat
 
-REM Option B: 4 services + 4 CLI monitor windows
-start.bat
-
-REM Option C: Docker (all services containerized)
-docker-compose up
+REM Option B: Docker (all services containerized)
+docker compose up
 ```
 
 Services will be available at:
@@ -232,16 +229,13 @@ npm run test:e2e  # Playwright E2E (auto-starts dev:mock server)
 
 ## Running the System
 
-**Windows — quick start (after `start.bat install`):**
+**Windows — quick start (after `no-docker.bat install`):**
 ```bat
 REM Option A: 4 service windows (no monitors)
 no-docker.bat
 
-REM Option B: 4 services + 4 CLI monitor windows
-start.bat
-
-REM Option C: Docker (all services containerized)
-docker-compose up
+REM Option B: Docker (all services containerized)
+docker compose up
 ```
 
 **Linux/macOS:**
@@ -467,7 +461,7 @@ hft-trading-system/
 ├── docs/                         # Documentation (15 files)
 ├── monitoring/                   # Prometheus + Grafana config
 ├── docker-compose.yml            # Development
-├── docker-compose.prod.yml       # Production (+ PostgreSQL, Redis, Prometheus, Grafana)
+├── docker-compose.prod.yml       # Production (+ Prometheus, Alertmanager, Grafana)
 ├── shared_config.yaml            # 50 symbol definitions
 ├── Makefile                      # install, dev, test, lint, build, docker
 └── install-deps.bat              # One-command dependency installer
