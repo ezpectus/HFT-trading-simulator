@@ -334,15 +334,15 @@
 - `exchange_simulator/__main__.py` — `loop.add_signal_handler` под `try/except NotImplementedError` (Windows ProactorEventLoop) с warning + KeyboardInterrupt-фолбэком.
 - Проверено: `bash -n` чистый; живой прогон на этом хосте напечатал "add_signal_handler unsupported on this platform" и продолжил старт.
 
-### S203 + S310 + S312 — helm: мёртвые PDB + битый grafana subpath (3 находки-дубля одного комплекса)
+### S203 + S310 + S312 — helm: мёртвые PDB + битый grafana subpath (3 находки-дубля одного комплекса) ✅ · verified R184
 - `helm/templates/pdb.yaml` — selector `app.kubernetes.io/component: exchange-simulator` → `exchange_simulator` (матчит реальные pod-лейблы Deployment'а); hft-trade-bot PDB удалён целиком — hft живёт сайдкаром в ai-signal-bot поде, отдельная PDB выбирала бы 0 подов навсегда (покрытие даёт ai-signal-bot PDB на shared pod).
 - `helm/templates/grafana.yaml` — при `ingress.enabled` добавлены `GF_SERVER_SERVE_FROM_SUB_PATH=true` + `GF_SERVER_ROOT_URL=<scheme>://<ingress.hostname>/grafana/` — `/grafana` prefix из ingress.yaml теперь отдаёт ассеты корректно.
 - Проверено: шаблоны перечитаны вручную (helm binary недоступен локально); selector-матчинг сверен с exchange-simulator.yaml:9/15/20.
 
-### S311 — helm image-дефолты недостижимы (ImagePullBackOff ×4)
+### S311 — helm image-дефолты недостижимы (ImagePullBackOff ×4) ✅ · verified R184
 - `helm/values.yaml` — 4 репозитория `hft-*:v2.0.0` → `ghcr.io/ezpectus/hft-tradebot--lite-version/<service>:latest` — совпадает с deploy.yml push-path (`github.repository`/`matrix.service`) и `latest`-тегом default-branch сборок.
 
-### S204 + S315 — terraform eks: открытый API, секреты без KMS, EOL-версия, ноды наружу
+### S204 + S315 — terraform eks: открытый API, секреты без KMS, EOL-версия, ноды наружу ✅ · verified R184
 - `terraform/modules/eks/main.tf` — `version` → `var.cluster_version` (default "1.32", в пределах standard support); `endpoint_private_access = true`, `endpoint_public_access = length(cidrs) > 0` — private-only по умолчанию, public API включается только с явным CIDR-whitelist; `encryption_config` на `aws_kms_key.eks_secrets` (rotation on, alias) → secrets в etcd зашифрованы; `enabled_cluster_log_types` = api/audit/authenticator/controllerManager/scheduler; node_group → `var.node_subnet_ids`.
 - `terraform/environments/dev/main.tf` + `prod/main.tf` — `node_subnet_ids = module.vpc.private_subnet_ids` (воркеры только в private); dev получил комментарий как включить kubectl-доступ.
 - Проверено: HCL перечитан (terraform binary недоступен); module inputs/outputs консистентны с обоими env-вызовами.
@@ -360,10 +360,10 @@
 - `run.py::setup_logging` fallback теперь делегирует в in-repo `src/observability/logging.py::setup_logging(log_file=...)` — RotatingFileHandler(10MB×5) на настроенном пути + console; external gitignored `run_logger` override сохранён.
 - Проверено: с заблокированным `run_logger` бот пишет `logs/test_s256.log` (StreamHandler + RotatingFileHandler wired, контент на месте).
 
-### S255 — DEPLOYMENT мёртвые имена/ключи/пути
+### S255 — DEPLOYMENT мёртвые имена/ключи/пути ✅ · verified R184
 - Все 5 пунктов уже исправлены ранее (audit-notes на месте: EXCHANGE_API_*, :9099, timestamped logs, removed retention_days/buffer_size). Остаток — убраны устаревшие «key ignored» оговорки (S224/S256 теперь живые ключи — log-locations переписаны под реальную семантику).
 
-### S228 — live-path без ccxt = молчаливый per-signal RuntimeError
+### S228 — live-path без ccxt = молчаливый per-signal RuntimeError ✅ · verified R184
 - `run.py::main` — fail-fast gate: `paper_trading:false` + `CCXT_AVAILABLE=False` → `logger.error` + `sys.exit(1)` до старта бота (was: зелёный health + «Live order error» на каждый сигнал, 0 ордеров).
 - ccxt НЕ добавлен в requirements — новые зависимости требуют одобрения пользователя; gate — честный минимум.
 

@@ -2486,3 +2486,13 @@ Board was empty for slop-fix; ran a verify pass on the unverified tail instead (
 - **S254** — QUICK_START `:130` uses `./build/hft_trade_bot config/config.yaml`; `:176` honestly notes no docker.bat; clone URL matches `git remote -v`.
 
 Still unverified (next verify round): S203+S310+S312, S311, S204+S315, S255, S228. Board: 0 open.
+
+## R184 — slop-verify — 6/6 claims VERIFIED, 0 reverts (unverified tail emptied)
+
+- **S203+S310+S312** — pdb.yaml selectors `component: exchange_simulator` (:26/:32) + `ai-signal-bot` (:9/:15); no hft PDB — :34-35 documents the sidecar-coverage rationale; grafana.yaml has `GF_SERVER_SERVE_FROM_SUB_PATH` (:50) + `GF_SERVER_ROOT_URL` (:52) under ingress.enabled.
+- **S311** — all 4 image repos → `ghcr.io/ezpectus/hft-tradebot--lite-version/<service>:latest` (values.yaml:14,31,51,66) — matches deploy.yml push path.
+- **S204+S315** — eks module: `var.cluster_version` (:80), all 5 `enabled_cluster_log_types` (:82), KMS `encryption_config`→`aws_kms_key.eks_secrets` (:62-86), private endpoint + public gated on CIDR list (:93-95), `node_subnet_ids` var → node group (:160); both envs pass `private_subnet_ids` (dev/prod main.tf:40).
+- **S228** — `run.py:835-842` fail-fast: `paper_trading=false` + `CCXT_AVAILABLE=False` → error + `sys.exit(1)`; ccxt correctly absent from requirements.txt.
+- **S255** — DEPLOYMENT.md:600-604 documents the real `EXCHANGE_API_*` names with the S255 audit note; S255 markers at :623/:738 present; zero stale "key ignored" text; :9099 mention is the honest port-mapping note.
+
+Done-log fully verified — zero unverified entries remain. Board: 0 open.
