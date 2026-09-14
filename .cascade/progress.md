@@ -1959,4 +1959,4 @@ Commit: 23d174d
 
 **Clean:** `hypothesis>=6.100` в requirements-dev → property-тесты реально бегут в CI; `prometheus-client==0.21.1` pinned optional dep — `HAS_PROMETHEUS` тест-гарды зеркалят prod; `asyncio_mode=auto` оба pyproject; все 26 hft .cpp в CMake-таргетах (SHM POSIX-gated, doctest web); e2e — 34 реальных expect.
 
-Commit: pending
+Commit: dce61db
