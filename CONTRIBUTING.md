@@ -448,7 +448,7 @@ hft-trading-system/
 │   ├── tests/                    # C++ tests
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
-├── web-ui/                       # React 18: dashboard (295 components, 157 test files)
+├── web-ui/                       # React 18: dashboard (295 components, 153 unit + 4 e2e test files)
 │   ├── src/
 │   │   ├── components/           # UI components (React.lazy)
 │   │   ├── panels/               # Panel registry
@@ -472,7 +472,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 1. Create `ai-signal-bot/src/strategies/my_strategy.py`
 2. Implement `analyze(symbol, candles) -> Signal`
 3. Add to ensemble voter in `run.py`
-4. Write tests in `tests/test_my_strategy.py`
+4. Write tests in `tests/unit/test_my_strategy.py`
 5. Add to backtest runner
 
 ### New HFT Indicator (C++)
@@ -512,7 +512,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full architecture overv
 1. Add config field to `RiskConfig` in `ai-signal-bot/src/risk/risk_manager.py`
 2. Implement check method (e.g. `_check_my_feature()`)
 3. Call from `update()` method and add to actions dict
-4. Write tests in `tests/test_risk_manager.py`
+4. Write tests in `tests/unit/test_risk_manager.py`
 5. Integrate into backtester if applicable
 
 ### New Exchange Simulator Feature

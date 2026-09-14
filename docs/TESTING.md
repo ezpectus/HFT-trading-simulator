@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 126 Python + 25 C++ + 153 JS = 304 unit test files.
+  individual functions. ~124 Python + 25 C++ + ~158 JS ≈ 307 unit test files.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,22 +81,22 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **304 unit test files** across three languages:
+The system has **~307 unit test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
 | **Python** | 126 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
 | **C++** | 25 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | 153 | Vitest + Playwright | `web-ui/src/test/` (153), `web-ui/e2e/` (4 specs + 1 helper) |
+| **JavaScript** | ~158 | Vitest + Playwright | `web-ui/src/test/` (~158), `web-ui/e2e/` (4 specs + 1 helper) |
 | **Total** | **304** (+ 5 e2e files) | | |
 
 ---
 
-## Python Tests (126 files)
+## Python Tests (118 files)
 
-### AI Signal Bot (99 files)
+### AI Signal Bot (88 files)
 
-**Unit tests** (`ai-signal-bot/tests/unit/`): 64 files covering:
+**Unit tests** (`ai-signal-bot/tests/unit/`): 85 files covering:
 
 | Module | Test Files | Coverage |
 |--------|-----------|----------|
@@ -110,13 +110,15 @@ The system has **304 unit test files** across three languages:
 | Data | test_exchange_factory, test_real_account, test_real_market_data | Data collection |
 | Other | test_db, test_fft_analysis, test_indicators, test_bot_helpers | Database, indicators |
 
-**Integration tests** (`ai-signal-bot/tests/integration/`): 3 files
+**Integration tests** (`ai-signal-bot/tests/integration/`): 4 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution
 - `test_trading_flow.py` — Full trading cycle simulation
 - `test_strategy_risk_backtest.py` — Strategy → risk → backtest chain
+- `test_integration.py` — HTTP endpoints and service wiring
 
-**Root-level tests** (`ai-signal-bot/tests/`): 32 files
-- test_backtest, test_config_validator, test_fft, test_indicators, test_integration, test_kelly, test_optimizer, test_portfolio, test_risk, test_risk_manager, test_signal_publisher, test_strategies, test_validator, and others
+All Python unit tests live under `tests/unit/` — the legacy flat `tests/` tree
+was consolidated in R176 (S268): six same-name pairs were merged (unique
+coverage ported into the unit files first) and the remaining 24 files moved.
 
 ### Exchange Simulator (29 files + 1 standalone load script)
 
@@ -191,7 +193,7 @@ Randomized invariant testing for C++ components.
 
 ## JavaScript Tests (162 files)
 
-### Unit Tests (153 files)
+### Unit Tests (~158 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`
@@ -236,8 +238,8 @@ Health endpoints are verified in integration tests:
 | Service | Endpoint | Test |
 |---------|----------|------|
 | Exchange Simulator | `GET :8775/health` | `exchange_simulator/tests/test_websocket_server.py` |
-| AI Signal Bot | `GET :8080/health` | `ai-signal-bot/tests/test_integration.py` |
-| AI Signal Bot | `GET :9090/metrics` | `ai-signal-bot/tests/test_integration.py` |
+| AI Signal Bot | `GET :8080/health` | `ai-signal-bot/tests/integration/test_integration.py` |
+| AI Signal Bot | `GET :9090/metrics` | `ai-signal-bot/tests/integration/test_integration.py` |
 
 ---
 

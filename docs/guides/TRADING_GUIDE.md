@@ -36,7 +36,7 @@ Max drawdown = worst peak-to-trough. Walk-forward = overfitting check.
 
 - **Position size:** 2% risk per trade (Half-Kelly). Don't override.
 - **Daily drawdown:** 8% limit. System auto-stops. Respect it.
-- **Diversification:** Don't concentrate in one symbol. 50 symbols
+- **Diversification:** Don't concentrate in one symbol. 49 symbols
   available for a reason.
 - **Stop loss:** Always set. No "hoping it comes back."
 - **R:R ratio:** Minimum 1.5. If R:R < 1.5, skip the trade.

@@ -118,7 +118,7 @@ Open **http://localhost:3000**.
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
-- 153 test files (Vitest), 4 E2E specs (Playwright)
+- ~158 test files (Vitest), 4 E2E specs (Playwright)
 
 ---
 
@@ -192,7 +192,7 @@ hft-trading-system/
 │   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
-├── web-ui/                      # React 18: dashboard (295 components, 153 test files)
+├── web-ui/                      # React 18: dashboard (295 components, ~158 test files)
 ├── docs/                        # 13 documentation files + 4 guides + 8 theory docs
 ├── monitoring/                  # Prometheus + Alertmanager + Grafana config
 ├── docker-compose.yml           # Development

@@ -11,10 +11,10 @@ state → React updates DOM. Vanilla JS: manually manipulate DOM
 (error-prone, hard to maintain).
 
 **Component model:** UI is split into reusable components. Composition
-over inheritance. 289 components = modular, testable, reusable.
+over inheritance. 295 components = modular, testable, reusable.
 
 **Virtual DOM:** React diffs the virtual DOM, applies minimal real DOM
-updates. For 278 panels with real-time updates — critical performance.
+updates. For 271 panels with real-time updates — critical performance.
 
 **Ecosystem:** React 18 concurrent rendering, hooks, Context API,
 React.lazy (code splitting). Mature ecosystem (TradingView charts,
@@ -41,13 +41,14 @@ backtest requests.
 - OrderContext: positions, fills, balance
 - ThemeContext: dark/light, accent colors
 
-**React.lazy + Suspense:** Code splitting. 278 panels = not all
+**React.lazy + Suspense:** Code splitting. 271 panels = not all
 needed simultaneously. Lazy load = initial bundle smaller. Suspense
 fallback = loading spinner.
 
-### Registry pattern — 278 panels
+### Registry pattern — 271 panels (278 registry entries)
 
-**Registry:** Single file registers all 278 panels. Adding a panel =
+**Registry:** Single file registers all 271 panels (278 entries incl.
+7 category rows). Adding a panel =
 1 entry, 0 changes to App.jsx. Open-Closed Principle (SOLID).
 
 **Categories:** Trading, Order Flow, Technical Analysis, Math Models,
@@ -87,7 +88,7 @@ Trading dashboards must be accessible to all users.
 - **Market Regime** — Trending/ranging/volatile auto-detection
 - **Sentiment Indicator** — News sentiment gauge
 
-### Analytics (278 panels in 7 categories)
+### Analytics (271 panels in 7 categories)
 
 #### Order Flow
 - Cumulative Volume Delta (CVD)
@@ -323,7 +324,7 @@ All variables are optional — defaults use localhost. For Docker, ports are map
 
 | Optimization | Implementation |
 |-------------|----------------|
-| React.lazy code splitting | All 278 panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
+| React.lazy code splitting | All 271 panels lazy-loaded with `React.lazy()` + Suspense fallbacks |
 | ChunkRetryBoundary | Automatic retry on chunk load failure (3 retries with exponential backoff) |
 | Preload-on-hover | Hovering a category preloads all panels in that category |
 | List Virtualization | `VirtualList.jsx` — generic windowed list renderer with overscan, applied to FillsPanel and SignalFeed |

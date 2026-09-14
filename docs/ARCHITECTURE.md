@@ -32,7 +32,7 @@ through direct function calls. Benefits:
 
 **Registry pattern:** Components are registered in a central registry,
 not hardcoded. Adding a component = 1 entry, 0 changes to existing code.
-- 278 UI panels registered in a single registry file
+- 271 component-mapped UI panels registered in a single registry file (278 registry ids incl. 7 category rows)
 - Strategies registered in the strategy registry
 - Exchanges registered in the exchange registry
 - Order types registered in the order type registry
@@ -90,7 +90,7 @@ graph TB
     end
 
     subgraph "Web UI (React 18)"
-        UI["Web UI Dashboard<br/>295 Components | 271 Panels<br/>React.lazy | PWA | WCAG AA<br/>Vitest (153 files) | Mock Mode"]
+        UI["Web UI Dashboard<br/>295 Components | 271 Panels<br/>React.lazy | PWA | WCAG AA<br/>Vitest (~158 files) | Mock Mode"]
         UI --- WS8765
         UI --- WS8766
         UI -->|Orders| WS8765
@@ -120,7 +120,7 @@ strategies, quant models, and risk management. The HFT Trade Bot (C++) provides
 microsecond reaction to order book changes. Together they cover both slow (thorough)
 and fast (reactive) signal generation.
 
-**Registry pattern for extensibility** — 278 panels in the Web UI are registered in
+**Registry pattern for extensibility** — 271 panels in the Web UI are registered in
 a single registry file, not hardcoded. Adding a panel = 1 entry, 0 changes to App.jsx.
 Same pattern for strategies, exchanges, and order types.
 
@@ -418,7 +418,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Error handling | PanelErrorBoundary with error count tracking, auto-disable after 3+ errors, re-enable option |
 | Loading states | EmptyState component with shimmer animation |
 | Toast notifications | Auto-dismiss with visual progress bar, 5-toast cap, role="alert" for accessibility, clearAll button when 2+ toasts |
-| Testing | Vitest test framework (157 test files: 153 unit + 4 e2e) with @testing-library/react + jsdom |
+| Testing | Vitest test framework (~162 test files: ~158 unit + 4 e2e) with @testing-library/react + jsdom |
 | State persistence | useLocalStorage generic hook (theme, panel visibility, trade journal, watchlist, sort preferences) |
 | Search & filter | SignalFeed symbol/reason search, FillsPanel symbol/side/exchange search, ArbitragePanel symbol/exchange search, PriceComparison symbol search — all with useDebounce (300ms) |
 | Sortable tables | Watchlist (symbol/price/change%), AccountPanel leaderboard (PnL/win%/balance), TradeHistory (date/PnL/symbol), PerformanceDashboard per-exchange (PnL/win%/balance) |
@@ -428,7 +428,7 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 
 **Key files:**
 - `src/App.jsx` — Main layout with tabbed panels, keyboard shortcuts, toast notifications, sound alerts
-- `src/panels/registry.js` — Panel registry (278 panels, 7 categories, 271 component imports)
+- `src/panels/registry.js` — Panel registry (278 ids incl. 7 category rows → 271 component imports)
 - `src/panels/PanelContainer.jsx` — ErrorBoundary + Suspense per panel, collapsible categories, localStorage visibility
 - `src/components/VirtualList.jsx` — Generic windowed list renderer with overscan
 - `src/components/AuditLogViewer.jsx` — Audit log viewer with filtering, search, export
@@ -599,7 +599,7 @@ from this series.
 4. **Low-latency design** — C++20 engine with cache-line alignment, lock-free queues, no heap allocations in hot path
 5. **Configurable** — All parameters in YAML config files with validation
 6. **Reproducible** — Random seed for deterministic simulation
-7. **Registry over monolith** — Extensible features use registry pattern (278 panels, 7 categories)
+7. **Registry over monolith** — Extensible features use registry pattern (271 panels, 7 categories)
 8. **Protocol-first** — Message schemas are versioned and backward-compatible
 9. **Reversibility** — All architectural decisions must be reversible (V1 fallback preserved)
 10. **Error resilience** — ErrorBoundary + Suspense per panel, CircuitBreaker for exchange failures, exponential backoff for reconnections
