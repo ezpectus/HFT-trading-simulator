@@ -2120,3 +2120,13 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S318** (NEW, Medium) — Windows SHM IPC fully dead: C++ creates `/hft_*` mappings verbatim; Python stripped the leading `/` → different kernel object, all channels read zeros. Both `lstrip` sites fixed (shm_ring_buffer, shm_market_data_writer) + monitor.py verbatim tag.
 - **Verification:** pre-commit-check 8/8 ALL GREEN; shm_heartbeat g++ syntax+runtime+live-read; ruff clean on all touched py; py_compile clean.
 - **Commits:** `91a39e3` (hft S224), `d294bda` (ai-bot S256/S228/S318), `4a9bf67` (docs+ledgers)
+
+## R153 — slop-fix (5 Medium findings, 8/8 gate)
+
+- **S236** — web-ui offline-queue ack race: `submitOrder` no longer arms the 5s ack timer for queued messages; it arms on real send or via a `connected` effect after the onopen flush (same cid → server dedup intact). 2 regression tests; mockSend fixed to return true (real send semantics).
+- **S247** — PressureModel dead legs: no TradeTick stream exists on the wire → honest option B. `PressureResult.has_trade_flow`; V2 `raw_pressure` renormalized over live legs at both sites (÷0.7 unfed) — dead 30% leg no longer damps the composite below `pressure_threshold`.
+- **S248** — SL/TP booked at trigger price: `process_sl_tp` + kill switch now `mark_closing` instead of locally closing at trigger price; the real close fill books PnL+fee via apply_fill's CLOSED path (also repairs the missing `reduce_exposure`). Stale marks re-fire after 10s; REJECTED clears the mark.
+- **S249** — `reset_daily` no longer zeroes `total_exposure_` (holdings persist over midnight); test-only `update_pnl` removed; tests migrated to `update_pnl_v2` + exposure-preservation assert.
+- **S239** — metrics loopback: sim gets `EXCHANGE_METRICS_HOST` env override; `metrics.host` key dropped from config.yaml so the ws-host fallback engages; `AI_BOT_BIND_HOST=0.0.0.0` in all 4 compose files; both vars documented in `.env.prod.example`.
+- **Verification:** pre-commit-check 8/8 ALL GREEN (vitest 53/53 incl. 2 new S236 regressions; g++ syntax-clean on all touched headers).
+- **Commits:** (backfilled after commit)

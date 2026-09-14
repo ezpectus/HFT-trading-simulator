@@ -370,3 +370,34 @@
 ### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch)
 - C++ `CreateFileMappingW` использует имя `/hft_*` дословно; Python-сторона делала `name.lstrip("/")` в `shm_ring_buffer.py` и `shm_market_data_writer.py` → разные kernel-объекты → Python attach'ился к свежесозданному пустому region, все SHM-каналы (signals/fills/market/kill_switch) молча читали нули на Windows.
 - Исправлено: verbatim-tag в обоих сайтах (+ `scripts/monitor.py`). Подтверждено живым кросс-процессным чтением.
+
+## R153 — slop-fix (5 findings)
+
+### S236 — web-ui offline-queue ack race
+- **Bug:** `useExchangeData.submitOrder` armed a 5s ack timer even when `send()` returned `false` (queued while disconnected) → resolved `null` ("no response") for an order that hadn't hit the wire; on reconnect the queue flushed it with the same `client_order_id` — UI had already given up, and a user retry with a fresh cid bypassed server dedup → duplicate orders.
+- **Fix:** `web-ui/src/hooks/useExchangeData.js` — pending entry created without a timer when queued; timer arms only on real send, or in a `useEffect` on `exchangeConnected` after `useWebSocket`'s onopen flush has already put queued messages on the wire. Ack handler unchanged — resolves with the order.
+- **Files:** `web-ui/src/hooks/useExchangeData.js` (submitOrder + connected-effect)
+- **Tests:** `web-ui/src/test/useExchangeData.test.jsx` — 2 new regressions: queued order does not time out at 5s while offline (then times out normally after reconnect), and resolves with the post-reconnect ack. `mockSend` now returns `true` to match real `send()` semantics when connected. 53/53 pass.
+
+### S247 — PressureModel dead trade-flow/toxicity legs
+- **Bug:** prod calls `analyze(ob)` → `trades=nullptr,n=0` → `trade_imbalance`/`toxic_score` structurally 0. V2's `raw_pressure = obi*0.3 + ti*0.3 + body*0.4` carried a permanently-dead 30% leg — composite capped at 0.7 of its scale, silently damping signals below `pressure_threshold`; toxic→IOC gate could never fire. No trade stream exists on the wire at all (orderbooks/deltas/candles/prices/accounts only), so wiring was impossible without protocol work.
+- **Fix:** honest removal-from-prod-claims: `PressureResult.has_trade_flow` flag set by `analyze(ob,trades,n)`; V2 renormalizes `raw_pressure` over live legs (`live_w = 0.7 + (has_trade_flow ? 0.3 : 0)`) at both composite sites — identical math when fed, full intended scale when not.
+- **Files:** `hft-trade-bot/src/data/aligned_types.h`, `src/strategies/pressure_model.h`, `src/strategies/signal_engine_v2.h` (2 sites)
+- **Note:** selector toxic-gate stays — correct under 0 when unmeasured; flag documents the contract.
+
+### S248 — SL/TP booked at trigger price; real close-fill dropped
+- **Bug:** `process_sl_tp` (bot_loop.cpp) sent `close_position` then immediately `pos_mgr.close_position(symbol, trigger.price)` + `balance.fetch_add` at the trigger price. The real fill arrived later → position already erased → "stray fill" drop → real price + close fee never reconciled (PnL/balance drifted by slippage+fee per close); `risk_mgr->reduce_exposure` also never ran → exposure leak. Kill-switch callback had the same pattern.
+- **Fix:** keep the position on the book; `mark_closing(symbol)` suppresses `check_sl_tp` re-triggers for 10s (stale marks expire → retry); `apply_fill` books the close at real fill price with fee via the normal CLOSED path (which also does `reduce_exposure` + `balance.fetch_add(realized_pnl)`); REJECTED/CANCELLED clears the mark so SL/TP can re-fire.
+- **Files:** `hft-trade-bot/src/position/position_manager.h` (`closing_since_`, `mark_closing`, `CLOSING_RETRY`), `src/core/bot_loop.cpp` (process_sl_tp), `src/core/bot_setup.cpp` (kill switch)
+
+### S249 — reset_daily zeroed live exposure; test-only update_pnl
+- **Bug:** `reset_daily()` stored `total_exposure_ = 0` at the UTC boundary — but exposure is current holdings, so positions carried past midnight silently dropped out of `max_total_exposure` until new fills re-added. `update_pnl(double)` CAS-add had 0 prod callers (prod owns `daily_pnl_` via `update_pnl_v2`'s store).
+- **Fix:** `reset_daily` no longer touches `total_exposure_`; `update_pnl` removed; 3 test call sites migrated to `update_pnl_v2(x, 0, 0)`; "Daily reset" test extended with an exposure-preservation assert.
+- **Files:** `hft-trade-bot/src/risk/risk_manager.h`, `hft-trade-bot/tests/test_doctest_risk_manager.cpp`
+
+### S239 — metrics servers bound to container loopback
+- **Bug:** sim `config.yaml` set `metrics.host: "localhost"` explicitly → the documented fallback `metrics_host or websocket.host` never engaged → :8775 bound container loopback (published port + prom job dead, in-container healthcheck green). ai-bot `AI_BOT_BIND_HOST` existed in code but was never set in any compose → :9090 loopback.
+- **Fix:** `exchange_simulator/__main__.py` — `EXCHANGE_METRICS_HOST` env override (mirrors `EXCHANGE_WS_HOST`); `config.yaml` `metrics.host` key removed so the ws-host fallback actually engages (0.0.0.0 in container via `EXCHANGE_WS_HOST`, localhost locally). `AI_BOT_BIND_HOST=0.0.0.0` added to ai-signal-bot env in all 4 compose files; both keys documented in `.env.prod.example`.
+- **Files:** `exchange_simulator/__main__.py`, `exchange_simulator/config.yaml`, `docker-compose{,.prod,.staging,.hub}.yml`, `.env.prod.example`
+
+**Gate:** `pre-commit-check.py` 8/8 ALL GREEN.
