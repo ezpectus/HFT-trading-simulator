@@ -1849,4 +1849,4 @@ Commit: 2736402
 
 **Clean:** сотни doctest CHECK с точными значениями; V3-HMM тесты на детерминированных synthetic-сериях (LCG seed=42); test_signal_flow — реальный SHM ring-buffer push/pop pipeline; все 26 файлов wired в CMake (v2_* через foreach-loop, integration_shm под `if(NOT WIN32)`); CI test-cpp честно бежит `ctest --output-on-failure` на gcc-14+clang-17 с coverage; max_drawdown unit-амбивалентность — уже S251 (config percent 8.0 vs params fraction 0.15, оба пути самосогласованы).
 
-Commit: TBD
+Commit: c4b7bdb

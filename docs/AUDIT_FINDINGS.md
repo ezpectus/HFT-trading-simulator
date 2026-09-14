@@ -2210,4 +2210,4 @@ Scope: all of `hft-trade-bot/tests/` — 26 files / ~5,185 lines (doctest suites
 
 **Verified clean:** hundreds of doctest `CHECK`s with exact values; V3-HMM tests run on deterministic synthetic price series (LCG seed=42); `test_signal_flow` is a real SHM ring-buffer push/pop pipeline; all 26 files wired into CMake (`v2_*` via foreach, `integration_shm` correctly POSIX-gated); CI `test-cpp` genuinely runs `ctest --output-on-failure` on gcc-14 + clang-17 with coverage; the `max_drawdown_pct` percent-vs-fraction ambiguity is already S251 (config `8.0` percent vs params `0.15` fraction — both paths internally consistent).
 
-Commit: TBD
+Commit: c4b7bdb
