@@ -1,4 +1,4 @@
-# OFFICE BOARD — AI SLOP AUDIT
+﻿# OFFICE BOARD — AI SLOP AUDIT
 
 > Аудит: 11 сен 2026 → текущий раунд R70+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
 > **Закрытые находки перенесены в `.cascade/done-log.md`** (99 шт, R4–R60) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
@@ -11,11 +11,13 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1245 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84, scripts +13, helm +12, terraform +8, workflows +5, root/web-ui configs +9, dockerfiles/compose +10, docs-residue +3, .github meta +5) |
-| Всего находок | ~327 (S001–S327) |
+| Всего находок | ~329 (S001–S329) |
 | Закрыто | 226 |
-| Открыто | **6** — R191 bloat-audit: S322–S327 |
+| Открыто | **8** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 |
 
-**Текущее состояние:** R182 slop-fix — закрыта последняя открытая находка **S309** (docker-smoke был красным by construction — убраны все 3 структурные причины: `GRAFANA_PASSWORD:?` убивал `up` на интерполяции ещё до S303-образа [воспроизведено через `docker compose config`], мёртвый `--timeout 60` → `--wait-timeout 240`, job-budget 10→20 мин; тот же дефект-паттерн пофикшен в `docker-smoke-test.{sh,bat}`). Runtime-подтверждение healthy-цепочки = следующий CI-прогон (daemon на хосте недоступен). Gate ALL GREEN. **Board: 0 open.**
+**Текущее состояние:** R192 domain-math audit — 2 находки: **S329** (High — `Backtester` lookahead: `analyze()` видит бар `i`, филл по `candles[i].close`; все бэктест-поверхности завышены) и **S328** (Medium — мёртвый параллельный стек `backtest_engine`+`pnl_calculator` ~580 строк + двойной `BacktestResult`-контракт). Стратегии/risk/pricing leaf-read: mean_reversion, sentiment, ml_ensemble, statistical_arbitrage, trend_following, funding_arb, kelly/cvar/var/position_sizing/risk_manager, volatility_surface — реальные вычисления с NaN-гардами, чисто. Markowitz rf-mix латентен (rf дефолт 0.0, UI не шлёт). Board: 8 open.
+
+R182 slop-fix — закрыта последняя открытая находка **S309** (docker-smoke был красным by construction — убраны все 3 структурные причины: `GRAFANA_PASSWORD:?` убивал `up` на интерполяции ещё до S303-образа [воспроизведено через `docker compose config`], мёртвый `--timeout 60` → `--wait-timeout 240`, job-budget 10→20 мин; тот же дефект-паттерн пофикшен в `docker-smoke-test.{sh,bat}`). Runtime-подтверждение healthy-цепочки = следующий CI-прогон (daemon на хосте недоступен). Gate ALL GREEN. **Board: 0 open.**
 
 R180 slop-fix — закрыты все 4 находки R179: **S318** (CONFIGURATION_GUIDE переписан под живую gate-reference поверхность — 4 удалённые секции выкинуты, 49 пар), **S319** (+3 секции стратегий: Sentiment/MarketMaking/MLEnsemble, voter-list исправлен), **S320** (un-runnable benchmark-команды заменены реальными: positional argv + USE_PGO/Profile + yaml histograms; REST-строка выкинута; «5 strategies»→6; Measured-колонка помечена ad-hoc; benchmark_suite toy-дисклеймер), **S321** (docker-compose v1 → docker compose v2, 23 сайта, имена файлов сохранены). Gate ALL GREEN. Board: 1 open — S309 Medium (Docker-blocked).
 
@@ -33,6 +35,8 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 | **S325** | stress_test scenario methods share ~18-line tail | `ai-signal-bot/src/risk/stress_test.py:40-155` — financial_crisis/covid/ftx/custom each end with the same value-sums→pnl→pnl_pct→StressTestResult→return block; only shock math + margin_pct/liquidity/threshold/name differ. `_evaluate_scenario(name, shocked, margin_pct, liquidity, threshold)` → ~120→~60 lines. | Low | [ ] Open |
 | **S326** | `_init_alert_metrics` — 15 hand-rolled ctor blocks | `ai-signal-bot/src/monitoring/metrics.py:155-216` — every metric spelled `self.x = Counter/Gauge("name","doc",registry=self.registry)`; pure table data masquerading as code. `[(attr,cls,name,doc),…]` + setattr loop → ~62→~22 lines; keeps names grep-able via the table literal. | Info | [ ] Open |
 | **S327** | useExchangeData `*_result` dispatch — 9 identical cases | `web-ui/src/hooks/useExchangeData.js:469-496` — `comparison_result…funding_arb_result` + `auth_ok` are all `setX(data); break`. Setter-map `{type: setter}` + lookup collapses ~27→~9 lines. | Info | [ ] Open |
+| **S328** | Dead parallel backtest stack + twin `BacktestResult` | `backtesting/backtest_engine.py` (330 ln) + `pnl_calculator.py` (251 ln) — `BacktestEngine`/`PnLCalculator` reference only each other and `test_backtest.py`; zero prod instantiations (only `__init__.py` re-export). Live remnant: `BacktestResult` (:51) imported by `backtest_requests.py:170` — a different class than `results.BacktestResult` that `BacktestComparison.add` is annotated for (`backtest_comparison.py:16`): two same-named diverging contracts. Fix: either wire the engine in or delete ~580 lines and keep one result type. | Medium | [ ] Open |
+| **S329** | `Backtester` lookahead bias — signal and fill on the same bar | `backtester.py:130-132` — `window = candles[start:i+1]` includes bar `i`; `strategy.analyze(symbol, window)` (:224,:239) sees its close; `_open_position` then fills at `candles[i]["close"]` (:253,:269 slippage-adjusted). Deciding on the close you fill at is impossible live — every backtest surface (UI StrategyBacktest, `run_backtest`, nightly gate, walk-forward, compare_backtests) is systematically flattered. No test pins bar timing. Fix: `analyze` on `candles[start:i]`, fill at bar `i`. | High | [ ] Open |
 
 
 
@@ -313,6 +317,8 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 ## ПРИОРИТЕТЫ
 
-1. **S309** (Medium, R141) — docker-smoke: ждёт Docker daemon (R156 статика проверена; R160 демон всё ещё down). Единственная открытая находка.
-2. Info-тир снова пуст — R180 закрыл все 4 находки R179 (S318–S321).
-3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам. Если доска остаётся пустой и S309 заблокирован — следующий шаг `/slop-audit` свежей области.
+1. **S329** (High, R192) — lookahead в `Backtester`: сигнал по бару `i`, филл по `candles[i].close`. Трогает все бэктест-поверхности — фикс меняет `window`→`candles[start:i]` + проверка что стратегии не требуют включённый текущий бар.
+2. **S322** (Medium, R191) — copy-paste venue-runners ×3 в market_data_feed (~181→~95 строк).
+3. **S328** (Medium, R192) — мёртвый `backtest_engine`+`pnl_calculator` (~580 строк) + дубликат `BacktestResult`.
+4. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map.
+5. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.

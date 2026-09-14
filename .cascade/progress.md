@@ -2588,3 +2588,12 @@ Target per user request: "same work in half the lines" — longest-function rank
 - **S327** useExchangeData 9 identical `*_result` cases → setter map. Info.
 
 Not findings (checked, clean): shm_ring_buffer.__init__ (real platform-split SHM setup), signal_publisher._handle_client (dense auth+dispatch), submit_order (20 used params, real validation), usePanelContext/useTradingStoreSync (boundary adapters — destructure→reshape→memoize), WsManager ConnectionCard (already factored), market_data_types (dataclass field similarity = false positive), ML components (param-state blocks, individual), indicators.js dup windows (canonical formula structure).
+
+## R192 — slop-audit — domain-math: backtesting/risk/portfolio/pricing/strategies — 2 findings (S328–S329)
+
+Target: `ai-signal-bot/src/{backtesting,risk,portfolio,pricing,strategies}` — lookahead, zero-cost fills, NaN, float-for-money, unit confusion.
+
+- **S329** `Backtester` lookahead (High): `backtester.py:130` `window = candles[start:i+1]` → `analyze()` sees bar-i close → `_open_position` fills at `candles[i]["close"]` (:253/:269). Decide-on-close + fill-at-same-close is unfillable live; flatters every surface (UI, run_backtest, nightly gate, walk-forward, compare). No test pins bar timing.
+- **S328** dead parallel backtest stack (Medium): `backtest_engine.py` (330) + `pnl_calculator.py` (251) ≈ 580 lines — `BacktestEngine`/`PnLCalculator` referenced only by each other + `test_backtest.py`; zero prod instantiation. Twin `BacktestResult`: `backtest_requests.py:170` uses engine's class while `BacktestComparison.add` is annotated for `results.BacktestResult` (`backtest_comparison.py:16`).
+
+Clean (leaf-read): mean_reversion / sentiment / ml_ensemble / statistical_arbitrage / trend_following / fft / funding_arb — real math, NaN guards, warmup checks, ATR-based SL/TP, no label leak in ml_ensemble train path. kelly/cvar/var/position_sizing/risk_manager — real percentile/parametric/MC VaR, caps, zero-div guards. volatility_surface — real SVI/SABR. stress_test math real (dup tail already S325). markowitz rf-mix latent only — rf defaults 0.0, UI never sends it; per-period `expected_return` displayed unlabeled but no active unit confusion. Fees+slippage present in live backtester — S329 is timing, not cost-modeling.
