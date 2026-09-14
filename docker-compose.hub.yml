@@ -82,7 +82,10 @@ services:
       - hft-logs:/app/logs
     ports:
       - "9091:9091"
-    command: ./build/hft_trade_bot config/config.yaml
+    # Prod image (Dockerfile.prod) copies the binary to /app/hft_trade_bot —
+    # the dev ./build/ path doesn't exist in the runtime stage. config.prod.yaml
+    # resolves ${HFT_EXCHANGE_WS_URL} the same way.
+    command: /app/hft_trade_bot config/config.prod.yaml
     environment:
       # S210: config.yaml resolves ${HFT_*_WS_URL:-localhost} — inject the
       # compose service names or the bot dials its own loopback.
