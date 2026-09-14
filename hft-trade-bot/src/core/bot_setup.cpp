@@ -68,6 +68,7 @@ bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
 
 void init_core_components(BotContext& ctx) {
     ctx.receiver = std::make_unique<SignalReceiver>(ctx.config.ws_url);
+    ctx.receiver->set_default_exchange(ctx.config.default_exchange);
     if (ctx.config.ai_signal_enabled) {
         ctx.ai_signal_receiver = std::make_unique<SignalReceiver>(ctx.config.ai_signal_ws_url);
     }

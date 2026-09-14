@@ -414,6 +414,10 @@ add_doctest_test(test_doctest_cpp_optimizations tests/test_doctest_cpp_optimizat
 add_doctest_test(test_doctest_hft_config tests/test_doctest_hft_config.cpp)
 target_sources(test_doctest_hft_config PRIVATE src/core/config.cpp)
 target_link_libraries(test_doctest_hft_config PRIVATE yaml-cpp::yaml-cpp fmt::fmt spdlog::spdlog)
+
+# SignalReceiver data-store doctest tests (multi-exchange keying, S252)
+add_doctest_test(test_doctest_signal_receiver tests/test_doctest_signal_receiver.cpp)
+target_link_libraries(test_doctest_signal_receiver PRIVATE nlohmann_json::nlohmann_json spdlog::spdlog)
 if(FMT_LIBRARY)
     target_link_libraries(test_doctest_hft_config PRIVATE ${FMT_LIBRARY})
 endif()

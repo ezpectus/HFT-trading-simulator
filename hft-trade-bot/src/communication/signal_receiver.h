@@ -58,6 +58,15 @@ class SignalReceiver : private SignalReceiverData {
         register_symbols_impl(symbols);
     }
 
+    // The venue this bot trades on — market data is stored per
+    // "exchange|symbol" and symbol-only accessors resolve to this exchange
+    // (S252). Wire from Config::default_exchange at setup.
+    void set_default_exchange(const std::string& ex) { set_default_exchange_impl(ex); }
+
+    // Test/replay seam — feeds a decoded frame through the same dispatch the
+    // websocket handler uses (mirrors inject_snapshot for the SHM path).
+    void feed_frame_json(const json& data) { handle_message_json(data); }
+
     uint16_t symbol_id(const std::string& sym) const { return symbol_id_impl(sym); }
 
     double get_price_by_id(uint16_t id) const { return SignalReceiverData::get_price_by_id(id); }

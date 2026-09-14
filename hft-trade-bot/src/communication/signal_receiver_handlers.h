@@ -115,8 +115,11 @@ void update_prices(const json& prices_data, const json& /*full_data*/) {
     std::lock_guard<Spinlock> lock(data_lock_);
     for (auto& [exchange, symbols] : prices_data.items()) {
         for (auto& [symbol, price] : symbols.items()) {
-            prices_[symbol] = price.get<double>();
-            auto id_it      = symbol_to_id_.find(symbol);
+            // Key by venue+symbol — bare-symbol keys collapsed all three
+            // exchanges into one last-writer-wins slot (S252).
+            prices_[book_key(exchange, symbol)] = price.get<double>();
+            if (!primary_exchange(exchange)) continue;
+            auto id_it = symbol_to_id_.find(symbol);
             if (id_it != symbol_to_id_.end()) {
                 prices_by_id_[id_it->second] = price.get<double>();
             }
@@ -139,10 +142,13 @@ void update_orderbooks(const json& data, int64_t timestamp) {
             for (const auto& a : ob_data["asks"])
                 ob.asks.push_back({a.value("price", 0.0), a.value("quantity", 0.0)});
         }
-        order_books_[ob.symbol] = std::move(ob);
-        auto id_it              = symbol_to_id_.find(ob.symbol);
-        if (id_it != symbol_to_id_.end()) {
-            obs_by_id_[id_it->second] = order_books_[ob.symbol];
+        const auto key    = book_key(ob.exchange, ob.symbol);
+        order_books_[key] = ob;
+        if (primary_exchange(ob.exchange)) {
+            auto id_it = symbol_to_id_.find(ob.symbol);
+            if (id_it != symbol_to_id_.end()) {
+                obs_by_id_[id_it->second] = std::move(ob);
+            }
         }
     }
 }
@@ -150,8 +156,11 @@ void update_orderbooks(const json& data, int64_t timestamp) {
 void update_orderbook_deltas(const json& data, int64_t timestamp) {
     std::lock_guard<Spinlock> lock(data_lock_);
     for (auto& [key, delta_data] : data["orderbook_deltas"].items()) {
-        std::string symbol = delta_data.value("symbol", "");
-        auto        it     = order_books_.find(symbol);
+        std::string symbol   = delta_data.value("symbol", "");
+        std::string exchange = delta_data.value("exchange", "");
+        // Deltas must hit their own venue's book — a symbol-only lookup let a
+        // bybit delta mutate the binance book (S252).
+        auto it = order_books_.find(book_key(exchange, symbol));
         if (it == order_books_.end()) continue;
         OrderBook& ob = it->second;
         ob.timestamp  = timestamp;
@@ -202,9 +211,15 @@ void update_candles(const json& candles_data) {
             candle.volume    = c.value("volume", 0.0);
             candle.symbol    = c.value("symbol", "");
             candle.exchange  = c.value("exchange", "");
-            auto& hist       = candle_history_[candle.symbol];
+            // Per-venue history — interleaved multi-exchange candles corrupt
+            // every EMA/RSI/OBI consumer (S252).
+            auto& hist = candle_history_[book_key(candle.exchange, candle.symbol)];
             hist.push_back(candle);
             if (hist.size() > 200u) hist.erase(hist.begin(), hist.end() - 200);
+            if (!primary_exchange(candle.exchange)) {
+                new_candles.push_back(candle);
+                continue;
+            }
             auto id_it = symbol_to_id_.find(candle.symbol);
             if (id_it != symbol_to_id_.end()) {
                 auto& arr_hist = candles_by_id_[id_it->second];
