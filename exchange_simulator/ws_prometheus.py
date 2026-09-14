@@ -126,8 +126,8 @@ class PrometheusMixin:
 
             # Order metrics (previously only in health.py which is never started)
             history = ex._order_history
-            filled = sum(1 for o in history if o.status.value == "filled")
-            rejected = sum(1 for o in history if o.status.value == "rejected")
+            filled = sum(1 for o in history if o.status.value == "FILLED")
+            rejected = sum(1 for o in history if o.status.value == "REJECTED")
             lines.append(f'exchange_orders_submitted_total{{{labels}}} {len(history)}')
             lines.append(f'exchange_orders_filled_total{{{labels}}} {filled}')
             lines.append(f'exchange_orders_rejected_total{{{labels}}} {rejected}')

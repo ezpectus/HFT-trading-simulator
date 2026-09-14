@@ -3,11 +3,12 @@
 Covers: new emitted names, histogram exposition, error/latency instrumentation.
 """
 import re
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from exchange_simulator.models import Account
+from exchange_simulator.models import Account, OrderStatus
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 from exchange_simulator.ws_metrics import LatencyHistogram
 
@@ -93,6 +94,21 @@ class TestSimMetricNames:
         prom = server._get_prometheus_metrics()
         assert "exchange_simulator_errors_total 5" in prom
         assert "exchange_simulator_price_updates_total 123" in prom
+
+    def test_order_status_counters_count_real_enum_values(self, server):
+        """S281 regression: FILLED/REJECTED enum values are uppercase — the
+        counters must match, not lowercase literals that can never hit."""
+        ex = server.exchanges["binance"]
+        ex._order_history = [
+            SimpleNamespace(status=OrderStatus.FILLED),
+            SimpleNamespace(status=OrderStatus.FILLED),
+            SimpleNamespace(status=OrderStatus.REJECTED),
+            SimpleNamespace(status=OrderStatus.PENDING),
+        ]
+        prom = server._get_prometheus_metrics()
+        assert 'exchange_orders_submitted_total{exchange="binance"} 4' in prom
+        assert 'exchange_orders_filled_total{exchange="binance"} 2' in prom
+        assert 'exchange_orders_rejected_total{exchange="binance"} 1' in prom
 
 
 class TestInstrumentation:
