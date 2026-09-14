@@ -367,7 +367,7 @@
 - `run.py::main` — fail-fast gate: `paper_trading:false` + `CCXT_AVAILABLE=False` → `logger.error` + `sys.exit(1)` до старта бота (was: зелёный health + «Live order error» на каждый сигнал, 0 ордеров).
 - ccxt НЕ добавлен в requirements — новые зависимости требуют одобрения пользователя; gate — честный минимум.
 
-### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154
+### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154 ✅ · verified R181
 - C++ `CreateFileMappingW` использует имя `/hft_*` дословно; Python-сторона делала `name.lstrip("/")` в `shm_ring_buffer.py` и `shm_market_data_writer.py` → разные kernel-объекты → Python attach'ился к свежесозданному пустому region, все SHM-каналы (signals/fills/market/kill_switch) молча читали нули на Windows.
 - Исправлено: verbatim-tag в обоих сайтах (+ `scripts/monitor.py`). Подтверждено живым кросс-процессным чтением.
 
@@ -911,34 +911,34 @@ harnesses are un-unit-testable by design).
 
 ## R178 — slop-fix — 2 findings closed (Info tier emptied)
 
-### S297 — rollback restores all four backup artifacts
+### S297 — rollback restores all four backup artifacts ✅ · verified R181
 - **Bug:** `backup_deployment` wrote config tar + exchange `data` + `ai_data` + `audit` (`deploy.sh:53-69`, `deploy.bat:51-66`) but `rollback` restored only config + exchange data — the AI bot's SQLite/WAL signals/trades db and the audit snapshot were write-only; "Rollback completed" reported on a half-rolled-back system.
 - **Fix:** both rollback paths now restore all four artifacts — `ai_data` via atomic swap (a merged old/new WAL pair can corrupt the db), `audit` via merge-copy so post-backup entries survive; `stop_deployment` moved before the file swaps (was after — live writers could race the restore). Verified end-to-end in a sandbox: all four restore, post-backup audit entries survive, order is stop→restore→start.
 - **Files:** `scripts/deploy.sh`, `scripts/deploy.bat`
 
-### S301 — nightly issue dedup + dead pytest install removed
+### S301 — nightly issue dedup + dead pytest install removed ✅ · verified R181
 - **Bug:** `nightly-backtest.yml` `Create issue on regression` (`if: failure()`) called `issues.create` unconditionally — a persistent failure opened a new issue every night forever; `pip install pytest pytest-asyncio` (:37) installed packages no step invoked. (The third sub-claim — `walk_forward_ci.py` orphaned — was already stale: wired in R171/S214, called at :73.)
 - **Fix:** the step now lists open issues, finds an existing one by title (PRs excluded via `!pull_request`), and comments with the latest run URL instead of duplicating; dead pip install removed. YAML + embedded JS both parse-verified.
 - **Files:** `.github/workflows/nightly-backtest.yml`
 
 ## R180 — slop-fix — 4 findings closed (R179 doc-drift batch)
 
-### S318 — CONFIGURATION_GUIDE rewritten to live shared_config surface
+### S318 — CONFIGURATION_GUIDE rewritten to live shared_config surface ✅ · verified R181
 - **Bug:** `docs/guides/CONFIGURATION_GUIDE.md:59-118` documented `system:`, `default_exchange:`, `timeframe:`/`timeframe_seconds:`, `account:` — all removed from `shared_config.yaml` in S316/R170 — plus "50 pairs" (real: 49).
 - **Fix:** the shared-config section now opens with the gate-reference disclaimer (not runtime-loaded; consumed by `test_config_consistency.py`), lists only the live sections (symbols/exchanges/risk/websocket), corrects 49 pairs.
 - **Files:** `docs/guides/CONFIGURATION_GUIDE.md`
 
-### S319 — all 6 wired strategies documented
+### S319 — all 6 wired strategies documented ✅ · verified R181
 - **Bug:** TRADING_STRATEGIES.md had detailed sections for TrendFollowing/MeanReversion/FFTCycle only; MarketMaking/MLEnsemble/Sentiment (all wired `bot_helpers.py:54-63`) were undescribed.
 - **Fix:** added sections describing each strategy's real mechanics (EVENT_SENTIMENT_MAP + fade/follow thresholds; Avellaneda-Stoikov reservation price + inventory skew + toxicity; HMM regime + GBM classifier + anomaly filter, sklearn/lightgbm optional); voter member list corrected to all 6.
 - **Files:** `docs/TRADING_STRATEGIES.md`
 
-### S320 — PERFORMANCE.md methodology is runnable now
+### S320 — PERFORMANCE.md methodology is runnable now ✅ · verified R181
 - **Bug:** `./hft_trade_bot --config <path> --enable-latency-histograms` — config is positional `argv[1]` (`bot_setup.cpp:58`), no such flag (yaml `latency_histogram_enabled`); `cmake -DENABLE_PROFILING=ON` — no such option (real: `-DUSE_PGO=ON` + `-DCMAKE_BUILD_TYPE=Profile`); "REST API 5-20ms ~10ms" row measured a nonexistent API; "5 strategies" (real: 6); "Measured" column produced by nothing, benchmark_suite (S214 toy-theater) cited as source.
 - **Fix:** real PGO two-pass + positional config + yaml-flag note; REST row replaced by the no-REST pointer; 6 strategies; Measured column disclaimed as ad-hoc + benchmark_suite caveat noted.
 - **Files:** `docs/PERFORMANCE.md`
 
-### S321 — docker-compose v1 → docker compose v2 in docs
+### S321 — docker-compose v1 → docker compose v2 in docs ✅ · verified R181
 - **Bug:** ~23 sites taught the EOL v1 binary: DEPLOYMENT.md ×14, QUICK_START.md ×7, README.md ×2 (S302 fixed the Makefile but docs were left).
 - **Fix:** all command positions converted; compose *file* names (`docker-compose.prod.yml` etc.) preserved.
 - **Files:** `docs/DEPLOYMENT.md`, `docs/guides/QUICK_START.md`, `README.md`

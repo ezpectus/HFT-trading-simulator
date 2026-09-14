@@ -2452,3 +2452,16 @@ Board: 5 open (S309 Medium Docker-blocked + S318–S321 Info).
 - **S321** — docker-compose → docker compose ×23 sites across DEPLOYMENT/QUICK_START/README.
 
 Gate: staged ALL GREEN. Commit: 8f81f37. Board: 1 open (S309 Medium, Docker-blocked). Unverified done-log: 6 (R178×2 + R180×4).
+
+## R181 — slop-verify — 6/6 claims VERIFIED, 0 reverts
+
+Re-checked every unverified done-log entry (R178×2 + R180×4) against committed code:
+
+- **S297** — deploy.sh rollback restores ai_data atomically (:341-343) + audit merge (:356-359), stop_deployment precedes swaps (:313); deploy.bat mirror confirmed (:296-306, stop before config restore).
+- **S301** — nightly-backtest dedup live: `listForRepo` + title-match + `!pull_request` + `createComment` (yml:134-142); dead `pip install pytest pytest-asyncio` absent; walk_forward call at :73 confirmed (S214 sub-claim correctly recorded stale).
+- **S318** — CONFIGURATION_GUIDE gate-reference disclaimer at :59-63, "49 pairs" at :68/:75; residual `market.timeframe` at :116 is the simulator's own config.yaml key — legitimate, different file.
+- **S319** — six strategy sections present (:190 Sentiment, :202 MarketMaking, :211 ML Ensemble); voter member list names all 6.
+- **S320** — "6 strategies" both sites; no-REST pointer at :21; real commands at :97-105 (USE_PGO/Profile, positional argv, yaml histogram note); benchmark_suite caveat present.
+- **S321** — zero `docker-compose <verb>` commands remain in DEPLOYMENT/QUICK_START/README; `docker compose` v2 at 18/8/2 sites; compose file names preserved.
+
+Done-log fully verified — zero unverified entries. Board: 1 open (S309 Medium, Docker-blocked).
