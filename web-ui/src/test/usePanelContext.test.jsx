@@ -12,6 +12,8 @@ describe('usePanelContext', () => {
     for (const key of [
       'candles', 'prices', 'accounts', 'fills', 'orderbooks',
       'optionsChain', 'requestOptionsChain', 'submitOrder', 'closePosition',
+      'openOrders', 'cancelOrder', 'cancelAllOrders',
+      'reconnects', 'connect', 'nextReconnectIn',
       'connected', 'latency',
     ]) {
       expect(ex, `exchange.${key} missing`).toHaveProperty(key)
@@ -33,5 +35,25 @@ describe('usePanelContext', () => {
     for (const key of ['signals', 'regime', 'backtestResult', 'connected', 'latency']) {
       expect(sig).toHaveProperty(key)
     }
+  })
+
+  it('exposes all server-compute result fields panels read (S230)', () => {
+    const { result } = renderHook(() => usePanelContext())
+    const sig = result.current.signals
+    for (const key of [
+      'portfolioResult', 'volSurfaceResult', 'cvarResult', 'stressTestResult',
+      'positionSizeResult', 'hawkesResult', 'fundingArbResult',
+      'authState', 'nextReconnectIn', 'connect', 'sendSignalMessage',
+    ]) {
+      expect(sig, `signals.${key} missing`).toHaveProperty(key)
+    }
+  })
+
+  it('flows result data from the store into ctx.signals', () => {
+    const portfolio = { weights: { BTC: 0.6 }, method: 'hrp' }
+    useTradingStore.setState({ portfolioResult: portfolio, authState: { ok: true } })
+    const { result } = renderHook(() => usePanelContext())
+    expect(result.current.signals.portfolioResult).toEqual(portfolio)
+    expect(result.current.signals.authState).toEqual({ ok: true })
   })
 })

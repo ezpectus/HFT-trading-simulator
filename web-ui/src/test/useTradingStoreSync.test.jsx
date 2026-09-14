@@ -23,7 +23,16 @@ const exchange = {
   startTrading: () => {},
   stopTrading: () => {},
 }
-const signals = { signals: [{ id: 's1' }], regime: 'trending' }
+const signals = {
+  signals: [{ id: 's1' }],
+  regime: 'trending',
+  portfolioResult: { weights: { BTC: 0.6 } },
+  cvarResult: { cvar_95: -0.03 },
+  fundingArbResult: { apr: 12 },
+  authState: { tier: 'pro' },
+  nextReconnectIn: 5,
+  connect: () => {},
+}
 
 describe('useTradingStoreSync', () => {
   it('mirrors exchange hook data into the trading store', () => {
@@ -40,5 +49,16 @@ describe('useTradingStoreSync', () => {
     renderHook(() => useTradingStoreSync(exchange, signals))
     const s = useTradingStore.getState()
     expect(s.signals).toEqual([{ id: 's1' }])
+  })
+
+  it('mirrors server-compute results into the store (S230)', () => {
+    renderHook(() => useTradingStoreSync(exchange, signals))
+    const s = useTradingStore.getState()
+    expect(s.portfolioResult).toEqual({ weights: { BTC: 0.6 } })
+    expect(s.cvarResult).toEqual({ cvar_95: -0.03 })
+    expect(s.fundingArbResult).toEqual({ apr: 12 })
+    expect(s.authState).toEqual({ tier: 'pro' })
+    expect(s.signalNextReconnectIn).toBe(5)
+    expect(s.signalConnect).toBe(signals.connect)
   })
 })

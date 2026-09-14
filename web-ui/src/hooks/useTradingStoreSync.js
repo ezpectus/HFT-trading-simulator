@@ -28,6 +28,12 @@ export function useTradingStoreSync(exchange, signals) {
       exchangeLatency: exchange.latency,
       submitOrder: exchange.submitOrder,
       closePosition: exchange.closePosition,
+      openOrders: exchange.openOrders,
+      cancelOrder: exchange.cancelOrder,
+      cancelAllOrders: exchange.cancelAllOrders,
+      exchangeReconnects: exchange.reconnects,
+      exchangeConnect: exchange.connect,
+      exchangeNextReconnectIn: exchange.nextReconnectIn,
       requestOptionsChain: exchange.requestOptionsChain,
       sendSpeedChange: exchange.sendSpeedChange,
       sendConfigUpdate: exchange.sendConfigUpdate,
@@ -44,9 +50,21 @@ export function useTradingStoreSync(exchange, signals) {
       regime: signals.regime,
       backtestResult: signals.backtestResult,
       circuitBreaker: signals.circuitBreaker,
+      // S230: server-compute results — panels read these via ctx.signals.*;
+      // dropping them left 7 panels drawing fake 30s timeouts on live answers.
+      portfolioResult: signals.portfolioResult,
+      volSurfaceResult: signals.volSurfaceResult,
+      cvarResult: signals.cvarResult,
+      stressTestResult: signals.stressTestResult,
+      positionSizeResult: signals.positionSizeResult,
+      hawkesResult: signals.hawkesResult,
+      fundingArbResult: signals.fundingArbResult,
+      authState: signals.authState,
       signalConnected: signals.connected,
       signalLatency: signals.latency,
       sendSignalMessage: signals.sendSignalMessage,
+      signalConnect: signals.connect,
+      signalNextReconnectIn: signals.nextReconnectIn,
     })
   }, [signals, setSignalData])
 }
