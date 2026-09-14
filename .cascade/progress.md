@@ -1928,4 +1928,4 @@ Commit: f0d4554
 
 **Clean:** оба ai-bot Dockerfile корректны (помимо S207); hft Dockerfiles — bookworm-ABI-consistent, binary-paths верны под свои layout'ы; staging порты/health/limits согласованы; hub depends_on service_healthy цепочки верны; sim `--export` флаги реальны; SECURITY/templates честные.
 
-Commit: <pending>
+Commit: 9d26be8
