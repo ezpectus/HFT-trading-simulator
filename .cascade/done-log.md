@@ -271,3 +271,40 @@
 **Проверено:** vitest 12/12 на sync/store/context + registry.test 10/10 + 5 affected-panel suites 10/10; eslint clean.
 
 **Файлы:** `web-ui/src/hooks/useTradingStoreSync.js`, `web-ui/src/stores/useTradingStore.js`, `web-ui/src/stores/usePanelContext.js`, `web-ui/src/test/useTradingStoreSync.test.jsx`, `web-ui/src/test/usePanelContext.test.jsx`.
+
+### S245 — v3-only конфиг молча бежал V1 fallback + V3 untunable (R149)
+
+**Было:** `main.cpp` диспатчил только по `signal_engine_v2_enabled` → `v3_enabled:true, v2_enabled:false` падал в `run_v1_fallback_loop` — другой движок при banner'е «V3». `Config` не имел ни одного `v3_*` ключа — `SignalEngineV3::Params` жил на хардкод-defaults.
+
+**Фикс:**
+- `main.cpp:57` — gate `v2_enabled || v3_enabled` (loop сам выбирает движок в `generate_signal`, bot_loop.cpp:165-176).
+- `config.h` — 7 полей `v3_trend_boost`/`v3_trend_dampen`/`v3_range_confidence_cap`/`v3_volatile_leverage_mult`/`v3_volatile_stop_mult`/`v3_hmm_update_threshold`/`v3_min_regime_confidence` с дефолтами = Params.
+- `config_parser.h` — shared `parse_v3_section` (dev `parse_dev_extras` + prod `parse_prod_engines` оба зовут).
+- `bot_setup.cpp` — `make_v3_params(c)` вместо `SignalEngineV3::Params{}` на конструкции.
+- `config.yaml` + `config.prod.yaml` — все 7 ключей задокументированы с дефолтами.
+
+**Файлы:** `hft-trade-bot/src/core/{main.cpp,config.h,config_parser.h,bot_setup.cpp}`, `hft-trade-bot/config/config{,.prod}.yaml`.
+
+### S253 — DEPLOYMENT `.env`-шаблон с 8 вымышленными переменными (R149)
+
+**Было:** `DEPLOYMENT.md` документировал `EXCHANGE_SIMULATOR_HOST`/`_PORT`, `AI_SIGNAL_BOT_HOST`/`_PORT`, `WEB_UI_PORT`, `DATABASE_PATH`, `PROMETHEUS_PORT`, `GRAFANA_PORT` — 0 читателей у всех восьми.
+
+**Фикс:** шаблон заменён на реальный dev-сет — `GRAFANA_PASSWORD` (`:?required` в dev compose) + `GRAFANA_USER`; текст объясняет что service-URL/порты живут в compose `environment:`/component-yaml, а prod-рычаги — в `.env.prod` (указатель на `.env.prod.example`).
+
+**Файлы:** `docs/DEPLOYMENT.md`.
+
+### S254 — native-deploy команды неработоспособны (R149)
+
+**Было:** `DEPLOYMENT.md` — `python -m` изнутри пакета, `--config` флаг у hft-бинаря (argv[1] позиционный); `QUICK_START.md` — `docker.bat` (несуществующий), чужой clone-URL, `./hft_trade_bot` без config-path.
+
+**Фикс:** residual — `QUICK_START` Step-4 `cd hft-trade-bot/build && ./hft_trade_bot` искал `build/config/config.yaml` → исправлено на запуск из `hft-trade-bot/` с `./build/hft_trade_bot config/config.yaml`. Остальное уже было исправлено в предыдущих проходах: DEPLOYMENT три команды с audit-notes в правильной форме, `DEVELOPMENT_GUIDE.md:321-322` позиционный path + «no --profile flag», `docker.bat`→`no-docker.bat`, clone-URL совпадает с `git remote -v`.
+
+**Файлы:** `docs/guides/QUICK_START.md`.
+
+### S263 — `.env.prod` не доходил до `${}`-интерполяции (R149)
+
+**Было:** 5 `:?required` в `docker-compose.prod.yml` резолвятся только из `.env`/`--env-file`; `env_file: .env.prod` грузит контейнерный env, НЕ интерполяцию → `up` на чистом сервере падал с текстом ошибки, врущим про `.env.prod`.
+
+**Фикс:** `--env-file .env.prod` добавлен в `deploy.yml` SSH-шаг (pull + up) и `Makefile.prod` `DOCKER_COMPOSE` (включая `prod-stats` который звал compose напрямую). DEPLOYMENT-note переписан: документирует `make prod-up` как рабочий путь.
+
+**Файлы:** `.github/workflows/deploy.yml`, `Makefile.prod`, `docs/DEPLOYMENT.md`.

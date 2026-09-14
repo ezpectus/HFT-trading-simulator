@@ -2075,3 +2075,12 @@ Commit: f7c4710
 - **S230** (High) — sync-слой ронял 7 `*Result` + `authState` + exchange `openOrders`/`cancel*`/`reconnects`/`connect`/`nextReconnectIn` → 7 панелей на фейковом 30s-timeout, WsManager вечный «Waiting...». Fixed: полная цепочка `useTradingStoreSync`→`useTradingStore`(declared state)→`usePanelContext`(ctx.exchange/ctx.signals hook-shape). Регресс-тесты: ключи + data-flow в sync/context test'ах.
 - **Verification:** vitest 12/12 (sync/store/context) + registry.test 10/10 + 5 affected-panel suites 10/10; eslint clean; compose YAML parse ×4; run.py import-test без run_logger.
 - **Commits:** `2a88748` (ai-bot S207), `f65b2fe` (infra S210), `ecb6093` (web-ui S230), `edbf3f4` (docs)
+
+## R149 — slop-fix — S245 + S253 + S254 + S263 (4 High)
+
+- **S245** (High) — v3-only config silently ran V1 fallback; V3 had zero config keys. Fixed: `main.cpp` gate now `v2_enabled || v3_enabled`; 7 `v3_*` Config fields + shared `parse_v3_section` (dev+prod) + `make_v3_params` in bot_setup; both yamls document the tunables.
+- **S253** (High) — DEPLOYMENT `.env` template had 8 fictional vars. Fixed: replaced with real dev set (`GRAFANA_PASSWORD` required + `GRAFANA_USER`), pointers to `.env.prod` for prod vars.
+- **S254** (High) — residual fix: QUICK_START Step-4 `./hft_trade_bot` with no config-path from `build/` resolved `build/config/config.yaml`; now runs from `hft-trade-bot/` with positional `config/config.yaml`. Other items already corrected earlier.
+- **S263** (High) — `.env.prod` never reached `${}` interpolation. Fixed: `--env-file .env.prod` in deploy.yml SSH step + Makefile.prod `DOCKER_COMPOSE` (+ prod-stats direct call); DEPLOYMENT note now documents `make prod-up`.
+- **Verification:** pre-commit-check 8/8 ALL GREEN (ruff/eslint/clang-format/pytest×2/vitest/config-consistency); yaml.safe_load on both hft configs + deploy.yml; priorities list renumbered clean 1-41.
+- **Commits:** TBD
