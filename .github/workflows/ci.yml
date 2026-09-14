@@ -61,6 +61,8 @@ jobs:
         working-directory: web-ui
       - run: npm run lint
         working-directory: web-ui
+      - run: npm run typecheck
+        working-directory: web-ui
 
   test-python:
     name: Python Tests

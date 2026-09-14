@@ -3,7 +3,7 @@
   "private": true,
   "version": "2.2.0",
   "type": "module",
-  "description": "HFT Trading System Dashboard — 278 panels, 52 quant models, React 18 + Vite 8",
+  "description": "HFT Trading System Dashboard \u2014 278 panels, 52 quant models, React 18 + Vite 8",
   "keywords": [
     "trading",
     "hft",
@@ -31,7 +31,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint src/",
-    "analyze": "vite-bundle-visualizer"
+    "analyze": "vite-bundle-visualizer",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "lightweight-charts": "^4.2.0",

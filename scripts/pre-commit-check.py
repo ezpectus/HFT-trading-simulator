@@ -3,7 +3,7 @@
 
 WHAT IT DOES (matches .github/workflows/ci.yml):
   1. Detects staged files via `git diff --cached --name-only`
-  2. Lint: ruff (Python) + eslint (JS) + clang-format (C++) — only changed files
+  2. Lint: ruff (Python) + eslint + tsc (JS) + clang-format (C++) — only changed files
   3. Tests: pytest (Python) + vitest (JS) + ctest (C++) + cargo test (Rust) — only relevant
   4. Build: vite build (JS) + cmake build (C++) + cargo build (Rust)
   5. Security: bandit (Python) + npm audit (JS)
@@ -24,7 +24,7 @@ Usage:
 CI jobs covered (from .github/workflows/ci.yml):
     lint-python     → ruff (exchange_simulator + ai-signal-bot)
     lint-cpp        → clang-format (hft-trade-bot)
-    lint-js         → eslint (web-ui)
+    lint-js         → eslint + tsc --noEmit (web-ui)
     test-python     → pytest (exchange_simulator + ai-signal-bot)
     test-cpp        → cmake build + ctest (hft-trade-bot)
     test-js         → vitest (web-ui)
@@ -197,6 +197,29 @@ def check_eslint(files: list[str] | None = None) -> CheckResult:
     success, stdout, stderr, duration = run_command(cmd, cwd=cwd, timeout=60)
     return CheckResult(
         "eslint: web-ui" + (" (staged)" if files else ""),
+        passed=success,
+        duration_s=duration,
+        output=(stdout + stderr) if not success else "",
+    )
+
+
+def check_tsc(files: list[str] | None = None) -> CheckResult:
+    """Type-check web-ui .ts sources (tsconfig strict + noEmit).
+
+    eslint only covers **/*.{js,jsx} — the .ts files were outside every static
+    check (S269). tsc is project-scoped; in staged mode it still checks all of
+    src/ because single-file type-checking isn't sound.
+    """
+    cwd = PROJECT_ROOT / COMPONENT_JS
+    if files is not None:
+        rel = [f for f in files if Path(f).parts and Path(f).parts[0] == COMPONENT_JS]
+        if not rel:
+            return CheckResult("tsc: web-ui (staged)", True, 0.0)
+    success, stdout, stderr, duration = run_command(
+        ["npx", "tsc", "--noEmit"], cwd=cwd, timeout=120
+    )
+    return CheckResult(
+        "tsc: web-ui" + (" (staged)" if files else ""),
         passed=success,
         duration_s=duration,
         output=(stdout + stderr) if not success else "",
@@ -860,6 +883,7 @@ def main() -> int:
             comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
             if comp_js is None or comp_js:  # skip when staged mode has none in this component
                 summary.add(check_eslint(files=comp_js))
+                summary.add(check_tsc(files=comp_js))
         if has_cpp:
             summary.add(check_clang_format(files=cpp_files))
 
