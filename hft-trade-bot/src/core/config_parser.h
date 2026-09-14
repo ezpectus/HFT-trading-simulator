@@ -138,10 +138,25 @@ inline void parse_v2_dev(Config& cfg, const YAML::Node& root) {
     }
 }
 
+// signal_engine_v3 — shared by dev and prod parse paths (S245: the block was
+// flag-only; the 7 Params tunables were unreachable hardcoded defaults).
+inline void parse_v3_section(Config& cfg, const YAML::Node& v3) {
+    if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
+    if (v3["trend_boost"]) cfg.v3_trend_boost = v3["trend_boost"].as<double>();
+    if (v3["trend_dampen"]) cfg.v3_trend_dampen = v3["trend_dampen"].as<double>();
+    if (v3["range_confidence_cap"])
+        cfg.v3_range_confidence_cap = v3["range_confidence_cap"].as<double>();
+    if (v3["volatile_leverage_mult"])
+        cfg.v3_volatile_leverage_mult = v3["volatile_leverage_mult"].as<double>();
+    if (v3["volatile_stop_mult"]) cfg.v3_volatile_stop_mult = v3["volatile_stop_mult"].as<double>();
+    if (v3["hmm_update_threshold"])
+        cfg.v3_hmm_update_threshold = v3["hmm_update_threshold"].as<double>();
+    if (v3["min_regime_confidence"])
+        cfg.v3_min_regime_confidence = v3["min_regime_confidence"].as<double>();
+}
+
 inline void parse_dev_extras(Config& cfg, const YAML::Node& root) {
-    if (auto v3 = root["signal_engine_v3"]) {
-        if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
-    }
+    if (auto v3 = root["signal_engine_v3"]) parse_v3_section(cfg, v3);
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
         if (ao["high_confidence"])
@@ -256,9 +271,7 @@ inline void parse_prod_v2_weights(Config& cfg, const YAML::Node& root) {
 }
 
 inline void parse_prod_engines(Config& cfg, const YAML::Node& root) {
-    if (auto v3 = root["signal_engine_v3"]) {
-        if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
-    }
+    if (auto v3 = root["signal_engine_v3"]) parse_v3_section(cfg, v3);
     if (auto ao = root["adaptive_order_selector"]) {
         if (ao["enabled"]) cfg.adaptive_order_enabled = ao["enabled"].as<bool>();
         if (ao["gtd_timeout_ms"])

@@ -76,7 +76,14 @@ struct Config {
     int    v2_body_direction_lookback{5};
 
     // Signal Engine V3 — HMM regime detection
-    bool signal_engine_v3_enabled{false}; // Off by default, opt-in
+    bool   signal_engine_v3_enabled{false}; // Off by default, opt-in
+    double v3_trend_boost{1.3};
+    double v3_trend_dampen{0.5};
+    double v3_range_confidence_cap{50.0};
+    double v3_volatile_leverage_mult{0.5};
+    double v3_volatile_stop_mult{1.5};
+    double v3_hmm_update_threshold{0.0001};
+    double v3_min_regime_confidence{0.4};
 
     // Adaptive order selector v2
     bool    adaptive_order_enabled{true};

@@ -133,6 +133,18 @@ static SignalEngineV2::Params make_v2_params(const Config& c) {
     return p;
 }
 
+static SignalEngineV3::Params make_v3_params(const Config& c) {
+    SignalEngineV3::Params p;
+    p.trend_boost            = c.v3_trend_boost;
+    p.trend_dampen           = c.v3_trend_dampen;
+    p.range_confidence_cap   = c.v3_range_confidence_cap;
+    p.volatile_leverage_mult = c.v3_volatile_leverage_mult;
+    p.volatile_stop_mult     = c.v3_volatile_stop_mult;
+    p.hmm_update_threshold   = c.v3_hmm_update_threshold;
+    p.min_regime_confidence  = c.v3_min_regime_confidence;
+    return p;
+}
+
 bool init_signal_engines(BotContext& ctx) {
     auto v2_params = make_v2_params(ctx.config);
     if (!v2_params.validate()) {
@@ -142,7 +154,7 @@ bool init_signal_engines(BotContext& ctx) {
     ctx.engine_v2 = std::make_unique<SignalEngineV2>(v2_params);
     ctx.engine_v2->prepopulate(ctx.config.symbols);
     if (ctx.config.signal_engine_v3_enabled) {
-        ctx.engine_v3 = std::make_unique<SignalEngineV3>(v2_params, SignalEngineV3::Params{});
+        ctx.engine_v3 = std::make_unique<SignalEngineV3>(v2_params, make_v3_params(ctx.config));
         ctx.engine_v3->prepopulate(ctx.config.symbols);
         spdlog::info("Signal Engine V3: HMM regime detection ENABLED");
     }
