@@ -27,7 +27,11 @@ test: ## Run all tests
 	$(MAKE) test-cpp
 
 test-cpp: ## Run C++ tests (requires build directory)
-	cd hft-trade-bot/build && ctest --output-on-failure 2>/dev/null || echo "C++ tests skipped — run 'cd hft-trade-bot && cmake -B build && cmake --build build' first"
+	@if [ ! -d hft-trade-bot/build ]; then \
+		echo "C++ tests skipped — run 'cd hft-trade-bot && cmake -B build && cmake --build build' first"; \
+	else \
+		cd hft-trade-bot/build && ctest --output-on-failure; \
+	fi
 
 test-exchange: ## Run exchange simulator tests
 	cd exchange_simulator && python -m pytest tests/ -v

@@ -374,13 +374,15 @@ jobs:
         working-directory: ${{ matrix.component }}
       - name: Check for high-severity issues
         run: |
-          if [ -f bandit-report.json ]; then
-            HIGH_COUNT=$(python -c "import json; d=json.load(open('bandit-report.json')); print(sum(1 for r in d.get('results', []) if r.get('issue_severity') == 'HIGH'))" 2>/dev/null || echo "0")
-            echo "Bandit HIGH-severity issues: $HIGH_COUNT"
-            if [ "$HIGH_COUNT" -gt 0 ]; then
-              echo "::error::$HIGH_COUNT HIGH-severity Bandit issues in ${{ matrix.component }}"
-              exit 1
-            fi
+          if [ ! -f bandit-report.json ]; then
+            echo "::error::bandit-report.json missing — bandit crashed before writing a report in ${{ matrix.component }}"
+            exit 1
+          fi
+          HIGH_COUNT=$(python -c "import json; d=json.load(open('bandit-report.json')); print(sum(1 for r in d.get('results', []) if r.get('issue_severity') == 'HIGH'))")
+          echo "Bandit HIGH-severity issues: $HIGH_COUNT"
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "::error::$HIGH_COUNT HIGH-severity Bandit issues in ${{ matrix.component }}"
+            exit 1
           fi
         working-directory: ${{ matrix.component }}
       - uses: actions/upload-artifact@v4
