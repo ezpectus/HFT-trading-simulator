@@ -57,7 +57,7 @@ risk:
   max_position_size_pct: 5.0
   max_risk_per_trade_pct: 1.0
   daily_loss_limit_pct: 3.0
-  max_drawdown_pct: 10.0
+  max_drawdown_pct: 0.10  # fraction (10%), not percent — percent values fail validation (S251)
 symbols:
   - name: "BTC/USDT"
     min_qty: 0.001

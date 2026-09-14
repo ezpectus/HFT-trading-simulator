@@ -80,6 +80,10 @@ exchange:
 risk:
   max_risk_per_trade_pct: 2.0   # Max loss per trade as % of balance (rec: 1-5)
   max_daily_drawdown_pct: 8.0   # Stop trading if daily loss exceeds this (rec: 5-15)
+  # Kill-switch drawdown — FRACTION, not percent (0.15 = 15%). Trips when
+  # peak-to-equity drawdown exceeds it. Unlike max_daily_drawdown_pct which
+  # is percent-scale, a "8.0" here would mean 800% and could never trigger.
+  max_drawdown_pct: 0.15
   min_confidence: 65.0          # Minimum signal confidence 0-100 to act
   min_rr_ratio: 1.5             # Minimum risk:reward ratio (rec: 1.5-3.0)
   max_position_size_pct: 10.0   # Max notional per position as % of balance

@@ -4,6 +4,7 @@
 #include <doctest.h>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 
 TEST_SUITE("Config HFT Parameters") {
 
@@ -132,6 +133,10 @@ risk:
         {
             std::ofstream f(path);
             f << R"(
+exchange:
+  ws_url: "ws://localhost:8765"
+trading:
+  symbols: ["BTC/USDT"]
 risk:
   max_position_qty: 1.0
   blacklisted_symbols: ["DOGE/USDT", "SHIB/USDT"]
@@ -156,6 +161,10 @@ risk:
         {
             std::ofstream f(path);
             f << R"(
+exchange:
+  ws_url: "ws://localhost:8765"
+trading:
+  symbols: ["BTC/USDT"]
 pressure_model:
   enabled: true
   toxicity_threshold: 0.9
@@ -165,6 +174,56 @@ pressure_model:
         auto cfg = hft::Config::load(path);
         CHECK(cfg.adaptive_toxic_threshold == doctest::Approx(0.9));
         CHECK(cfg.v2_pressure_threshold == doctest::Approx(0.35));
+        std::filesystem::remove(path);
+    }
+
+    // S251: validation must be able to FAIL — the old warn-only validator let
+    // every misconfig through, including the percent-vs-fraction drawdown mine.
+    TEST_CASE("Config: validation throws on impossible values (S251)") {
+        std::string path = "test_config_s251_invalid.yaml";
+        {
+            std::ofstream f(path);
+            f << R"(
+exchange:
+  ws_url: "ws://localhost:8765"
+trading:
+  symbols: ["BTC/USDT"]
+risk:
+  max_risk_per_trade_pct: 150.0
+)";
+        }
+        CHECK_THROWS_AS(hft::Config::load(path), std::runtime_error);
+        std::filesystem::remove(path);
+    }
+
+    TEST_CASE("Config: percent-scale value in the fraction key fails (S251)") {
+        // max_drawdown_pct is a fraction — 8.0 (percent-thinking) can never trip.
+        std::string path = "test_config_s251_unit.yaml";
+        {
+            std::ofstream f(path);
+            f << R"(
+exchange:
+  ws_url: "ws://localhost:8765"
+trading:
+  symbols: ["BTC/USDT"]
+risk:
+  max_drawdown_pct: 8.0
+)";
+        }
+        CHECK_THROWS_AS(hft::Config::load(path), std::runtime_error);
+        std::filesystem::remove(path);
+    }
+
+    TEST_CASE("Config: missing ws_url fails validation (S251)") {
+        std::string path = "test_config_s251_nows.yaml";
+        {
+            std::ofstream f(path);
+            f << R"(
+trading:
+  symbols: ["BTC/USDT"]
+)";
+        }
+        CHECK_THROWS_AS(hft::Config::load(path), std::runtime_error);
         std::filesystem::remove(path);
     }
 }
