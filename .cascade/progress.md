@@ -2083,4 +2083,4 @@ Commit: f7c4710
 - **S254** (High) — residual fix: QUICK_START Step-4 `./hft_trade_bot` with no config-path from `build/` resolved `build/config/config.yaml`; now runs from `hft-trade-bot/` with positional `config/config.yaml`. Other items already corrected earlier.
 - **S263** (High) — `.env.prod` never reached `${}` interpolation. Fixed: `--env-file .env.prod` in deploy.yml SSH step + Makefile.prod `DOCKER_COMPOSE` (+ prod-stats direct call); DEPLOYMENT note now documents `make prod-up`.
 - **Verification:** pre-commit-check 8/8 ALL GREEN (ruff/eslint/clang-format/pytest×2/vitest/config-consistency); yaml.safe_load on both hft configs + deploy.yml; priorities list renumbered clean 1-41.
-- **Commits:** TBD
+- **Commits:** `af30526` (hft S245), `cad2561` (infra S263), `ee00867` (docs S253/S254)
