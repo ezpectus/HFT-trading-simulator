@@ -1,2 +1,0 @@
-# Exchange Simulator — Test Requirements
-pytest>=7.0
