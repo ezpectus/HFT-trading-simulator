@@ -212,18 +212,18 @@ def test_risk_parameter_consistency():
     print("AI bot risk parameters:", ai_risk)
     print("HFT bot risk parameters:", hft_risk)
     
-    # Check key risk parameters
-    if shared_risk["max_risk_per_trade_pct"] != ai_risk["max_risk_per_trade_pct"]:
-        print("WARNING: max_risk_per_trade_pct differs between shared and AI config")
-    
-    if shared_risk["max_daily_drawdown_pct"] != ai_risk["max_daily_drawdown_pct"]:
-        print("WARNING: max_daily_drawdown_pct differs between shared and AI config")
-    
-    if shared_risk["min_confidence"] != ai_risk["min_confidence"]:
-        print("WARNING: min_confidence differs between shared and AI config")
-    
-    print("✓ Risk parameter consistency check completed (warnings allowed)")
-    return True
+    # Key risk parameters must match across shared/AI/HFT configs —
+    # a drift here means the bots size risk differently than declared.
+    ok = True
+    for key in ("max_risk_per_trade_pct", "max_daily_drawdown_pct", "min_confidence"):
+        sv, av, hv = shared_risk.get(key), ai_risk.get(key), hft_risk.get(key)
+        if not (sv == av == hv):
+            print(f"ERROR: risk.{key} drift — shared={sv}, ai={av}, hft={hv}")
+            ok = False
+
+    if ok:
+        print("✓ Risk parameter consistency check passed")
+    return ok
 
 
 def test_optional_features_configured():
@@ -233,9 +233,6 @@ def test_optional_features_configured():
     exchange_config = load_yaml(project_root / "exchange_simulator" / "config.yaml")
 
     # Audit logging configuration (wired by S114)
-    if "audit" not in exchange_config:
-        print("ERROR: audit section missing from exchange config")
-        return False
     if "audit" not in exchange_config:
         print("ERROR: audit section missing from exchange config")
         return False
