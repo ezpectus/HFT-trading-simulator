@@ -141,6 +141,7 @@ class AISignalBot:
         self._running = False
         self._last_signal_time: float = 0
         self._background_tasks: set[asyncio.Task] = set()
+        self._listen_task: asyncio.Task | None = None
 
         # Health checker
         self.health_checker = HealthChecker(
@@ -189,6 +190,7 @@ class AISignalBot:
         listen_task = asyncio.create_task(self._listen_loop())
         self._background_tasks.add(listen_task)
         listen_task.add_done_callback(self._on_task_done)
+        self._listen_task = listen_task
 
         # Start signal publisher for HFT bot
         await self.signal_publisher.start()
@@ -253,8 +255,10 @@ class AISignalBot:
             self.logger.info("Stopping...")
         finally:
             self._running = False
-            listen_task.cancel()
-            self._background_tasks.discard(listen_task)
+            # The listen task may have been restarted after a crash (S291)
+            if self._listen_task is not None:
+                self._listen_task.cancel()
+                self._background_tasks.discard(self._listen_task)
             await self._stop_shm_channel()
             await self._stop_alerting()
             await self.signal_publisher.stop()
@@ -276,6 +280,14 @@ class AISignalBot:
         exc = task.exception()
         if exc:
             self.logger.error("Background task %s crashed: %s", task.get_name(), exc, exc_info=exc)
+            # S291: a dead listener leaves the bot trading on frozen data with
+            # green health — restart it instead of staying dark forever.
+            if task is self._listen_task and self._running:
+                self.logger.warning("Restarting listen task after crash")
+                new_task = asyncio.create_task(self._listen_loop())
+                self._background_tasks.add(new_task)
+                new_task.add_done_callback(self._on_task_done)
+                self._listen_task = new_task
 
     # --- SHM IPC channel (bot↔hft-trade-bot shared memory) ---
 
@@ -450,6 +462,13 @@ class AISignalBot:
                 await self.exchange.listen()
             except (OSError, RuntimeError, ConnectionError, asyncio.TimeoutError) as e:
                 self.logger.error("Listen error: %s", e)
+                if self._running:
+                    await asyncio.sleep(2)
+                    await self.exchange.reconnect()
+            except Exception as e:
+                # S291: non-IO exceptions (handler bugs) must not kill the
+                # listener permanently — log, reset the socket, keep going.
+                self.logger.error("Listen loop unexpected error: %s", e, exc_info=e)
                 if self._running:
                     await asyncio.sleep(2)
                     await self.exchange.reconnect()

@@ -173,6 +173,11 @@ class ExchangeClient:
                             await self._on_message(data)
                     except (json.JSONDecodeError, ValueError) as e:
                         logger.warning("Invalid message: %s", e)
+                    except Exception as e:
+                        # S291: a bug in message handling must drop the frame,
+                        # not kill the listener — the bot trades on dead data
+                        # forever while /health stays green otherwise.
+                        logger.warning("Dropped message on handler error: %s", e)
             except websockets.ConnectionClosed:
                 logger.warning("Connection closed by server")
                 self._connected = False
@@ -203,7 +208,10 @@ class ExchangeClient:
             candles = data.get("candles")
             if candles:
                 for candle in candles:
-                    sym = candle["symbol"]
+                    sym = candle.get("symbol")
+                    if not sym:
+                        logger.warning("Dropping candle without symbol")
+                        continue
                     self._latest_candles[sym] = candle
                     # Accumulate candle history — use deque for O(1) trim
                     hist = self._candle_history.get(sym)
