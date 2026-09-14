@@ -37,6 +37,9 @@ module "eks" {
   name_prefix       = "hft-dev"
   environment       = "dev"
   subnet_ids        = concat(module.vpc.public_subnet_ids, module.vpc.private_subnet_ids)
+  node_subnet_ids   = module.vpc.private_subnet_ids
+  # Public API endpoint stays disabled (private-only). To reach kubectl from
+  # outside the VPC, set cluster_endpoint_public_access_cidrs = ["<ip>/32"].
   node_instance_type = "t3.medium"
   node_desired_size  = 2
   node_min_size      = 1
