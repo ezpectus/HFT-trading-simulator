@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react'
+import { memo, useState, useEffect, useRef, useCallback } from 'react'
 import { Webhook, Plus, X, Check, TestTube } from 'lucide-react'
 
 const IS_DEV = import.meta.env?.DEV ?? false
@@ -13,7 +13,7 @@ const EVENT_TYPES = [
   { id: 'daily_summary', label: 'Daily Summary' },
 ]
 
-export default memo(function AlertWebhook({ fills: _fills, toasts: _toasts }) {
+export default memo(function AlertWebhook({ fills, toasts }) {
   const [webhooks, setWebhooks] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [newUrl, setNewUrl] = useState('')
@@ -81,6 +81,78 @@ export default memo(function AlertWebhook({ fills: _fills, toasts: _toasts }) {
       setTimeout(() => setTestStatus(s => ({ ...s, [id]: undefined })), 3000)
     }
   }
+
+  // ---- S232: real dispatcher — fills/toasts were accepted and ignored ----
+  const webhooksRef = useRef([])
+  webhooksRef.current = webhooks
+
+  const dispatch = useCallback((event, text) => {
+    for (const hook of webhooksRef.current) {
+      if (!hook.enabled || !hook.events.includes(event)) continue
+      fetch(hook.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, username: 'Trading Sim' }),
+      }).catch(() => { /* fire-and-forget: endpoint down ≠ UI error */ })
+    }
+  }, [])
+
+  const seenFillsRef = useRef(null)
+  const dayFillsRef = useRef({ date: '', count: 0, notional: 0 })
+  useEffect(() => {
+    if (!Array.isArray(fills)) return
+    // First run marks the pre-existing fill list as seen — those are history,
+    // not new events; alerting on them would spam hooks on every page load.
+    if (seenFillsRef.current === null) {
+      seenFillsRef.current = new Set(fills.map(f => f.id ?? f.order_id ?? JSON.stringify(f)))
+      return
+    }
+    for (const f of fills) {
+      const key = f.id ?? f.order_id ?? JSON.stringify(f)
+      if (seenFillsRef.current.has(key)) continue
+      seenFillsRef.current.add(key)
+      if (f.status && f.status !== 'FILLED') continue
+      const today = new Date().toISOString().slice(0, 10)
+      if (dayFillsRef.current.date !== today) dayFillsRef.current = { date: today, count: 0, notional: 0 }
+      dayFillsRef.current.count += 1
+      dayFillsRef.current.notional += (f.filled_price ?? 0) * (f.filled_quantity ?? 0)
+      const reason = f.close_reason || ''
+      const event = /LIQUIDATION/i.test(reason) ? 'liquidation'
+        : (reason || f.order_type === 'TRAILING_STOP') ? 'sl_tp' : 'fill'
+      dispatch(event,
+        `${event === 'fill' ? 'Order filled' : event === 'sl_tp' ? 'SL/TP hit' : 'LIQUIDATION'}: ${f.side || ''} ${f.filled_quantity ?? f.quantity ?? ''} ${f.symbol || ''} @ ${f.filled_price ?? f.price ?? '?'} (${f.exchange || ''})`)
+    }
+    // cap the dedup set
+    if (seenFillsRef.current.size > 500) seenFillsRef.current = new Set([...seenFillsRef.current].slice(-200))
+
+  }, [fills, dispatch])
+
+  const seenToastsRef = useRef(new Set())
+  useEffect(() => {
+    if (!Array.isArray(toasts)) return
+    for (const t of toasts) {
+      if (seenToastsRef.current.has(t.id)) continue
+      seenToastsRef.current.add(t.id)
+      if (typeof t.message === 'string' && t.message.startsWith('Price Alert Triggered')) {
+        dispatch('price_alert', t.message)
+      }
+    }
+  }, [toasts, dispatch])
+
+  // Daily summary at UTC midnight — count + notional accumulated above in
+  // the new-fill loop.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const today = new Date().toISOString().slice(0, 10)
+      const day = dayFillsRef.current
+      if (day.date && day.date !== today && day.count > 0) {
+        dispatch('daily_summary',
+          `Daily summary ${day.date}: ${day.count} fills, notional ~${day.notional.toFixed(2)}`)
+        dayFillsRef.current = { date: today, count: 0, notional: 0 }
+      }
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [dispatch])
 
   const toggleEvent = (eventId) => {
     setNewEvents(prev => prev.includes(eventId) ? prev.filter(e => e !== eventId) : [...prev, eventId])

@@ -1,6 +1,7 @@
-import { memo, useState } from 'react'
+import { memo, useState, useEffect } from 'react'
 import { ShoppingCart, Loader2, Calculator, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '../utils/format'
+import { useFeatureFlag } from '../featureFlags'
 
 const EXCHANGE_FEES = { binance: 0.04, bybit: 0.06, okx: 0.05 }
 const EXCHANGE_SLIPPAGE = { binance: 2.0, bybit: 3.0, okx: 2.5 }
@@ -10,6 +11,11 @@ const MAINTENANCE_MARGIN_RATE = 0.005 // 0.5%
 export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmit, connected, balance, tradingActive = true }) {
   const [side, setSide] = useState('BUY')
   const [orderType, setOrderType] = useState('MARKET')
+  const [trailingEnabled] = useFeatureFlag('trailing-stop')
+
+  useEffect(() => {
+    if (!trailingEnabled && orderType === 'TRAILING_STOP') setOrderType('MARKET')
+  }, [trailingEnabled, orderType])
   const [quantity, setQuantity] = useState('0.01')
   const [limitPrice, setLimitPrice] = useState('')
   const [stopLoss, setStopLoss] = useState('')
@@ -126,7 +132,9 @@ export default memo(function OrderForm({ exchange, symbol, currentPrice, onSubmi
 
         {/* Order type */}
         <div className="flex gap-1 flex-wrap">
-          {['MARKET', 'LIMIT', 'STOP_LIMIT', 'TRAILING_STOP', 'ICEBERG'].map(t => (
+          {['MARKET', 'LIMIT', 'STOP_LIMIT', 'TRAILING_STOP', 'ICEBERG']
+            .filter(t => t !== 'TRAILING_STOP' || trailingEnabled)
+            .map(t => (
             <button
               key={t}
               type="button"

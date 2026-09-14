@@ -16,6 +16,7 @@ import KeyboardHelp from './components/KeyboardHelp'
 import StatusBar from './components/StatusBar'
 import PanelContainer from './panels/PanelContainer'
 import { useDetachablePanels } from './hooks/useDetachablePanels'
+import { isFlagEnabled, setFlag } from './featureFlags'
 import { useIsMobile, useIsTablet } from './hooks/useMediaQuery'
 import { TIMEFRAMES } from './utils/timeframes'
 import { useSoundAlerts } from './hooks/useSoundAlerts'
@@ -99,7 +100,20 @@ export default function App() {
   // Toast store
   const { toasts, addToast, removeToast, clearAll } = useToastStore()
 
-  const { play: playSound, setEnabled: setSoundEnabled } = useSoundAlerts(true)
+  const { play: playSound, setEnabled: setSoundEnabled } = useSoundAlerts(isFlagEnabled('sound-alerts'))
+  // Persisted flag is the source of truth; flag-changed events (from the
+  // Feature Flags panel) and the header toggle both end at setSoundEnabled.
+  useEffect(() => { setSoundEnabled(isFlagEnabled('sound-alerts')) }, [setSoundEnabled])
+  useEffect(() => {
+    const onChange = (e) => {
+      if (e.detail?.id === 'sound-alerts') {
+        setSoundOn(e.detail.enabled)
+        setSoundEnabled(e.detail.enabled)
+      }
+    }
+    window.addEventListener('feature-flag-changed', onChange)
+    return () => window.removeEventListener('feature-flag-changed', onChange)
+  }, [setSoundOn, setSoundEnabled])
   const { theme, toggleTheme } = useTheme()
 
   // Sync exchange + signals data to Zustand trading store
@@ -184,6 +198,7 @@ export default function App() {
           const next = !soundOn
           setSoundOn(next)
           setSoundEnabled(next)
+          setFlag('sound-alerts', next)
         }}
         theme={theme}
         onThemeToggle={toggleTheme}

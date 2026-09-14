@@ -2,33 +2,6 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 
 type MessageData = Record<string, unknown> & { type?: string; symbol?: string; timestamp?: number }
 
-interface RingBuffer {
-  push(item: MessageData): void
-  toArray(): MessageData[]
-  size: number
-  clear(): void
-}
-
-function createRingBuffer(maxSize: number = 5000): RingBuffer {
-  const buffer: (MessageData | undefined)[] = new Array(maxSize)
-  let head = 0
-  let count = 0
-
-  return {
-    push(item: MessageData) {
-      buffer[head] = item
-      head = (head + 1) % maxSize
-      if (count < maxSize) count++
-    },
-    toArray(): MessageData[] {
-      if (count < maxSize) return buffer.slice(0, count) as MessageData[]
-      return [...buffer.slice(head), ...buffer.slice(0, head)] as MessageData[]
-    },
-    get size() { return count },
-    clear() { head = 0; count = 0; buffer.fill(undefined) },
-  }
-}
-
 export interface UseWebSocketOptions {
   onMessage?: (data: MessageData) => void
   onOpen?: () => void
@@ -39,10 +12,6 @@ export interface UseWebSocketOptions {
   authToken?: string
   syncOnReconnect?: boolean
   getLastTimestamp?: () => number
-  maxBufferSize?: number
-  batchInterval?: number
-  batchTypes?: string[]
-  perMessageDeflate?: boolean
   maxReconnects?: number
 }
 
@@ -54,21 +23,13 @@ export interface UseWebSocketReturn {
   disconnect: () => void
   latency: number | null
   reconnects: number
-  bufferSize: number
-  getBufferedMessages: () => MessageData[]
-  clearBuffer: () => void
   nextReconnectIn: number | null
-  queueSize: number
 }
 
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {
     onMessage, onOpen, onClose, autoConnect = true,
     authToken, syncOnReconnect = false, getLastTimestamp,
-    maxBufferSize = 5000,
-    batchInterval = 50,
-    batchTypes = [],
-    perMessageDeflate = true,
     maxReconnects = 20,
   } = options
 
@@ -76,23 +37,23 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pingTimer = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastPingRef = useRef<number>(0)
-  const reconnectCount = useRef<number>(0)
+  // Counts failed attempts (each onclose/catch that schedules a retry), NOT
+  // successful opens — the old code counted opens, so a never-connecting
+  // server retried forever and the maxReconnects cap could never fire (S231).
+  const reconnectAttempts = useRef<number>(0)
   const backoffRef = useRef<number>(1000)
   const maxReconnectsRef = useRef<number>(maxReconnects)
-  const ringBufferRef = useRef<RingBuffer>(createRingBuffer(maxBufferSize))
-  const batchQueueRef = useRef<MessageData[]>([])
-  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastTimestampRef = useRef<number>(0)
   const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const manualCloseRef = useRef<boolean>(false)
+  const isRetryRef = useRef<boolean>(false)
   const outgoingQueueRef = useRef<(string | object)[]>([])
 
   const [connected, setConnected] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [latency, setLatency] = useState<number | null>(null)
   const [reconnects, setReconnects] = useState<number>(0)
-  const [bufferSize, setBufferSize] = useState<number>(0)
   const [nextReconnectIn, setNextReconnectIn] = useState<number | null>(null)
-  const [queueSize, setQueueSize] = useState<number>(0)
 
   const handlersRef = useRef({ onMessage, onOpen, onClose, getLastTimestamp })
 
@@ -100,26 +61,31 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
     handlersRef.current = { onMessage, onOpen, onClose, getLastTimestamp }
   })
 
-  const flushBatch = useCallback(() => {
-    if (batchTimerRef.current) {
-      clearTimeout(batchTimerRef.current)
-      batchTimerRef.current = null
+  const scheduleRetry = useCallback(() => {
+    // One failed attempt counted per onclose — the cap is reachable for a
+    // server that never accepts (S231).
+    reconnectAttempts.current += 1
+    if (!autoConnect || reconnectAttempts.current >= maxReconnectsRef.current) {
+      setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
+      setNextReconnectIn(null)
+      return
     }
-    const queue = batchQueueRef.current
-    if (queue.length === 0) return
-
-    const merged = new Map<string, MessageData>()
-    for (const msg of queue) {
-      const key = (msg.type || '') + (msg.symbol ? `:${msg.symbol}` : '')
-      merged.set(key, msg)
-    }
-
-    for (const msg of merged.values()) {
-      handlersRef.current.onMessage?.(msg)
-    }
-
-    batchQueueRef.current = []
-  }, [])
+    const delay = backoffRef.current
+    backoffRef.current = Math.min(backoffRef.current * 2, 30000)
+    setNextReconnectIn(Math.ceil(delay / 1000))
+    if (countdownTimer.current) clearInterval(countdownTimer.current)
+    countdownTimer.current = setInterval(() => {
+      setNextReconnectIn((prev) => (prev !== null && prev > 1 ? prev - 1 : null))
+    }, 1000)
+    reconnectTimer.current = setTimeout(() => {
+      reconnectTimer.current = null
+      if (countdownTimer.current) clearInterval(countdownTimer.current)
+      setNextReconnectIn(null)
+      isRetryRef.current = true
+      connect()
+    }, delay)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoConnect])
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return
@@ -128,12 +94,24 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
       clearTimeout(reconnectTimer.current)
       reconnectTimer.current = null
     }
+    if (isRetryRef.current) {
+      // Auto-retry path — keep the attempt count so maxReconnects can cap it.
+      isRetryRef.current = false
+    } else {
+      // Manual/effect connect — fresh budget so "call connect() to retry" works.
+      reconnectAttempts.current = 0
+    }
+    manualCloseRef.current = false
 
     try {
-      const ws = new WebSocket(url, perMessageDeflate ? ['permessage-deflate'] : undefined)
+      // Second arg is subprotocols, NOT extensions — permessage-deflate is
+      // offered by the browser automatically; passing it here was a no-op
+      // knob that could poison subprotocol negotiation (S231).
+      const ws = new WebSocket(url)
       wsRef.current = ws
 
       ws.onopen = () => {
+        const wasReconnect = reconnectAttempts.current > 0
         setConnected(true)
         setError(null)
         setNextReconnectIn(null)
@@ -142,16 +120,14 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
           countdownTimer.current = null
         }
         backoffRef.current = 1000
-        reconnectCount.current += 1
-        if (reconnectCount.current > 1) {
-          setReconnects(reconnectCount.current - 1)
-        }
+        reconnectAttempts.current = 0
+        if (wasReconnect) setReconnects((r) => r + 1)
 
         if (authToken) {
           ws.send(JSON.stringify({ type: 'auth', token: authToken }))
         }
 
-        if (syncOnReconnect && reconnectCount.current > 1) {
+        if (syncOnReconnect && wasReconnect) {
           const lastTs = handlersRef.current.getLastTimestamp?.() || lastTimestampRef.current || 0
           ws.send(JSON.stringify({ type: 'sync_state', last_timestamp: lastTs }))
         } else {
@@ -161,7 +137,6 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
         if (outgoingQueueRef.current.length > 0) {
           const queued = outgoingQueueRef.current
           outgoingQueueRef.current = []
-          setQueueSize(0)
           for (const msg of queued) {
             try {
               ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg))
@@ -192,90 +167,45 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
           const ts = (data.timestamp || data.received_at || data.time || 0) as number
           if (ts > lastTimestampRef.current) lastTimestampRef.current = ts
 
-          ringBufferRef.current.push(data)
-          setBufferSize(ringBufferRef.current.size)
-
-          const shouldBatch = batchTypes.length > 0 && batchTypes.includes(data.type || '')
-
-          if (shouldBatch) {
-            batchQueueRef.current.push(data)
-            if (!batchTimerRef.current) {
-              batchTimerRef.current = setTimeout(flushBatch, batchInterval)
-            }
-          } else {
-            if (batchQueueRef.current.length > 0) flushBatch()
-            handlersRef.current.onMessage?.(data)
-          }
+          handlersRef.current.onMessage?.(data)
         } catch {
           console.error('[useWebSocket] Failed to parse message')
         }
       }
 
       ws.onerror = () => {
-        setError(`WebSocket error: ${url} (reconnect #${reconnectCount.current})`)
+        setError(`WebSocket error: ${url} (attempt #${reconnectAttempts.current})`)
       }
 
       ws.onclose = () => {
         setConnected(false)
         setLatency(null)
         if (pingTimer.current) clearInterval(pingTimer.current)
-        flushBatch()
         handlersRef.current.onClose?.()
-        if (autoConnect && reconnectCount.current < maxReconnectsRef.current) {
-          const delay = backoffRef.current
-          backoffRef.current = Math.min(backoffRef.current * 2, 30000)
-          setNextReconnectIn(Math.ceil(delay / 1000))
-          if (countdownTimer.current) clearInterval(countdownTimer.current)
-          countdownTimer.current = setInterval(() => {
-            setNextReconnectIn((prev) => (prev !== null && prev > 1 ? prev - 1 : null))
-          }, 1000)
-          reconnectTimer.current = setTimeout(() => {
-            if (countdownTimer.current) clearInterval(countdownTimer.current)
-            setNextReconnectIn(null)
-            connect()
-          }, delay)
-        } else if (reconnectCount.current >= maxReconnectsRef.current) {
-          setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
-        }
+        if (!manualCloseRef.current) scheduleRetry()
       }
     } catch (e) {
       const err = e as Error
       setError(err.message)
-      if (autoConnect && reconnectCount.current < maxReconnectsRef.current) {
-        const delay = backoffRef.current
-        backoffRef.current = Math.min(backoffRef.current * 2, 30000)
-        setNextReconnectIn(Math.ceil(delay / 1000))
-        if (countdownTimer.current) clearInterval(countdownTimer.current)
-        countdownTimer.current = setInterval(() => {
-          setNextReconnectIn((prev) => (prev !== null && prev > 1 ? prev - 1 : null))
-        }, 1000)
-        reconnectTimer.current = setTimeout(() => {
-          if (countdownTimer.current) clearInterval(countdownTimer.current)
-          setNextReconnectIn(null)
-          connect()
-        }, delay)
-      } else if (reconnectCount.current >= maxReconnectsRef.current) {
-        setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
-      }
+      scheduleRetry()
     }
-  }, [url, autoConnect, authToken, perMessageDeflate, batchInterval, flushBatch, syncOnReconnect, maxReconnects])
-
-  const batchTypesKey = batchTypes.join(',')
+  }, [url, autoConnect, authToken, syncOnReconnect, maxReconnects, scheduleRetry])
 
   const disconnect = useCallback(() => {
-    if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
+    if (reconnectTimer.current) {
+      clearTimeout(reconnectTimer.current)
+      reconnectTimer.current = null
+    }
     if (pingTimer.current) clearInterval(pingTimer.current)
-    if (batchTimerRef.current) clearTimeout(batchTimerRef.current)
     if (countdownTimer.current) clearInterval(countdownTimer.current)
     setNextReconnectIn(null)
     outgoingQueueRef.current = []
-    setQueueSize(0)
-    flushBatch()
+    manualCloseRef.current = true
     wsRef.current?.close()
     wsRef.current = null
     setConnected(false)
     setLatency(null)
-  }, [flushBatch])
+  }, [])
 
   const send = useCallback((data: string | object): boolean => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -284,18 +214,8 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
     }
     if (outgoingQueueRef.current.length < 100) {
       outgoingQueueRef.current.push(data)
-      setQueueSize(outgoingQueueRef.current.length)
     }
     return false
-  }, [])
-
-  const getBufferedMessages = useCallback((): MessageData[] => {
-    return ringBufferRef.current.toArray()
-  }, [])
-
-  const clearBuffer = useCallback(() => {
-    ringBufferRef.current.clear()
-    setBufferSize(0)
   }, [])
 
   useEffect(() => {
@@ -303,16 +223,14 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       if (pingTimer.current) clearInterval(pingTimer.current)
-      if (batchTimerRef.current) clearTimeout(batchTimerRef.current)
       if (countdownTimer.current) clearInterval(countdownTimer.current)
-      flushBatch()
       wsRef.current?.close()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connect, autoConnect, flushBatch, batchTypesKey])
+  }, [connect, autoConnect])
 
   return {
     connected, error, send, connect, disconnect, latency, reconnects,
-    bufferSize, getBufferedMessages, clearBuffer, nextReconnectIn, queueSize,
+    nextReconnectIn,
   }
 }

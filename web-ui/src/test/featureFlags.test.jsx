@@ -1,35 +1,44 @@
-import { describe, it, expect, vi } from 'vitest'
-import { useState } from 'react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import FeatureFlags from '../components/FeatureFlags'
-
-vi.mock('../hooks/useLocalStorage', () => ({
-  useLocalStorage: (_key, defaultValue) => {
-    const [value, setValue] = useState(defaultValue)
-    return [value, setValue, () => {}]
-  },
-}))
+import { isFlagEnabled } from '../featureFlags'
 
 describe('FeatureFlags', () => {
-  it('renders flags grouped by category', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
+  it('renders only real, wireable flags (S232)', () => {
     render(<FeatureFlags addToast={vi.fn()} />)
     expect(screen.getByText('Feature Flags')).toBeInTheDocument()
     expect(screen.getByText('Mock Mode')).toBeInTheDocument()
     expect(screen.getByText('Sound Alerts')).toBeInTheDocument()
-    expect(screen.getByText('ML Ensemble')).toBeInTheDocument()
-    expect(screen.getByText('Circuit Breaker')).toBeInTheDocument()
+    expect(screen.getByText('Trailing Stop')).toBeInTheDocument()
+    // Backend strategy toggles were facades — nothing in the UI could consume them.
+    expect(screen.queryByText('ML Ensemble')).not.toBeInTheDocument()
+    expect(screen.queryByText('Circuit Breaker')).not.toBeInTheDocument()
   })
 
-  it('toggles flag on click', () => {
+  it('toggle writes the real consumer key, not an orphan blob', () => {
     const addToast = vi.fn()
     render(<FeatureFlags addToast={addToast} />)
+    expect(isFlagEnabled('mock-mode')).toBe(false)
     fireEvent.click(screen.getByText('Mock Mode'))
-    expect(addToast).toHaveBeenCalledWith('info', 'Mock Mode: enabled')
+    // useMockData reads localStorage['mock-mode'] — this is the real key.
+    expect(localStorage.getItem('mock-mode')).toBe('true')
+    expect(localStorage.getItem('trading-feature-flags')).toBe(null)
+    expect(addToast).toHaveBeenCalledWith('info', expect.stringContaining('applies on reload'))
   })
 
-  it('shows enabled count', () => {
+  it('toggle dispatches feature-flag-changed for live consumers', () => {
+    const listener = vi.fn()
+    window.addEventListener('feature-flag-changed', listener)
     render(<FeatureFlags addToast={vi.fn()} />)
-    expect(screen.getByText(/enabled/)).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Advanced Panels'))
+    expect(listener).toHaveBeenCalled()
+    expect(listener.mock.calls[0][0].detail).toEqual({ id: 'advanced-panels', enabled: true })
+    expect(localStorage.getItem('trading-sim-advanced-panels')).toBe('true')
+    window.removeEventListener('feature-flag-changed', listener)
   })
 
   it('handles null addToast gracefully', () => {

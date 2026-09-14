@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useWebSocket } from './useWebSocket'
 import { IS_MOCK } from './useMockData'
+import { isFlagEnabled } from '../featureFlags'
 
-const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
+export const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8765'
 const WS_SIGNALS = import.meta.env.VITE_WS_SIGNALS || 'ws://localhost:8766'
 // Shared secret for the signal publisher handshake — matches the bot's
 // api.auth_token / AI_BOT_AUTH_TOKEN. Empty = server-side auth disabled.
@@ -10,6 +11,13 @@ const SIGNAL_TOKEN = import.meta.env.VITE_SIGNAL_TOKEN || ''
 // Control-plane token for the exchange simulator — matches the server's
 // EXCHANGE_CONTROL_TOKEN. Empty = control commands unauthenticated (dev).
 const EXCHANGE_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
+
+// The Auth panel stores a user-entered control token here; it overrides the
+// build-time env token (S232 — real auth replaces the username/password facade).
+const AUTH_TOKEN_KEY = 'trading-sim-auth-token'
+export const readAuthToken = () => {
+  try { return localStorage.getItem(AUTH_TOKEN_KEY) || '' } catch { return '' }
+}
 
 /**
  * Main exchange data hook — connects to exchange simulator.
@@ -257,18 +265,40 @@ export function useExchangeData() {
     }
   }, [])
 
-  const { connected: exchangeConnected, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
+  const [exchangeToken, setExchangeToken] = useState(readAuthToken)
+  useEffect(() => {
+    const onToken = () => setExchangeToken(readAuthToken())
+    window.addEventListener('auth-token-changed', onToken)
+    return () => window.removeEventListener('auth-token-changed', onToken)
+  }, [])
+
+  const { connected: exchangeConnected, error: exchangeWsError, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, disconnect: exchangeDisconnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
     onMessage: handleExchangeMessage,
     onOpen: () => { lastSeqRef.current = 0 },  // server restarts its counter — reset baseline
-    authToken: EXCHANGE_TOKEN || undefined,
+    authToken: exchangeToken || EXCHANGE_TOKEN || undefined,
     syncOnReconnect: true,
     getLastTimestamp: () => lastTimestampRef.current,
-    autoConnect: !IS_MOCK,  // mock mode — never open the real socket
+    autoConnect: !IS_MOCK && isFlagEnabled('auto-reconnect'),
   })
+
+  // Token change (Auth panel login/logout) → reconnect so the new auth frame
+  // is sent on the fresh socket.
+  const prevTokenRef = useRef(exchangeToken)
+  useEffect(() => {
+    if (prevTokenRef.current === exchangeToken) return
+    prevTokenRef.current = exchangeToken
+    if (!IS_MOCK) { exchangeDisconnect(); exchangeConnect() }
+  }, [exchangeToken, exchangeDisconnect, exchangeConnect])
 
   useEffect(() => {
     sendExchangeRef.current = sendExchange
   })
+
+  // Socket errors land on lastError → useNotifications toast (S231 — the
+  // error state was returned by useWebSocket but never destructured).
+  useEffect(() => {
+    if (exchangeWsError) setLastError(exchangeWsError)
+  }, [exchangeWsError])
 
   const submitOrder = useCallback((order) => {
     // client_order_id is stamped at send time so a queued/replayed message
@@ -478,7 +508,7 @@ export function useSignalData(options = {}) {
     onMessage: handleSignalMessage,
     authToken: SIGNAL_TOKEN || undefined,
     onOpen: () => { if (SIGNAL_TOKEN) setAuthState('pending') },
-    autoConnect: !IS_MOCK,  // mock mode — never open the real socket
+    autoConnect: !IS_MOCK && isFlagEnabled('auto-reconnect'),
   })
 
   return { signals, regime, backtestResult, circuitBreaker, portfolioResult, volSurfaceResult, cvarResult, stressTestResult, positionSizeResult, hawkesResult, fundingArbResult, authState, connected, sendSignalMessage: send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect }

@@ -1,3 +1,4 @@
+import { isFlagEnabled } from '../featureFlags'
 import { useRef, useCallback, useEffect } from 'react'
 
 function fmtNum(v, decimals = 2) {
@@ -27,6 +28,7 @@ export function useDetachablePanels() {
   const detachPanel = useCallback((panelId, data) => {
     const config = PANEL_CONFIG[panelId]
     if (!config) return
+    if (!isFlagEnabled('detachable-panels')) return
 
     // Close existing popup for this panel
     if (popupsRef.current[panelId] && !popupsRef.current[panelId].closed) {

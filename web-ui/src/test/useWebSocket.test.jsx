@@ -128,24 +128,52 @@ describe('useWebSocket', () => {
     expect(sent).toBe(true)
   })
 
-  it('tracks buffer size', async () => {
-    const { result } = renderHook(() => useWebSocket('ws://localhost:8765'))
+  it('does not send a bogus permessage-deflate subprotocol (S231)', async () => {
+    renderHook(() => useWebSocket('ws://localhost:8765'))
     await act(() => new Promise(r => setTimeout(r, 10)))
-    act(() => {
-      mockInstances[0].onmessage({ data: JSON.stringify({ type: 'candle' }) })
-      mockInstances[0].onmessage({ data: JSON.stringify({ type: 'orderbook' }) })
-    })
-    expect(result.current.bufferSize).toBe(2)
+    // Second WebSocket ctor arg is SUBPROTOCOLS — the old code passed
+    // ['permessage-deflate'], an extension name the browser offers itself.
+    expect(mockInstances[0].protocols).toBeUndefined()
   })
 
-  it('clearBuffer resets buffer size', async () => {
-    const { result } = renderHook(() => useWebSocket('ws://localhost:8765'))
-    await act(() => new Promise(r => setTimeout(r, 10)))
-    act(() => {
-      mockInstances[0].onmessage({ data: JSON.stringify({ type: 'candle' }) })
-    })
-    expect(result.current.bufferSize).toBe(1)
-    act(() => result.current.clearBuffer())
-    expect(result.current.bufferSize).toBe(0)
+  it('caps retries when the server never connects (S231)', async () => {
+    vi.useFakeTimers()
+    try {
+      // Every attempt closes immediately — the server is down.
+      vi.stubGlobal('WebSocket', class extends MockWebSocket {
+        constructor(...args) {
+          super(...args)
+          clearTimeout(this._connectTimer)
+          this.readyState = 3
+          queueMicrotask(() => this.onclose?.())
+          mockInstances.push(this)
+        }
+      })
+      const { result } = renderHook(() => useWebSocket('ws://localhost:9999', { maxReconnects: 3 }))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120000)
+      })
+      expect(result.current.error).toContain('Max reconnections')
+      expect(result.current.connected).toBe(false)
+      // 1 initial + 2 retries (attempts counted on close, not on open)
+      expect(mockInstances.length).toBe(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('manual disconnect does not auto-reconnect (S231)', async () => {
+    vi.useFakeTimers()
+    try {
+      const { result } = renderHook(() => useWebSocket('ws://localhost:8765'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+      expect(result.current.connected).toBe(true)
+      act(() => result.current.disconnect())
+      await act(async () => { await vi.advanceTimersByTimeAsync(60000) })
+      expect(mockInstances.length).toBe(1) // no reconnect attempt spawned
+      expect(result.current.connected).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

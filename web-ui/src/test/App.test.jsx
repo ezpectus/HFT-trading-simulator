@@ -32,7 +32,7 @@ vi.mock('../hooks/useMediaQuery', () => ({
 }))
 
 vi.mock('../hooks/useSoundAlerts', () => ({
-  useSoundAlerts: () => ({ playSound: vi.fn() }),
+  useSoundAlerts: () => ({ play: vi.fn(), setEnabled: vi.fn() }),
 }))
 
 vi.mock('../hooks/useTheme', () => ({

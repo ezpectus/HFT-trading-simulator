@@ -4,12 +4,12 @@ import { CATEGORIES, PANELS, DEFAULT_VISIBLE, ADVANCED_PANEL_IDS, getPanelsByCat
 import PanelErrorBoundary from '../components/PanelErrorBoundary'
 import ChunkRetryBoundary from '../components/ChunkRetryBoundary'
 import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useFeatureFlag } from '../featureFlags'
 import { usePanelContext } from '../stores/usePanelContext'
 import { recordPanelRender } from '../utils/performanceMonitor'
 
 const VISIBILITY_KEY = 'trading-sim-panel-visibility'
 const COLLAPSED_KEY = 'trading-sim-panel-collapsed'
-const ADVANCED_KEY = 'trading-sim-advanced-panels'
 
 export default function PanelContainer({ context: contextProp }) {
   const storeContext = usePanelContext()
@@ -17,7 +17,7 @@ export default function PanelContainer({ context: contextProp }) {
   const [visible, setVisible] = useLocalStorage(VISIBILITY_KEY, DEFAULT_VISIBLE)
   const [collapsed, setCollapsed] = useLocalStorage(COLLAPSED_KEY, {})
   const [showSettings, setShowSettings] = useState(false)
-  const [showAdvanced, setShowAdvanced] = useLocalStorage(ADVANCED_KEY, false)
+  const [showAdvanced, setShowAdvanced] = useFeatureFlag('advanced-panels')
 
   const togglePanel = (id) => {
     setVisible(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id])
