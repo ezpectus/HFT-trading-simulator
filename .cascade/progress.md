@@ -1703,3 +1703,18 @@ Commit: 9fe7ebb
 **Clean:** все 22 alert-rules → реальные метрики; grafana provider-paths ↔ compose-монты (S068-фикс живой); alertmanager честно документирует no-op default receiver; codeql/release/dependabot/templates честны; e2e селекторы+кейбиндинги реальны; staging 18xxx-порты консистентны.
 
 Commit: fd2b029
+
+---
+
+## R121 — test-suite deep audit
+
+**Scope:** 126 py + 153 js test-файлов: дубли имён (tests/ vs tests/unit/), mock-театр (vi.mock/assert_called density), vacuous/no_crash-тесты, тесты R119-мёртвого кода, conftest/fixture drift, dep-gate skips, mock-vs-wire shape contract.
+
+**Findings (3):**
+- S266 (Medium): `mockData.js:199` генерит `positions:{}` (symbol-map) + вся maybeUpdatePosition-логика map-семантика (:212-242), реальный провод шлёт LIST (models.py:438 — фикс S041). `CostBasis.jsx:21` `for..of acc.positions` на `{}` → TypeError → error-boundary в mock-mode; `AccountPanel:120`/`BotStatus:20` `.length` на map → вечный 0; mock ещё выдумывает `acct.unrealized_pnl` (нет в real to_dict). Mock-mode «зелёный» только потому что e2e не трогают position-панели.
+- S267 (Low): ~6 тест-файлов греют мёртвый код — `test_walk_forward.py` (349 строк) тестирует мёртвый WalkForwardAnalyzer и патчит BacktestEngine внутри него (×5); `test_backtest.py:9` импортирует его же; `test_observability.py:155-159` «no_crash»-тесты на мёртвые bind_context/clear_context; `toast.test.jsx` → мёртвый useToasts; perf-тесты → test-only экспорты. Мёртвый код выглядит протестированным.
+- S268 (Info): двойное дерево — `ai-signal-bot/tests/` + `tests/unit/` держат 6 same-name пар (test_indicators/test_backtest/test_kelly/test_strategies/test_risk_manager/test_signal_publisher) с расходящимся покрытием; канонический слой не определён.
+
+**Retracted/false positives:** все skip'ы — честные dep/env-гейты с reason'ами (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` — только ImportError-gates; conftest'ы настоящие; vi.mock сдержан (23/153, boundary); `test_signal_publisher` — live-execution; `useMockData.test` мокает правильную границу; shm-тесты — живой prod-код (run.py:275-303); `PriceAlerts onAlert` — prop, не perf-monitor.
+
+Commit: TBD

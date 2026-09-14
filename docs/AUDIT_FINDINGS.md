@@ -2052,3 +2052,19 @@ Last uncovered surface: monitoring stack configs, all 5 GitHub workflows + depen
 **Verified clean:** all 22 alert rules reference emitted metrics (8 `ai_signal_bot_*` in metrics_server.py, 9 `exchange_*` in ws_prometheus.py); `test_alerts.py` validates real group names; alertmanager honestly documents its no-op default receiver; grafana provider paths match compose mounts; prometheus targets match service names; codeql covers only the cpp leg (py/js in ci.yml — honest comment); release.yml changelog generation real; dependabot dirs all exist; issue/PR templates have no stale refs; e2e specs use real selectors/keybindings (Shift+\ ↔ App.jsx); `dev:mock` → `.env.mock` → `VITE_MOCK_MODE` wired end-to-end; staging 18xxx port offsets consistent.
 
 Commit: fd2b029
+
+---
+
+## Round 121 — test-suite deep audit (3 findings: S266–S268)
+
+Deep pass on the 279-file test suite (126 py + 153 js): duplicate filenames, mock theater, vacuous tests, tests exercising R119-proven-dead code, conftest/fixture drift, and mock-vs-wire shape contracts.
+
+**S266 (Medium) — Open.** The mock-data layer validates a contract the real wire doesn't share. `mockData.js:199` generates `accounts[].positions` as a symbol-keyed **map** and `maybeUpdatePosition` (:212-242) mutates it map-style — but the real feed serializes `positions` as a **list** (`models.py:438`, the S041 fix). Consequences in mock mode: `CostBasis.jsx:21` `for (const pos of acc.positions || [])` on `{}` → TypeError (not iterable) → error-boundary card; `AccountPanel:120` and `BotStatus:20` read `.length` → permanently 0 positions; the mock even invents `acct.unrealized_pnl` (:241-242), a field absent from the real `to_dict`. Mock mode is green only because the e2e specs never touch a positions panel.
+
+**S267 (Low) — Open.** The suite keeps dead code looking tested. `tests/unit/test_walk_forward.py` (349 lines) tests `WalkForwardAnalyzer` — dead since S259 — and even patches the `BacktestEngine` inside it (×5 `patch("src.backtesting.walk_forward.BacktestEngine")`): it verifies bookkeeping for a pipeline prod never calls. `test_backtest.py:9` imports the same dead analyzer. `test_observability.py:155-159` are literal "no_crash" tests for the dead `bind_context`/`clear_context` (S260). `toast.test.jsx` covers the dead `useToasts` (S261); the perf test trio exercises performanceMonitor's test-only exports. ~6 test files assert exclusively on zero-prod-consumer surface.
+
+**S268 (Info) — Open.** Parallel test trees: `ai-signal-bot/tests/` and `tests/unit/` hold 6 same-name pairs — `test_indicators`, `test_backtest`, `test_kelly`, `test_strategies`, `test_risk_manager`, `test_signal_publisher` — with divergent coverage (e.g. risk_manager: 24 unique tests in root vs 19 in unit, 2 shared names). Both trees collect under `pytest tests/`; which layer is canonical is undocumented.
+
+**Verified clean:** all skips are honest dep/env gates with reasons (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` blocks are ImportError gates only; conftests are real path shims + real fixtures; `vi.mock` is restrained (23/153 files, all boundary mocks with autospec); `test_shm_*` files test live prod code (`run.py:275-303`); `test_signal_publisher.py` exercises the real backtest endpoint end-to-end; no `status_code in (200,400,500)` tolerance anywhere.
+
+Commit: TBD
