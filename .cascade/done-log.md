@@ -950,3 +950,9 @@ harnesses are un-unit-testable by design).
 - **Fix:** `.github/workflows/ci.yml:329-348` — job-level `env: GRAFANA_PASSWORD: ci-smoke` (throwaway; `down -v` in the same job destroys the stack), `docker compose build` split into its own step so build failures stop masquerading as smoke failures, `--wait-timeout 240` gives the healthy-wait a real bound, `timeout-minutes` 10→20. Same defect pair fixed in `scripts/docker-smoke-test.sh` (`export GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-ci-smoke}"`) and `scripts/docker-smoke-test.bat` (`if not defined`) — both died on the `:?` for any dev without the var, this host included (no `.env` present).
 - **Verified:** `docker compose config` repro-fail → with `GRAFANA_PASSWORD=ci-smoke` → clean parse; `--wait-timeout` flag exists in the installed compose; ci.yml YAML-valid; `bash -n` clean; pre-commit-check 9/9 ALL GREEN.
 - **Honest caveat:** containers actually reaching `healthy` inside 240s is runtime-verified by the next CI run itself — Docker daemon unreachable on this host (Docker Desktop process dies on launch). If the job still goes red, the failure is now *informational* (a real boot bug → new finding), not the structural deadness this entry recorded.
+
+### S341 — docker-compose v1 remainder in 4 docs ✅ (docs-refresh)
+- **Bug:** S321 converted DEPLOYMENT/QUICK_START/README but left 28 v1-command sites in DEVELOPMENT_GUIDE.md, MONITORING_GUIDE.md, useful_info_en.md (gitignored theory doc), WEB_UI.md, plus 2 in CONTRIBUTING.md.
+- **Fix:** all command-position `docker-compose ` -> `docker compose `; compose file names preserved.
+- **Verified:** grep for command-position `docker-compose ` across tracked docs + CONTRIBUTING = 0 remaining.
+- **Files:** docs/guides/DEVELOPMENT_GUIDE.md, docs/MONITORING_GUIDE.md, docs/WEB_UI.md, CONTRIBUTING.md (+ untracked docs/theory/useful_info_en.md)

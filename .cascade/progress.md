@@ -2653,3 +2653,11 @@ Board: 20 open (S340 High joins the top tier). Done-log marked inline per entry.
 - **S307+S200+S271** ✅ — 271 panels + ~60 math-model panels converge across index.html/package.json/vite.config.js; `__version__` 4.1.0 in both py packages.
 
 Board unchanged: 20 open.
+
+## R198 — docs-refresh — full documentation accuracy pass (S341 closed)
+
+- **README/CHANGELOG/CONTRIBUTING (6bac07c):** version 2.2.0 -> 4.1.0 (matches __version__); strategy wording corrected (7 wired / 5 default); Known-gaps note added (S337 decorative breaker, S338 halt gates paper-only, S339 dead drawdown gate, S329/S332 same-bar backtest fills); real test count 159; CHANGELOG versioning note records per-component versions; CONTRIBUTING counts + compose v2.
+- **docs/ refresh (5949cc8):** ARCHITECTURE metrics table — sim/bot ports were swapped (sim :8775, bot :9090, prod :9092) and sim metric names were invented (ws_connections/broadcasts_total never emitted) -> real exchange_*/ai_signal_bot_* series; ASCII diagram same swap + stale :5173 -> :3000; strategy line 6/4 -> 7/5; S337/S339 caveats inline. WEB_UI registry tree -> real category counts (risk 113, technical 50, portfolio 33, config 26, strategy 25, orderflow 18, export 6 = 271). TESTING counts 118+26+159=303. RISK_MANAGEMENT/TRADING_GUIDE/CONFIGURATION_GUIDE — 8% drawdown no longer sold as active protection; config guide real key names.
+- **Second pass:** GitHub-style anchor audit = 0 broken (theory-file hits were false positives — my slugifier collapsed whitespace, GitHub doesn't); TOCs added to WEBSOCKET_PROTOCOL/ARCHITECTURE/TRADING_STRATEGIES/WEB_UI; DEVELOPMENT_GUIDE dep table fixed (PyTorch never imported; sim doesn't use numpy; scipy is optional try/except; pytest-xdist flagged as undeclared for -n auto).
+- **S341 closed:** 0 remaining command-position docker-compose v1 sites in tracked docs.
+- Board: 19 open.
