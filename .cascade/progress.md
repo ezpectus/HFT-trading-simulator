@@ -2143,3 +2143,13 @@ Re-checked R152+R153 claims adversarially against committed code:
 - **S224** — `Logger::init` honors `log_file` (dir/stem/ext → `<stem>_<ts>` + `_latest`); `ipc/shm_heartbeat.h` producer exists; `beat()` called with real metrics (bot_loop.cpp:399-401); `scripts/monitor.py` reads `/hft_heartbeat`, `monitor.py` tails `_latest.log`.
 - **S256** — `run.py::setup_logging` fallback delegates to `observability.logging.setup_logging(log_file=...)` → RotatingFileHandler on configured path; `run.py:751` passes `config.log_file`.
 - **S318** — both Windows SHM sites use the C++ name verbatim (`tag = name`); zero `lstrip` in ai-signal-bot/src.
+
+### R155 — 2026-09-15 — slop-fix: S240, S232, S231, S212, S257 (5 Medium)
+
+Commits: `5b8e0a2` (sim encoding+close_reason), `0259572` (hft prod config), `23490c4` (web-ui facades+useWebSocket), `e84668f` (docs S257). Gate 8/8 ALL GREEN.
+
+- **S240** — `Config` gains `blacklisted_symbols`/`per_symbol_max_qty`/`adaptive_toxic_threshold`; parsed from prod `risk.*`/`pressure_model.*` and wired into `RiskManager::Params` (was `{}`) + `AdaptiveOrderSelectorV2::Params.toxic_threshold`. `toxicity_threshold` no longer lands on `v2_pressure_threshold`; `ai_signal_bot.enabled:false` in prod yaml (SHM is the real signal path). 2 doctests.
+- **S232** — real wiring per user decision: Auth = token probe (`auth_ok`/`auth_failed` on a throwaway WS; `trading-sim-auth-token` → `auth-token-changed` → live reconnect); FeatureFlags → `featureFlags.js` writes real keys (`mock-mode`, `trading-sim-advanced-panels`, `trading-sim-sound`, `trading-sim-auto-reconnect`, `trading-sim-detachable-panels`, `trading-sim-order-trailing-stop`) + change event consumed by PanelContainer/OrderForm/App/detachPanel; 5 unwireable backend toggles removed; AlertWebhook dispatcher: fills→fill/sl_tp/liquidation via new `close_reason` wire field, price-alert toasts→price_alert, UTC-midnight→daily_summary. Mount-seed fills = history (no replay spam).
+- **S231** — `useWebSocket`: `perMessageDeflate` subprotocol bug removed, dead ring-buffer/batch API removed, attempts counted per onclose failure (`maxReconnects` reachable — regression test), manual `connect()` resets budget via `isRetryRef`, `disconnect()` no longer auto-reconnects, `error` → `useExchangeData.lastError` → toasts.
+- **S212** — `_encode()`: JSON→text / msgpack→binary; `_encoded_variants()` on audit/fills/arb/market-data; `_send_json` unified; ai-bot frame discriminator now truthful. 4 regression tests.
+- **S257** — Rust benchmark section deleted from PERFORMANCE; ARCHITECTURE ensemble count corrected (6 impl / 4 default / min-2); WEBSOCKET_PROTOCOL rewritten for post-S212 semantics; MONITORING snippet verified already-correct.
