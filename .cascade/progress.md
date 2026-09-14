@@ -1717,4 +1717,4 @@ Commit: fd2b029
 
 **Retracted/false positives:** все skip'ы — честные dep/env-гейты с reason'ами (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` — только ImportError-gates; conftest'ы настоящие; vi.mock сдержан (23/153, boundary); `test_signal_publisher` — live-execution; `useMockData.test` мокает правильную границу; shm-тесты — живой prod-код (run.py:275-303); `PriceAlerts onAlert` — prop, не perf-monitor.
 
-Commit: TBD
+Commit: b1ed546

@@ -2067,4 +2067,4 @@ Deep pass on the 279-file test suite (126 py + 153 js): duplicate filenames, moc
 
 **Verified clean:** all skips are honest dep/env gates with reasons (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` blocks are ImportError gates only; conftests are real path shims + real fixtures; `vi.mock` is restrained (23/153 files, all boundary mocks with autospec); `test_shm_*` files test live prod code (`run.py:275-303`); `test_signal_publisher.py` exercises the real backtest endpoint end-to-end; no `status_code in (200,400,500)` tolerance anywhere.
 
-Commit: TBD
+Commit: b1ed546
