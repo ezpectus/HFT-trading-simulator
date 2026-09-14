@@ -23,9 +23,10 @@ def main():
     shm_name = "/hft_heartbeat"
     try:
         if os.name == 'nt':
-            # Windows: page-file-backed shared memory via mmap
-            # Tag name must match the name passed to CreateFileMappingW in C++
-            tag = shm_name.lstrip("/")
+            # Windows: page-file-backed shared memory via mmap.
+            # Tag name is used VERBATIM by CreateFileMappingW in C++ — the
+            # leading "/" is part of the object name, do not strip it.
+            tag = shm_name
             mm = mmap.mmap(-1, 64, tagname=tag, access=mmap.ACCESS_READ)
         else:
             # Linux: use /dev/shm

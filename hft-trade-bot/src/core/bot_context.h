@@ -7,6 +7,7 @@
 #include "execution/adaptive_order_selector_v2.h"
 #include "execution/order_executor.h"
 #include "ipc/shm_fill_producer.h"
+#include "ipc/shm_heartbeat.h"
 #include "ipc/shm_market_data.h"
 #include "ipc/shm_signal_consumer.h"
 #include "monitoring/health_server.h"
@@ -68,6 +69,7 @@ struct BotContext {
     std::unique_ptr<ipc::ShmSignalConsumer> shm_signal_consumer;
     std::unique_ptr<ipc::ShmFillProducer>   shm_fill_producer;
     std::unique_ptr<ipc::ShmMarketData>     shm_market_data;
+    std::unique_ptr<ipc::ShmHeartbeat>      shm_heartbeat;
 
     SPSCQueue<Signal, 16> ai_signal_queue;
     std::mutex            ai_signal_queue_mtx;

@@ -56,9 +56,9 @@ static void setup_thread_pinning(const Config& c) {
 bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
     std::string config_path = "config/config.yaml";
     if (argc > 1) config_path = argv[1];
-    std::filesystem::create_directories("logs");
     ctx.config = Config::load(config_path);
-    Logger::init(ctx.config.log_level, "logs", ctx.config.is_production, &ctx.sys_monitor);
+    Logger::init(ctx.config.log_level, ctx.config.log_file, ctx.config.is_production,
+                 &ctx.sys_monitor);
     log_banner(ctx.config);
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
@@ -231,6 +231,14 @@ void init_monitoring(BotContext& ctx) {
     if (ctx.receiver) ctx.receiver->set_monitor(&ctx.sys_monitor);
     if (ctx.ai_signal_receiver) ctx.ai_signal_receiver->set_monitor(&ctx.sys_monitor);
     if (ctx.executor) ctx.executor->set_monitor(&ctx.sys_monitor);
+    // scripts/monitor.py reads /hft_heartbeat — publish it unconditionally
+    // (independent of ipc_enabled) so the tool always reflects liveness.
+    try {
+        ctx.shm_heartbeat = std::make_unique<ipc::ShmHeartbeat>();
+    } catch (const std::exception& e) {
+        spdlog::warn("SHM heartbeat unavailable: {}", e.what());
+        ctx.shm_heartbeat.reset();
+    }
 }
 
 void init_ipc(BotContext& ctx) {

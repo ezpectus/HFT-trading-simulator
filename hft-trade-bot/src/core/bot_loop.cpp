@@ -397,6 +397,14 @@ void update_health_status(BotContext& ctx) {
     hs.error_count_5min     = err_total - err_baseline;
     hs.memory_usage_mb      = process_memory_mb();
     ctx.health_server->update_health(hs);
+
+    // Feed the /hft_heartbeat region scripts/monitor.py tails (S224).
+    if (ctx.shm_heartbeat) {
+        ctx.shm_heartbeat->beat(ctx.sys_monitor.get(SystemMonitor::Metric::ORDERS_SENT),
+                                ctx.sys_monitor.get(SystemMonitor::Metric::ORDERS_FILLED),
+                                ctx.sys_monitor.get(SystemMonitor::Metric::SIGNALS_PROCESSED),
+                                err_total);
+    }
 }
 
 void print_status(BotContext& ctx) {

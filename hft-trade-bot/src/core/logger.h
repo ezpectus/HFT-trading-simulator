@@ -42,13 +42,23 @@ class ErrorCountSink : public spdlog::sinks::sink {
 
 class Logger {
   public:
-    static void init(const std::string& level = "info", const std::string& dir = "logs",
-                     bool json = false, SystemMonitor* monitor = nullptr) {
+    // log_file is the configured path (config.yaml logging.file /
+    // system.log_file) — its parent dir and stem drive the timestamped and
+    // _latest filenames. Default "logs/hft_trade_bot.log" reproduces the
+    // historical naming exactly.
+    static void init(const std::string& level    = "info",
+                     const std::string& log_file = "logs/hft_trade_bot.log", bool json = false,
+                     SystemMonitor* monitor = nullptr) {
+        const std::filesystem::path p(log_file);
+        const std::string           dir  = p.parent_path().empty() ? "." : p.parent_path().string();
+        const std::string           stem = p.stem().empty() ? "hft_trade_bot" : p.stem().string();
+        const std::string           ext  = p.extension().empty() ? ".log" : p.extension().string();
+
         // Create logs directory
         log_dir_ = dir;
         std::filesystem::create_directories(dir);
 
-        // Generate timestamped filename: hft_trade_bot_YYYYMMDD_HHMMSS.log
+        // Generate timestamped filename: <stem>_YYYYMMDD_HHMMSS<ext>
         auto    now = std::chrono::system_clock::now();
         auto    t   = std::chrono::system_clock::to_time_t(now);
         std::tm tm{};
@@ -58,10 +68,10 @@ class Logger {
         localtime_r(&t, &tm);
 #endif
         std::ostringstream ss;
-        ss << dir << "/hft_trade_bot_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << ".log";
+        ss << dir << "/" << stem << "_" << std::put_time(&tm, "%Y%m%d_%H%M%S") << ext;
         std::string log_path = ss.str();
 
-        std::string latest_path = dir + "/hft_trade_bot_latest.log";
+        std::string latest_path = dir + "/" + stem + "_latest" + ext;
 
         auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 

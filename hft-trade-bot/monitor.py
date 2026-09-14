@@ -10,7 +10,9 @@ import os
 import time
 from datetime import datetime
 
-HFT_LOG = os.path.join(os.path.dirname(__file__), "logs", "hft_trade_bot.log")
+# Logger writes logs/hft_trade_bot_<ts>.log plus a hft_trade_bot_latest.log
+# copy — the timestamped path never exists at this fixed name.
+HFT_LOG = os.path.join(os.path.dirname(__file__), "logs", "hft_trade_bot_latest.log")
 HFT_DIR = os.path.join(os.path.dirname(__file__), "build")
 
 def clear_screen():
