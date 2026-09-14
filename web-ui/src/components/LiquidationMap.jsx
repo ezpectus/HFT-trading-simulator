@@ -39,7 +39,7 @@ function LiquidationMap({ candles, accounts, symbol, exchange }) {
     // Get actual positions from accounts for real liquidation risk
     const positions = []
     for (const acc of Object.values(accounts || {})) {
-      for (const pos of Object.values(acc.positions || {})) {
+      for (const pos of (acc.positions || [])) {
         if (pos.symbol === symbol) {
           const entry = pos.entry_price
           const leverage = pos.leverage || 10

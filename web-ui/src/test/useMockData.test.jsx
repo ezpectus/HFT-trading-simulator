@@ -14,7 +14,7 @@ vi.mock('../utils/mockData', () => ({
       { exchange: 'okx', symbol: 'ETH/USDT', timestamp: 100, open: 3000, high: 3010, low: 2990, close: 3005, volume: 50 },
     ],
     prices: { 'binance|BTC/USDT': 50050, 'okx|ETH/USDT': 3005 },
-    accounts: { binance: { balance: 10000, equity: 10000, positions: {} } },
+    accounts: { binance: { balance: 10000, equity: 10000, positions: [] } },
     orderbooks: { 'binance|BTC/USDT': { bids: [{ price: 50000, quantity: 1 }], asks: [{ price: 50100, quantity: 0.5 }] } },
   })),
   generateCandles: vi.fn(() => [{ exchange: 'binance', symbol: 'BTC/USDT', timestamp: 200, open: 50050, high: 50100, low: 50000, close: 50080, volume: 15 }]),

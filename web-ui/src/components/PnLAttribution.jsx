@@ -22,7 +22,7 @@ function PnLAttribution({ accounts }) {
       }
 
       // Unrealized PnL from open positions
-      for (const p of Object.values(acc.positions || {})) {
+      for (const p of (acc.positions || [])) {
         const uPnl = p.unrealized_pnl || 0
         totalUPnl += uPnl
         const key = `${p.symbol}|${exId}`

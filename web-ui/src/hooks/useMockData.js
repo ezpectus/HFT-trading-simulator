@@ -120,8 +120,10 @@ export function useMockExchangeData({ enabled = IS_MOCK } = {}) {
   }, [])
 
   const closePosition = useCallback((exchange, symbol) => {
-    if (accountsRef.current[exchange]?.positions?.[symbol]) {
-      delete accountsRef.current[exchange].positions[symbol]
+    const acct = accountsRef.current[exchange]
+    const idx = acct?.positions?.findIndex(p => p.symbol === symbol) ?? -1
+    if (idx >= 0) {
+      acct.positions.splice(idx, 1)
       setAccounts({ ...accountsRef.current })
     }
     return true

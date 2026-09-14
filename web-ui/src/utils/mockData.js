@@ -190,13 +190,20 @@ export function generateAccounts() {
   const accounts = {}
   for (const ex of MOCK_EXCHANGES) {
     accounts[ex] = {
+      // Same shape as exchange_simulator Account.to_dict() — the mock must
+      // exercise the wire contract, not an invented one (S266).
+      exchange: ex,
       balance: 10000,
-      equity: 10000 + (Math.random() - 0.5) * 200,
-      margin: 0,
-      free_margin: 10000,
-      unrealized_pnl: (Math.random() - 0.5) * 100,
-      realized_pnl: (Math.random() - 0.5) * 50,
-      positions: {},
+      equity: 10000,
+      currency: 'USDT',
+      leverage: 1,
+      positions: [],
+      trade_history: [],
+      total_pnl: 0,
+      total_fees: 0,
+      total_trades: 0,
+      winning_trades: 0,
+      win_rate: 0,
     }
   }
   return accounts
@@ -204,43 +211,57 @@ export function generateAccounts() {
 
 /**
  * Generate a random position update.
+ * positions is a LIST of position dicts — the same shape the live wire sends.
  */
 export function maybeUpdatePosition(accounts, symbol, exchange, price) {
   const acct = accounts[exchange]
   if (!acct) return accounts
 
-  const hasPosition = !!acct.positions[symbol]
+  const idx = acct.positions.findIndex(p => p.symbol === symbol)
   // 10% chance to open/close
   if (Math.random() < 0.1) {
-    if (hasPosition) {
+    if (idx >= 0) {
       // Close position
-      const pos = acct.positions[symbol]
+      const pos = acct.positions[idx]
       const pnl = (price - pos.entry_price) * pos.quantity * (pos.side === 'BUY' ? 1 : -1)
-      acct.realized_pnl += pnl
+      acct.total_pnl += pnl
+      acct.total_trades += 1
+      if (pnl > 0) acct.winning_trades += 1
+      acct.win_rate = acct.total_trades > 0 ? acct.winning_trades / acct.total_trades * 100 : 0
       acct.balance += pnl
-      delete acct.positions[symbol]
+      acct.trade_history.push({
+        symbol, exchange,
+        side: pos.side,
+        quantity: pos.quantity,
+        entry_price: pos.entry_price,
+        exit_price: Number(price.toFixed(6)),
+        pnl,
+      })
+      if (acct.trade_history.length > 20) acct.trade_history.shift()
+      acct.positions.splice(idx, 1)
     } else {
       // Open position
-      acct.positions[symbol] = {
+      acct.positions.push({
         symbol, exchange,
         side: Math.random() > 0.5 ? 'BUY' : 'SELL',
         quantity: Number((0.01 + Math.random() * 0.1).toFixed(4)),
         entry_price: Number(price.toFixed(6)),
+        stop_loss: null,
+        take_profit: null,
+        opened_at: Date.now() / 1000,
         unrealized_pnl: 0,
-      }
+        margin: 0,
+      })
     }
   }
 
   // Update unrealized PnL for existing positions
-  for (const sym in acct.positions) {
-    const pos = acct.positions[sym]
-    const currentPrice = sym === symbol ? price : (BASE_PRICES[sym] || price)
+  for (const pos of acct.positions) {
+    const currentPrice = pos.symbol === symbol ? price : (BASE_PRICES[pos.symbol] || price)
     pos.unrealized_pnl = (currentPrice - pos.entry_price) * pos.quantity * (pos.side === 'BUY' ? 1 : -1)
   }
 
-  acct.equity = acct.balance + Object.values(acct.positions).reduce((s, p) => s + p.unrealized_pnl, 0)
-  acct.unrealized_pnl = Object.values(acct.positions).reduce((s, p) => s + p.unrealized_pnl, 0)
-  acct.free_margin = acct.equity - acct.margin
+  acct.equity = acct.balance + acct.positions.reduce((s, p) => s + p.unrealized_pnl + (p.margin || 0), 0)
 
   return { ...accounts }
 }

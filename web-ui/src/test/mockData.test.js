@@ -95,6 +95,30 @@ describe('mockData', () => {
         expect(accounts[ex]).toHaveProperty('equity')
       })
     })
+
+    it('positions is a list — the live wire contract (S266)', () => {
+      const accounts = generateAccounts()
+      MOCK_EXCHANGES.forEach(ex => {
+        expect(Array.isArray(accounts[ex].positions)).toBe(true)
+      })
+    })
+  })
+
+  describe('maybeUpdatePosition', () => {
+    it('positions stay list-shaped after updates (S266)', async () => {
+      const { maybeUpdatePosition } = await import('../utils/mockData')
+      let accounts = generateAccounts()
+      // force the 10% open branch deterministically
+      let opened = false
+      for (let i = 0; i < 500 && !opened; i++) {
+        accounts = maybeUpdatePosition(accounts, 'BTCUSDT', 'binance', 50000)
+        opened = accounts.binance.positions.some(p => p.symbol === 'BTCUSDT')
+      }
+      expect(opened).toBe(true)
+      expect(Array.isArray(accounts.binance.positions)).toBe(true)
+      const pos = accounts.binance.positions.find(p => p.symbol === 'BTCUSDT')
+      expect(pos).toMatchObject({ symbol: 'BTCUSDT', exchange: 'binance' })
+    })
   })
 
   describe('generateInitialSnapshot', () => {

@@ -29,7 +29,7 @@ function AutoRebalance({ accounts, candles, symbols, exchange, onSubmit }) {
     // Calculate current allocations
     let totalValue = acc.balance || 0
     const positions = {}
-    for (const p of Object.values(acc.positions || {})) {
+    for (const p of (acc.positions || [])) {
       const value = (p.quantity || 0) * (prices[p.symbol] || 0)
       positions[p.symbol] = { quantity: p.quantity, value, side: p.side }
       totalValue += value

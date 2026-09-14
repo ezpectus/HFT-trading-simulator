@@ -19,9 +19,12 @@ function MultiAccountView({ accounts, exchanges }) {
 
       const equity = acc.equity || acc.balance || 0
       const balance = acc.balance || 0
-      const uPnl = acc.unrealized_pnl || 0
-      const rPnl = acc.realized_pnl || 0
-      const positions = Object.values(acc.positions || {}).filter(p => p.quantity > 0).length
+      // Wire contract carries no account-level uPnl/rPnl — derive them:
+      // unrealized = equity - balance (equity includes unrealized + margin),
+      // realized = total_pnl.
+      const uPnl = equity - balance
+      const rPnl = acc.total_pnl || 0
+      const positions = (acc.positions || []).filter(p => p.quantity > 0).length
       const fees = acc.total_fees || 0
       const trades = (acc.trade_history || []).length
 
