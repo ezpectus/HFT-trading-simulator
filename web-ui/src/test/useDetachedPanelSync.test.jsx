@@ -33,11 +33,13 @@ describe('useDetachedPanelSync', () => {
     })
   })
 
-  it('pushes account to detached account panel', () => {
-    const { props, updateDetached } = setup(['account'])
+  it('only chart/orderbook can detach — other ids get no updates', () => {
+    // account/signals/arbitrage/performance renderers were unreachable dead
+    // code (S235) — PANEL_CONFIG in useDetachablePanels holds only the two
+    // wired ids, so the sync ignores the rest.
+    const { props, updateDetached } = setup(['account', 'signals', 'arbitrage'])
     renderHook(() => useDetachedPanelSync(props))
-    expect(updateDetached).toHaveBeenCalledWith('account',
-      { account: { balance: 100 } })
+    expect(updateDetached).not.toHaveBeenCalled()
   })
 
   it('attached panels get no updates', () => {

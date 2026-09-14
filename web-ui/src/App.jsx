@@ -148,7 +148,7 @@ export default function App() {
 
   // Keep detached (floating) panels fed with live data
   const handleDetach = useDetachedPanelSync({
-    exchange, signals, chartCandles, currentPrice,
+    exchange, chartCandles, currentPrice,
     selectedExchange, selectedSymbol, isDetached, updateDetached, detachPanel,
   })
 

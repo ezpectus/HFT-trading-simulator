@@ -5,18 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDetachablePanels } from '../hooks/useDetachablePanels'
-
-// Mock BroadcastChannel
-class MockBroadcastChannel {
-  constructor(name) {
-    this.name = name
-    this.messages = []
-  }
-  postMessage(msg) {
-    this.messages.push(msg)
-  }
-  close() {}
-}
+import { useToastStore } from '../stores/useToastStore'
 
 // Mock popup window with proper DOM API
 function createMockPopup() {
@@ -91,7 +80,6 @@ describe('useDetachablePanels', () => {
   let alertSpy
 
   beforeEach(() => {
-    global.BroadcastChannel = MockBroadcastChannel
     mockPopup = createMockPopup()
     openSpy = vi.spyOn(window, 'open').mockReturnValue(mockPopup)
     alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
@@ -99,7 +87,6 @@ describe('useDetachablePanels', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    delete global.BroadcastChannel
   })
 
   it('returns API with detachPanel, updateDetached, isDetached, closeDetached, PANEL_CONFIG', () => {
@@ -111,14 +98,16 @@ describe('useDetachablePanels', () => {
     expect(result.current.PANEL_CONFIG).toBeDefined()
   })
 
-  it('PANEL_CONFIG has correct panel definitions', () => {
+  it('PANEL_CONFIG covers only the wired panels (chart, orderbook)', () => {
+    // S235: account/signals/arbitrage/performance had renderers but no
+    // <DetachablePanel> wrapper — unreachable, removed.
     const { result } = renderHook(() => useDetachablePanels())
     expect(result.current.PANEL_CONFIG.chart.title).toContain('Chart')
     expect(result.current.PANEL_CONFIG.orderbook.title).toContain('Order Book')
-    expect(result.current.PANEL_CONFIG.account.title).toContain('Account')
-    expect(result.current.PANEL_CONFIG.signals.title).toContain('AI Signals')
-    expect(result.current.PANEL_CONFIG.arbitrage.title).toContain('Arbitrage')
-    expect(result.current.PANEL_CONFIG.performance.title).toContain('Performance')
+    expect(result.current.PANEL_CONFIG.account).toBeUndefined()
+    expect(result.current.PANEL_CONFIG.signals).toBeUndefined()
+    expect(result.current.PANEL_CONFIG.arbitrage).toBeUndefined()
+    expect(result.current.PANEL_CONFIG.performance).toBeUndefined()
   })
 
   it('detachPanel opens a popup window', () => {
@@ -178,11 +167,15 @@ describe('useDetachablePanels', () => {
     expect(firstPopup.close).toHaveBeenCalled()
   })
 
-  it('detachPanel alerts when popup is blocked', () => {
+  it('detachPanel toasts (no blocking alert) when popup is blocked', () => {
     openSpy.mockReturnValue(null)
     const { result } = renderHook(() => useDetachablePanels())
+    const toastsBefore = useToastStore.getState().toasts.length
     act(() => result.current.detachPanel('chart', {}))
-    expect(alertSpy).toHaveBeenCalled()
+    expect(alertSpy).not.toHaveBeenCalled()
+    const toasts = useToastStore.getState().toasts
+    expect(toasts.length).toBeGreaterThan(toastsBefore)
+    expect(toasts[toasts.length - 1].message).toContain('Popup blocked')
   })
 
   it('updateDetached updates popup content for orderbook', () => {
@@ -199,51 +192,12 @@ describe('useDetachablePanels', () => {
     expect(text).toContain('50100')
   })
 
-  it('updateDetached updates popup content for account', () => {
+  it('non-wired panel ids open no popup (renderers removed in S235)', () => {
     const { result } = renderHook(() => useDetachablePanels())
-    act(() => result.current.detachPanel('account', {
-      account: {
-        balance: 10000,
-        equity: 10500,
-        total_pnl: 500,
-        positions: [{ symbol: 'BTC/USDT', side: 'LONG', quantity: 0.5, unrealized_pnl: 250 }],
-      },
-    }))
-    const text = getAllText(mockPopup.document._contentEl)
-    expect(text).toContain('10000')
-    expect(text).toContain('10500')
-  })
-
-  it('updateDetached updates popup content for signals', () => {
-    const { result } = renderHook(() => useDetachablePanels())
-    act(() => result.current.detachPanel('signals', {
-      signals: [{ symbol: 'BTC/USDT', direction: 'LONG', confidence: 85, strategy: 'momentum' }],
-    }))
-    const text = getAllText(mockPopup.document._contentEl)
-    expect(text).toContain('BTC/USDT')
-    expect(text).toContain('85%')
-  })
-
-  it('updateDetached updates popup content for arbitrage', () => {
-    const { result } = renderHook(() => useDetachablePanels())
-    act(() => result.current.detachPanel('arbitrage', {
-      arbitrage: {
-        active: [{ symbol: 'BTC/USDT', buy_exchange: 'binance', sell_exchange: 'okx', spread_bps: 5.2, estimated_profit: 25.0 }],
-      },
-    }))
-    const text = getAllText(mockPopup.document._contentEl)
-    expect(text).toContain('binance')
-    expect(text).toContain('okx')
-  })
-
-  it('updateDetached updates popup content for performance', () => {
-    const { result } = renderHook(() => useDetachablePanels())
-    act(() => result.current.detachPanel('performance', {
-      metrics: { totalBalance: 50000, totalPnl: 5000, totalTrades: 100, winningTrades: 60 },
-    }))
-    const text = getAllText(mockPopup.document._contentEl)
-    expect(text).toContain('50000')
-    expect(text).toContain('60.0%')
+    for (const id of ['account', 'signals', 'arbitrage', 'performance']) {
+      act(() => result.current.detachPanel(id, {}))
+    }
+    expect(openSpy).not.toHaveBeenCalled()
   })
 
   it('updateDetached updates popup content for chart with candles', () => {

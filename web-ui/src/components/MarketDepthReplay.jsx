@@ -2,11 +2,30 @@ import { memo, useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Film, Play, Pause, SkipBack, SkipForward, Clock, Layers } from 'lucide-react'
 import { formatPrice, formatVolume } from '../utils/format'
 
-function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, exchange }) {
+function MarketDepthReplay({ candles, orderbooks, fills, symbol, exchange }) {
   const [playing, setPlaying] = useState(false)
   const [currentIdx, setCurrentIdx] = useState(-1)
   const [speed, setSpeed] = useState(1)
   const intervalRef = useRef(null)
+
+  // The wire carries only the CURRENT book per exchange|symbol — there is no
+  // L2 history to replay. Show the live book (clearly labeled) and let the
+  // scrubber replay the data that IS real: candles + fills.
+  const liveBook = orderbooks?.[`${exchange}|${symbol}`] || null
+  const liveStats = useMemo(() => {
+    if (!liveBook) return null
+    const bids = liveBook.bids || []
+    const asks = liveBook.asks || []
+    const bidVol = bids.slice(0, 10).reduce((s, b) => s + b.quantity, 0)
+    const askVol = asks.slice(0, 10).reduce((s, a) => s + a.quantity, 0)
+    const totalVol = bidVol + askVol
+    return {
+      bidVol,
+      askVol,
+      imbalance: totalVol > 0 ? (bidVol - askVol) / totalVol : 0,
+      spread: bids[0] && asks[0] ? asks[0].price - bids[0].price : null,
+    }
+  }, [liveBook])
 
   const replayData = useMemo(() => {
     const symCandles = candles
@@ -22,47 +41,20 @@ function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, ex
     const frames = symCandles.map((c, i) => {
       // Find fills near this candle's timestamp
       const nearbyFills = symFills.filter(f => {
-        const ts = f.timestamp || f.received_at || 0
+        // f.timestamp is seconds (wire); received_at is client Date.now() ms —
+        // normalize so the 60s window compares like units.
+        let ts = f.timestamp || f.received_at || 0
+        if (ts > 1e12) ts /= 1000
         return Math.abs(ts - c.timestamp) < 60
       })
-
-      // Estimate orderbook state from candle OHLC
-      const midPrice = (c.high + c.low) / 2
-      const spread = Math.max((c.high - c.low) * 0.001, 0.5)
-      const levels = 10
-      const bids = []
-      const asks = []
-      for (let l = 0; l < levels; l++) {
-        const bidPrice = midPrice - spread - l * spread * 1.5
-        const askPrice = midPrice + spread + l * spread * 1.5
-        // Decay volume with distance; deterministic per-candle jitter so the
-        // reconstructed book is stable across renders for the same candle
-        const decay = Math.exp(-l * 0.3)
-        const baseVol = c.volume * 0.1 * decay
-        const bidJitter = 0.8 + 0.4 * (((c.timestamp * 31 + l * 7) % 97) / 97)
-        const askJitter = 0.8 + 0.4 * (((c.timestamp * 17 + l * 13) % 97) / 97)
-        bids.push({ price: bidPrice, quantity: baseVol * bidJitter })
-        asks.push({ price: askPrice, quantity: baseVol * askJitter })
-      }
-
-      // Imbalance
-      const bidVol = bids.reduce((s, b) => s + b.quantity, 0)
-      const askVol = asks.reduce((s, a) => s + a.quantity, 0)
-      const totalVol = bidVol + askVol
-      const imbalance = totalVol > 0 ? (bidVol - askVol) / totalVol : 0
 
       return {
         idx: i,
         timestamp: c.timestamp,
         time: new Date(c.timestamp * 1000).toLocaleTimeString('en-US', { hour12: false }),
         candle: c,
-        bids,
-        asks,
-        midPrice,
-        spread,
-        bidVol,
-        askVol,
-        imbalance,
+        // OHLC midpoint — a real estimate derived from real data, labeled "est."
+        estMid: (c.high + c.low) / 2,
         fills: nearbyFills,
         fillCount: nearbyFills.length,
       }
@@ -203,59 +195,63 @@ function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, ex
               <div className="font-mono text-gray-400">{frame.time}</div>
             </div>
             <div className="bg-bg-800  px-1.5 py-0.5">
-              <span className="text-gray-600">Mid Price</span>
-              <div className="font-mono text-gray-300">{formatPrice(frame.midPrice)}</div>
+              <span className="text-gray-600">Est. Mid (OHLC)</span>
+              <div className="font-mono text-gray-300">{formatPrice(frame.estMid)}</div>
             </div>
             <div className="bg-bg-800  px-1.5 py-0.5">
-              <span className="text-gray-600">Spread</span>
-              <div className="font-mono text-gray-400">{formatPrice(frame.spread)}</div>
+              <span className="text-gray-600">Live Spread</span>
+              <div className="font-mono text-gray-400">{liveStats?.spread != null ? formatPrice(liveStats.spread) : '--'}</div>
             </div>
           </div>
 
-          {/* Imbalance bar */}
+          {/* Imbalance bar — live book (the wire has no L2 history) */}
           <div className="mb-2">
             <div className="flex items-center justify-between text-[8px] mb-0.5">
-              <span className="text-gray-600 flex items-center gap-0.5"><Layers size={7} /> Imbalance</span>
-              <span className={'font-mono ' + (frame.imbalance > 0.1 ? 'text-accent-green' : frame.imbalance < -0.1 ? 'text-accent-red' : 'text-gray-400')}>
-                {(frame.imbalance * 100).toFixed(0)}%
+              <span className="text-gray-600 flex items-center gap-0.5"><Layers size={7} /> Live Book Imbalance</span>
+              <span className={'font-mono ' + (liveStats && liveStats.imbalance > 0.1 ? 'text-accent-green' : liveStats && liveStats.imbalance < -0.1 ? 'text-accent-red' : 'text-gray-400')}>
+                {liveStats ? `${(liveStats.imbalance * 100).toFixed(0)}%` : '--'}
               </span>
             </div>
             <div className="h-2 bg-bg-800 rounded-full overflow-hidden flex">
-              <div className="bg-accent-green h-full transition-all" style={{ width: `${frame.bidVol + frame.askVol > 0 ? (frame.bidVol / (frame.bidVol + frame.askVol)) * 100 : 50}%` }} />
+              <div className="bg-accent-green h-full transition-all" style={{ width: `${liveStats && liveStats.bidVol + liveStats.askVol > 0 ? (liveStats.bidVol / (liveStats.bidVol + liveStats.askVol)) * 100 : 50}%` }} />
               <div className="bg-accent-red h-full flex-1" />
             </div>
             <div className="flex justify-between text-[7px] text-gray-700 mt-0.5">
-              <span className="text-accent-green">B: {formatVolume(frame.bidVol)}</span>
-              <span className="text-accent-red">A: {formatVolume(frame.askVol)}</span>
+              <span className="text-accent-green">B: {liveStats ? formatVolume(liveStats.bidVol) : '--'}</span>
+              <span className="text-accent-red">A: {liveStats ? formatVolume(liveStats.askVol) : '--'}</span>
             </div>
           </div>
 
-          {/* Orderbook snapshot */}
+          {/* Orderbook — the real live book; no L2 history exists on the wire */}
           <div className="mb-2">
-            <div className="text-[8px] text-gray-600 mb-0.5">Depth Snapshot (10 levels):</div>
-            <div className="space-y-px">
-              {frame.asks.slice(0, 5).reverse().map((a, i) => (
-                <div key={'a' + i} className="flex items-center justify-between text-[8px] bg-accent-red/5 px-1.5 py-px ">
-                  <span className="text-accent-red font-mono">{formatPrice(a.price)}</span>
-                  <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
-                    <div className="h-full bg-accent-red/40" style={{ width: `${frame.asks[0]?.quantity > 0 ? (a.quantity / frame.asks[0].quantity) * 100 : 0}%` }} />
+            <div className="text-[8px] text-gray-600 mb-0.5">Current order book (live — no L2 history on wire):</div>
+            {liveBook ? (
+              <div className="space-y-px">
+                {(liveBook.asks || []).slice(0, 5).reverse().map((a, i) => (
+                  <div key={'a' + i} className="flex items-center justify-between text-[8px] bg-accent-red/5 px-1.5 py-px ">
+                    <span className="text-accent-red font-mono">{formatPrice(a.price)}</span>
+                    <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
+                      <div className="h-full bg-accent-red/40" style={{ width: `${liveBook.asks[0]?.quantity > 0 ? (a.quantity / liveBook.asks[0].quantity) * 100 : 0}%` }} />
+                    </div>
+                    <span className="text-gray-500 font-mono">{a.quantity.toFixed(3)}</span>
                   </div>
-                  <span className="text-gray-500 font-mono">{a.quantity.toFixed(3)}</span>
+                ))}
+                <div className="flex items-center justify-center text-[8px] text-gray-600 py-px border-y border-bg-600">
+                  {liveStats?.spread != null ? formatPrice(liveStats.spread) : '--'} ← live spread
                 </div>
-              ))}
-              <div className="flex items-center justify-center text-[8px] text-gray-600 py-px border-y border-bg-600">
-                {formatPrice(frame.midPrice)} ← mid
+                {(liveBook.bids || []).slice(0, 5).map((b, i) => (
+                  <div key={'b' + i} className="flex items-center justify-between text-[8px] bg-accent-green/5 px-1.5 py-px ">
+                    <span className="text-accent-green font-mono">{formatPrice(b.price)}</span>
+                    <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
+                      <div className="h-full bg-accent-green/40" style={{ width: `${liveBook.bids[0]?.quantity > 0 ? (b.quantity / liveBook.bids[0].quantity) * 100 : 0}%` }} />
+                    </div>
+                    <span className="text-gray-500 font-mono">{b.quantity.toFixed(3)}</span>
+                  </div>
+                ))}
               </div>
-              {frame.bids.slice(0, 5).map((b, i) => (
-                <div key={'b' + i} className="flex items-center justify-between text-[8px] bg-accent-green/5 px-1.5 py-px ">
-                  <span className="text-accent-green font-mono">{formatPrice(b.price)}</span>
-                  <div className="flex-1 mx-2 h-1.5 bg-bg-600 rounded-full overflow-hidden">
-                    <div className="h-full bg-accent-green/40" style={{ width: `${frame.bids[0]?.quantity > 0 ? (b.quantity / frame.bids[0].quantity) * 100 : 0}%` }} />
-                  </div>
-                  <span className="text-gray-500 font-mono">{b.quantity.toFixed(3)}</span>
-                </div>
-              ))}
-            </div>
+            ) : (
+              <div className="text-[8px] text-gray-600 italic py-1">No live book for {exchange}|{symbol}</div>
+            )}
           </div>
 
           {/* Fills at this frame */}
@@ -282,7 +278,7 @@ function MarketDepthReplay({ candles, orderbooks: _orderbooks, fills, symbol, ex
       )}
 
       <div className="mt-1 pt-1 border-t border-bg-600 text-[8px] text-gray-600">
-        Reconstructs L2 depth from candle OHLC + fills. Scrub timeline to inspect historical market state.
+        Replays real candles + fills; the book shown is the live wire book — L2 history is not sent.
       </div>
     </div>
   )

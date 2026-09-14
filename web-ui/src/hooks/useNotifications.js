@@ -13,8 +13,10 @@ import { useEffect, useRef } from 'react'
 export function useNotifications({ exchange, signals, addToast, playSound }) {
   const prevExConn = useRef(false)
   const prevSigConn = useRef(false)
-  const prevFillCount = useRef(0)
-  const prevSignalCount = useRef(0)
+  // Head-identity refs — fills/signals are capped at 50 (.slice(0,50) in
+  // useExchangeData), so a length-diff dies permanently at the cap.
+  const prevFillHead = useRef(null)
+  const prevSignalHead = useRef(null)
   const prevNewsRef = useRef(null)
   const prevErrorRef = useRef(null)
 
@@ -43,16 +45,14 @@ export function useNotifications({ exchange, signals, addToast, playSound }) {
 
   // Notify on new fills (bot trades)
   useEffect(() => {
-    const newFills = exchange.fills.length - prevFillCount.current
-    if (newFills > 0 && prevFillCount.current > 0) {
-      const recentFill = exchange.fills[0]
-      if (recentFill && recentFill.status === 'FILLED') {
-        addToast('info', `Fill: ${recentFill.side} ${recentFill.filled_quantity} ${recentFill.symbol} @ $${recentFill.filled_price} (${recentFill.exchange})`, 4000)
-        playSound('fill')
-      }
+    const recentFill = exchange.fills[0]
+    const headKey = recentFill && (recentFill.id ?? `${recentFill.received_at}-${recentFill.symbol}-${recentFill.filled_price}`)
+    if (headKey && prevFillHead.current !== null && headKey !== prevFillHead.current && recentFill.status === 'FILLED') {
+      addToast('info', `Fill: ${recentFill.side} ${recentFill.filled_quantity} ${recentFill.symbol} @ $${recentFill.filled_price} (${recentFill.exchange})`, 4000)
+      playSound('fill')
     }
-    prevFillCount.current = exchange.fills.length
-  }, [exchange.fills, addToast])
+    prevFillHead.current = headKey
+  }, [exchange.fills, addToast, playSound])
 
   // Surface server-side rejections (rate-limit, trading-stopped, bad fields)
   useEffect(() => {
@@ -66,15 +66,14 @@ export function useNotifications({ exchange, signals, addToast, playSound }) {
 
   // Notify on strong AI signals
   useEffect(() => {
-    if (signals.signals.length > prevSignalCount.current && prevSignalCount.current > 0) {
-      const sig = signals.signals[0]
-      if (sig && sig.confidence >= 75) {
-        addToast('info', `Strong signal: ${sig.direction} ${sig.symbol} (${sig.confidence?.toFixed(0)}% confidence)`, 4000)
-        playSound('alert')
-      }
+    const sig = signals.signals[0]
+    const headKey = sig && `${sig.timestamp}-${sig.symbol}-${sig.direction}-${sig.confidence}`
+    if (headKey && prevSignalHead.current !== null && headKey !== prevSignalHead.current && sig.confidence >= 75) {
+      addToast('info', `Strong signal: ${sig.direction} ${sig.symbol} (${sig.confidence?.toFixed(0)}% confidence)`, 4000)
+      playSound('alert')
     }
-    prevSignalCount.current = signals.signals.length
-  }, [signals.signals, addToast])
+    prevSignalHead.current = headKey
+  }, [signals.signals, addToast, playSound])
 
   // News event notification
   useEffect(() => {

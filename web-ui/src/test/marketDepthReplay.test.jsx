@@ -1,5 +1,6 @@
 /**
- * MarketDepthReplay — OHLC-reconstructed depth, deterministic per candle.
+ * MarketDepthReplay — real candle/fill replay + the live wire book
+ * (no L2 history exists on the wire — disclosed, not fabricated).
  */
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -15,9 +16,24 @@ const CANDLES = Array.from({ length: 12 }, (_, i) => ({
 const PROPS = { candles: CANDLES, orderbooks: {}, fills: [], symbol: 'BTC/USDT', exchange: 'binance' }
 
 describe('MarketDepthReplay', () => {
-  it('discloses the book is reconstructed from OHLC, not real depth', () => {
+  it('discloses there is no L2 history on the wire', () => {
     render(<MarketDepthReplay {...PROPS} />)
-    expect(screen.getByText(/Reconstructs L2 depth from candle OHLC/i)).toBeInTheDocument()
+    expect(screen.getByText(/L2 history is not sent/i)).toBeInTheDocument()
+  })
+
+  it('renders the real live book when provided', () => {
+    const orderbooks = {
+      'binance|BTC/USDT': {
+        exchange: 'binance', symbol: 'BTC/USDT',
+        bids: [{ price: 64900, quantity: 0.5 }, { price: 64890, quantity: 0.3 }],
+        asks: [{ price: 65100, quantity: 0.4 }, { price: 65110, quantity: 0.2 }],
+      },
+    }
+    render(<MarketDepthReplay {...PROPS} orderbooks={orderbooks} />)
+    fireEvent.click(screen.getByTitle(/Step forward/i))
+    // formatPrice → locale string with thousands separator
+    expect(screen.getAllByText(/65,100/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/no L2 history on wire/i)).toBeInTheDocument()
   })
 
   it('shows the idle prompt before playback starts', () => {
@@ -25,10 +41,10 @@ describe('MarketDepthReplay', () => {
     expect(screen.getByText(/Press play to start depth replay/i)).toBeInTheDocument()
   })
 
-  it('reconstructs a book around the candle mid price after stepping', () => {
+  it('shows the estimated candle mid after stepping', () => {
     render(<MarketDepthReplay {...PROPS} />)
     fireEvent.click(screen.getByTitle(/Step forward/i))
-    // mid = (high+low)/2 = 102.5 shown via formatPrice
+    // est. mid = (high+low)/2 = 102.5 shown via formatPrice
     expect(screen.getAllByText(/102\.5/).length).toBeGreaterThan(0)
   })
 
