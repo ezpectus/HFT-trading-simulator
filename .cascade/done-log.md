@@ -430,3 +430,30 @@
 - **Files:** `docs/PERFORMANCE.md`, `docs/ARCHITECTURE.md`, `docs/WEBSOCKET_PROTOCOL.md`
 
 **Gate:** `pre-commit-check.py` 8/8 ALL GREEN.
+
+## Round 156 — slop-fix (4 closed, S309 deferred — no Docker daemon)
+
+### S259 — dead `walk_forward.py` duplicate removed ✅
+- **Bug:** `ai-signal-bot/src/backtesting/walk_forward.py` (201 lines) was a parallel `WalkForwardAnalyzer` engine invisible to prod — `backtest_requests.py`/`run_backtest.py` call `StrategyOptimizer.walk_forward` (`optimizer.py`); only `tests/unit/{test_backtest,test_walk_forward}.py` imported it (the test_backtest one a dead import — never used). `backtesting/__init__.py` also re-exported `BacktestResult as BacktestEngineResult` in `__all__` — zero references.
+- **Fix:** module deleted; `test_walk_forward.py` rewritten against the live `StrategyOptimizer.walk_forward` — 5 tests covering window stepping (each `backtester.run` sees only the test slice), insufficient-data→`[]`, per-window failure isolation, params propagation into `strategy_class(**params)`, fitness on every result. Dead import dropped from `test_backtest.py:9`; `BacktestEngineResult` import+`__all__` entry removed from `__init__.py`.
+- **Files:** `ai-signal-bot/src/backtesting/walk_forward.py` (deleted), `src/backtesting/__init__.py`, `tests/unit/test_walk_forward.py` (rewritten), `tests/unit/test_backtest.py`
+
+### S266 — mock accounts now match the wire contract ✅
+- **Bug:** `mockData.js` generated `accounts[].positions` as a symbol-keyed **map** while the wire sends a **list** (`models.py:438`); `CostBasis` iterated it → TypeError, `AccountPanel`/`BotStatus` `.length` → always 0. The mock also invented `margin`/`free_margin`/`unrealized_pnl`/`realized_pnl` account fields the real `to_dict` never sends, and omitted `total_pnl`/`win_rate`/`trade_history` — mock mode validated a shape the feed doesn't have.
+- **Fix:** `generateAccounts` emits the real `Account.to_dict` shape (exchange/balance/equity/currency/leverage/positions-list/trade_history/total_pnl/total_fees/total_trades/winning_trades/win_rate); `maybeUpdatePosition` uses findIndex/splice/push, books closes into `total_pnl`+`total_trades`+`trade_history` (20-cap like the wire), positions carry `stop_loss`/`take_profit`/`opened_at`/`margin`; `useMockData.closePosition` splices by symbol. `MultiAccountView` no longer reads phantom `acc.unrealized_pnl`/`realized_pnl` (uPnl=equity−balance, rPnl=`total_pnl`); 5 components moved off `Object.values(acc.positions||{})` — the map-tolerant idiom that hid the bug — onto `(acc.positions||[])`. 2 regression tests (positions is list; stays list through updates).
+- **Files:** `web-ui/src/utils/mockData.js`, `hooks/useMockData.js`, `components/MultiAccountView.jsx`, `components/{AutoRebalance,HedgingSuggestions,LiquidationCascade,LiquidationMap,PnLAttribution}.jsx`, `test/{mockData.test.js,useMockData.test.jsx}`
+
+### S261 — `useToasts` dead dup removed; perf alerts wired ✅
+- **Bug:** `Toast.jsx` exported a local-state `useToasts` duplicate of `useToastStore` — only `toast.test.jsx` consumed it (prod uses the store via `App.jsx:101`). In `performanceMonitor.js`, `checkBudgets`/vitals handlers fired `triggerAlert` into an always-empty `alertCallbacks` list — budget violations were silently dropped; `getMetricsHistory` accumulated arrays nobody read; `getPerformanceSummary`/`recordCustomMetric`/`customMetrics` had zero prod consumers.
+- **Fix:** `useToasts` deleted from `Toast.jsx`; `toast.test.jsx` migrated to `useToastStore` (+store reset in `beforeEach`). `DashboardProfiler` now subscribes `onAlert`/`offAlert` — immediate over-budget banners alongside the existing 2s `checkBudgets` poll. Dead exports cut: `getMetricsHistory` (+`metricsHistory` store + 5 push sites), `getPerformanceSummary`, `recordCustomMetric` (+`customMetrics` state). Tests rewritten onto the live alert path (`onAlert` fires on over-budget vital, `offAlert` detaches, under-budget silent).
+- **Files:** `web-ui/src/components/Toast.jsx`, `components/DashboardProfiler.jsx`, `utils/performanceMonitor.js`, `test/{toast.test.jsx,performanceMonitor.test.js,performance.test.jsx}`
+
+### S269 — `.ts` sources under a real check ✅
+- **Bug:** `eslint.config.js` matched only `**/*.{js,jsx}` and no gate ran `tsc` — 16 `.ts` files (incl. `useWebSocket.ts`, `useSessionRecorder.ts`, `useStrategyMarketplace.ts`) were outside every static check.
+- **Fix:** `web-ui/src/vite-env.d.ts` added (`vite/client` types → fixes `import.meta.env` TS2339); `tsc --noEmit` clean under strict; `typecheck` script in `package.json`; `check_tsc()` added to `scripts/pre-commit-check.py` as a 9th check (staged-aware, runs with the js lint block); CI `lint-js` job now runs `npm run typecheck` after `npm run lint`. No new dependencies — `typescript` was already in devDeps.
+- **Files:** `web-ui/{package.json,src/vite-env.d.ts}`, `scripts/pre-commit-check.py`, `.github/workflows/ci.yml`
+
+### S309 — DEFERRED (evidence, not a close)
+- Docker Desktop daemon unreachable on this host (`npipe:////./pipe/dockerDesktopLinuxEngine` absent) — `docker compose up` impossible. Static audit: all four `/health` endpoints exist on the CI-curled ports (sim :8775 `websocket_server.py:248`, ai-bot :9090 `metrics.py:410`, hft :9091 sidecar, web-ui :3000 `nginx.conf:26`) and every compose service has a healthcheck for `--wait`. Whether S303's image fix makes the job actually pass needs a live daemon — stays Open with the note on the board.
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN (new `tsc: web-ui` check live).

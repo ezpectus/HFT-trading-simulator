@@ -2153,3 +2153,13 @@ Commits: `5b8e0a2` (sim encoding+close_reason), `0259572` (hft prod config), `23
 - **S231** — `useWebSocket`: `perMessageDeflate` subprotocol bug removed, dead ring-buffer/batch API removed, attempts counted per onclose failure (`maxReconnects` reachable — regression test), manual `connect()` resets budget via `isRetryRef`, `disconnect()` no longer auto-reconnects, `error` → `useExchangeData.lastError` → toasts.
 - **S212** — `_encode()`: JSON→text / msgpack→binary; `_encoded_variants()` on audit/fills/arb/market-data; `_send_json` unified; ai-bot frame discriminator now truthful. 4 regression tests.
 - **S257** — Rust benchmark section deleted from PERFORMANCE; ARCHITECTURE ensemble count corrected (6 impl / 4 default / min-2); WEBSOCKET_PROTOCOL rewritten for post-S212 semantics; MONITORING snippet verified already-correct.
+
+### R156 — 2026-09-15 — slop-fix: S259, S266, S261, S269 (4 Medium); S309 deferred
+
+Commits: `0a062ee` (ai-bot S259), `93fa05f` (web-ui S266), `f4e045c` (web-ui S261), `183789f` (ci S269). Gate 9/9 ALL GREEN (new `tsc: web-ui` check — S269).
+
+- **S259** — `walk_forward.py` dead duplicate deleted (0 prod callers; prod path is `StrategyOptimizer.walk_forward`); `test_walk_forward.py` rewritten onto the live API (5 tests); dead `test_backtest.py:9` import removed; `BacktestEngineResult` cut from `backtesting/__init__.py`.
+- **S266** — mockData aligned to the wire: `positions` now a list like `models.py:438` (findIndex/splice/push in `maybeUpdatePosition` + `useMockData.closePosition`); account dict emits real `to_dict` fields (total_pnl/win_rate/trade_history) instead of invented margin/free_margin/realized_pnl; `MultiAccountView` derives uPnl=equity−balance / rPnl=total_pnl; 5 components off the map-tolerant `Object.values(positions)` idiom. 2 regression tests.
+- **S261** — `useToasts` local-state dup removed from `Toast.jsx` (test migrated to `useToastStore`); `DashboardProfiler` subscribes `onAlert`/`offAlert` — budget alerts now reach a banner instead of an empty callback list; dead `getMetricsHistory`+`metricsHistory`, `getPerformanceSummary`, `recordCustomMetric`+`customMetrics` cut.
+- **S269** — `vite-env.d.ts` (vite/client types); `tsc --noEmit` strict-clean; `typecheck` script; `check_tsc()` 9th gate check in pre-commit-check.py (staged-aware); CI lint-js runs `npm run typecheck`. No new deps.
+- **S309** — deferred: no Docker daemon on host. Static check passed (all 4 health endpoints exist on CI ports; compose healthchecks present). Row stays Open with the R156 note.
