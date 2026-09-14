@@ -2181,3 +2181,20 @@ Scope: the entire `web-ui/src/test/` directory — 154 files / 11,757 lines, nev
 **Verified clean:** zero `it.skip`/`.todo` across the suite; zero orphan tests (all 154 imports resolve to existing modules); math tests are honest — seeded mulberry32 PRNG + exact-value asserts (`beta toBeCloseTo 2,5`, residuals <1e-8, ADF vs critical values); `vi.mock` in 23 files where warranted; ~913 weak asserts out of 1,973 expects — acceptable for render tests; `performance.test.jsx`/`.ts` test different modules (not dupes); the three Zustand stores are honest — batch setters driven by hooks, derived data via App memo, dual-signature `addToast` with auto-expire; no `contexts/` dir exists.
 
 Commit: c2add83
+
+
+---
+
+## Round 129 — ai-signal-bot/tests/ quality sweep (2 findings: S285–S286)
+
+Scope: all of `ai-signal-bot/tests/` — both trees (`tests/` root + `tests/unit/` + `tests/integration/`), 93 files / 16,219 lines. Hunted: fixture-vs-reality drift, permanently-skipped tests, zombie imports, self-fulfilling mocks, collection gaps.
+
+**S285 (Low) — Open.** `tests/test_integration.py` — all 17 tests call `pytest.skip("Exchange simulator not running")` when no live sim is on :8765. Neither CI job that runs pytest (`test-python` ci.yml:93, `test-windows` ci.yml:449) starts one — `docker compose up` exists only in the `docker-smoke` job (:344), which uses it solely for `/health` curls. The entire WebSocket integration path is green-because-it-never-runs: no CI execution has ever exercised it.
+
+**S286 (Info) — Open.** `test_monitoring_llm.py:301,313` — import tests for `src.data_collection.market_replay` (`MarketReplay`) and `timescaledb_client` (`CandleRecord`), each armored with `except ModuleNotFoundError → pytest.skip`. Neither module exists in `src/data_collection/` (5 real files, these aren't among them) nor anywhere in the repo. Green-forever zombies implying coverage of code that was never written.
+
+**Notes:** `tests/mocks/` is a ghost directory containing only stale `.pyc` files (untracked — trivia, not an ID). Duplicate filenames across root/unit (`test_backtest`, `test_indicators`, `test_kelly`, `test_metrics`) test different subjects — re-verified.
+
+**Verified clean:** all 93 `test_*.py` contain test functions; conftest fixtures are honest deterministic candles; `skipif`/`importorskip` gates are legitimate (cvar→scipy, prometheus_client, aiohttp); `test_signal_publisher` runs a real backtest asserting `len(equity_curve) == 151`; the `SecretStr` repr-leak test is thoughtful; 54 `assert_called*` across 16k lines — mocks aren't self-fulfilling.
+
+Commit: TBD

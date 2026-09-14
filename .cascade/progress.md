@@ -1823,3 +1823,18 @@ Commit: adc54f4
 **Clean:** 0 skips/todo; 0 orphan-тестов (154/154 импорта резолвятся); мат-тесты честные (seeded PRNG, точные значения); vi.mock у 23 файлов и по делу; ~913 weak-asserts из 1973 — приемлемо; stores честные.
 
 Commit: c2add83
+
+
+## R129 — ai-signal-bot/tests/ quality sweep (93 files / 16.2k lines)
+
+**Scope:** весь `ai-signal-bot/tests/` — оба дерева (tests/ root + tests/unit/ + tests/integration/): fixture-vs-reality, perma-skips, зомби-импорты, self-fulfilling mocks, collection gaps.
+
+**Findings (2):**
+- S285 (Low): `tests/test_integration.py` — все 17 тестов `pytest.skip("Exchange simulator not running")` без живого сима на :8765. CI `test-python` (:93) и `test-windows` (:449) запускают `pytest tests/` без сима — `docker compose up` существует только в `docker-smoke` job (:344) для /health-curl'ов. Весь WS-integration путь зелёный-несбывшийся: ни один CI-прогон его не выполняет.
+- S286 (Info): `test_monitoring_llm.py:301,313` — импорт-тесты на `src.data_collection.market_replay`/`timescaledb_client` под `except ModuleNotFoundError → skip`. Модулей нет в `src/data_collection/` и вообще в репо — вечно-зелёные зомби, намекающие на покрытие ненаписанного кода. 2 шт.
+
+**Notes:** `tests/mocks/` — ghost-директория с одними .pyc-остатками (untracked, trivia). Дубли-имён root vs unit (test_backtest/indicators/kelly/metrics) — разные предметы, подтверждено повторно.
+
+**Clean:** все 93 test_*.py содержат test-функции; conftest-фикстуры честные (детерминированные candles); skipif/importorskip — настоящие dep-gates (cvar→scipy, prometheus_client, aiohttp); test_signal_publisher гоняет реальный backtest с проверкой длины equity_curve; SecretStr repr-leak тест — продуманный; 54 assert_called-ассерта на 16k строк — моки не самосбывающиеся.
+
+Commit: TBD
