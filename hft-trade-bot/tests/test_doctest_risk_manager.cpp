@@ -157,7 +157,7 @@ TEST_CASE("Daily loss limit triggers kill switch") {
     RiskManager::Params params;
     params.daily_loss_limit = 100.0;
     RiskManager rm(params);
-    rm.update_pnl(-200.0); // exceeds daily loss limit
+    rm.update_pnl_v2(-200.0, 0.0, 0.0); // exceeds daily loss limit
     auto result = rm.check_order("BTC/USDT", "BUY", 0.1, 50000, 5, 10000, 5000, 0);
     CHECK_FALSE(result.passed);
     CHECK(result.code == 3);
@@ -215,12 +215,16 @@ TEST_CASE("Blacklist and unblacklist symbol") {
 // ═══════════════════════════════════════════════════════════════════════════
 // TestDailyReset
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("Daily reset zeros PnL") {
+TEST_CASE("Daily reset zeros PnL but keeps exposure") {
     RiskManager rm({});
-    rm.update_pnl(-500.0);
+    rm.update_pnl_v2(-500.0, 0.0, 0.0);
     CHECK(rm.daily_pnl() == doctest::Approx(-500.0));
+    // Exposure is current holdings — positions carried past the UTC boundary
+    // must remain counted, or max_total_exposure silently weakens (S249).
+    rm.on_fill("BTC/USDT", "BUY", 0.5, 40000.0, 0.0);
     rm.reset_daily();
     CHECK(rm.daily_pnl() == doctest::Approx(0.0));
+    CHECK(rm.total_exposure() == doctest::Approx(20000.0));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -228,7 +232,7 @@ TEST_CASE("Daily reset zeros PnL") {
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("Monitoring getters return values") {
     RiskManager rm({});
-    rm.update_pnl(100.0);
+    rm.update_pnl_v2(100.0, 0.0, 0.0);
     CHECK(rm.daily_pnl() == doctest::Approx(100.0));
     CHECK(rm.total_exposure() == doctest::Approx(0.0));
     CHECK(rm.peak_equity() == doctest::Approx(0.0));

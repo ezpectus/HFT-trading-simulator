@@ -53,14 +53,12 @@ void process_sl_tp(BotContext& ctx, double current_balance) {
         spdlog::info("SL/TP triggered: {} @ {:.2f} ({})", trigger.symbol, trigger.price,
                      trigger.reason);
         if (ctx.executor->close_position(trigger.symbol)) {
-            auto closed = ctx.pos_mgr.close_position(trigger.symbol, trigger.price);
-            if (closed) {
-                ctx.balance.fetch_add(closed->unrealized_pnl, std::memory_order_relaxed);
-                // daily_pnl_ is owned by update_pnl_v2 in update_risk_state —
-                // no per-close update_pnl here (it double-counts realized).
-                spdlog::info("Position closed: {} PnL: {:+.2f}", trigger.symbol,
-                             closed->unrealized_pnl);
-            }
+            // Keep the position on the book — the close fill arrives at the
+            // real price with its fee and is booked by apply_fill (the
+            // exchange is the source of truth, S248). Mark closing so this
+            // trigger doesn't refire while the order is in flight; a stale
+            // mark expires and re-fires.
+            ctx.pos_mgr.mark_closing(trigger.symbol);
         } else {
             spdlog::warn("SL/TP close request not sent — keeping local position: {}",
                          trigger.symbol);

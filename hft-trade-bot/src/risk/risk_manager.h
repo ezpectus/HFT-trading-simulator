@@ -198,15 +198,6 @@ class RiskManager {
         daily_pnl_.fetch_sub(fee, std::memory_order_relaxed);
     }
 
-    // V2: Update PnL (called periodically from mark-to-market)
-    void update_pnl(double pnl) {
-        // Use CAS loop for atomic add — operator+= is load+store race
-        double current = daily_pnl_.load(std::memory_order_relaxed);
-        while (!daily_pnl_.compare_exchange_weak(current, current + pnl, std::memory_order_relaxed,
-                                                 std::memory_order_relaxed)) {
-        }
-    }
-
     void update_pnl_v2(double realized_pnl, double unrealized_pnl, double equity) {
         daily_pnl_.store(realized_pnl + unrealized_pnl, std::memory_order_relaxed);
         double peak = peak_equity_.load(std::memory_order_relaxed);
@@ -221,7 +212,8 @@ class RiskManager {
     void reset_daily() {
         daily_pnl_.store(0.0, std::memory_order_relaxed);
         peak_equity_.store(0.0, std::memory_order_relaxed);
-        total_exposure_.store(0.0, std::memory_order_relaxed);
+        // total_exposure_ is CURRENT holdings, not a daily counter — positions
+        // carried over midnight must stay counted (S249).
     }
 
     // V2: Reduce exposure when position is closed

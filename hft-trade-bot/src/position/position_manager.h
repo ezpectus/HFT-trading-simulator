@@ -3,6 +3,7 @@
 
 #include "../data/signal.h"
 #include "../data/types.h"
+#include <chrono>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -82,6 +83,7 @@ class PositionManager {
         if (status == "PENDING") return {}; // resting-order ack — still pending
         if (status != "FILLED") {           // REJECTED / CANCELLED
             cancel_pending_locked(symbol);
+            closing_since_.erase(symbol); // failed close — let SL/TP retrigger
             return {};
         }
         if (filled_qty <= 0.0 || price <= 0.0) return {};
@@ -109,6 +111,7 @@ class PositionManager {
                 it->quantity -= filled_qty;
                 it->fees_paid += fee;
                 it->update_pnl(price);
+                closing_since_.erase(symbol);
                 realized_pnl_total_ += pnl;
                 res.effect       = FillEffect::REDUCED;
                 res.realized_pnl = pnl;
@@ -116,6 +119,7 @@ class PositionManager {
                 // Opposite direction, full — close the position.
                 it->fees_paid += fee;
                 it->update_pnl(price);
+                closing_since_.erase(symbol);
                 realized_pnl_total_ += it->unrealized_pnl;
                 res.realized_pnl = it->unrealized_pnl;
                 res.effect       = FillEffect::CLOSED;
@@ -146,8 +150,8 @@ class PositionManager {
             res.effect = FillEffect::OPENED;
             return res;
         }
-        // Stray fill with no pending order — e.g. our own close_position fill
-        // arriving after the local book already closed it. Nothing to do.
+        // Stray fill with no position and no pending order — e.g. a manual
+        // exchange-side trade or a duplicated fill message. Nothing to do.
         return {};
     }
 
@@ -235,6 +239,14 @@ class PositionManager {
             if (it == prices.end()) continue;
             double price = it->second;
 
+            // Close order already in flight — don't refire. A stale mark
+            // (close never filled) expires and re-triggers (S248).
+            auto cm = closing_since_.find(pos.symbol);
+            if (cm != closing_since_.end() &&
+                std::chrono::steady_clock::now() - cm->second < CLOSE_RETRY) {
+                continue;
+            }
+
             if (pos.is_long()) {
                 if (pos.stop_loss > 0 && price <= pos.stop_loss) {
                     triggers.push_back({pos.symbol, price, "STOP_LOSS"});
@@ -250,6 +262,14 @@ class PositionManager {
             }
         }
         return triggers;
+    }
+
+    // Mark a close order as sent for this symbol — the position stays on the
+    // book until the real fill arrives and books PnL/fee at the actual price
+    // (S248). check_sl_tp suppresses re-triggers until the mark goes stale.
+    void mark_closing(const std::string& symbol) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        closing_since_[symbol] = std::chrono::steady_clock::now();
     }
 
     double total_unrealized_pnl() const {
@@ -283,6 +303,9 @@ class PositionManager {
     std::vector<Position>                         positions_;
     std::unordered_set<std::string>               active_symbols_;
     std::unordered_map<std::string, PendingOrder> pending_orders_;
+    // symbol → when its close order was sent (steady clock, for staleness)
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point> closing_since_;
+    static constexpr std::chrono::seconds                                  CLOSE_RETRY{10};
 };
 
 } // namespace hft

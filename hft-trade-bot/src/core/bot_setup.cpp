@@ -203,7 +203,8 @@ void init_kill_switch(BotContext& ctx) {
         auto positions = ctx.pos_mgr.get_positions();
         for (const auto& pos : positions) {
             if (ctx.executor->close_position(pos.symbol)) {
-                ctx.pos_mgr.close_position(pos.symbol, ctx.receiver->get_price(pos.symbol));
+                // Fill books PnL at the real price — just mark closing (S248).
+                ctx.pos_mgr.mark_closing(pos.symbol);
             } else {
                 spdlog::error("KILL SWITCH: close request not sent for {} — position still open "
                               "locally and on exchange",
