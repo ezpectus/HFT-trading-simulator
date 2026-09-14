@@ -2417,3 +2417,17 @@ Commit: b44ca41
 ## R152 — discovered-and-fixed in the same round
 
 **S318 (Medium) — Fixed in R152.** Windows SHM IPC was dead end-to-end: C++ `CreateFileMappingW`/`shm_open` use the `/hft_*` name verbatim while `shm_ring_buffer.py:131` and `shm_market_data_writer.py:46` did `name.lstrip("/")` — Python attached to a different (auto-created, all-zero) kernel object, so signals/fills/market/kill-switch channels silently read zeros on Windows. Both strip sites now use the verbatim tag (proven by live cross-process C++→Python read of `/hft_heartbeat`).
+
+## R179 — 2026-09-15 — docs/ leaf-read (claims-vs-code) — 4 findings (S318–S321)
+
+Scope: `docs/` non-theory corpus (~9.5k lines) — WEBSOCKET_PROTOCOL.md message-type diff vs real dispatch/emitters, REST_API.md, ADVANCED_ORDER_TYPES.md, TRADING_STRATEGIES.md, CONFIGURATION_GUIDE.md env+section claims, PERFORMANCE.md methodology, DEPLOYMENT/QUICK_START/README command syntax. `docs/theory/` skipped — all 8 files gitignored local-only.
+
+**S318 (Info) — Open.** `CONFIGURATION_GUIDE.md:59-118` documents four `shared_config.yaml` sections deleted in S316/R170: `system:` (name/version/mode), `default_exchange:`, `timeframe:`/`timeframe_seconds:`, `account:` — plus "50 cryptocurrency pairs" (real: 49). The guide describes a file shape that no longer exists.
+
+**S319 (Info) — Open.** `TRADING_STRATEGIES.md` has detailed sections for only 3 of 6 wired strategies — TrendFollowing/MeanReversion/FFTCycle. `MarketMakingStrategy`, `MLEnsembleStrategy`, `SentimentStrategy` (all wired at `bot_helpers.py:54-63`) get no section; Sentiment is mentioned only in passing in the overview.
+
+**S320 (Info) — Open.** `PERFORMANCE.md` benchmark methodology is un-runnable + measures the nonexistent: `./hft_trade_bot --config <path>` (config is positional `argv[1]` — `bot_setup.cpp:58`), `--enable-latency-histograms` (no such flag — yaml `latency_histogram_enabled`), `cmake -DENABLE_PROFILING=ON` (no such option — real is `-DUSE_PGO=ON` + `-DCMAKE_BUILD_TYPE=Profile`). Latency table has a "REST API (exchange simulator) 5-20ms / ~10ms measured" row — the sim has no REST API (S074/S283). "5 strategies" ×2 — 6 wired. The "Measured" column is produced by nothing; `benchmark_suite.py` (S214 toy-theater) is still cited as the source.
+
+**S321 (Info) — Open.** `docker-compose` v1 syntax across command docs: DEPLOYMENT.md ×14, QUICK_START.md ×7, README.md ×2 — all `docker-compose build/up/ps/logs/down` while the EOL v1 binary is absent on modern setups (S302 fixed the Makefile, docs were left). ~23 sites.
+
+**Verified clean this round:** WEBSOCKET_PROTOCOL.md — all ~65 documented message types match the real dispatch table (`ws_message_handler.py:170-210` = 15 sim-incoming types; `signal_publisher.py:219-254` = 11 signal-incoming; all outgoing types incl. `arbitrage_scan` from `arbitrage.py:261`, `order_cancelled`/`orders_cancelled`, `fills_batch`, `replay_*` exist); snapshot example matches real emitter fields. REST_API.md is the post-S074 honest version (explicitly documents no REST + correct per-component endpoints). ADVANCED_ORDER_TYPES.md classes all exist in `models.py`. All env vars in CONFIGURATION_GUIDE have real code readers.

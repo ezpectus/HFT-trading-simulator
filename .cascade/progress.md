@@ -2432,3 +2432,14 @@ Done-log fully verified through R176 — zero unverified. Board: 3 open (S297, S
 - **S301** — nightly-backtest dedup: persistent failure now comments on the existing open issue (title-matched, PRs excluded) instead of filing a new one nightly; dead `pip install pytest pytest-asyncio` removed. walk_forward_ci.py sub-claim was stale (S214/R171 already wired it). YAML + embedded JS parse-verified.
 
 Gate: 9/9 ALL GREEN. Commit: f30058e. Board: 1 open — S309 (Medium, Docker-blocked). Done-log fully verified through R176.
+
+## R179 — slop-audit — docs/ leaf-read — 4 findings (S318–S321)
+
+Scope: docs/ non-theory (~9.5k lines). Protocol doc fully diffed vs real dispatch — clean (65/65 types exist, arb_scan from arbitrage.py:261). REST_API already honest post-S074. Order-types doc matches models.py.
+
+- **S318** — CONFIGURATION_GUIDE documents 4 shared_config sections deleted in S316 (system/default_exchange/timeframe/account) + "50 pairs".
+- **S319** — TRADING_STRATEGIES details 3 of 6 wired strategies (MarketMaking/MLEnsemble/Sentiment missing).
+- **S320** — PERFORMANCE.md: 3 un-runnable C++ benchmark commands (positional argv vs --config, phantom --enable-latency-histograms, phantom ENABLE_PROFILING), REST latency row for a nonexistent API, "5 strategies", fabricated Measured column.
+- **S321** — docker-compose v1 syntax ×23 sites (DEPLOYMENT/QUICK_START/README); S302 fixed Makefile only.
+
+Board: 5 open (S309 Medium Docker-blocked + S318–S321 Info).
