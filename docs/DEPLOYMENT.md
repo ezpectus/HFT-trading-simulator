@@ -544,7 +544,7 @@ curl http://localhost:9091/health    # JSON: {"status":{...},"metrics":{...}}
 curl http://localhost:9091/metrics   # Prometheus text exposition
 ```
 
-`/health` returns 200 or 503 based on the bot's internal `HealthStatus`.
+`/health` returns 200 or 503 based on the bot's internal `HealthStatus` — **audit S246 caveat:** nothing ever calls `update_health()`, so it always returns 200 with the default all-true status; treat it as a liveness ping only, not a real health signal.
 
 ## Scaling
 

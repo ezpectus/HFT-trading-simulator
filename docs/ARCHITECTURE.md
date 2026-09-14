@@ -83,7 +83,7 @@ graph TB
     end
 
     subgraph "HFT Trade Bot (C++20 v2.0)"
-        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Signal Engine V3 (HMM regime)<br/>Pressure Model | Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | Kill Switch"]
+        HFT["HFT Trade Bot v2.0<br/>Signal Engine V2 (6 indicators)<br/>Signal Engine V3 (HMM regime — opt-in, see audit S245)<br/>Pressure Model | Adaptive Order Selector V2<br/>Latency Histograms | Circuit Breaker<br/>SHM IPC | Kill Switch"]
         HFT --- WS8765
         HFT --- WS8766
         HFT -->|Orders| WS8765
@@ -131,7 +131,7 @@ The system implements production-grade observability across all components:
 **Health endpoints** — Each service exposes HTTP health endpoints for Docker/Kubernetes probes:
 - Exchange Simulator: `/health`, `/live`, `/ready`, `/metrics` on port 8775
 - AI Signal Bot: `/health` on port 8080 (HealthChecker), `/health` + `/metrics` on port 9090 (MetricsExporter)
-- HFT Trade Bot: `/health` on port 9091
+- HFT Trade Bot: `/health` on port 9091 — **audit S246:** `update_health()` has zero callers; the endpoint always reports the all-true `HealthStatus` defaults regardless of real state
 - Web UI: `/health` on port 3000 (nginx)
 
 **Metrics** — Prometheus scrapes all services every 15s. Metrics use three namespaces:
@@ -275,9 +275,9 @@ The HFT bot was upgraded to v2.0.0 with a complete latency optimization overhaul
 | Subsystem | Description |
 |-----------|-------------|
 | Signal Engine V2 | 6-indicator weighted composite: InlineEMA(21/50) 0.25, InlineRSI(14) 0.15, OBI(5/10/20) 0.20, VWAP deviation 0.10, InlineADX(14) 0.10, Pressure 0.20 |
-| Pressure Model | Multi-level OBI, trade flow imbalance, toxicity detection, microprice, queue position, spread regime, price impact prediction |
-| Adaptive Order Selector V2 | Dynamic IOC/FOK/GTD/PostOnly based on confidence, spread, OBI, toxicity. Exchange-specific mappings for Binance, OKX, Bybit |
-| Latency Infrastructure | Spinlock, SPSCQueue (lock-free), ObjectPool (no heap alloc), LatencyHistogram (P50/P95/P99/P99.9), ScopedLatency (RAII), ThreadAffinity, CircuitBreaker, RetryPolicy |
+| Pressure Model | Multi-level OBI, trade flow imbalance, toxicity detection, microprice, queue position, spread regime, price impact prediction — **audit S247:** trade-flow + toxicity legs are dead in prod (no `TradeTick` producers — every caller uses the no-trades overload → `toxic_score`/`trade_imbalance` permanently 0); under SHM market data the injected 1-level books zero the OBI legs too |
+| Adaptive Order Selector V2 | Dynamic IOC/FOK/GTD/PostOnly based on confidence, spread, OBI, toxicity. Exchange-specific mappings for Binance, OKX, Bybit — **audit S247/S250:** `toxic_score` input is always 0 and `top5_depth` is hardcoded `0.0` → toxic→IOC and GTD branches unreachable |
+| Latency Infrastructure | Spinlock, SPSCQueue (lock-free), ObjectPool (no heap alloc), LatencyHistogram (P50/P95/P99/P99.9), ScopedLatency (RAII), ThreadAffinity, CircuitBreaker, RetryPolicy — **audit S250:** ObjectPool/CircuitBreaker/RetryPolicy have zero production users (test-only); Spinlock/SPSCQueue/LatencyHistogram/ThreadAffinity are live |
 | Cache-Line Alignment | All hot-path structs `alignas(64)`: AlignedOrderBookLevel, FastSignal, FastOrder, PressureResult, RoutingDecision |
 | Dynamic Leverage | Confidence >= 85 + ADX > 30 -> 5x, >= 75 -> 3x, else 1x |
 | Graceful Shutdown | Cancel all open positions before exit, latency report logging |
@@ -698,7 +698,7 @@ The system uses Prometheus for metrics collection and Grafana for visualization:
 | Service | Metrics Endpoint | Key Metrics |
 |---------|-----------------|-------------|
 | **Exchange Simulator** | `:9090/metrics` | `ws_connections`, `broadcasts_total`, `candles_generated_total`, `arbitrage_opportunities_active`, `arbitrage_profit_estimated` |
-| **HFT Trade Bot** | Internal `LatencyHistogram` | `signal_to_order_p50_us`, `signal_to_order_p99_us`, `orders_sent_total`, `positions_open`, `circuit_breaker_state` |
+| **HFT Trade Bot** | Internal `LatencyHistogram` | `signal_to_order_p50_us`, `signal_to_order_p99_us`, `orders_sent_total`, `positions_open`, `circuit_breaker_state` — **audit S250:** `circuit_breaker_state` does not exist (CircuitBreaker is test-only); **S246:** 6 of 11 exported counters (`errors_total`, `reconnects_total`, `orders_canceled_total`, `shm_drops_total`, `heartbeats_*`) are permanent zeros |
 | **AI Signal Bot** | `:9091/metrics` | `signals_sent_total`, `signals_blocked_total`, `ws_clients_connected`, `backtests_run_total`, `circuit_breaker_trips_total`, `circuit_breaker_state`, `uptime_seconds` |
 | **Web UI** | N/A (client-side) | Connection quality, latency (displayed in StatusBar) |
 
