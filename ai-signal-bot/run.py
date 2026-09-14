@@ -28,7 +28,12 @@ import time
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
-from run_logger import setup_run_logging  # noqa: E402
+# run_logger is intentionally untracked (gitignored) — absent in clean clones,
+# CI, and Docker build contexts. Guard like the simulator does (S207).
+try:
+    from run_logger import setup_run_logging
+except ImportError:
+    setup_run_logging = None  # noqa: E402
 
 from config import SignalBotConfig  # noqa: E402
 from src.backtesting import Backtester, BacktestPlotter  # noqa: E402
@@ -56,7 +61,11 @@ from src.utils.bot_helpers import (  # noqa: E402
 def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
     """Setup logging with timestamped file output."""
     fmt = os.environ.get("LOG_FORMAT", "text")
-    return setup_run_logging("ai_signal_bot", level=level, format_type=fmt)
+    if setup_run_logging is not None:
+        return setup_run_logging("ai_signal_bot", level=level, format_type=fmt)
+    logging.basicConfig(level=getattr(logging, level.upper(), logging.INFO),
+                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    return logging.getLogger("ai_signal_bot"), "stdout"
 
 
 class AISignalBot:
