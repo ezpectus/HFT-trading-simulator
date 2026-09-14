@@ -2109,4 +2109,4 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S311** (Medium) — values.yaml image defaults → `ghcr.io/ezpectus/hft-tradebot--lite-version/<svc>:latest` (matches deploy.yml push path + v-stripped tags).
 - **S204+S315** (Medium+Medium, one eks complex) — `cluster_version` var default 1.32; private-only API default with `cluster_endpoint_public_access_cidrs` whitelist; KMS `encryption_config` for secrets (rotated key + alias); all 5 control-plane log types; `node_subnet_ids` var fed `private_subnet_ids` in both envs.
 - **Verification:** pre-commit-check 8/8 ALL GREEN; `python -m exchange_simulator` live-run in image-mock layout (starts, binds, warns on signal-handler); `bash -n` clean; ruff clean; helm/terraform binaries absent — templates/HCL re-read manually.
-- **Commits:** pending
+- **Commits:** `38a0960` (ai-bot S291), `0274513` (sim S303/S220), `7cf6442` (helm S203/S310/S311/S312), `a608904` (terraform S204/S315), `849bbd0` (docs)
