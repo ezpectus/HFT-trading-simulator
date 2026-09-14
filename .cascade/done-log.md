@@ -758,3 +758,34 @@ harnesses are un-unit-testable by design).
 
 ### S314 — duplicate of S273
 - **Status:** same `terraform.tfvars.example` `db_password` finding as S273 — files were deleted in R167 (commit ff85c7a). Closed as duplicate.
+
+## R171 — slop-fix — 5 findings closed (Low tier emptied)
+
+### S202 — ebpf_monitor: sys_enter/sys_exit pair, real latency
+- **Bug:** only a `sys_enter` probe existed — `ts_end` was never set, so `latency_ns` was 0 by construction and avg/max metrics permanently zero; docstring promised network/cache/memory/scheduling/file-IO that was never written; `syscall[32]` never filled; prom gauges registered but no http server ever exposed them.
+- **Fix:** `BPF_HASH(pid→start_ts)` + `sys_exit` probe submits one event per syscall with real `latency_ns` + `syscall_id`; docstring cut to implemented scope; gauges + never-populated stats buckets removed. Userspace aggregation verified (count/total/max accumulate real values).
+- **Files:** `monitoring/ebpf_monitor.py`
+- **Commit:** 41a84a8
+
+### S208 — Makefile test-cpp propagates real ctest failures
+- **Bug:** `ctest --output-on-failure || echo "skipped"` conflated missing build dir with failing tests — a red ctest exited 0.
+- **Fix:** explicit `[ ! -d build ]` → honest skip message; otherwise ctest's exit code propagates to `make test`.
+- **Files:** `Makefile`
+- **Commit:** 2e2ed33
+
+### S211 — bandit can't pass without a report
+- **Bug:** severity check was `if [ -f bandit-report.json ]` — a bandit crash before writing produced a green job with zero scan. (The finding's dead audit-grep step was already gone — stale.)
+- **Fix:** missing report → `::error::` + `exit 1`; the `|| echo "0"` JSON-parse swallow removed so a corrupt report also fails.
+- **Files:** `.github/workflows/ci.yml`
+- **Commit:** 2e2ed33
+
+### S214 — walk_forward_ci.py is the real walk-forward now
+- **Bug:** the script set `WF_STRATEGY` but the subprocess never read it — every named strategy produced identical buy-and-hold metrics on the same candle stream, labeled 'Walk-Forward Optimization CI'. Meanwhile `nightly-backtest.yml` carried the real implementation inline and never called the script.
+- **Fix:** script rewritten as the real walk-forward (rolling 30d/7d windows, real `Backtester` × TrendFollowing+MeanReversion, per-strategy aggregates, `--baseline`/`--threshold` degradation gate); workflow calls the script (downstream check reads `report['windows']`); `make walk-forward` works standalone via embedded seeded-GBM fixture labeled `synthetic-gbm-seed42`. Verified live: 5 windows × 2 strategies, strategy-specific metrics.
+- **Files:** `scripts/walk_forward_ci.py`, `.github/workflows/nightly-backtest.yml`
+- **Commit:** 19a1ea4
+
+### S218 — README_PROJECT_OVERVIEW disclaimed as HISTORICAL
+- **Bug:** root-level snapshot presented deleted code as live (Rust hft-executor FFI, ml/, research/, "kept" slop modules) with no disclaimer — two contradictory root READMEs.
+- **Fix:** HISTORICAL banner added (same pattern as REFACTORING_PLAN_10DAYS.md) naming the dead claims and pointing at README.md + the audit ledger. File is gitignored/untracked — fix lives in the working tree.
+- **Files:** `README_PROJECT_OVERVIEW.md` (local-only)

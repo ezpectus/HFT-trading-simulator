@@ -2330,3 +2330,13 @@ Gate: staged ALL GREEN (6/6 + SKIP note). Board: 38 open.
 - **S314** — closed as duplicate of S273 (files already deleted R167).
 
 Gate: staged ALL GREEN (WD_SKIP_COVERAGE for the config-string commits). Board: 28 open.
+
+## R171 — slop-fix — 5 findings closed (Low tier emptied)
+
+- **S202** — ebpf_monitor sys_enter/sys_exit pair: latency was structurally 0, now real; scope-honest docstring.
+- **S208** — Makefile test-cpp: no-build skips, real ctest failures propagate.
+- **S211** — bandit missing report now fails the job (was silent green without scan).
+- **S214** — walk_forward_ci.py rewritten as the real Backtester walk-forward; nightly workflow calls it; make target works standalone.
+- **S218** — README_PROJECT_OVERVIEW got the HISTORICAL banner (gitignored file — local fix).
+
+Gate: staged ALL GREEN. Board: 23 open (0 Low left — only S309 Medium blocked on Docker + Info pack).
