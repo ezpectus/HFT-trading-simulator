@@ -2608,3 +2608,13 @@ Target: `exchange_simulator/{exchange*,models,market_simulator}` fill/position/l
 - **S333** fill-path precision nits (Info): `round(·,2)` hardcoded tick across fill path + order book (silently collapses < $0.005 symbols); `_TYPICAL_VOLUME = 500.0` duplicated in exchange_order_submission.py:20 and exchange_advanced_orders.py:16.
 
 Clean (traced): submit_order validation chain (NaN/qty-max/TIF-consistency/OCO-resolved/no-price rejects all real), margin accounting across all close branches (exact close / partial / residual — balances), SL/TP trigger directions, trailing-stop buy/sell semantics, funding sign convention (longs pay positive rate), OCO cancel-sibling, GTD-cancel broadcast as non-fill (ws_broadcast:316-322 deliberate), market_simulator mid/book model honest.
+
+## R194 — slop-audit — hft-trade-bot C++ core (shm/position/execution/signal) — 3 findings (S334–S336)
+
+Target: `hft-trade-bot/src/{ipc,position,execution,strategies,risk}` — lock-free correctness, position accounting, order wire format.
+
+- **S334** partial-close fee double-count (Medium): `position_manager.h:107-117` — REDUCED realizes `slice_pnl - fee` AND `fees_paid += fee`; `update_pnl` (types.h:90) nets fees_paid off the survivor → same fee subtracted twice by final close. `realized_pnl_total_` understated per partial close; no longer reconciles with per-fill fees.
+- **S335** `sync_position` never removes (Medium): position_manager.h:160-183 — adopt/refresh only; "fills own removals" breaks on any missed fill (disconnect gap) → local ghost: `has_position` blocks symbol forever, ghost SL/TP can fire close orders on non-existent positions.
+- **S336** `connection_` hdl ordering (Info): order_executor.h:54-56,466 — non-atomic hdl write published via `connected_`; watchdog reads it under relaxed load (:439). Benign x86, formally racy on weak memory.
+
+Clean (traced): `shm_ring_buffer` — textbook SPSC (relaxed own-index, acquire/release cross-side, wraparound-correct, loud open-validation); all three signal engines genuinely wired (v3 wraps v2 :163-166, v1 explicit fallback with synthetic-book warn :289-303 — disclosed, not hidden fake); order_executor — truncation guards, auth-first, arb unwind w/ critical alert, watchdog+reconnect cancel; apply_fill open/increase/close branches otherwise correct; close-retry `closing_since_` staleness window (S248) present.
