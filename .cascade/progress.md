@@ -1943,4 +1943,4 @@ Commit: 9d26be8
 
 **Clean:** tracked-but-ignored = только 3 `.cascade/` ledger'а; `docs/theory/`+`audit/` gitignored+untracked (не repo-weight); fpga_orderbook.vhd честно задокументирован как academic sketch; hft scripts — реальные CMake-wrapper'ы; mock-mode оба пути консистентны; e2e-helper импортируется всеми 4 spec'ами; workflow-файлы самосогласованы; `ai-signal-bot/scripts/.gitkeep` легитимен.
 
-Commit: pending
+Commit: 23d174d
