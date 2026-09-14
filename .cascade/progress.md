@@ -1718,3 +1718,20 @@ Commit: fd2b029
 **Retracted/false positives:** все skip'ы — честные dep/env-гейты с reason'ами (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` — только ImportError-gates; conftest'ы настоящие; vi.mock сдержан (23/153, boundary); `test_signal_publisher` — live-execution; `useMockData.test` мокает правильную границу; shm-тесты — живой prod-код (run.py:275-303); `PriceAlerts onAlert` — prop, не perf-monitor.
 
 Commit: b1ed546
+
+---
+
+## R122 — build & tooling config sweep
+
+**Scope:** `web-ui/package.json` (12 скриптов, 30 deps), vite.config.js, vitest.config.js, eslint.config.js, tsconfig.json, postcss/tailwind configs, playwright wiring, оба `pyproject.toml` (ruff+pytest), requirements.txt ↔ импорты, `hft-trade-bot/CMakeLists.txt` non-test пути (options/install/vcpkg), `.clang-format`/`.editorconfig`, `shared_config.yaml` consumers, `.windsurf/` workflows inventory.
+
+**Findings (3):**
+- S269 (Medium): 15 `.ts` source-файлов вне любой статической проверки — `eslint.config.js:9` `files: ['**/*.{js,jsx}']` не матчит `.ts` → `eslint src/` молча пропускает; `tsconfig.json` (`strict`, `include:["src"]`) есть, но `tsc` не вызывается нигде: ни `typecheck`-скрипта, ни CI-шага (ci.yml гоняет только `npm run lint`), ни pre-commit. Слепая зона включает `useWebSocket.ts` (объект S231), `useTradeJournal.ts`, `format.ts`, `useSessionRecorder.ts`, `useStrategyMarketplace.ts`, `performance.ts` — самая рискованная поверхность проверяется меньше всего.
+- S270 (Low): `vitest.config.js:30` `coverage.include: ['src/utils/**','src/hooks/**']` + 40%-пороги — знаменатель = 2 уже покрытые директории; ~290 файлов components/stores/contexts вне измерения → «coverage gate» (TESTING.md:287) не может упасть на непротестированной массе.
+- S271 (Info): числовой дрейф S258 дополз в build-конфиги — `package.json` description «278 panels, 52 quant models» + `vite.config.js:15` PWA-манифест «278 panels» (реально 271 registry-панель); TESTING.md CI-таблица: «Python 3.11, 3.12» → только 3.12 ×4 джобы; «Node 20, 22» → только 22 ×4; «cmake → build → test_runner» → реально `ctest` по per-file `test_*`-бинарям. Опровергнут ЧИСТО-claim R110 «vite.config манифест корректен (278)».
+
+**Retracted/false positives:** `test:ui` — `@vitest/ui` в package-lock (транзитивно, vitest4 разрешает); `vite-plugin-pwa` — реально сконфигурен в vite.config:9-42 (не dead dep); google-fonts runtimeCache ↔ `fonts.googleapis` link в index.html:19; tailwind живой (`@tailwind` directives + классы в компонентах); requirements ↔ импорты (tabulate→tracker, matplotlib→plotter); CMake allocator-options имеют честный WARNING-fallback; `web-ui/.env` gitignored (не committed); все panel `Math.random` — ID-gen/симуляционная математика на реальных props.
+
+**Clean:** все 12 npm-скриптов резолвятся; все 8 prod-deps + 22 dev-deps имеют consumers; оба pyproject честны; CMake targets↔sources; `shared_config.yaml` реально читается consistency-тестом+pre-commit+deploy-скриптами; `.windsurf/workflows/` — 8 файлов включая slop-fix.md.
+
+Commit: TBD

@@ -2068,3 +2068,21 @@ Deep pass on the 279-file test suite (126 py + 153 js): duplicate filenames, moc
 **Verified clean:** all skips are honest dep/env gates with reasons (34× prometheus_client, 14× /dev/shm, 5× live-sim); `try:` blocks are ImportError gates only; conftests are real path shims + real fixtures; `vi.mock` is restrained (23/153 files, all boundary mocks with autospec); `test_shm_*` files test live prod code (`run.py:275-303`); `test_signal_publisher.py` exercises the real backtest endpoint end-to-end; no `status_code in (200,400,500)` tolerance anywhere.
 
 Commit: b1ed546
+
+---
+
+## Round 122 — build & tooling config sweep (3 findings: S269–S271)
+
+Full pass on the build layer: all 12 npm scripts, vite/vitest/eslint/tsconfig, postcss/tailwind, both `pyproject.toml` files, requirements↔imports, CMakeLists non-test paths, playwright wiring, `.clang-format`/`.editorconfig`, `shared_config.yaml` consumers.
+
+**S269 (Medium) — Open.** 15 `.ts` source files sit outside every static check. `eslint.config.js:9` declares `files: ['**/*.{js,jsx}']` — `.ts`/`.tsx` never match, so `npm run lint` (`eslint src/`) silently skips them. `tsconfig.json` exists (`strict: true`, `include: ["src"]`) but `tsc` is invoked nowhere: no `typecheck` script in package.json, no step in ci.yml (the JS lint job runs only `npm run lint`), nothing in pre-commit. The blind files include `useWebSocket.ts` (the S231 subject — reconnect loop), `useTradeJournal.ts`, `format.ts`, `useSessionRecorder.ts`, `useStrategyMarketplace.ts`, `useSoundAlerts.ts`, `useWebSocket.ts` + 8 more hooks, `format.ts`/`patterns.ts`/`performance.ts`/`timeframes.ts`. The riskiest surface (WS client, session recorder, marketplace) is the least checked — a type error or `any`-leak there can never trip a gate.
+
+**S270 (Low) — Open.** The coverage gate measures only the already-tested directories. `vitest.config.js:30` scopes `coverage.include` to `['src/utils/**','src/hooks/**']` with 40% thresholds — the denominator excludes ~290 files under `components/`/`stores/`/`contexts/`. The gate can never regress on the untested mass, while TESTING.md:287 advertises a "coverage gate" that sounds whole-repo.
+
+**S271 (Info) — Open.** The S258 numeric drift reached the build configs. `package.json` description claims "278 panels, 52 quant models" and `vite.config.js:15` bakes "278 panels" into the PWA manifest — the registry has 271 component-mapped panels. TESTING.md's CI table also drifted: "Python 3.11, 3.12" → ci.yml runs 3.12 only (×4 jobs); "Node 20, 22" → 22 only (×4); "cmake → build → test_runner" → actually `ctest` over per-file `test_*` binaries, no `test_runner` exists. This retracts the R110 ЧИСТО claim "vite.config манифест корректен (278)".
+
+**Retracted:** `test:ui` resolves (`@vitest/ui` present in package-lock transitively); `vite-plugin-pwa` is genuinely configured (`vite.config.js:9-42` — registerType/workbox/manifest, not a dead dep); the google-fonts runtimeCaching rule matches a real `fonts.googleapis` link (`index.html:19`); tailwind is live (`@tailwind` directives in index.css:1-3, utility classes throughout components); `web-ui/.env` is gitignored, not committed.
+
+**Verified clean:** all 12 npm scripts resolve to real tools/configs; all 8 prod deps + 22 dev deps have consumers (happy-dom=env, esbuild=minifier+override, autoprefixer/postcss via postcss.config.js); both pyproject files are honest ruff+pytest configs with documented per-file-ignores; requirements.txt entries all have importers (tabulate→tracker.py, matplotlib→plotter.py); CMake options real (PCH default-on, MIMALLOC/JEMALLOC with honest WARNING fallback, vcpkg autodetect, all 25 test targets↔sources); `shared_config.yaml` genuinely consumed by `test_config_consistency.py`, pre-commit, and deploy scripts; `.clang-format`/`.editorconfig` present for the CI format step; `.windsurf/workflows/` holds 8 workflow files incl. slop-fix.md.
+
+Commit: TBD

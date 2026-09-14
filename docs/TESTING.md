@@ -310,10 +310,10 @@ python scripts/pre-commit-check.py --all     # full suite
 
 | Job | Matrix | Steps |
 |-----|--------|-------|
-| Python tests | Python 3.11, 3.12 | Install deps → pytest → coverage |
-| C++ tests | Ubuntu, Windows | cmake → build → test_runner |
-| JS tests | Node 20, 22 | npm ci → vitest → playwright |
-| Linting | Python (ruff), JS (eslint) | ruff check, eslint |
+| Python tests | Python 3.12 | Install deps → pytest → coverage |
+| C++ tests | Ubuntu (gcc-14, clang-17), Windows (MSVC) | cmake → build → ctest |
+| JS tests | Node 22 | npm ci → vitest → playwright |
+| Linting | Python (ruff), JS (eslint — `*.{js,jsx}` only; `.ts` files unlinted, S269) | ruff check, eslint |
 
 ---
 
