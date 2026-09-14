@@ -19,7 +19,7 @@ updates. High availability. Resource limits per pod.
 
 **Docker Compose (dev):**
 - Single host, simple, fast startup
-- `docker-compose up` starts all services — **known issue (audit S156):** the exchange simulator binds `localhost` inside its container, so the published `:8765`/`:8775` ports accept nothing externally; the web UI cannot connect until the bind host is fixed
+- `docker-compose up` starts all services — **known issue (audit S239):** `EXCHANGE_WS_HOST=0.0.0.0` (S156) fixed the `:8765` data socket, but the `:8775` metrics/health server still binds container loopback (yaml `metrics.host` short-circuits the host fallback), and the ai-bot metrics exporter binds loopback too (`AI_BOT_BIND_HOST` unset everywhere) — 2 of 3 Prometheus scrape jobs get connection refused while in-container healthchecks stay green
 - No self-healing, no auto-scaling
 - Sufficient for development
 
