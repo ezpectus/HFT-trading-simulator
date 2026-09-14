@@ -35,7 +35,7 @@ class MarketSimulator:
                 self._candle_history[(exchange, symbol)] = []
 
     def _init_exchange_params(self, exchanges):
-        """Initialize per-exchange price offset and volatility multiplier."""
+        """Initialize per-exchange venue premium and volatility multiplier."""
         self._exchange_offset = {}
         self._exchange_vol_mult = {}
         for i, exchange in enumerate(exchanges):
@@ -86,6 +86,15 @@ class MarketSimulator:
         self._init_symbol_state(symbols, exchanges, initial_prices, volatility)
         self._current_ts = 1704067200
         self._init_exchange_params(exchanges)
+        # Per-(exchange, symbol) multiplicative deviation — a mean-reverting
+        # OU process that lets venue prices genuinely diverge (fixed offsets
+        # alone keep books identical modulo a constant, so cross-exchange
+        # arbitrage could never occur).
+        self._exchange_dev = {
+            (exchange, symbol): 1.0 for exchange in exchanges for symbol in symbols
+        }
+        self._dev_kappa = 0.12   # mean-reversion speed per candle
+        self._dev_sigma = 0.0006  # per-candle deviation shock (~6bps)
         self._ob_cache = {}
 
         self._funding_interval = 96
@@ -181,8 +190,13 @@ class MarketSimulator:
 
         for exchange in self.exchanges:
             vol_mult = self._exchange_vol_mult.get(exchange, 1.0)
-            price = new_base_price * self._exchange_offset[exchange]
-            open_p = base_price * self._exchange_offset[exchange]
+            dev_key = (exchange, symbol)
+            dev = self._exchange_dev.get(dev_key, 1.0)
+            dev += self._dev_kappa * (1.0 - dev) + self._dev_sigma * self.rng.gauss(0, 1)
+            self._exchange_dev[dev_key] = dev
+            eff_offset = self._exchange_offset[exchange] * dev
+            price = new_base_price * eff_offset
+            open_p = base_price * eff_offset
             close_p = price
             wick_range = abs(close_p - open_p) * (0.5 + self.rng.random() * 0.5) * vol_mult
             high_p = max(open_p, close_p) + wick_range * self.rng.random()

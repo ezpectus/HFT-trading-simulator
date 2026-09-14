@@ -29,6 +29,30 @@ from exchange_simulator.models import (
 )
 
 
+class _CountingOrderHistory(deque):
+    """Order history with cumulative per-status counters.
+
+    The deque is windowed (maxlen) but the counters are monotonic — orders
+    mutate in place after append (PENDING → FILLED/CANCELLED), so terminal
+    transitions are counted through a status listener registered on append.
+    """
+
+    def __init__(self, maxlen: int):
+        super().__init__(maxlen=maxlen)
+        self.counters = {"submitted": 0, "filled": 0, "rejected": 0, "cancelled": 0}
+
+    def append(self, order: Order) -> None:
+        order._status_listener = self._count_status
+        self.counters["submitted"] += 1
+        self._count_status(order.status)
+        super().append(order)
+
+    def _count_status(self, status) -> None:
+        key = status.value.lower()
+        if key in self.counters:
+            self.counters[key] += 1
+
+
 class SimulatedExchange(
     AdvancedOrderMixin, OrderSubmissionMixin, LiquidationMixin
 ):
@@ -60,7 +84,7 @@ class SimulatedExchange(
             leverage=leverage,
             currency=currency,
         )
-        self._order_history: deque[Order] = deque(maxlen=10000)
+        self._order_history: deque[Order] = _CountingOrderHistory(maxlen=10000)
         self._order_counter: int = 0
         self.insurance_fund: float = 0.0
         self.partial_liquidation_ratio: float = 0.5

@@ -124,13 +124,25 @@ class PrometheusMixin:
             lines.append(f'exchange_total_fees{{{labels}}} {acc.total_fees:.4f}')
             lines.append(f'exchange_leverage{{{labels}}} {acc.leverage}')
 
-            # Order metrics (previously only in health.py which is never started)
-            history = ex._order_history
-            filled = sum(1 for o in history if o.status.value == "FILLED")
-            rejected = sum(1 for o in history if o.status.value == "REJECTED")
-            lines.append(f'exchange_orders_submitted_total{{{labels}}} {len(history)}')
-            lines.append(f'exchange_orders_filled_total{{{labels}}} {filled}')
-            lines.append(f'exchange_orders_rejected_total{{{labels}}} {rejected}')
+            # Cumulative order counters — the history deque is windowed
+            # (maxlen=10000), so _total must come from the counting listener,
+            # not len()/window sums which pin or regress on eviction.
+            counters = getattr(ex._order_history, "counters", None) or {}
+            lines.append("# HELP exchange_orders_submitted_total Total orders submitted")
+            lines.append("# TYPE exchange_orders_submitted_total counter")
+            lines.append(
+                f'exchange_orders_submitted_total{{{labels}}} {counters.get("submitted", 0)}'
+            )
+            lines.append("# HELP exchange_orders_filled_total Total orders filled")
+            lines.append("# TYPE exchange_orders_filled_total counter")
+            lines.append(
+                f'exchange_orders_filled_total{{{labels}}} {counters.get("filled", 0)}'
+            )
+            lines.append("# HELP exchange_orders_rejected_total Total orders rejected")
+            lines.append("# TYPE exchange_orders_rejected_total counter")
+            lines.append(
+                f'exchange_orders_rejected_total{{{labels}}} {counters.get("rejected", 0)}'
+            )
 
             for pos in acc.positions:
                 pos_labels = f'exchange="{ex_id}",symbol="{pos.symbol}",side="{pos.side.value}"'

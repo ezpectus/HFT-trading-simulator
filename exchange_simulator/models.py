@@ -133,6 +133,16 @@ class Order:
     post_only: bool = False             # LIMIT only — reject if immediately marketable
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
+    def __setattr__(self, name, value):
+        # Orders mutate in place after entering the exchange history
+        # (PENDING → FILLED/CANCELLED), so terminal transitions are reported
+        # through an optional listener for cumulative order counters.
+        if name == "status" and "status" in self.__dict__:
+            listener = self.__dict__.get("_status_listener")
+            if listener is not None and self.__dict__["status"] is not value:
+                listener(value)
+        super().__setattr__(name, value)
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,

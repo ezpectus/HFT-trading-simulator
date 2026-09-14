@@ -8,7 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from exchange_simulator.models import Account, OrderStatus
+from exchange_simulator.exchange import _CountingOrderHistory
+from exchange_simulator.models import Account, Order, OrderStatus, OrderType, Side
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 from exchange_simulator.ws_metrics import LatencyHistogram
 
@@ -95,20 +96,41 @@ class TestSimMetricNames:
         assert "exchange_simulator_errors_total 5" in prom
         assert "exchange_simulator_price_updates_total 123" in prom
 
+    @staticmethod
+    def _order(status: OrderStatus) -> Order:
+        return Order(id="t", symbol="BTC/USDT", exchange="binance",
+                     side=Side.BUY, order_type=OrderType.LIMIT,
+                     quantity=0.1, status=status)
+
     def test_order_status_counters_count_real_enum_values(self, server):
         """S281 regression: FILLED/REJECTED enum values are uppercase — the
         counters must match, not lowercase literals that can never hit."""
         ex = server.exchanges["binance"]
-        ex._order_history = [
-            SimpleNamespace(status=OrderStatus.FILLED),
-            SimpleNamespace(status=OrderStatus.FILLED),
-            SimpleNamespace(status=OrderStatus.REJECTED),
-            SimpleNamespace(status=OrderStatus.PENDING),
-        ]
+        ex._order_history = _CountingOrderHistory(maxlen=10000)
+        for st in (OrderStatus.FILLED, OrderStatus.FILLED,
+                   OrderStatus.REJECTED, OrderStatus.PENDING):
+            ex._order_history.append(self._order(st))
         prom = server._get_prometheus_metrics()
         assert 'exchange_orders_submitted_total{exchange="binance"} 4' in prom
         assert 'exchange_orders_filled_total{exchange="binance"} 2' in prom
         assert 'exchange_orders_rejected_total{exchange="binance"} 1' in prom
+
+    def test_order_counters_are_monotonic_counters(self, server):
+        """S221 regression: _total series must survive window eviction and
+        in-place status transitions — not windowed len()/sum() values."""
+        ex = server.exchanges["binance"]
+        hist = _CountingOrderHistory(maxlen=3)
+        ex._order_history = hist
+        for st in (OrderStatus.FILLED, OrderStatus.REJECTED, OrderStatus.FILLED):
+            hist.append(self._order(st))
+        pending = self._order(OrderStatus.PENDING)
+        hist.append(pending)  # evicts the first entry
+        pending.status = OrderStatus.FILLED  # in-place transition post-append
+        prom = server._get_prometheus_metrics()
+        assert 'exchange_orders_submitted_total{exchange="binance"} 4' in prom
+        assert 'exchange_orders_filled_total{exchange="binance"} 3' in prom
+        assert 'exchange_orders_rejected_total{exchange="binance"} 1' in prom
+        assert "# TYPE exchange_orders_submitted_total counter" in prom
 
 
 class TestInstrumentation:

@@ -231,6 +231,8 @@ def main():
         log_file_path=audit_cfg.get("log_file_path"),
         enable_file_logging=audit_enabled and audit_cfg.get("enable_file_logging", True),
         enable_callbacks=audit_cfg.get("enable_callbacks", True),
+        max_file_bytes=audit_cfg.get("max_file_bytes", 10 * 1024 * 1024),
+        backup_count=audit_cfg.get("backup_count", 5),
     ))
 
     exchanges, market = build_exchanges(config)

@@ -14,6 +14,7 @@ import time
 import uuid
 from collections import deque
 from collections.abc import Callable
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from threading import Lock
 
@@ -32,6 +33,8 @@ class AuditLogger:
         enable_file_logging: bool = True,
         enable_callbacks: bool = True,
         enabled: bool = True,
+        max_file_bytes: int = 10 * 1024 * 1024,
+        backup_count: int = 5,
     ):
         self.enabled = enabled
         self.max_memory_entries = max_memory_entries
@@ -46,9 +49,26 @@ class AuditLogger:
         # Callbacks for real-time event notification
         self._callbacks: list[Callable[[AuditLog], None]] = []
 
-        # Ensure log directory exists
+        # Held-open rotating file sink — one open() for the process lifetime,
+        # size-capped rotation so audit.log can't grow unbounded.
+        self._file_logger: logging.Logger | None = None
         if enable_file_logging:
             self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
+            # Per-instance logger name: multiple AuditLogger instances (tests,
+            # re-inits) must not share handlers writing to the same file.
+            self._file_logger = logging.getLogger(
+                f"exchange_simulator.audit.file.{id(self)}"
+            )
+            self._file_logger.propagate = False
+            self._file_logger.setLevel(logging.INFO)
+            handler = RotatingFileHandler(
+                self.log_file_path,
+                maxBytes=max_file_bytes,
+                backupCount=backup_count,
+                encoding="utf-8",
+            )
+            handler.setFormatter(logging.Formatter("%(message)s"))
+            self._file_logger.addHandler(handler)
 
         logger.info("AuditLogger initialized: max_entries=%d, file=%s", max_memory_entries, log_file_path)
 
@@ -105,12 +125,22 @@ class AuditLogger:
         return audit_log
 
     def _write_to_file(self, audit_log: AuditLog) -> None:
-        """Write audit log entry to file."""
+        """Write audit log entry to the rotating file sink."""
+        if self._file_logger is None:
+            return
         try:
-            with open(self.log_file_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(audit_log.to_dict()) + "\n")
+            self._file_logger.info(json.dumps(audit_log.to_dict()))
         except (OSError, ValueError, TypeError, RuntimeError) as e:
             logger.error("Failed to write audit log to file: %s", e)
+
+    def close(self) -> None:
+        """Flush and close the file sink (drops the per-instance handler)."""
+        if self._file_logger is None:
+            return
+        for handler in self._file_logger.handlers[:]:
+            handler.close()
+            self._file_logger.removeHandler(handler)
+        self._file_logger = None
 
     def _notify_callbacks(self, audit_log: AuditLog) -> None:
         """Notify all registered callbacks."""

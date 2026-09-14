@@ -194,3 +194,34 @@ class TestArbitrageDetector:
         detector.scan()  # next scan triggers expiry
         assert detector.active_count <= initial_count
         assert detector.stats["total_expired"] >= 0
+
+
+class TestArbitrageModelIntegration:
+    """The market model must actually be capable of producing arbs — fixed
+    per-exchange offsets keep books identical modulo a constant, making
+    scan() structurally empty forever (S213)."""
+
+    def test_detector_fires_over_candle_run(self, setup_exchanges):
+        """With realistic params, venue deviations must occasionally cross
+        the net-spread threshold — a detector that can never fire is dead."""
+        exchanges, market = setup_exchanges
+        detector = ArbitrageDetector(
+            exchanges=exchanges,
+            fee_pct=0.075,
+            slippage_bps=2.0,
+            min_spread_bps=5.0,
+        )
+        found = 0
+        for _ in range(400):
+            market.next_candle()
+            found += len(detector.scan())
+        assert found > 0, "arb detector structurally cannot fire"
+        assert detector.stats["best_spread_bps"] > 5.0
+
+    def test_exchange_deviation_is_mean_reverting(self, setup_exchanges):
+        """Deviation stays in a sane band — no runaway venue drift."""
+        _, market = setup_exchanges
+        for _ in range(2000):
+            market.next_candle()
+        for dev in market._exchange_dev.values():
+            assert 0.99 < dev < 1.01
