@@ -59,14 +59,6 @@ def test_metrics_exporter_has_histograms(exporter: MetricsExporter) -> None:
         pytest.skip("prometheus_client not installed")
     assert hasattr(exporter, "signal_latency")
     assert hasattr(exporter, "order_latency")
-    assert hasattr(exporter, "shm_round_trip_latency")
-
-
-def test_metrics_exporter_has_summaries(exporter: MetricsExporter) -> None:
-    """Summaries should be initialized."""
-    if not HAS_PROMETHEUS:
-        pytest.skip("prometheus_client not installed")
-    assert hasattr(exporter, "position_hold_time")
 
 
 # ─── Record Methods ───
@@ -101,11 +93,11 @@ def test_record_order_rejected(exporter: MetricsExporter) -> None:
 
 
 def test_record_kill_switch(exporter: MetricsExporter) -> None:
-    """record_kill_switch should set active flag."""
+    """record_kill_switch should latch the active flag."""
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
     exporter.record_kill_switch("max_drawdown")
-    exporter.reset_kill_switch()
+    assert exporter.kill_switch_active._value.get() == 1
 
 
 def test_update_pnl(exporter: MetricsExporter) -> None:
@@ -149,27 +141,6 @@ def test_observe_order_latency(exporter: MetricsExporter) -> None:
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
     exporter.observe_order_latency("binance", seconds=0.001)
-
-
-def test_observe_shm_round_trip(exporter: MetricsExporter) -> None:
-    """observe_shm_round_trip should not raise."""
-    if not HAS_PROMETHEUS:
-        pytest.skip("prometheus_client not installed")
-    exporter.observe_shm_round_trip(seconds=0.0001)
-
-
-def test_observe_position_hold_time(exporter: MetricsExporter) -> None:
-    """observe_position_hold_time should not raise."""
-    if not HAS_PROMETHEUS:
-        pytest.skip("prometheus_client not installed")
-    exporter.observe_position_hold_time(seconds=120.0)
-
-
-def test_reset_kill_switch(exporter: MetricsExporter) -> None:
-    """reset_kill_switch should not raise after activation."""
-    if not HAS_PROMETHEUS:
-        pytest.skip("prometheus_client not installed")
-    exporter.reset_kill_switch()
 
 
 # ─── Alert Metric Methods ───

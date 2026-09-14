@@ -206,7 +206,7 @@ class TestAlerting:
         bot = SimpleNamespace(
             config=_cfg(), logger=logging.getLogger("t"),
             exchange=SimpleNamespace(accounts={}),
-            tracker=SimpleNamespace(uptime_seconds=lambda: 0, orders_sent=0),
+            tracker=SimpleNamespace(uptime_seconds=0, orders_sent=0),
             db=MagicMock(),
             _background_tasks=set(), _on_task_done=lambda t: None,
             _shm_producer=None, _day_start_balance=None,
@@ -235,7 +235,7 @@ class TestAlerting:
         bot = SimpleNamespace(
             config=_cfg(), logger=logging.getLogger("t"),
             exchange=SimpleNamespace(accounts={}),
-            tracker=SimpleNamespace(uptime_seconds=lambda: 0, orders_sent=0),
+            tracker=SimpleNamespace(uptime_seconds=0, orders_sent=0),
             db=MagicMock(),
             _background_tasks=set(), _on_task_done=lambda t: None,
             _shm_producer=None, _day_start_balance=None,
@@ -261,7 +261,7 @@ class TestAlerting:
         bot = SimpleNamespace(
             config=_cfg(max_drawdown_pct=8.0), logger=logging.getLogger("t"),
             exchange=SimpleNamespace(accounts={"binance": {"balance": 9000.0}}),
-            tracker=SimpleNamespace(uptime_seconds=lambda: 0, orders_sent=0),
+            tracker=SimpleNamespace(uptime_seconds=0, orders_sent=0),
             db=MagicMock(), _background_tasks=set(), _on_task_done=lambda t: None,
             _shm_producer=None, _day_start_balance=10000.0,
         )

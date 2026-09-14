@@ -187,6 +187,16 @@ class Database:
             "total_fees": total_fees,
         }
 
+    def get_daily_pnl(self) -> float:
+        """Realized PnL from trades closed today (UTC midnight boundary)."""
+        conn = self._get_conn()
+        today_start = int(time.time()) // 86400 * 86400
+        row = conn.execute(
+            "SELECT COALESCE(SUM(pnl), 0) FROM trades WHERE status='CLOSED' AND timestamp >= ?",
+            (today_start,),
+        ).fetchone()
+        return float(row[0])
+
     def get_recent_signals(self, limit: int = 20) -> list[dict]:
         conn = self._get_conn()
         rows = conn.execute(

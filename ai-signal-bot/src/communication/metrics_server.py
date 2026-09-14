@@ -58,14 +58,56 @@ class MetricsCollector:
     def set_circuit_breaker_state(self, state: int) -> None:
         self._cb_state = state
 
-    def set_pnl_total(self, pnl: float) -> None:
+    def set_bot_pnl_total(self, pnl: float) -> None:
         self._pnl_total = pnl
 
-    def set_drawdown(self, drawdown: float) -> None:
+    def set_bot_drawdown(self, drawdown: float) -> None:
         self._drawdown = drawdown
 
-    def set_win_rate(self, win_rate: float) -> None:
+    def set_bot_win_rate(self, win_rate: float) -> None:
         self._win_rate = win_rate
+
+    def set_bot_uptime(self, seconds: float) -> None:
+        pass  # uptime is derived at render time from _start_time
+
+    def set_bot_sharpe(self, sharpe: float) -> None:
+        pass  # not tracked in the lightweight collector
+
+    def record_kill_switch(self, reason: str) -> None:
+        pass  # kill-switch state is owned by the publisher, not metrics
+
+    def record_ws_reconnect(self) -> None:
+        pass
+
+    def record_signal(self, symbol: str, direction: str, confidence: float) -> None:
+        pass  # per-symbol detail is Prometheus-only
+
+    def record_fill(self, exchange: str, symbol: str, side: str) -> None:
+        pass
+
+    def record_order_sent(self, exchange: str, symbol: str, side: str, order_type: str) -> None:
+        pass
+
+    def record_order_rejected(self, exchange: str, reason: str) -> None:
+        pass
+
+    def update_pnl(self, current: float, daily: float, equity: float, drawdown: float) -> None:
+        self._drawdown = drawdown / 100.0  # exporter takes pct; collector stores fraction
+
+    def update_positions(self, count: int, exposure: float) -> None:
+        pass
+
+    def update_ws_status(self, endpoint: str, connected: bool) -> None:
+        pass
+
+    def update_shm_buffer(self, channel: str, size: int) -> None:
+        pass
+
+    def observe_signal_latency(self, seconds: float) -> None:
+        pass
+
+    def observe_order_latency(self, exchange: str, seconds: float) -> None:
+        pass
 
     def record_error(self) -> None:
         self._errors_total += 1

@@ -27,7 +27,6 @@ try:
         Counter,
         Gauge,
         Histogram,
-        Summary,
         generate_latest,
     )
     HAS_PROMETHEUS = True
@@ -66,8 +65,6 @@ class MetricsExporter:
             self.shm_buffer_size = None
             self.signal_latency = None
             self.order_latency = None
-            self.shm_round_trip_latency = None
-            self.position_hold_time = None
             self.signals_sent_total = None
             self.signals_blocked_total = None
             self.circuit_breaker_state = None
@@ -90,7 +87,6 @@ class MetricsExporter:
         self._init_counters()
         self._init_gauges()
         self._init_histograms()
-        self._init_summaries()
         self._init_alert_metrics()
 
     def _init_counters(self):
@@ -154,18 +150,7 @@ class MetricsExporter:
             buckets=(0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0),
             registry=self.registry,
         )
-        self.shm_round_trip_latency = Histogram(
-            "trading_shm_round_trip_seconds", "SHM signal→fill round-trip latency",
-            buckets=(0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05),
-            registry=self.registry,
-        )
 
-    def _init_summaries(self):
-        """Initialize summary metrics."""
-        self.position_hold_time = Summary(
-            "trading_position_hold_time_seconds", "Position hold time",
-            registry=self.registry,
-        )
 
     def _init_alert_metrics(self):
         """Initialize ai_signal_bot_* metrics used by Prometheus alert rules."""
@@ -295,20 +280,7 @@ class MetricsExporter:
             return
         self.order_latency.labels(exchange=exchange).observe(seconds)
 
-    def observe_shm_round_trip(self, seconds: float):
-        if not HAS_PROMETHEUS:
-            return
-        self.shm_round_trip_latency.observe(seconds)
 
-    def observe_position_hold_time(self, seconds: float):
-        if not HAS_PROMETHEUS:
-            return
-        self.position_hold_time.observe(seconds)
-
-    def reset_kill_switch(self):
-        if not HAS_PROMETHEUS:
-            return
-        self.kill_switch_active.set(0)
 
     # ── Alert metric update methods ──
 

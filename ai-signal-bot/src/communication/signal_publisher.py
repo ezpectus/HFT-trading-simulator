@@ -313,6 +313,10 @@ class SignalPublisher:
             self.metrics.record_signal_blocked()
             return
 
+        created_ts = signal.get("timestamp")
+        if isinstance(created_ts, int | float) and created_ts > 0:
+            self.metrics.observe_signal_latency(time.time() - created_ts)
+
         signal = dict(signal)  # copy to avoid mutating caller's dict
         signal["timestamp"] = int(time.time())
         async with self._state_lock:
@@ -321,6 +325,11 @@ class SignalPublisher:
                 self._signal_history.popleft()
             self._signal_history.append(signal)
         self.metrics.record_signal_sent()
+        self.metrics.record_signal(
+            signal.get("symbol", "?"),
+            signal.get("direction", "?"),
+            signal.get("confidence", 0.0),
+        )
 
         if not self._clients:
             return

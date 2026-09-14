@@ -69,6 +69,11 @@ def setup_logging(level: str, log_file: str) -> tuple[logging.Logger, str]:
     return logging.getLogger("ai_signal_bot"), (log_file or "stdout")
 
 
+def _metrics_of(bot) -> object:
+    """Metrics sink on bot.signal_publisher (None-safe for stubbed bots)."""
+    return getattr(getattr(bot, "signal_publisher", None), "metrics", None)
+
+
 class AISignalBot:
     """Main AI Signal Bot orchestrator.
 
@@ -182,6 +187,9 @@ class AISignalBot:
                 self.logger.error("Could not connect. Exiting.")
                 return
 
+        metrics = _metrics_of(self)
+        if metrics is not None:
+            metrics.update_ws_status("exchange", connected)
         self._running = True
 
         # Initialize LLM engine
@@ -281,6 +289,9 @@ class AISignalBot:
         exc = task.exception()
         if exc:
             self.logger.error("Background task %s crashed: %s", task.get_name(), exc, exc_info=exc)
+            metrics = _metrics_of(self)
+            if metrics is not None:
+                metrics.record_error()
             # S291: a dead listener leaves the bot trading on frozen data with
             # green health — restart it instead of staying dark forever.
             if task is self._listen_task and self._running:
@@ -349,13 +360,15 @@ class AISignalBot:
 
     def _on_shm_fills(self, fills: list[tuple]) -> None:
         """Persist fills pushed by the C++ bot: (ts_ns, symbol_id, side, qty, price, fee, ex_id)."""
+        metrics = _metrics_of(self)
         for ts_ns, symbol_id, side, qty, price, fee, _ex_id in fills:
             symbol = (self._symbol_names[symbol_id]
                       if 0 <= symbol_id < len(self._symbol_names) else f"#{symbol_id}")
+            side_str = {0: "BUY", 1: "SELL"}.get(side, "BUY")
             trade = {
                 "timestamp": ts_ns / 1e9, "symbol": symbol,
                 "exchange": self.config.default_exchange,
-                "side": {0: "BUY", 1: "SELL"}.get(side, "BUY"),
+                "side": side_str,
                 "quantity": qty, "entry_price": price, "fee": fee,
                 "status": "FILLED", "signal_id": None,
             }
@@ -364,6 +377,10 @@ class AISignalBot:
                 self.trade_logger.log(trade)
             except (OSError, ValueError, RuntimeError) as e:
                 self.logger.warning("SHM fill persist failed: %s", e)
+            if metrics is not None:
+                metrics.record_fill(self.config.default_exchange, symbol, side_str)
+        if metrics is not None and self._shm_fills is not None:
+            metrics.update_shm_buffer("fills", self._shm_fills.pending())
 
     def _on_kill_switch(self, ts_ns: int, reason: int) -> None:
         """C++ kill-switch activated — latch, metric, alert (CRITICAL rule)."""
@@ -373,7 +390,7 @@ class AISignalBot:
         name = REASON_NAMES.get(reason, f"unknown_{reason}")
         self.logger.critical(
             "HFT kill-switch activated via SHM (reason=%s) — pausing signal push", name)
-        metrics = getattr(self.signal_publisher, "metrics", None)
+        metrics = _metrics_of(self)
         if metrics is not None:
             metrics.record_kill_switch(name)
 
@@ -416,7 +433,7 @@ class AISignalBot:
 
         def _no_fills() -> bool:
             # Signal pipeline alive but nothing executed for 10+ min
-            return (self.tracker.uptime_seconds() > 600
+            return (self.tracker.uptime_seconds > 600
                     and self.tracker.orders_sent == 0)
 
         def _shm_down() -> bool:
@@ -463,13 +480,23 @@ class AISignalBot:
                 await self.exchange.listen()
             except (OSError, RuntimeError, ConnectionError, asyncio.TimeoutError) as e:
                 self.logger.error("Listen error: %s", e)
+                metrics = _metrics_of(self)
+                if metrics is not None:
+                    metrics.record_error()
+                    metrics.update_ws_status("exchange", False)
                 if self._running:
                     await asyncio.sleep(2)
                     await self.exchange.reconnect()
+                    if metrics is not None:
+                        metrics.update_ws_status(
+                            "exchange", getattr(self.exchange, "connected", False))
             except Exception as e:
                 # S291: non-IO exceptions (handler bugs) must not kill the
                 # listener permanently — log, reset the socket, keep going.
                 self.logger.error("Listen loop unexpected error: %s", e, exc_info=e)
+                metrics = _metrics_of(self)
+                if metrics is not None:
+                    metrics.record_error()
                 if self._running:
                     await asyncio.sleep(2)
                     await self.exchange.reconnect()
@@ -527,6 +554,10 @@ class AISignalBot:
         result = await self.validator.validate(signal, balance)
         if not result.passed:
             self.logger.info("  Rejected: %s", result.reason)
+            metrics = _metrics_of(self)
+            if metrics is not None:
+                metrics.record_order_rejected(
+                    self.config.default_exchange, result.reason or "risk_check")
             return False
         return True
 
@@ -540,6 +571,9 @@ class AISignalBot:
         await self.signal_publisher.broadcast_signal(sig_dict)
         if self._shm_producer and not self._hft_kill_active:
             self._shm_producer.push_signal_dict(sig_dict, self._symbol_map)
+            metrics = _metrics_of(self)
+            if metrics is not None:
+                metrics.update_shm_buffer("signals", self._shm_producer.pending())
 
         if self.config.paper_trading:
             if self.exchange.is_trading_active:
@@ -580,6 +614,10 @@ class AISignalBot:
         )
         self.tracker.orders_sent += 1
         self.health_checker.record_order()
+        metrics = _metrics_of(self)
+        if metrics is not None:
+            metrics.record_order_sent(
+                self.config.default_exchange, signal.symbol, side, "MARKET")
 
         # Save trade to DB
         self.db.save_trade({
@@ -619,6 +657,7 @@ class AISignalBot:
 
     async def _execute_live_order(self, signal: Signal, signal_id: int) -> None:
         """Execute a live order via the cached real-exchange adapter."""
+        metrics = _metrics_of(self)
         try:
             adapter = await self._live_exec_adapter()
             side = "buy" if signal.direction == SignalDirection.LONG else "sell"
@@ -626,6 +665,7 @@ class AISignalBot:
             if quantity <= 0:
                 self.logger.warning("  Live order skipped — no position size for %s", signal.symbol)
                 return
+            t0 = time.monotonic()
             result = await adapter.place_order(
                 symbol=signal.symbol,
                 side=side,
@@ -636,14 +676,26 @@ class AISignalBot:
                 # timeout-after-fill must not open a second real order.
                 client_order_id=f"sig_{signal_id}",
             )
+            if metrics is not None:
+                metrics.observe_order_latency(
+                    self.config.default_exchange, time.monotonic() - t0)
             if result:
+                if metrics is not None:
+                    metrics.record_order_sent(
+                        self.config.default_exchange, signal.symbol,
+                        side.upper(), "MARKET")
                 self.logger.info(
                     f"  Live order executed: {side} {quantity:.4f} {signal.symbol} "
                     f"@ {signal.entry_price:.2f} (id={result.get('order_id', '')})"
                 )
             else:
+                if metrics is not None:
+                    metrics.record_order_rejected(
+                        self.config.default_exchange, "place_order_failed")
                 self.logger.error("  Live order failed for %s", signal.symbol)
         except (ConnectionError, OSError, RuntimeError, ValueError) as e:
+            if metrics is not None:
+                metrics.record_error()
             self.logger.error("  Live order error: %s", e)
 
     def _snapshot_equity(self) -> None:
@@ -652,14 +704,35 @@ class AISignalBot:
         if not account:
             return
         try:
+            balance = account.get("balance", 0.0)
+            equity = account.get("equity", balance)
+            positions = account.get("positions", [])
             self.db.save_equity(
-                balance=account.get("balance", 0.0),
-                equity=account.get("equity", account.get("balance", 0.0)),
-                open_positions=len(account.get("positions", [])),
+                balance=balance,
+                equity=equity,
+                open_positions=len(positions),
             )
-            metrics = getattr(self.signal_publisher, "metrics", None)
+            metrics = _metrics_of(self)
             if metrics is not None:
                 equity_series = self.db.get_equity_history(limit=500)
+                peak = max(equity_series) if equity_series else equity
+                drawdown = (peak - equity) / peak if peak > 0 else 0.0
+                exposure = sum(
+                    abs(p.get("quantity", 0.0) * p.get("entry_price", 0.0))
+                    for p in positions
+                )
+                stats = self.db.get_stats()
+                metrics.update_pnl(
+                    current=equity - balance,
+                    daily=self.db.get_daily_pnl(),
+                    equity=equity,
+                    drawdown=drawdown * 100,
+                )
+                metrics.update_positions(len(positions), exposure)
+                metrics.set_bot_drawdown(drawdown)
+                metrics.set_bot_win_rate(stats["win_rate"] / 100)
+                metrics.set_bot_pnl_total(stats["total_pnl"])
+                metrics.set_bot_uptime(self.tracker.uptime_seconds)
                 returns = [
                     (b - a) / a
                     for a, b in zip(equity_series, equity_series[1:], strict=False)
