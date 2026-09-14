@@ -2058,3 +2058,12 @@ Commit: 685d68f
 **Clean:** ai-bot gauge/counter имена 1:1 dashboard-запросам; exchange latency-bucket'ы существуют; hft shm_queue_depth trio реально; dashboards provisioned корректно (R133 helm-vendored byte-identical).
 
 Commit: f7c4710
+
+## R147 — slop-fix — top-4 board findings closed (2 Critical + 2 High)
+
+- **S243** (Critical) — engine orders shared `client_order_id` (`hft_<sym>_0`): `convert_fast_signal` dropped `fast_sig.timestamp`/`leverage`. Fixed: both fields copied (bot_loop.cpp:183-184); V1 loop stamps `FastSignal::now_ns()` (:310-312). Unique cid per order → no dedup replay; `compute_leverage` reaches risk sizing.
+- **S244** (Critical) — throwing `json::from_msgpack` in unguarded ws message handler → `std::terminate` on first binary frame. Fixed: per-message try/catch (warn+drop, event loop survives) + last-resort catch in `ws_thread_` driving `schedule_reconnect` via the joinable reconnect thread.
+- **S246** (High) — `/health` static facade + 6/11 dead metrics + dead MemoryTracker. Fixed: `update_health_status(ctx)` every main-loop iteration from live state (connectivity, engine presence, SHM consumer, feed/fill ages, 5-min error window, rss); RECONNECTS+HEARTBEATS_MISSED wired via `set_monitor` into both sockets' reconnect/watchdog paths; ORDERS_CANCELED at real cancel events (CANCELLED split from REJECTED + on_order_cancelled); SHM_DROPS on `push_fill` failure; ERRORS via new `ErrorCountSink` spdlog sink. Removed `HEARTBEATS_SENT` (no sender exists) and `MemoryTracker` class; `health_` now mutex-guarded (update made the latent race real); fixed missing `}` in /health JSON.
+- **S279** (High) — `trade_logger.log_fill`/`log_batch` unguarded in `ws_broadcast.py` → AttributeError killed `_broadcast_loop` on first engine fill in any clean build (logger file is gitignored). Fixed: `is not None` guards matching `ws_message_handler.py:337`.
+- **Verification:** `system_monitor.h` + both monitor test binaries compile & pass (26/26 doctest, 9/9 unit) under llvm-mingw g++ -std=c++20; `ws_broadcast.py` py_compile + ruff clean. Full CMake build not runnable locally (vcpkg deps absent — stale `s:/` build cache) — edited regions re-read clean, all referenced APIs verified against real declarations.
+- **Commit:** TBD
