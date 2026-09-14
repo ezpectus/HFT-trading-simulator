@@ -1989,6 +1989,17 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R145 — terraform/ tree + root stragglers (4 findings)
+
+- **Areas:** `terraform/` (all 8 files — README, vpc/eks/s3 modules, dev+prod envs, tfvars examples) — last untouched IaC tree; stragglers: `shared_config.yaml`, `netlify.toml`, monitor.py ×3, `.dockerignore` ×4.
+- **Findings:**
+  - **S314** (Info) — tfvars.example files declare `db_password` but no variable/DB resource exists — phantom "secure the DB" instruction.
+  - **S315** (Medium) — eks module: `version = "1.28"` past standard support (new-cluster creation rejected → apply breaks) + node group gets `concat(public, private)` subnets → workers in public subnets get public IPs.
+  - **S316** (Medium) — `shared_config.yaml` claims "used by all components" — no component reads it; sole consumer is `test_config_consistency.py` reading only `symbols` → ~60 lines of dead authority + `version: "3.0.0"` fifth version namespace.
+  - **S317** (Info) — root `.dockerignore` dead: zero root-context builds (all 12 contexts are per-component); contains stale `exchange_simulator/exchange_simulator/` path.
+- **Verified clean:** vpc module (multi-AZ/NAT/routes/outputs), s3 module (versioning+SSE+public-access-block+lifecycle), backend s3+dynamodb locks, `netlify.toml` real SPA config, monitor.py×3 real local tools, component .dockerignore×3 honest.
+- **Commit:** <pending>
+
 ## R144 — residual tail: monitoring/alerts + .github templates + python dead-pin sweep (1 finding)
 
 - **Areas:** `monitoring/alerts/` (empty untracked dir — git-invisible residue), `.github/ISSUE_TEMPLATE`×3 + `PULL_REQUEST_TEMPLATE.md`, all `requirements*.txt` vs actual imports.
