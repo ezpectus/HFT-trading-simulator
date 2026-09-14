@@ -713,8 +713,8 @@ docker-compose restart
 ### Log Locations
 
 **Exchange Simulator:** `logs/exchange_simulator_<YYYYMMDD_HHMMSS>.log` (timestamped)
-**AI Signal Bot:** `logs/ai_signal_bot_<YYYYMMDD_HHMMSS>.log` (timestamped — the `logging.file` key in settings.yaml is currently ignored, audit S256)
-**HFT Trade Bot:** `logs/hft_trade_bot_<ts>.log` + `hft_trade_bot_latest.log` (the `log_file` config key is likewise ignored, audit S224)
+**AI Signal Bot:** `logging.file` in settings.yaml (default `logs/ai_signal_bot.log`) — a rotating file handler honors the configured path
+**HFT Trade Bot:** `<log_file stem>_<ts>.log` + `<stem>_latest.log` under the configured `log_file` dir (default `logs/hft_trade_bot_*`)
 **Web UI:** Browser console
 **Audit Logs:** `audit.log_file_path` value (`logs/audit.log` by default)
 
