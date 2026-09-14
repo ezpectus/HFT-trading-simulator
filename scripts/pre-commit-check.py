@@ -4,7 +4,8 @@
 WHAT IT DOES (matches .github/workflows/ci.yml):
   1. Detects staged files via `git diff --cached --name-only`
   2. Lint: ruff (Python) + eslint + tsc (JS) + clang-format (C++) — only changed files
-  3. Tests: pytest (Python) + vitest (JS) + ctest (C++) + cargo test (Rust) — only relevant
+  3. Tests: pytest (Python) + vitest (JS) + ctest (C++, under --tests/--full/--all or
+     CI test-cpp; staged/quick runs clang-format only) + cargo test (Rust) — only relevant
   4. Build: vite build (JS) + cmake build (C++) + cargo build (Rust)
   5. Security: bandit (Python) + npm audit (JS)
   6. E2E: Playwright (web-ui, mock mode)
@@ -32,6 +33,13 @@ CI jobs covered (from .github/workflows/ci.yml):
     audit-deps      → npm audit (web-ui)
     security-bandit → bandit (exchange_simulator + ai-signal-bot)
     test-e2e        → playwright (web-ui, --all mode only)
+
+Local mode equivalence:
+    --staged/--quick (installed hooks) → lint + unit tests on staged files only;
+        C++ build+ctest is deferred — use --tests/--full/--all or rely on CI test-cpp
+    --tests   → pytest + vitest + ctest
+    --full    → + build + security
+    --all     → + e2e
 
 Exit codes:
     0 — all checks passed, commit allowed
@@ -899,8 +907,15 @@ def main() -> int:
             comp_js = [f for f in (js_files or []) if f.startswith(COMPONENT_JS)] if js_files else None
             if comp_js is None or comp_js:  # skip when staged mode has none in this component
                 summary.add(check_vitest(quick=args.quick, files=comp_js))
-        if has_cpp and (run_build or args.full or args.all):
-            summary.add(check_cpp_build_and_test(quick=args.quick))
+        if has_cpp:
+            if args.tests or run_build:
+                summary.add(check_cpp_build_and_test(quick=args.quick))
+            else:
+                print(
+                    "  [SKIP] cmake+ctest: hft-trade-bot — staged/quick mode runs "
+                    "clang-format only; build+ctest run under --tests/--full/--all "
+                    "and CI test-cpp"
+                )
 
     # ─── Build checks ───
     if run_build and has_js:
