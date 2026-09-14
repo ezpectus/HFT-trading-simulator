@@ -187,6 +187,36 @@ Diversifies the ensemble (independence for the Condorcet theorem).
 |-----------|---------|-------------|
 | min_data | 64 | Minimum candles for FFT analysis |
 
+### Sentiment Strategy
+
+Reacts to simulator news events — directional moves technical indicators cannot
+anticipate. `sentiment.py` maps each `NewsEvent` type to a base sentiment
+(`EVENT_SENTIMENT_MAP`), scales by magnitude, adds noise for unexpected events,
+and decays sentiment over time (`decay_rate`). Long/short branches fire when
+|sentiment| crosses `fade_threshold`; a `follow_threshold` branch trades *with*
+strong news instead of fading it.
+
+**Parameters:** `fade_threshold`, `follow_threshold`, `decay_rate`,
+`min_magnitude` — all wired via `sentiment_*` config keys.
+
+### Market Making
+
+Avellaneda–Stoikov market making with inventory skew (`market_making.py`).
+Computes a reservation price shifted against accumulated inventory and an
+optimal spread from recent volatility (`vol_lookback` window); spread is
+clamped to `[min_spread, max_spread]`. Quote sizes shrink as inventory grows
+(`_compute_inventory_sizes`), and a toxicity score from order-book analysis
+widens quotes when flow is informed.
+
+### ML Ensemble
+
+ML-based ensemble member with regime detection (`ml_ensemble.py`). Builds a
+feature vector (`FeatureEngineer`), classifies market regime with an HMM
+(`n_hmm_states`), and predicts direction with a gradient-boosted classifier
+(LightGBM when available, else sklearn). An anomaly detector suppresses
+predictions on out-of-distribution inputs. Requires optional deps
+(sklearn/lightgbm) — gracefully untrained when absent.
+
 ### Ensemble Voter
 
 **Why this strategy exists:** Individual strategies generate false signals. No single
@@ -198,7 +228,9 @@ strategies. If Trend Following says LONG but Mean Reversion says SHORT, the sign
 suppressed. Only when multiple strategies converge does the system act — this dramatically
 reduces whipsaw losses and improves win rate.
 
-Combines signals from all enabled strategies (Trend Following, Mean Reversion, FFT Cycle) using two modes:
+Combines signals from all enabled strategies (Trend Following, Mean Reversion,
+FFT Cycle, Sentiment, Market Making, ML Ensemble — 6 wired in `bot_helpers.py`)
+using two modes:
 
 **Majority mode:**
 - Direction with most votes wins

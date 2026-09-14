@@ -56,25 +56,23 @@ Canonical reference for values that must stay in sync across all components
 at runtime — each has its own config; `scripts/test_config_consistency.py`
 (wired into `pre-commit-check.py`) verifies the component configs match it.
 
-### System
-
-```yaml
-system:
-  name: "HFT Trading System"
-  version: "3.0.0"
-  mode: "paper_trading"  # paper_trading | live (live not implemented)
-```
+**Note:** `shared_config.yaml` is **not loaded at runtime** — it is the canonical
+reference consumed by `scripts/test_config_consistency.py` (the pre-commit
+consistency gate). It currently carries only the sections the gate compares:
+`symbols`, `exchanges`, `risk`, `websocket`. The `system`, `default_exchange`,
+`timeframe`, and `account` sections were removed in audit S316 — nothing read
+them.
 
 ### Symbols
 
-50 cryptocurrency pairs — must match across all components:
+49 cryptocurrency pairs — must match across all components:
 
 ```yaml
 symbols:
   - BTC/USDT
   - ETH/USDT
   - SOL/USDT
-  # ... 50 total pairs through MINA/USDT
+  # ... 49 total pairs through MINA/USDT
 ```
 
 ### Exchanges
@@ -84,7 +82,6 @@ exchanges:
   - binance
   - bybit
   - okx
-default_exchange: binance
 ```
 
 ### Global Risk Parameters
@@ -97,24 +94,6 @@ default_exchange: binance
 | `min_rr_ratio` | 1.5 | Minimum risk:reward ratio |
 | `max_open_positions` | 10 | Concurrent positions across all symbols |
 | `max_position_size_pct` | 10.0 | Max notional per position as % of balance |
-
-### Timeframe
-
-```yaml
-timeframe: "5m"              # 1m | 3m | 5m | 15m | 30m | 1h | 4h | 1d
-timeframe_seconds: 300       # Numeric equivalent (5m = 300s)
-```
-
-**Must match** across exchange simulator and all bots for consistent candle data.
-
-### Account
-
-```yaml
-account:
-  initial_balance: 10000.0   # Starting USDT balance per exchange
-  currency: "USDT"
-  leverage: 10               # Default leverage (1-50)
-```
 
 ### WebSocket Ports
 

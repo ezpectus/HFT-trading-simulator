@@ -15,9 +15,18 @@ The system has a dual signal path with different latency requirements:
 | **Fast path** | SHM IPC (Python → C++) | 10-50us | ~30us |
 | **Slow path** | Python AI signal bot | ~50ms | 30-80ms |
 | **Slow path** | Strategy analysis (per symbol) | ~5ms | 2-10ms |
-| **Slow path** | Ensemble voting (5 strategies) | ~25ms | 15-40ms |
+| **Slow path** | Ensemble voting (6 strategies) | ~25ms | 15-40ms |
 | **Network** | WebSocket (exchange simulator) | 1-5ms | ~2ms (localhost) |
-| **Network** | REST API (exchange simulator) | 5-20ms | ~10ms |
+
+> The exchange simulator has **no REST API** — all commands and market data
+> flow over WebSocket (see `docs/REST_API.md`). HTTP surface is health/metrics
+> probes only.
+
+*The "Measured" column contains typical/ad-hoc figures, not output of a
+committed benchmark — `scripts/benchmark_suite.py` exercises inline toy loops,
+not the real pipeline. Live latency is observable via the HFT metrics endpoint
+(`:9091/metrics`, latency histograms) and the sim's `/metrics` feed-latency
+histogram.*
 
 ---
 
@@ -46,7 +55,7 @@ The system has a dual signal path with different latency requirements:
 |--------|--------|-------|
 | Signal interval | 60s (configurable) | Not HFT — this is the "slow" path |
 | Strategy analysis (49 symbols) | ~2.5s | 5ms × 49 symbols |
-| Ensemble voting | ~1.5s | Majority vote across 5 strategies |
+| Ensemble voting | ~1.5s | Majority vote across 6 strategies |
 | Risk validation | < 1ms | In-memory checks, no I/O |
 | Database write | < 5ms | SQLite WAL mode |
 | WebSocket broadcast | < 2ms | asyncio, single event loop |
@@ -86,15 +95,17 @@ Shared memory is used for the hot path between Python and C++:
 ### C++ Engine
 
 ```bash
-# Build with profiling
-cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_PROFILING=ON ..
-make -j$(nproc)
+# PGO build (two passes — see CMakeLists.txt):
+cmake -DUSE_PGO=ON -DCMAKE_BUILD_TYPE=Profile .. && cmake --build .
+# ... run workload ...
+cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 
-# Run with latency histograms enabled
-./hft_trade_bot --config config/config.yaml --enable-latency-histograms
+# Run with latency histograms — positional config path, histograms come from
+# yaml (`latency_histogram_enabled: true`), not a CLI flag:
+./hft_trade_bot ../config/config.yaml
 
-# Check p50/p95/p99 from metrics endpoint
-curl http://localhost:9091/metrics | grep latency
+# Check p50/p95/p99 from metrics endpoint (JSON, not Prometheus — audit S069)
+curl http://localhost:9091/metrics
 ```
 
 ### Python Signal Bot
@@ -111,7 +122,9 @@ python -c "import pstats; pstats.Stats('profile.out').sort_stats('cumulative').p
 ### Benchmark Suite
 
 ```bash
-# Repo-level benchmark script
+# Repo-level benchmark script — NOTE: measures inline toy loops (JSON parse,
+# dict allocation), not the real pipeline components (audit S214). Use it as a
+# smoke check for the tooling, not as pipeline latency evidence.
 python scripts/benchmark_suite.py --help
 ```
 

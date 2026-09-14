@@ -75,7 +75,7 @@ cd HFT-TradeBot--Lite-version
 
 ### Docker
 ```bash
-docker-compose up
+docker compose up
 ```
 
 ### Mock mode (no backend)
@@ -220,7 +220,7 @@ Key defaults: 49 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 
 ```bash
 cp .env.prod.example .env.prod
 # Edit .env.prod with your settings
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 | Service | Port | Description |

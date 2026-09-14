@@ -4,7 +4,7 @@ Get the HFT Trading System running in under 10 minutes.
 
 ## Theory: What happens at startup
 
-### What starts when you run `docker-compose up`
+### What starts when you run `docker compose up`
 
 4 services start simultaneously:
 
@@ -53,7 +53,7 @@ issues. Multiple terminal windows.
 ```bash
 git clone https://github.com/ezpectus/HFT-TradeBot--Lite-version.git
 cd HFT-TradeBot--Lite-version
-docker-compose up -d
+docker compose up -d
 ```
 
 Services start automatically:
@@ -68,13 +68,13 @@ Services start automatically:
 
 **View logs:**
 ```bash
-docker-compose logs -f ai-signal-bot
-docker-compose logs -f exchange-simulator
+docker compose logs -f ai-signal-bot
+docker compose logs -f exchange-simulator
 ```
 
 **Stop:**
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ---
@@ -222,7 +222,7 @@ cp .env.prod.example .env.prod
 # Start production stack (includes Prometheus, Grafana)
 # (⚠ S263: `.env.prod` is NOT auto-loaded for ${VAR} interpolation —
 #  the ?required vars fail without --env-file; both commands below lack it)
-docker-compose --env-file .env.prod -f docker-compose.prod.yml up -d
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d
 
 # Or via Makefile
 make -f Makefile.prod prod-up
@@ -242,7 +242,7 @@ See [Deployment Guide](../DEPLOYMENT.md) for full production instructions.
 | `npm ERR!` during install | Ensure Node.js 22+ — check with `node --version` |
 | C++ build fails | Ensure C++20 compiler — check with `g++ --version` or `clang++ --version` |
 | Port already in use | Stop the process using the port or change the port in config |
-| Docker containers keep restarting | Check logs with `docker-compose logs <service>` |
+| Docker containers keep restarting | Check logs with `docker compose logs <service>` |
 | No signals appearing | Check AI Signal Bot logs — may need 60s for first signal cycle |
 
 ---

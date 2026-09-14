@@ -19,7 +19,7 @@ updates. High availability. Resource limits per pod.
 
 **Docker Compose (dev):**
 - Single host, simple, fast startup
-- `docker-compose up` starts all services — **known issue (audit S239):** `EXCHANGE_WS_HOST=0.0.0.0` (S156) fixed the `:8765` data socket, but the `:8775` metrics/health server still binds container loopback (yaml `metrics.host` short-circuits the host fallback), and the ai-bot metrics exporter binds loopback too (`AI_BOT_BIND_HOST` unset everywhere) — 2 of 3 Prometheus scrape jobs get connection refused while in-container healthchecks stay green
+- `docker compose up` starts all services — **known issue (audit S239):** `EXCHANGE_WS_HOST=0.0.0.0` (S156) fixed the `:8765` data socket, but the `:8775` metrics/health server still binds container loopback (yaml `metrics.host` short-circuits the host fallback), and the ai-bot metrics exporter binds loopback too (`AI_BOT_BIND_HOST` unset everywhere) — 2 of 3 Prometheus scrape jobs get connection refused while in-container healthchecks stay green
 - No self-healing, no auto-scaling
 - Sufficient for development
 
@@ -108,13 +108,13 @@ Docker deployment provides isolation, reproducibility, and easy scaling.
 
 ```bash
 # Build all images
-docker-compose build
+docker compose build
 
 # Or build individual components
-docker-compose build exchange-simulator
-docker-compose build ai-signal-bot
-docker-compose build hft-trade-bot
-docker-compose build web-ui
+docker compose build exchange-simulator
+docker compose build ai-signal-bot
+docker compose build hft-trade-bot
+docker compose build web-ui
 ```
 
 #### 2. Configure Environment
@@ -143,13 +143,13 @@ real prod variables (`EXCHANGE_CONTROL_TOKEN`, `VITE_*` build args,
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Check status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 #### 4. Verify Deployment
@@ -659,24 +659,24 @@ mv logs/audit.log logs/audit_$(date +%Y%m%d).log
 
 ```bash
 # Stop current deployment
-docker-compose down
+docker compose down
 
 # Restore previous version
 git checkout <previous-tag>
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Database Rollback
 
 ```bash
 # Stop services
-docker-compose down
+docker compose down
 
 # Restore database
 cp backup/trading_YYYYMMDD.db data/trading.db
 
 # Restart services
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Configuration Rollback
@@ -687,7 +687,7 @@ cp backup/config_YYYYMMDD.tar.gz .
 tar -xzf config_YYYYMMDD.tar.gz
 
 # Restart services
-docker-compose restart
+docker compose restart
 ```
 
 ## Troubleshooting
