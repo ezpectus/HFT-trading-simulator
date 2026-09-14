@@ -1768,3 +1768,17 @@ Commit: a5c93ca
 **Clean:** 296 компонент — 0 hardcoded data-массивов, 0 неочищенных интервалов/слушателей, props-drift только у 5 файлов (4 — underscore-осознанные/trivial).
 
 Commit: 427c5c0
+
+## R125 — web-ui utils+hooks leaf-sweep + exchange-sim engine core
+
+**Scope:** `web-ui/src/utils/` (~3.6k строк: вся quant-math — hmm/garch/kalman/cointegration/indicators/edm/kmeans/backtestEngine/mockData/performanceMonitor), все 21 `web-ui/src/hooks/` (consumers/persistence/wiring), exchange-sim engine core (`exchange.py`, `market_simulator.py`, `exchange_order_submission.py`, `exchange_advanced_orders.py` — ~1950 строк matching-логики).
+
+**Findings (2):**
+- S277 (Low): Strategy Marketplace — островное хранилище. `useStrategyMarketplace.ts` + `StrategyMarketplace.jsx` хранят/импортируют/экспортируют StrategyPackage под `trading-sim-strategy-marketplace`, но 0 путей исполнения: все onClick — upload/download/delete/filter, нет run/load/apply; `StrategyBacktest.jsx:8,41` грузит другой ключ `trading-sim-strategies` (пишет StrategyBuilder). Формат `rules` совпадает с backtestEngine-условиями — моста нет.
+- S278 (Low): `useSessionRecorder.ts:134` — `stopRecording` суммирует `acc.trade_history.length` по каждому snapshot, но history кумулятивна → `metadata.totalTrades` завышен в ~N_snapshots раз (5 сделок × 100 снапов = «500 trades»). Показывается в `SessionReplay.jsx:152,175`.
+
+**Retracted:** marketplace-стратегии НЕ питают backtest — но это и есть находка (S277), а не баг исполнения; GTD-cancel попадает в `filled_orders` (exchange_advanced_orders:59) — безвредно, caller (ws_broadcast:272) фильтрует `status=="FILLED"`; `StrategyBacktest` грузит только `parsed[0]` — quirk, не slop.
+
+**Clean:** ВСЯ quant-math настоящая — scaled fwd/bwd+Viterbi+Baum-Welch (hmm), GARCH(1,1)+MLE-градиент (garch), predict/update (kalman 1D/2D), OLS/ADF/half-life (cointegration), канонические формулы ×20 индикаторов (indicators, 91 импортер), MI/FNN/simplex/CCM (edm), k-means++/silhouette (kmeans); backtestEngine честен + tested; все хуки имеют consumers; `trading-sim-strategies` key-chain живой; exchange engine — реальный matching (margin-lock/release, OCO-resolve, TIF/FOK-depth, partial-fill, residual-on-flip, pending-eval per tick, GTD-expiry, trailing-stop ratchet, iceberg slices, audit-log на каждом шаге).
+
+Commit: TBD

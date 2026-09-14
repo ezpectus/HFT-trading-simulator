@@ -2118,3 +2118,19 @@ The 296-file panel layer was never leaf-checked for data-path honesty: unused pr
 **Retracted:** `_audit_pending` is NOT write-only — `_broadcast_audit_events` (ws_broadcast.py:235) drains it and ships `audit_logs`; `Object.values(acc.positions)` is shape-tolerant to the list; `f.received_at` is an honest client stamp (ms); CostBasis/ExpectedValueCalculator/KellyCalculator/MonteCarlo/TimeOfDayPerformance/PnLAttributionChart/SessionStats read real fields (`closed_at`, `pnl`); `SessionExport` performs a real Blob download; `AccountPanel`'s `t.time` is key-only with `|| i` fallback; zero unclosed intervals/listeners across all 296 files; zero hardcoded data arrays.
 
 Commit: 427c5c0
+
+---
+
+## Round 125 — web-ui utils+hooks leaf-sweep + exchange-sim engine core (2 findings: S277–S278)
+
+Scope: `web-ui/src/utils/` (~3.6k lines — the claim-heavy quant-math surface: HMM/GARCH/Kalman/cointegration/indicators/EDM/k-means/backtestEngine), all 21 `web-ui/src/hooks/`, plus the exchange-sim engine core (`exchange.py`, `market_simulator.py`, `exchange_order_submission.py`, `exchange_advanced_orders.py` — ~1950 lines of matching logic never fully leaf-read).
+
+**S277 (Low) — Open.** Strategy Marketplace is a storage island: `useStrategyMarketplace.ts` + `StrategyMarketplace.jsx` store/import/export `StrategyPackage` objects under `trading-sim-strategy-marketplace`, but nothing bridges them to execution — every onClick in the component is upload/download/delete/filter (zero run/load/apply actions), and `StrategyBacktest.jsx:8,41` loads a *different* localStorage key (`trading-sim-strategies`, written by `StrategyBuilder.jsx:24`). The `rules` format (`volume_spike`, `price_change_5`, …) matches `backtestEngine`'s condition vocabulary one-for-one — the data model is executable, the plumbing just ends. A "marketplace" whose goods can only be collected as JSON cards.
+
+**S278 (Low) — Open.** `useSessionRecorder.ts:134` — `stopRecording` computes `totalTrades` by summing `acc.trade_history.length` across **every** snapshot, but trade history is cumulative (each snapshot carries the full list). Result: `metadata.totalTrades` is inflated by ~N_snapshots× — a 5-trade session with 100 snapshots reports "500 trades". Displayed verbatim in `SessionReplay.jsx:152` ("…N trades | X% DD") and `:175`.
+
+**Retracted:** the GTD-cancelled order landing in `filled_orders` (`exchange_advanced_orders.py:59`) is harmless — the broadcast caller (`ws_broadcast.py:272`) filters on `status == "FILLED"` before notifying; `StrategyBacktest` loading only `parsed[0].rules` is a UX quirk (first-saved strategy), not broken plumbing — the builder→backtest key chain itself is live.
+
+**Verified clean:** all quant math is *real*, not label-deep — hmmMath (scaled forward/backward + Viterbi + Baum-Welch EM), garchMath (log-returns, GARCH(1,1) recursion, gradient-descent MLE), kalmanMath (genuine 1D + 2D predict/update), cointegrationMath (OLS/ADF/half-life vs critical values), indicators.js (579 lines of canonical formulas, 91 importers), edmMath (mutual information / FNN / delay embedding / simplex / CCM), kmeansMath (k-means++ + Lloyd + silhouette); `backtestEngine.js` is an honest documented browser-side engine with a real consumer and tests; all 21 hooks have production consumers; the exchange engine is a genuine matching pipeline — margin lock/release, OCO sibling resolution, TIF/FOK depth checks, partial fills for large orders, residual position on side-flip, per-tick pending-order evaluation, GTD expiry, trailing-stop ratchet, iceberg slices, audit events at every step.
+
+Commit: TBD
