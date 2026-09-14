@@ -23,16 +23,6 @@ let metrics = {
   CLS: null,
   TTFB: null,
   FCP: null,
-  customMetrics: {},
-}
-
-// Performance history for trend analysis
-const metricsHistory = {
-  LCP: [],
-  INP: [],
-  CLS: [],
-  TTFB: [],
-  FCP: [],
 }
 
 // Alert callbacks
@@ -86,30 +76,10 @@ function getRating(name, value) {
 }
 
 /**
- * Record a custom performance metric
- */
-export function recordCustomMetric(name, value, unit = 'ms') {
-  metrics.customMetrics[name] = { value, unit, timestamp: Date.now() }
-  
-  // Check if custom metric has a budget
-  const budget = PERFORMANCE_BUDGETS[name]
-  if (budget && value > budget) {
-    triggerAlert(name, value, budget)
-  }
-}
-
-/**
  * Get all current metrics
  */
 export function getMetrics() {
   return { ...metrics }
-}
-
-/**
- * Get metrics history
- */
-export function getMetricsHistory() {
-  return { ...metricsHistory }
 }
 
 /**
@@ -127,8 +97,7 @@ export function checkBudgets() {
   
   for (const [name, value] of Object.entries(metrics)) {
     if (value === null) continue
-    if (name === 'customMetrics') continue
-    
+
     if (exceedsBudget(name, value)) {
       violations.push({
         name,
@@ -178,7 +147,6 @@ export function initPerformanceMonitoring() {
   // LCP - Largest Contentful Paint
   onLCP((metric) => {
     metrics.LCP = metric.value
-    metricsHistory.LCP.push({ value: metric.value, timestamp: Date.now() })
     
     if (exceedsBudget('LCP', metric.value)) {
       triggerAlert('LCP', metric.value, PERFORMANCE_BUDGETS.LCP)
@@ -191,7 +159,6 @@ export function initPerformanceMonitoring() {
   // INP - First Input Delay
   onINP((metric) => {
     metrics.INP = metric.value
-    metricsHistory.INP.push({ value: metric.value, timestamp: Date.now() })
     
     if (exceedsBudget('INP', metric.value)) {
       triggerAlert('INP', metric.value, PERFORMANCE_BUDGETS.INP)
@@ -204,7 +171,6 @@ export function initPerformanceMonitoring() {
   // CLS - Cumulative Layout Shift
   onCLS((metric) => {
     metrics.CLS = metric.value
-    metricsHistory.CLS.push({ value: metric.value, timestamp: Date.now() })
     
     if (exceedsBudget('CLS', metric.value)) {
       triggerAlert('CLS', metric.value, PERFORMANCE_BUDGETS.CLS)
@@ -217,7 +183,6 @@ export function initPerformanceMonitoring() {
   // TTFB - Time to First Byte
   onTTFB((metric) => {
     metrics.TTFB = metric.value
-    metricsHistory.TTFB.push({ value: metric.value, timestamp: Date.now() })
     
     if (exceedsBudget('TTFB', metric.value)) {
       triggerAlert('TTFB', metric.value, PERFORMANCE_BUDGETS.TTFB)
@@ -230,7 +195,6 @@ export function initPerformanceMonitoring() {
   // FCP - First Contentful Paint
   onFCP((metric) => {
     metrics.FCP = metric.value
-    metricsHistory.FCP.push({ value: metric.value, timestamp: Date.now() })
     
     if (exceedsBudget('FCP', metric.value)) {
       triggerAlert('FCP', metric.value, PERFORMANCE_BUDGETS.FCP)
@@ -292,38 +256,6 @@ export function resetPanelMetrics() {
 }
 
 /**
- * Get performance summary
- */
-export function getPerformanceSummary() {
-  const summary = {
-    overall: 'good',
-    metrics: {},
-    violations: checkBudgets(),
-  }
-
-  for (const [name, value] of Object.entries(metrics)) {
-    if (value === null) continue
-    if (name === 'customMetrics') continue
-    
-    summary.metrics[name] = {
-      value,
-      formatted: formatMetric(name, value),
-      rating: getRating(name, value),
-      budget: PERFORMANCE_BUDGETS[name],
-      withinBudget: !exceedsBudget(name, value),
-    }
-
-    if (getRating(name, value) === 'poor') {
-      summary.overall = 'poor'
-    } else if (getRating(name, value) === 'needs-improvement' && summary.overall !== 'poor') {
-      summary.overall = 'needs-improvement'
-    }
-  }
-
-  return summary
-}
-
-/**
  * Reset metrics (for testing)
  */
 export function resetMetrics() {
@@ -333,11 +265,6 @@ export function resetMetrics() {
     CLS: null,
     TTFB: null,
     FCP: null,
-    customMetrics: {},
-  }
-  
-  for (const key of Object.keys(metricsHistory)) {
-    metricsHistory[key] = []
   }
 
   alertCallbacks = []

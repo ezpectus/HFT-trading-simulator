@@ -1,12 +1,18 @@
 /**
- * Tests for Toast component and useToasts hook
+ * Tests for Toast component and useToastStore (the live toast path — the
+ * local-state useToasts duplicate was removed in S261).
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import { ToastContainer, useToasts } from '../components/Toast'
+import { ToastContainer } from '../components/Toast'
+import { useToastStore } from '../stores/useToastStore'
+
+beforeEach(() => {
+  useToastStore.getState().clearAll()
+})
 
 function TestWrapper() {
-  const { toasts, addToast, removeToast, clearAll } = useToasts()
+  const { toasts, addToast, removeToast, clearAll } = useToastStore()
   return (
     <div>
       <button onClick={() => addToast('success', 'Success message')}>Add Success</button>
@@ -92,7 +98,7 @@ describe('Toast', () => {
 
   it('does not show Clear all when onClearAll not provided', () => {
     function NoClearWrapper() {
-      const { toasts, addToast, removeToast } = useToasts()
+      const { toasts, addToast, removeToast } = useToastStore()
       return (
         <div>
           <button onClick={() => addToast('success', 'A')}>AddA</button>

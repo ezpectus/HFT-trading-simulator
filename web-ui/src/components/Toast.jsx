@@ -1,32 +1,5 @@
-import { memo, useState, useCallback } from 'react'
+import { memo } from 'react'
 import { CheckCircle, XCircle, AlertTriangle, Info, X, Trash2 } from 'lucide-react'
-
-let toastId = 0
-
-export function useToasts() {
-  const [toasts, setToasts] = useState([])
-
-  const addToast = useCallback((type, message, duration = 5000) => {
-    const id = ++toastId
-    setToasts(prev => [...prev.slice(-4), { id, type, message, duration }])
-    if (duration > 0) {
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id))
-      }, duration)
-    }
-    return id
-  }, [])
-
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(t => t.id !== id))
-  }, [])
-
-  const clearAll = useCallback(() => {
-    setToasts([])
-  }, [])
-
-  return { toasts, addToast, removeToast, clearAll }
-}
 
 export const ToastContainer = memo(function ToastContainer({ toasts, onRemove, onClearAll }) {
   return (

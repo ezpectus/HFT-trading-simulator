@@ -3,7 +3,7 @@ import { Gauge, Cpu, MemoryStick, AlertTriangle, Zap } from 'lucide-react'
 import { statusColor, statusBg, Bar, WarningBanner, SectionTitle } from '../utils/ui-helpers'
 import {
   initPerformanceMonitoring, getMetrics, getPanelMetrics,
-  getPerformanceBudgets, checkBudgets,
+  getPerformanceBudgets, checkBudgets, onAlert, offAlert,
 } from '../utils/performanceMonitor'
 
 const STATUS_MAP = { ok: 'text-accent-green', warn: 'text-accent-yellow', default: 'text-accent-red' }
@@ -25,6 +25,7 @@ function vitalStatus(value, budget) {
 const DashboardProfiler = memo(function DashboardProfiler() {
   const [, setTick] = useState(0)
   const [fps, setFps] = useState(null)
+  const [alerts, setAlerts] = useState([])
   const initRef = useRef(false)
 
   useEffect(() => {
@@ -34,6 +35,13 @@ const DashboardProfiler = memo(function DashboardProfiler() {
     }
     const t = setInterval(() => setTick(x => x + 1), 2000)
     return () => clearInterval(t)
+  }, [])
+
+  // Budget-violation alerts — immediate push, complements the 2s checkBudgets poll
+  useEffect(() => {
+    const cb = (a) => setAlerts(prev => [...prev.slice(-4), a])
+    onAlert(cb)
+    return () => offAlert(cb)
   }, [])
 
   // Real FPS via rAF
@@ -153,6 +161,15 @@ const DashboardProfiler = memo(function DashboardProfiler() {
         <WarningBanner icon={AlertTriangle} color="text-accent-yellow">
           {violations.length} vital(s) over budget — worst: {violations[0].name} ({violations[0].value.toFixed(0)}ms / {violations[0].budget}ms)
         </WarningBanner>
+      )}
+      {alerts.length > 0 && (
+        <div className="space-y-0.5" data-testid="perf-alerts">
+          {alerts.map((a, i) => (
+            <WarningBanner key={i} icon={Zap} color="text-accent-yellow">
+              {a.name} over budget: {a.name === 'CLS' ? a.value.toFixed(3) : `${a.value.toFixed(0)}ms`} / {a.budget}{a.name === 'CLS' ? '' : 'ms'} ({a.rating})
+            </WarningBanner>
+          ))}
+        </div>
       )}
       {criticalCount > 0 && (
         <WarningBanner icon={AlertTriangle} color="text-accent-red">

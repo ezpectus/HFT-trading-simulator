@@ -6,7 +6,8 @@ import { render, screen } from '@testing-library/react'
 import VirtualList from '../components/VirtualList'
 import BotStatus from '../components/BotStatus'
 import {
-  getPerformanceSummary,
+  getMetrics,
+  checkBudgets,
   getPerformanceBudgets,
   resetMetrics,
 } from '../utils/performanceMonitor'
@@ -144,14 +145,12 @@ describe('Web UI Performance Tests', () => {
   })
 
   describe('Performance Monitor', () => {
-    it('should track custom metrics', () => {
+    it('should expose metrics and budget violations', () => {
       resetMetrics()
-      const summary = getPerformanceSummary()
-      expect(summary).toBeDefined()
-      expect(typeof summary).toBe('object')
-      expect(summary).toHaveProperty('metrics')
-      expect(summary).toHaveProperty('violations')
-      expect(summary).toHaveProperty('overall')
+      const metrics = getMetrics()
+      expect(metrics).toHaveProperty('LCP')
+      expect(metrics).toHaveProperty('FCP')
+      expect(Array.isArray(checkBudgets())).toBe(true)
     })
 
     it('should enforce performance budgets', () => {
