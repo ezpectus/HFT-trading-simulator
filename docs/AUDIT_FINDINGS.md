@@ -2307,3 +2307,18 @@ Commit: b44ca41
 **Board hygiene (no new ID):** S227's stale-`.gitkeep` count corrected to **8 sites** — adds `ai-signal-bot/src/utils/` (2 files) and `hft-trade-bot/src/{monitoring,network,utils}/` (2/1/1 files). Conversely `ai-signal-bot/scripts/.gitkeep` reverted to *legitimate*: the scripts dir is empty again after Пачка A deleted its files, so that placeholder now does its actual job.
 
 **Verified clean:** `git ls-files -i -c --exclude-standard` → only the 3 `.cascade/` ledgers are tracked-but-ignored (intentional); `docs/theory/` (20.7k lines) and `audit/` are gitignored + untracked — not repo weight (S080 precedent); `fpga_orderbook.vhd` carries an honest "ACADEMIC SKETCH — NOT A PRODUCTION PROTOTYPE" header and is referenced only by theory docs — nothing claims it's live; `hft-trade-bot/scripts/{build,run}.py` are honest CMake wrappers with exit-code propagation; web-ui mock-mode is consistent both ways (`dev:mock` → `--mode mock` → `.env.mock`; `build:mock` → `VITE_MOCK_MODE` env var; `IS_MOCK` reads both); `e2e/dismiss-onboarding.js` is a real helper imported by all 4 specs; the 7 `.windsurf/workflows/` files are self-consistent instructions with no stale claims; `exchange_simulator/tests/requirements.txt` is a minimal honest pin; `ai-signal-bot/run_backtest.py` is a live standalone CLI and `run.py --backtest`'s deprecation warning is honest; `scripts/benchmark_suite`/`walk_forward_ci`/`test_config_consistency` were already S197/S214.
+
+---
+
+## R137 — test-quality pass (0 findings — honest zero round)
+
+**Scope:** `exchange_simulator/tests/` (33 files, all `test_*.py` leaf-checked), `hft-trade-bot/tests/` (29 files, CMake wiring verified), `ai-signal-bot/tests/` spot-quality scan (97 files, 2,289 asserts / 1,427 test functions), `web-ui/e2e/` remaining specs.
+
+**No new findings.** Everything suspicious resolved to an existing ID or verified clean:
+
+- Chaos/load `__main__`-only scripts → **S282** (and their subprocesses launch `python -m exchange_simulator` with `cwd` = repo root — the package resolves; not the S215/S303 defect).
+- `test_monitoring_llm.py:301,313` zombie imports of `market_replay`/`timescaledb_client` → **S286** (exact same lines).
+- `test_integration.py` live-simulator perma-skips → **S285**.
+- `test_ws_prometheus.py` checks only the attribute surface and cannot catch **S281**'s lowercase-status bug — coverage gap stays inside the open finding.
+
+**Verified clean:** 863 asserts across 31 sim test files, zero bare skips or `assert True`, zero zombie imports; `hypothesis` is in `requirements-dev.txt` and CI installs it — property tests really run; `prometheus-client==0.21.1` is a pinned optional dep and `HAS_PROMETHEUS` test guards honestly mirror prod guards; `asyncio_mode = "auto"` in both pyprojects; all 26 hft test `.cpp`s are wired into CMake targets (POSIX-gated SHM, doctest integration round-trips are real in-process producer→consumer/kill-switch/YAML tests); e2e specs carry 34 real expects (aria-pressed toggles, regex on button text).

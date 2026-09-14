@@ -1944,3 +1944,19 @@ Commit: 9d26be8
 **Clean:** tracked-but-ignored = только 3 `.cascade/` ledger'а; `docs/theory/`+`audit/` gitignored+untracked (не repo-weight); fpga_orderbook.vhd честно задокументирован как academic sketch; hft scripts — реальные CMake-wrapper'ы; mock-mode оба пути консистентны; e2e-helper импортируется всеми 4 spec'ами; workflow-файлы самосогласованы; `ai-signal-bot/scripts/.gitkeep` легитимен.
 
 Commit: 23d174d
+
+## R137 — test-quality pass: exchange_simulator/tests + hft-trade-bot/tests + ai-signal-bot/tests spot
+
+**Scope:** `exchange_simulator/tests/` (33 файла — все 30 test_*.py leaf-проверены: импорты, assert-плотность, skip-маркеры, subprocess-лаунчи, hypothesis-гарды), `hft-trade-bot/tests/` (29 файлов — CMake-wiring всех таргетов, integration-тесты), `ai-signal-bot/tests/` (97 файлов — 2289 asserts/1427 функций, skip/optional-dep гарды), `web-ui/e2e/` (mock-mode/smoke/trading spec'ы).
+
+**Findings (0):** честный нулевой раунд — тест-деревья здоровы, всё подозрительное уже покрыто существующими ID.
+
+**Dedup-checks (все подтверждены как покрытые):**
+- `test_chaos_*.py` main-only + `test_load_10k` — S282 (и их `subprocess` зовёт `python -m exchange_simulator` с cwd=repo-root — пакет резолвится, НЕ баг S215/S303-класса)
+- `test_monitoring_llm.py:301,313` market_replay/timescaledb zombie-imports — S286 (те же строки)
+- `test_integration.py` live-sim perma-skip — S285
+- `test_ws_prometheus.py` не может поймать S281 (проверяет только attribute-surface) — gap остаётся внутри открытого S281
+
+**Clean:** `hypothesis>=6.100` в requirements-dev → property-тесты реально бегут в CI; `prometheus-client==0.21.1` pinned optional dep — `HAS_PROMETHEUS` тест-гарды зеркалят prod; `asyncio_mode=auto` оба pyproject; все 26 hft .cpp в CMake-таргетах (SHM POSIX-gated, doctest web); e2e — 34 реальных expect.
+
+Commit: pending
