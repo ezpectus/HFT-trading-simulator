@@ -2318,3 +2318,15 @@ Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 43 open.
 - **S294** — --tests runs cmake+ctest; staged/quick prints explicit SKIP note; docstring equivalence fixed.
 
 Gate: staged ALL GREEN (6/6 + SKIP note). Board: 38 open.
+
+## R170 — slop-fix — 10 findings closed
+
+- **S316** — shared_config shrunk to live gate surface; `_shared_signal_ws` wired into a real drift check.
+- **S299** — install-deps.bat: VCPKG_ROOT-gated toolchain flag, dead start.bat pointer removed.
+- **S300** — deploy.yml honest notify verdict, .env.prod fail-fast, netlify production-branch=master.
+- **S313** — dead numpy pin cut from exchange_simulator/requirements.txt.
+- **S317/S308** — dead root .dockerignore + .clang-format deleted.
+- **S307/S200/S271** — all panel/version numbers converged (271 panels, ~60 math-model panels, __version__=4.1.0); CONTRIBUTING tree fixed.
+- **S314** — closed as duplicate of S273 (files already deleted R167).
+
+Gate: staged ALL GREEN (WD_SKIP_COVERAGE for the config-string commits). Board: 28 open.
