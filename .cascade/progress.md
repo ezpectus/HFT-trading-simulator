@@ -2084,3 +2084,18 @@ Commit: f7c4710
 - **S263** (High) — `.env.prod` never reached `${}` interpolation. Fixed: `--env-file .env.prod` in deploy.yml SSH step + Makefile.prod `DOCKER_COMPOSE` (+ prod-stats direct call); DEPLOYMENT note now documents `make prod-up`.
 - **Verification:** pre-commit-check 8/8 ALL GREEN (ruff/eslint/clang-format/pytest×2/vitest/config-consistency); yaml.safe_load on both hft configs + deploy.yml; priorities list renumbered clean 1-41.
 - **Commits:** `af30526` (hft S245), `cad2561` (infra S263), `ee00867` (docs S253/S254)
+
+## R150 — slop-verify — R147+R148 fixes re-checked against code (7/7 VERIFIED)
+
+Batch: freshest unverified — S243/S244/S246/S279 (R147) + S207/S210/S230 (R148).
+
+- **S243 VERIFIED** — `bot_loop.cpp:183-184` copies `fast_sig.leverage`/`timestamp`; V1 loop `:315` stamps `FastSignal::now_ns()`.
+- **S244 VERIFIED** — `signal_receiver.h:119-130` per-message try/catch (warn+drop, loop survives); `:142-149` ws_thread_ last-resort catch → `connected_=false` + `schedule_reconnect()`.
+- **S246 VERIFIED** — `update_health_status` in main loop (main.cpp:52 → bot_loop.cpp:372-401 → `health_server->update_health`); RECONNECTS/HEARTBEATS_MISSED wired via `set_monitor` in both sockets; ORDERS_CANCELED at real cancel events; SHM_DROPS on push_fill-false; ERRORS via ErrorCountSink; `health_` under `health_mtx_`; `HEARTBEATS_SENT`/`MemoryTracker` fully absent from src+tests.
+- **S279 VERIFIED** — `ws_broadcast.py:284`/`:390` both `if self.trade_logger is not None:`.
+- **S207 VERIFIED** — `run.py:33-36` guarded import; `setup_logging` fallback returns stdlib logger + `stdout`.
+- **S210 VERIFIED** — compose env present in all 4 files (`WS_URL`, `HFT_EXCHANGE_WS_URL`, `HFT_AI_SIGNAL_WS_URL`); `expand_env` on all 3 parser URL sites (:51/:190/:214); prod default `ws://exchange-simulator:8765` hyphen-correct.
+- **S230 VERIFIED** — `*Result` fields present in sync (8 refs), store (8), panelContext (19: destructure+obj+deps).
+
+Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` ×7.
+- **Commits:** TBD
