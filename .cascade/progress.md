@@ -1989,6 +1989,13 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R142 — web-ui vitest suite vacuity scan (0 findings — honest zero #4)
+
+- **Areas:** `web-ui/src/test/` — all 153 `*.test.*` files (11,654 lines) — the last un-scanned test tree (e2e specs got R137, this suite only got counted in R141's floor check).
+- **Findings:** none.
+- **Verified clean:** 1,973 real expects (~13/file), 0 `it.skip`/`todo`/`xdescribe`, 0 `expect(true)`-trivial, 0 snapshots; 827 presence asserts is a normal React render-smoke ratio with 459 interaction calls on top; all 23 `vi.mock` sites mock *dependencies* (hooks/stores/lightweight-charts) not the unit under test, and mock shapes are faithful (`useLocalStorage` mock returns the real `[value, setValue, remove]` triple); the 10×15-line files are deliberate NoDataFeed-disclosure tests (asserting the honest "no feed" panel text — the anti-fake guarantee); `useWebSocket.test` uses a real MockWebSocket class testing behavioral contract (auth-before-subscribe ordering, send-false-when-down, buffer tracking); `useExchangeData.test` is a 639-line protocol test (snapshot/fill/arbitrage parsing); `useTradingStore.test` drives the live Zustand store via getState/setState; all 150 unique relative imports resolve to existing modules (no S286-class zombies); `vitest.config` honest (happy-dom, isolate, v8 coverage w/ 40% thresholds on utils+hooks), `setup.js` registers jest-dom + cleanup + localStorage/timer reset.
+- **Commit:** <pending>
+
 ## R141 — ci.yml full leaf-read + changelog reverse-drift (1 finding)
 
 - **Areas:** `.github/workflows/ci.yml` (all 621 lines — largest workflow, previously edge-audited only); CHANGELOG «removed X» claims vs live tree; `run_backtest.py` argparse vs docs; untracked/stray-file sweep.
