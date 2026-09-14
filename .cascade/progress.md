@@ -2511,3 +2511,16 @@ Verified marks are claims too — re-opened a High-priority sample against curre
 - **ЧИСТО spot-check (R138):** 0 bare `assert` in prod Python — holds.
 
 Done-log fully verified including re-checks. Board: 0 open.
+
+## R186 — slop-verify — ЧИСТО-list spot-recheck: 6/6 claims hold, 0 reverts
+
+The board's ЧИСТО claims were never done-log entries — least-verified surface. Adversarial re-check:
+
+- **R138** "all 12 JSON.parse in prod-src inside try/catch" — holds: now 15 sites (+3 since — count drifted), every one inside try/catch incl. Auth.jsx ws-message parse and useWebSocket frame parse.
+- **R140** "40 dashboard metric-names resolve to real emitters" — holds: now 44 unique names; sampled ai_signal_bot_*/exchange_*/trading_* all emit (metrics.py/metrics_server.py/ws_prometheus.py); `trading_*` series confirmed at metrics.py:95-121.
+- **R137** "all 26 .cpp tests wired into CMake" — holds exactly: 26 test_*.cpp recursive, all reachable — 4 v2_* via the foreach stem-loop (CMakeLists:285-302), 3 in tests/unit|integration subdirs.
+- **R142** "0 it.skip/.todo/.only in web-ui suite" — holds: 0 hits.
+- **R133** "helm files/ byte-identical to monitoring/" — holds: alerts.yml + alertmanager.yml + all 5 dashboards diff-identical.
+- **R132** "all 70 SignalBotConfig properties have consumers" — holds exactly, full check not sample: 70/70 properties have ≥1 consumer outside config/__init__.py.
+
+Done-log + board clean-claims both verified. Board: 0 open.
