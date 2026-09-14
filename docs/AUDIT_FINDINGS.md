@@ -2337,3 +2337,13 @@ Commit: b44ca41
 - README quick-start pointing at `no-docker` + `docker-compose up` is the doc-side blast radius of S220/S303 — already covered.
 
 **Verified clean:** 12/12 `JSON.parse` sites sit inside try/catch (corrupt localStorage can't break mount); all localStorage keys have symmetric get/set via constants; all 6 `console.*` are `IS_DEV`-gated with documented `eslint-disable` reasons; zero prod asserts; zero real TODO/FIXME markers (the hits are `EventType.HACK` enum values and `health-check.py`'s own TODO-counter).
+
+---
+
+## R139 — dotfiles + stragglers leaf-read (S307–S308)
+
+**S307 (Info) — two more divergent numbers/versions in the last un-swept files.** `web-ui/index.html:6` and `:12` (meta description + og:description) claim "204 panels, 44+ math models" — a *third* wrong panel count: docs say 278 (S258 sites), reality is ~271 component-mapped panels; link previews and search snippets now lie with a different number than the docs do. And `ai-signal-bot/__init__.py:2` + `exchange_simulator/__init__.py:11` both declare `__version__ = "1.0.0"` — a **fourth** version namespace: `package.json` says 2.2.0, CHANGELOG sections run v4.0–v5.3 (S305), and both Python packages say 1.0.0. Nothing reads `__version__` — it's ornamental drift. 4 sites.
+
+**S308 (Info) — root `.clang-format` is dead config that would misformat if ever used.** clang-format takes the *nearest* config walking up — every one of the 30 C++ files sits under `hft-trade-bot/` which has its own `.clang-format` (ColumnLimit **100**, no include-categories). The root file (ColumnLimit **120** + a full IncludeBlocks/IncludeCategories block) has zero files under its scope and diverges from the live style — same class as S071's dead `.pre-commit-config.yaml`. 1 file.
+
+**Verified clean:** `.gitignore` (213 lines) — all secrets patterns present (`.env*`, `*.pem/key/p12/pfx/crt`, `secrets/`, `api_keys/`, sops/age `*.enc.*`, `keys.txt`), `*.csv/parquet/png/svg/db/log` broad ignores are safe (zero fixture-reads in tests — all I/O is tmp-scoped; the one tracked match `favicon.svg` is correctly excepted via `!web-ui/public/**`), `.env.prod.example` not ignored; `.gitattributes` (`text=auto eol=lf`, bat/ps1/cmd→crlf) and `.editorconfig` (per-lang indents, Makefile→tab) sane; `LICENSE` is real Apache-2.0; `index.html` scaffolding is live (root div, `main.jsx`, fonts preconnect); `.windsurf/`/`.cascade/` ignore entries consistent with the half-tracked audit model.

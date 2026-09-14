@@ -1976,3 +1976,15 @@ Commit: dce61db
 **Clean:** 12/12 JSON.parse guarded; localStorage ключи все парные; 6 console.* за IS_DEV; 0 prod-asserts; suppressions все justified.
 
 Commit: 9a1f83b
+
+## R139 — dotfiles + stragglers leaf-read (2 findings)
+
+**Scope:** `.gitignore` (213 строк, leaf-read), `.gitattributes`, `.editorconfig`, `.clang-format` (root) vs `hft-trade-bot/.clang-format`, `LICENSE`, `web-ui/index.html`, `web-ui/public/favicon.svg`, `ai-signal-bot/__init__.py`, `exchange_simulator/__init__.py`.
+
+**Findings (2):**
+- S307 (Info): `web-ui/index.html:6,:12` meta+og «204 panels, 44+ math models» — третье расходящееся panel-число (docs=278 по S258-сайтам, реально ~271); `ai-signal-bot/__init__.py:2` + `exchange_simulator/__init__.py:11` `__version__="1.0.0"` — четвёртое версионное пространство (package.json=2.2.0, CHANGELOG=v4.x — S305). 4 сайта.
+- S308 (Info): корневой `.clang-format` мёртв — все 30 C++-файлов в `hft-trade-bot/` под собственным `.clang-format` (ColumnLimit 100, без include-categories); корневой (120 + include-sorting) не применяется никогда — dead-config класс S071.
+
+**Clean:** `.gitignore` полный (secrets/sops/age/env все покрыты, `.env.prod.example`+favicon корректно исключены, broad-игноры безопасны — ноль fixture-reads); `.gitattributes`/`.editorconfig` sane; LICENSE настоящий Apache-2.0; index.html scaffolding живой (root-div, main.jsx, fonts).
+
+Commit: pending
