@@ -46,6 +46,12 @@ spec:
             {{- end }}
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
+            {{- if .Values.ingress.enabled }}
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+            - name: GF_SERVER_ROOT_URL
+              value: "{{ ternary "https" "http" .Values.ingress.tls.enabled }}://{{ .Values.ingress.hostname }}/grafana/"
+            {{- end }}
           ports:
             - containerPort: 3000
               name: http

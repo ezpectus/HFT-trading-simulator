@@ -23,28 +23,14 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "hft-trading-system.labels" . | nindent 4 }}
-    app.kubernetes.io/component: exchange-simulator
+    app.kubernetes.io/component: exchange_simulator
 spec:
   minAvailable: 1
   selector:
     matchLabels:
       {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: exchange-simulator
----
+      app.kubernetes.io/component: exchange_simulator
 {{- end -}}
-{{- if .Values.hftTradeBot.enabled -}}
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: {{ .Release.Name }}-hft-trade-bot
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "hft-trading-system.labels" . | nindent 4 }}
-    app.kubernetes.io/component: hft-trade-bot
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      {{- include "hft-trading-system.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: hft-trade-bot
-{{- end -}}
+# Note: no PDB for hft-trade-bot — it runs as a sidecar inside the ai-signal-bot
+# pod, so the ai-signal-bot PDB already covers it. A standalone hft PDB would
+# select zero pods.

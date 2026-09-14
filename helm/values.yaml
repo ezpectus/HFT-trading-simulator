@@ -11,8 +11,8 @@ global:
 exchangeSimulator:
   enabled: true
   image:
-    repository: hft-exchange_simulator
-    tag: v2.0.0
+    repository: ghcr.io/ezpectus/hft-tradebot--lite-version/exchange_simulator
+    tag: latest
   ports:
     ws: 8765
     metrics: 8775
@@ -28,8 +28,8 @@ exchangeSimulator:
 aiSignalBot:
   enabled: true
   image:
-    repository: hft-ai-signal-bot
-    tag: v2.0.0
+    repository: ghcr.io/ezpectus/hft-tradebot--lite-version/ai-signal-bot
+    tag: latest
   ports:
     ws: 8766
     metrics: 9090
@@ -48,8 +48,8 @@ aiSignalBot:
 hftTradeBot:
   enabled: true
   image:
-    repository: hft-trade-bot
-    tag: v2.0.0
+    repository: ghcr.io/ezpectus/hft-tradebot--lite-version/hft-trade-bot
+    tag: latest
   configPath: config/config.prod.yaml
   resources:
     requests:
@@ -63,8 +63,8 @@ hftTradeBot:
 webUi:
   enabled: true
   image:
-    repository: hft-web-ui
-    tag: v2.0.0
+    repository: ghcr.io/ezpectus/hft-tradebot--lite-version/web-ui
+    tag: latest
   port: 3000
   # These are build-time Vite args (inlined into JS bundle at Docker build time).
   # They are NOT runtime env vars — set them as Docker build ARGs, not K8s env.
