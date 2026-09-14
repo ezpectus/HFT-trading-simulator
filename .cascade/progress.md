@@ -1989,6 +1989,14 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R144 — residual tail: monitoring/alerts + .github templates + python dead-pin sweep (1 finding)
+
+- **Areas:** `monitoring/alerts/` (empty untracked dir — git-invisible residue), `.github/ISSUE_TEMPLATE`×3 + `PULL_REQUEST_TEMPLATE.md`, all `requirements*.txt` vs actual imports.
+- **Findings:** S313 — `numpy==2.1.3` dead pin in `exchange_simulator/requirements.txt` (zero imports component-wide; GBM runs on stdlib; pin ships into CI + Docker image for nothing — S241 dead-dep class).
+- **Deduped:** `tests/requirements.txt` dead+harmful → already S199; `vcpkg/` → ignored local clone.
+- **Verified clean:** .github templates honest (real ctest binary names, correct pytest commands); ai-signal-bot 7/7 pins used (numpy 22 files, matplotlib→backtest plots, tabulate, aiohttp, prometheus-client optional-declared); sim dev pins are tool-deps by nature; aiohttp/msgpack/orjson/websockets/yaml all imported in sim.
+- **Commit:** <pending>
+
 ## R143 — helm chart leaf-read (3 findings)
 
 - **Areas:** `helm/` — all 17 files (Chart.yaml, values.yaml, 10 templates, vendored `files/` alerts+alertmanager+5 dashboards). Last untouched infra tree.
