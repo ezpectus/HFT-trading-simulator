@@ -273,6 +273,10 @@ if "%2"=="" (
 
 set TIMESTAMP=%2
 
+REM Stop services before swapping files — restoring under a running
+REM simulator/bot lets live writers race the restore.
+call :stop_deployment
+
 if exist "%BACKUP_DIR%\config\config_%TIMESTAMP%.tar.gz" (
     call :log_info "Restoring configurations..."
     tar -xzf "%BACKUP_DIR%\config\config_%TIMESTAMP%.tar.gz"
@@ -282,12 +286,25 @@ if exist "%BACKUP_DIR%\config\config_%TIMESTAMP%.tar.gz" (
 )
 
 if exist "%BACKUP_DIR%\database\data_%TIMESTAMP%" (
-    call :log_info "Restoring databases..."
+    call :log_info "Restoring exchange data..."
     rmdir /S /Q exchange_simulator\data 2>nul
     xcopy /E /I /Y "%BACKUP_DIR%\database\data_%TIMESTAMP%" exchange_simulator\data
 )
 
-call :stop_deployment
+REM AI bot data (signals/trades SQLite) — backed up every deploy,
+REM previously never restored (S297).
+if exist "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" (
+    call :log_info "Restoring AI bot data..."
+    rmdir /S /Q ai-signal-bot\data 2>nul
+    xcopy /E /I /Y "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" ai-signal-bot\data
+)
+
+REM Audit logs — merge semantics so post-backup entries survive.
+if exist "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" (
+    call :log_info "Restoring audit logs..."
+    if not exist "exchange_simulator\logs\audit" mkdir exchange_simulator\logs\audit
+    xcopy /E /I /Y "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" exchange_simulator\logs\audit
+)
 
 if "%DEPLOYMENT_MODE%"=="docker" (
     call :start_docker

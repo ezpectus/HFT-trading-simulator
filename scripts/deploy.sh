@@ -307,7 +307,11 @@ rollback() {
     fi
     
     TIMESTAMP=$1
-    
+
+    # Stop services before swapping files — restoring under a running
+    # simulator/bot lets live writers race the restore.
+    stop_deployment
+
     # Restore configurations
     if [ -f "$BACKUP_DIR/config/config_$TIMESTAMP.tar.gz" ]; then
         log_info "Restoring configurations..."
@@ -316,10 +320,10 @@ rollback() {
         log_error "Backup not found: $BACKUP_DIR/config/config_$TIMESTAMP.tar.gz"
         exit 1
     fi
-    
+
     # Restore databases (atomic swap: copy first, then replace)
     if [ -d "$BACKUP_DIR/database/data_$TIMESTAMP" ]; then
-        log_info "Restoring databases..."
+        log_info "Restoring exchange data..."
         cp -r "$BACKUP_DIR/database/data_$TIMESTAMP" exchange_simulator/data_restored
         if [ $? -eq 0 ]; then
             rm -rf exchange_simulator/data
@@ -330,8 +334,30 @@ rollback() {
             exit 1
         fi
     fi
-    
-    stop_deployment
+
+    # Restore AI bot data (signals/trades SQLite) — backed up every deploy,
+    # previously never restored (S297). Atomic swap: a merged old/new WAL pair
+    # can corrupt the db.
+    if [ -d "$BACKUP_DIR/database/ai_data_$TIMESTAMP" ]; then
+        log_info "Restoring AI bot data..."
+        cp -r "$BACKUP_DIR/database/ai_data_$TIMESTAMP" ai-signal-bot/data_restored
+        if [ $? -eq 0 ]; then
+            rm -rf ai-signal-bot/data
+            mv ai-signal-bot/data_restored ai-signal-bot/data
+        else
+            log_error "Failed to restore AI data from backup"
+            rm -rf ai-signal-bot/data_restored 2>/dev/null || true
+            exit 1
+        fi
+    fi
+
+    # Restore audit logs — merge semantics: the snapshot contents are copied
+    # over the live dir so audit entries written after the backup survive.
+    if [ -d "$BACKUP_DIR/audit/audit_$TIMESTAMP" ]; then
+        log_info "Restoring audit logs..."
+        mkdir -p exchange_simulator/logs/audit
+        cp -r "$BACKUP_DIR/audit/audit_$TIMESTAMP/." exchange_simulator/logs/audit/
+    fi
     
     if [ "$DEPLOYMENT_MODE" = "docker" ]; then
         start_docker
