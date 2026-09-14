@@ -2101,4 +2101,4 @@ The dashboard layer was never data-traced: 5 grafana JSONs (56 expressions, 40 u
 
 **Verified clean:** helm templates are genuinely good — fail-fast on `webUi.wsExchange`/`wsSignals`/`grafana.adminPassword`, correct env names (`WS_URL`, `HFT_EXCHANGE_WS_URL`, `EXCHANGE_CONTROL_TOKEN`, `EXCHANGE_WS_HOST`), probes on real endpoints (`/live`, `/ready`, `/health`, `/-/healthy`, `/-/ready`, `/api/health`), hft sidecar sharing `/dev/shm` via emptyDir-Memory, kill-switch redirected to a writable volume, vendored alerts/dashboards via `.Files.Get`/`.Files.Glob`; terraform s3 module has real public-access-block + versioning + encryption; s3 backend with dynamodb lock.
 
-Commit: TBD
+Commit: a5c93ca

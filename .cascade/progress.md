@@ -1750,4 +1750,4 @@ Commit: 13c4862
 
 **Clean:** helm templates — fail-fast на обязательных values, верные env-имена (WS_URL/HFT_EXCHANGE_WS_URL/EXCHANGE_CONTROL_TOKEN/EXCHANGE_WS_HOST — S253-verified), probes на реальных endpoints, hft-sidecar + SHM-Memory + kill-switch на writable-volume, .Files.Get vendoring честный; terraform s3 — public-access-block+versioning+encryption; backend s3 с dynamodb-lock.
 
-Commit: TBD
+Commit: a5c93ca
