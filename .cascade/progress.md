@@ -1837,4 +1837,4 @@ Commit: c2add83
 
 **Clean:** все 93 test_*.py содержат test-функции; conftest-фикстуры честные (детерминированные candles); skipif/importorskip — настоящие dep-gates (cvar→scipy, prometheus_client, aiohttp); test_signal_publisher гоняет реальный backtest с проверкой длины equity_curve; SecretStr repr-leak тест — продуманный; 54 assert_called-ассерта на 16k строк — моки не самосбывающиеся.
 
-Commit: TBD
+Commit: 2736402

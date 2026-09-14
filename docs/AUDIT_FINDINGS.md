@@ -2197,4 +2197,4 @@ Scope: all of `ai-signal-bot/tests/` — both trees (`tests/` root + `tests/unit
 
 **Verified clean:** all 93 `test_*.py` contain test functions; conftest fixtures are honest deterministic candles; `skipif`/`importorskip` gates are legitimate (cvar→scipy, prometheus_client, aiohttp); `test_signal_publisher` runs a real backtest asserting `len(equity_curve) == 151`; the `SecretStr` repr-leak test is thoughtful; 54 `assert_called*` across 16k lines — mocks aren't self-fulfilling.
 
-Commit: TBD
+Commit: 2736402
