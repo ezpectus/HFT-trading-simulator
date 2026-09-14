@@ -1897,3 +1897,20 @@ Commit: b44ca41
 **Clean:** оба docker-smoke-test честные (compose `--metrics` → `:9090/health` валиден, errorlevel-пропагация); commit-msg/pre-commit хуки проксируют exit-коды; health-check.py — честный report-only dashboard; helm — shareProcessNamespace SHM-sidecar, реальные probes, vendored alerts/dashboards byte-identical monitoring/, grafana provisioning корректен, ingress/network-policy sane; terraform — textbook VPC (public-IGW/private-NAT), EKS-открытость уже в S204.
 
 Commit: f27711e
+
+## R134 — .github/workflows non-CI + root loose files + web-ui root configs (~1.8k lines)
+
+**Scope:** `.github/workflows/`: deploy.yml (189), nightly-backtest.yml (234), release.yml (127), codeql.yml (74). Root: `Makefile`, `Makefile.prod`, `shared_config.yaml`, `.env.prod.example`, `build-all.bat` (331), `install-deps.bat` (148). Web-ui: `Dockerfile`, `Dockerfile.prod`, `nginx.conf`, `e2e/screenshots.spec.js`, dependabot.yml.
+
+**Findings (5):**
+- S298 (Medium): `build-all.bat` перманентно красный — `:51` `import exchange_simulator` изнутри пакета всегда ModuleNotFoundError → FAIL + вся sim-ветка pytest скипается (else :56-64); `:94`/`:98` импорты `cross_exchange_arb`/`marketplace` — модули не существуют (marketplace только в web-ui). Гейт зелёным быть не может, sim-тесты не исполняются никогда.
+- S299 (Low): `install-deps.bat:97` — безусловный `-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\...` ломает cmake на машинах без VCPKG_ROOT (build-all.bat:143 корректно гейтит; CMakeLists сам autodetect'ит) + `:140` «Run start.bat» — файла нет.
+- S300 (Low): `deploy.yml` — notify `if: always()` + `!contains(needs.*.result,'failure')` трактует skipped как success → master-пуши шлют «Deployment SUCCESS» при пропущенном tag-only deploy; `:118` scp везёт `.env.prod.example`, `.env.prod` никто не создаёт → `env_file:` падает до `:?`-интерполяции (S263-cluster, слоем раньше); `production-branch: main` при master-дефолте → master-пуши = preview only.
+- S301 (Info): `nightly-backtest.yml:224` `if: failure()` создаёт новый issue каждый падший прогон без dedup → персистентная поломка = nightly issue-спам; `:37` pytest ставится и не вызывается (все шаги `python -c`); workflow inline'ит walk-forward вместо `scripts/walk_forward_ci.py` (S214-сирота остаётся).
+- S302 (Info): `Makefile:15` `dev-exchange` — 5-й сайт broken-from-inside `python -m` (S215/S220); `:12,:50,:53,:87` — 4 таргета на EOL `docker-compose` v1.
+
+**Dedup:** notify vars-vs-secrets — S264; `:?`/env_file/`--env-file` — S263; `python -m` изнутри — S215/S220 (Makefile — 5-й сайт, записан отдельно как резидуальный); Makefile `test-cpp` swallow — S208.
+
+**Clean:** release.yml честный; codeql.yml осознанная cpp-only матрица; nightly импорты/сигнатуры резолвятся и пайплайн реальный (seeded-GBM + Backtester + walk-forward окна); prod-compose порты/mounts согласованы со scp-листом; оба Dockerfile объявляют 4 VITE_* ARG; nginx.conf честный (/health, security-headers, SW-cache); screenshots.spec реальный; Makefile.prod/.env.prod.example консистентны; dependabot — 8 живых экосистем; shared_config.yaml — подтверждённый reference (S136).
+
+Commit: <pending>
