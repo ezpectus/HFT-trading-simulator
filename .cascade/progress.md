@@ -1865,3 +1865,19 @@ Commit: c4b7bdb
 **Clean:** Database полностью живая (save_signal/save_trade/save_equity/close_trade/purge — все коллеры в run.py); VolatilitySurface — реальный SVI+SABR через scipy-least_squares, wired в vol_surface_request с валидацией точек; AlertSystem/PerformanceTracker/HealthServer/bot_helpers — все в run.py; CB-маппинг CLOSED/OPEN/HALF_OPEN→0/1/2 корректен; prometheus scrape-топология + helm ports согласованы; alertmanager — честный пустой receiver с документацией; test_alerts валидирует реальный файл; testnet.yaml честный preset.
 
 Commit: bfc0454
+
+## R132 — run.py + config/__init__.py + src/communication/ leaf-read (~3.7k lines)
+
+**Scope:** `run.py` (749-line composition root: init, main loop, SHM channel, alerting wiring, paper/live exec, equity snapshot, backtest-mode), `config/__init__.py` (70-property loader + validate), `src/communication/` all 12 files (signal_publisher, ws_client, circuit_breaker, metrics_server, shm_ring_buffer, shm_signal_producer, shm_fill_consumer, shm_kill_switch_consumer, shm_market_data_writer, backtest_requests, portfolio_requests, analysis_requests).
+
+**Findings (4):**
+- S291 (High): одно кривое WS-сообщение убивает market-data listener навсегда — `ws_client.py:206` `candle["symbol"]` KeyError проходит сквозь локальный except (только JSONDecodeError/ValueError :174), `listen()` (только ConnectionClosed/OSError/TimeoutError :176-185) и `_listen_loop` (run.py:442 только OSError/RuntimeError/ConnectionError/TimeoutError) → таск умирает, `_on_task_done` логирует и не рестартит. `_connected` остаётся True → health зелёный, `_generate_signals` итерирует замороженные candle_history → вечная торговля по мёртвым данным.
+- S290 (Medium): `no_fills` alert-правило мертво — `run.py:397` `tracker.uptime_seconds()` вызван на @property (tracker.py:28-30) → TypeError каждый чек, `check_rules` глотает per-rule (alerting.py:131) + last_fired → правило не может сработать, error-лог раз в 300s. Wiring-тест прячет: `test_shm_alerting_wiring.py:209,238,264` мокает `uptime_seconds=lambda: 0` — callable там где в проде property.
+- S292 (Medium): `metrics.record_kill_switch(name)` (run.py:356) есть на MetricsExporter (metrics.py:258), нет на MetricsCollector — без --metrics publisher.metrics = fallback-синк → первая активация kill-switch = AttributeError в unguarded callback (shm_kill_switch_consumer.py:75) → poll-таск мёртв. Латч успевает (push встаёт), но consumer мёртв для последующих событий.
+- S293 (Info): `SentimentConfig.follow_threshold` (sentiment.py:78, читается :198/:202) не wired — нет SignalBotConfig-property, нет yaml-ключа, bot_helpers:54-56 не передаёт → вечный дефолт 0.3.
+
+**Retracted/folded:** `portfolio_requests._calibrate` двойной fitted-comprehension — wasteful-not-wrong (eval_strikes=set → первая мёртвая работа, None → корректный zip); `implied_vol(t*365)` — units верны (API в днях); MetricsCollector dead-half (set_pnl_total/set_drawdown/set_win_rate/record_error/record_circuit_breaker_trip — 0 коллеров) + render() нигде не served — fold в S272 (тот же dead-metrics класс); `_daily_loss` `if not balance` трактует 0.0 как absent — маргинально, note only; `shm_fill_consumer` docstring «PostgreSQL» vs SQLite — trivial drift, note only.
+
+**Clean:** SHM ring-buffer layout байт-в-байт = C++ (192B/head@64/tail@128/magic), SPSC корректен; seq-lock market-writer настоящий; 70/70 config-properties имеют потребителей; SignalPublisher — auth+rate-limit+bounded history; backtest_requests честный (synthetic помечен, params clamped); portfolio/analysis handlers — bounded+validated+to_thread; paper/live exec реальны; CB state-machine корректен.
+
+Commit: TBD
