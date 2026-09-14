@@ -2524,3 +2524,16 @@ The board's ЧИСТО claims were never done-log entries — least-verified sur
 - **R132** "all 70 SignalBotConfig properties have consumers" — holds exactly, full check not sample: 70/70 properties have ≥1 consumer outside config/__init__.py.
 
 Done-log + board clean-claims both verified. Board: 0 open.
+
+## R187 — slop-verify — oldest-marks re-check: 6/6 verified R154 claims hold, 0 reverts
+
+Oldest single-verification entries (R154, 31 rounds of drift exposure) re-opened adversarially:
+
+- **S224** log_file+monitors — holds: logger.h derives `<stem>_<ts>`/`_latest` (:54,:74); bot_setup passes `ctx.config.log_file` (:60); monitor tails `_latest.log`; `shm_heartbeat.h` created unconditionally in init_monitoring (:237-243, reset only on ctor exception); `beat()` per loop tick (bot_loop:405-406); monitor tag verbatim `/hft_heartbeat` (:23). Path imprecision noted: file is `hft-trade-bot/scripts/monitor.py`, not repo-root — log entry was subproject-relative, file exists.
+- **S256** logging.file delegation — holds: run.py:66 → observability.setup_logging(log_file=…), RotatingFileHandler :120-122, guarded run_logger override :34.
+- **S247** PressureModel renormalization — holds: `has_trade_flow` (aligned_types:212, set :98), `live_w=0.7+(flag?0.3:0)` at BOTH composite sites (signal_engine_v2:306,:465).
+- **S249** reset_daily exposure preservation — holds: reset_daily leaves total_exposure_ (:212-215 comment documents why), single-arg update_pnl removed, tests on update_pnl_v2.
+- **S239** container binds — holds: EXCHANGE_METRICS_HOST override __main__:159 with ws-host fallback; metrics.host omitted (config.yaml:170-171 S239 note); AI_BOT_BIND_HOST in all 4 composes.
+- **S318** Windows SHM verbatim tags — holds: `"/hft_market"` writer default, `"/hft_heartbeat"` monitor tag, zero `lstrip` in ai-signal-bot/src/communication.
+
+Board: 0 open.

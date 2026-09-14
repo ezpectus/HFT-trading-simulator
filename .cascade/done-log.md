@@ -349,14 +349,14 @@
 
 ## R152 — slop-fix (4 findings + S318 found-and-fixed in-frame)
 
-### S224 — hft `log_file` мёртвый ключ + оба монитора слепые — ✅ verified R154
+### S224 — hft `log_file` мёртвый ключ + оба монитора слепые — ✅ verified R154 · re-verified R187
 - `src/core/logger.h` — `Logger::init(level, log_file, json, monitor)` принимает полный путь: parent_path/stem/extension выводятся из конфига → `<stem>_<ts><ext>` + `<stem>_latest<ext>`; дефолт `logs/hft_trade_bot.log` воспроизводит исторические имена 1:1.
 - `bot_setup.cpp` — передаёт `ctx.config.log_file` (было hardcode `"logs"`); избыточный `create_directories("logs")` убран.
 - `monitor.py` — тейлит `logs/hft_trade_bot_latest.log` (файл который реально пишется) вместо несуществующего `hft_trade_bot.log`.
 - `scripts/monitor.py` — SHM `/hft_heartbeat` теперь СУЩЕСТВУЕТ: новый `src/ipc/shm_heartbeat.h` (CreateFileMappingW/shm_open, 64B layout Q+4q) создаётся в `init_monitoring` (независимо от ipc_enabled) и `beat(orders,fills,signals,errors)` вызывается из `update_health_status` каждый тик цикла; monitor.py tag — verbatim `/hft_heartbeat` (см. S318).
 - Проверено: g++ syntax+runtime компилируется и бежит; C++ writer → Python reader кросс-процессное чтение вернуло реальные счётчики (11,22,33,44) на этом Windows-хосте.
 
-### S256 — ai-bot `logging.file` param-drop — ✅ verified R154
+### S256 — ai-bot `logging.file` param-drop — ✅ verified R154 · re-verified R187
 - `run.py::setup_logging` fallback теперь делегирует в in-repo `src/observability/logging.py::setup_logging(log_file=...)` — RotatingFileHandler(10MB×5) на настроенном пути + console; external gitignored `run_logger` override сохранён.
 - Проверено: с заблокированным `run_logger` бот пишет `logs/test_s256.log` (StreamHandler + RotatingFileHandler wired, контент на месте).
 
@@ -367,7 +367,7 @@
 - `run.py::main` — fail-fast gate: `paper_trading:false` + `CCXT_AVAILABLE=False` → `logger.error` + `sys.exit(1)` до старта бота (was: зелёный health + «Live order error» на каждый сигнал, 0 ордеров).
 - ccxt НЕ добавлен в requirements — новые зависимости требуют одобрения пользователя; gate — честный минимум.
 
-### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154
+### S318 — NEW: Windows SHM IPC мёртв целиком (name-mismatch) — ✅ verified R154 · re-verified R187
 - C++ `CreateFileMappingW` использует имя `/hft_*` дословно; Python-сторона делала `name.lstrip("/")` в `shm_ring_buffer.py` и `shm_market_data_writer.py` → разные kernel-объекты → Python attach'ился к свежесозданному пустому region, все SHM-каналы (signals/fills/market/kill_switch) молча читали нули на Windows.
 - Исправлено: verbatim-tag в обоих сайтах (+ `scripts/monitor.py`). Подтверждено живым кросс-процессным чтением.
 
@@ -379,7 +379,7 @@
 - **Files:** `web-ui/src/hooks/useExchangeData.js` (submitOrder + connected-effect)
 - **Tests:** `web-ui/src/test/useExchangeData.test.jsx` — 2 new regressions: queued order does not time out at 5s while offline (then times out normally after reconnect), and resolves with the post-reconnect ack. `mockSend` now returns `true` to match real `send()` semantics when connected. 53/53 pass.
 
-### S247 — PressureModel dead trade-flow/toxicity legs — ✅ verified R154
+### S247 — PressureModel dead trade-flow/toxicity legs — ✅ verified R154 · re-verified R187
 - **Bug:** prod calls `analyze(ob)` → `trades=nullptr,n=0` → `trade_imbalance`/`toxic_score` structurally 0. V2's `raw_pressure = obi*0.3 + ti*0.3 + body*0.4` carried a permanently-dead 30% leg — composite capped at 0.7 of its scale, silently damping signals below `pressure_threshold`; toxic→IOC gate could never fire. No trade stream exists on the wire at all (orderbooks/deltas/candles/prices/accounts only), so wiring was impossible without protocol work.
 - **Fix:** honest removal-from-prod-claims: `PressureResult.has_trade_flow` flag set by `analyze(ob,trades,n)`; V2 renormalizes `raw_pressure` over live legs (`live_w = 0.7 + (has_trade_flow ? 0.3 : 0)`) at both composite sites — identical math when fed, full intended scale when not.
 - **Files:** `hft-trade-bot/src/data/aligned_types.h`, `src/strategies/pressure_model.h`, `src/strategies/signal_engine_v2.h` (2 sites)
@@ -390,12 +390,12 @@
 - **Fix:** keep the position on the book; `mark_closing(symbol)` suppresses `check_sl_tp` re-triggers for 10s (stale marks expire → retry); `apply_fill` books the close at real fill price with fee via the normal CLOSED path (which also does `reduce_exposure` + `balance.fetch_add(realized_pnl)`); REJECTED/CANCELLED clears the mark so SL/TP can re-fire.
 - **Files:** `hft-trade-bot/src/position/position_manager.h` (`closing_since_`, `mark_closing`, `CLOSING_RETRY`), `src/core/bot_loop.cpp` (process_sl_tp), `src/core/bot_setup.cpp` (kill switch)
 
-### S249 — reset_daily zeroed live exposure; test-only update_pnl — ✅ verified R154
+### S249 — reset_daily zeroed live exposure; test-only update_pnl — ✅ verified R154 · re-verified R187
 - **Bug:** `reset_daily()` stored `total_exposure_ = 0` at the UTC boundary — but exposure is current holdings, so positions carried past midnight silently dropped out of `max_total_exposure` until new fills re-added. `update_pnl(double)` CAS-add had 0 prod callers (prod owns `daily_pnl_` via `update_pnl_v2`'s store).
 - **Fix:** `reset_daily` no longer touches `total_exposure_`; `update_pnl` removed; 3 test call sites migrated to `update_pnl_v2(x, 0, 0)`; "Daily reset" test extended with an exposure-preservation assert.
 - **Files:** `hft-trade-bot/src/risk/risk_manager.h`, `hft-trade-bot/tests/test_doctest_risk_manager.cpp`
 
-### S239 — metrics servers bound to container loopback — ✅ verified R154
+### S239 — metrics servers bound to container loopback — ✅ verified R154 · re-verified R187
 - **Bug:** sim `config.yaml` set `metrics.host: "localhost"` explicitly → the documented fallback `metrics_host or websocket.host` never engaged → :8775 bound container loopback (published port + prom job dead, in-container healthcheck green). ai-bot `AI_BOT_BIND_HOST` existed in code but was never set in any compose → :9090 loopback.
 - **Fix:** `exchange_simulator/__main__.py` — `EXCHANGE_METRICS_HOST` env override (mirrors `EXCHANGE_WS_HOST`); `config.yaml` `metrics.host` key removed so the ws-host fallback actually engages (0.0.0.0 in container via `EXCHANGE_WS_HOST`, localhost locally). `AI_BOT_BIND_HOST=0.0.0.0` added to ai-signal-bot env in all 4 compose files; both keys documented in `.env.prod.example`.
 - **Files:** `exchange_simulator/__main__.py`, `exchange_simulator/config.yaml`, `docker-compose{,.prod,.staging,.hub}.yml`, `.env.prod.example`
