@@ -1702,4 +1702,4 @@ Commit: 9fe7ebb
 
 **Clean:** все 22 alert-rules → реальные метрики; grafana provider-paths ↔ compose-монты (S068-фикс живой); alertmanager честно документирует no-op default receiver; codeql/release/dependabot/templates честны; e2e селекторы+кейбиндинги реальны; staging 18xxx-порты консистентны.
 
-Commit: TBD
+Commit: fd2b029

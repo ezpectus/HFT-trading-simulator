@@ -2051,4 +2051,4 @@ Last uncovered surface: monitoring stack configs, all 5 GitHub workflows + depen
 
 **Verified clean:** all 22 alert rules reference emitted metrics (8 `ai_signal_bot_*` in metrics_server.py, 9 `exchange_*` in ws_prometheus.py); `test_alerts.py` validates real group names; alertmanager honestly documents its no-op default receiver; grafana provider paths match compose mounts; prometheus targets match service names; codeql covers only the cpp leg (py/js in ci.yml — honest comment); release.yml changelog generation real; dependabot dirs all exist; issue/PR templates have no stale refs; e2e specs use real selectors/keybindings (Shift+\ ↔ App.jsx); `dev:mock` → `.env.mock` → `VITE_MOCK_MODE` wired end-to-end; staging 18xxx port offsets consistent.
 
-Commit: TBD
+Commit: fd2b029
