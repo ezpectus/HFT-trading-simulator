@@ -1880,4 +1880,4 @@ Commit: bfc0454
 
 **Clean:** SHM ring-buffer layout байт-в-байт = C++ (192B/head@64/tail@128/magic), SPSC корректен; seq-lock market-writer настоящий; 70/70 config-properties имеют потребителей; SignalPublisher — auth+rate-limit+bounded history; backtest_requests честный (synthetic помечен, params clamped); portfolio/analysis handlers — bounded+validated+to_thread; paper/live exec реальны; CB state-machine корректен.
 
-Commit: TBD
+Commit: b44ca41
