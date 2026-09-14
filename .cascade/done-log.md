@@ -600,52 +600,52 @@
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN.
 
-### S274 — MarketDepthReplay replays the real orderbook prop ✅ · verified R166 ✅ · verified R166
+### S274 — MarketDepthReplay replays the real orderbook prop ✅ · verified R166
 - **Bug:** `orderbooks: _orderbooks` — the real prop deliberately ignored while the panel synthesized a 10-level book from candle OHLC (`mid ± spread×levels` + jitter): a "depth replay" of depth that never existed. Bonus: `f.timestamp || f.received_at` mixed seconds vs ms in the fill-join window.
 - **Fix:** panel renders the real `ctx.exchange.orderbooks` book for the replayed symbol — labeled as the live book (no client-side L2 history exists on the wire, so a true depth replay cannot be honest); candle+fill replay still scrubs real data. `f.timestamp` normalized s→ms before the join.
 - **Files:** `web-ui/src/components/MarketDepthReplay.jsx`, `web-ui/src/test/marketDepthReplay.test.jsx`
 
-### S233 — notification diffs survive the 50-cap ✅ · verified R166 ✅ · verified R166
+### S233 — notification diffs survive the 50-cap ✅ · verified R166
 - **Bug:** new-event detection was `len - prevLen`; `fills`/`signals` hard-cap at `.slice(0,50)` in `useExchangeData` → once saturated, length stays 50 → fill + strong-signal toasts permanently silent while events stream.
 - **Fix:** diff by head-identity (first element's timestamp+symbol+direction / fill key) instead of array length — a new head fires regardless of cap saturation. Tests model the real newest-first producer order + a cap-saturation regression test.
 - **Files:** `web-ui/src/hooks/useNotifications.js`, `web-ui/src/test/useNotifications.test.jsx`
 
-### S234 — registry addToast passes the real function through ✅ · verified R166 ✅ · verified R166
+### S234 — registry addToast passes the real function through ✅ · verified R166
 - **Bug:** 12 panels got `addToast: (type,msg) => ctx.addToast({type, title: msg})`; the store's object branch renders `` `${title}: ${message}` `` with `message` undefined → every toast read "…: undefined".
 - **Fix:** all 12 sites pass `ctx.addToast` through directly — the store's positional `(type, message)` branch already handles the panel contract.
 - **Files:** `web-ui/src/panels/registry.js`
 
-### S235 — detachable panels cut to the reachable surface ✅ · verified R166 ✅ · verified R166
+### S235 — detachable panels cut to the reachable surface ✅ · verified R166
 - **Bug:** `PANEL_CONFIG` declared 6 panels and `updatePopupContent` rendered all 6, `useDetachedPanelSync` synced 5 — but only `chart`/`orderbook` have `<DetachablePanel>` wrappers → account/signals/arbitrage/performance branches unreachable (`handleDetach` dataMap didn't even carry 'performance'). `BroadcastChannel('trading-sim-panel')` posted into a channel nobody listens on. `:41` used a real blocking `alert('Popup blocked…')`.
 - **Fix:** config + renderers + sync trimmed to chart/orderbook; BroadcastChannel removed; popup-blocked notice routed through `useToastStore` instead of `alert()`. Tests updated to the real surface.
 - **Files:** `web-ui/src/hooks/useDetachablePanels.js`, `useDetachedPanelSync.js`, `App.jsx`, `web-ui/src/test/useDetachablePanels.test.jsx`, `useDetachedPanelSync.test.jsx`
 
-### S250 — dead HFT infra cut + GTD branch wired ✅ · verified R166 ✅ · verified R166
+### S250 — dead HFT infra cut + GTD branch wired ✅ · verified R166
 - **Bug:** `ObjectPool`/`CircuitBreaker`/`RetryPolicy` (~150 lines in `low_latency.h`) instantiated only by doctests — the S152 pattern. `bot_loop.cpp` passed `top5_depth=0.0` → the GTD branch in `AdaptiveOrderSelectorV2::select` was unreachable, so `expire_ms` never reached the wire despite full executor plumbing. `ShmMarketData::write_*` had zero prod callers.
 - **Fix:** three dead classes deleted + their test cases + `<random>` include; `select_order_kind` now computes real top-5 depth from the side the order crosses (`ob.asks` for buys, `ob.bids` for sells) → GTD selectable, `expire_ns` flows to the `expire_ms` wire field; shm header comment corrected (C++ is consumer-only — `write_*` is the protocol encoder mirrored by the Python writer + doctest fixture); stale `TestCircuitBreakerInit` banner over a RiskManager test fixed; CMakeLists comment updated.
 - **Files:** `hft-trade-bot/src/utils/low_latency.h`, `src/core/bot_loop.cpp`, `src/ipc/shm_market_data.h`, `tests/test_v2_infra.cpp`, `test_doctest_cpp_optimizations.cpp`, `test_doctest_risk_manager.cpp`, `CMakeLists.txt`
 
-### S225 — fake `--paper` flag removed ✅ · verified R166 ✅ · verified R166
+### S225 — fake `--paper` flag removed ✅ · verified R166
 - **Bug:** `scripts/run.py` appended `--paper` as argv[2]; `init_config_and_logger` reads only argv[1] (config path) and `main.cpp` has no flag parser → silently ignored. No paper/live concept exists in the C++ config at all — the bot only ever trades the simulator.
 - **Fix:** flag + usage line removed.
 - **Files:** `hft-trade-bot/scripts/run.py`
 
-### S213 — arb detector can actually fire ✅ · verified R166 ✅ · verified R166
+### S213 — arb detector can actually fire ✅ · verified R166
 - **Bug:** every exchange's price was `base × fixed_offset` (≤4bps, constant ratio) → `best_bid(B) <= best_ask(A)` always after ~19bps fee+slippage cost → `scan()` structurally ∅; auto-exec (`spread_bps > 20`) unreachable; arb panel eternally empty.
 - **Fix:** per-(exchange,symbol) mean-reverting deviation (OU: kappa=0.12, sigma≈6bps) lets venue prices genuinely diverge — verified: 9 opportunities over 400 candles, best 22.6bps (crosses the >20bps auto-exec path). Deviation runs off `self.rng` → seed determinism preserved. 2 regression tests (fires over run + bounded deviation).
 - **Files:** `exchange_simulator/market_simulator.py`, `tests/test_arbitrage.py`
 
-### S221 — exchange_orders_*_total are real counters now ✅ · verified R166 ✅ · verified R166
+### S221 — exchange_orders_*_total are real counters now ✅ · verified R166
 - **Bug:** `submitted`/`filled`/`rejected` were windowed `len()`/status-sums over `deque(maxlen=10000)` — `submitted` pins at 10000, `filled`/`rejected` regress on eviction → non-monotonic `_total` breaks `rate()`/`increase()`; no HELP/TYPE lines.
 - **Fix:** `_CountingOrderHistory` keeps cumulative counters; `Order.__setattr__` reports post-append transitions (same object sits in pending dicts + history) so PENDING→FILLED counts at transition time; exporter emits cumulative values with `# HELP`/`# TYPE counter`. Regression test covers eviction + in-place fill.
 - **Files:** `exchange_simulator/exchange.py`, `models.py`, `ws_prometheus.py`, `tests/test_ws_prometheus.py`
 
-### S219 — audit.log rotation + held-open sink ✅ · verified R166 ✅ · verified R166
+### S219 — audit.log rotation + held-open sink ✅ · verified R166
 - **Bug:** every `log()` did `open()/write()/close()` — a syscall per event on a path firing hundreds/sec; `logs/audit.log` had no rotation → unbounded growth.
 - **Fix:** `RotatingFileHandler` (10MB × 5, config-wired `audit.max_file_bytes`/`backup_count`) on a per-instance logger — held-open stream + size-cap rotation. `AuditLogger.close()` releases the handler; tests moved to `tmp_path` (the open handle blocked `TemporaryDirectory` teardown on Windows).
 - **Files:** `exchange_simulator/audit_logger.py`, `__main__.py`, `tests/test_audit_logger.py`
 
-### S226 — scripts/ci un-orphaned + test.sh can fail ✅ · verified R166 ✅ · verified R166
+### S226 — scripts/ci un-orphaned + test.sh can fail ✅ · verified R166
 - **Bug:** `scripts/ci/` (8 files) invoked by nothing; `test.sh` warned-and-skipped missing pytest/vitest without incrementing FAIL → exit 0 executing zero tests; and ran only `ai-signal-bot/tests/` — all 31 exchange_simulator files never executed.
 - **Fix:** missing tools now increment FAIL; exchange_simulator suite added; `make ci-full` wires `run-all.sh` into the reachable surface.
 - **Files:** `scripts/ci/test.sh`, `Makefile`
