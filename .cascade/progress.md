@@ -1997,7 +1997,7 @@ Commit: 685d68f
   - **S311** — image defaults unreachable: `hft-*:v2.0.0` vs deploy.yml pushing `ghcr.io/ezpectus/hft-tradebot--lite-version/<svc>:2.0.0` (v-prefix stripped) — default `helm install` = ImagePullBackOff on all 4 app images.
   - **S312** — ingress `/grafana` subpath with no `GF_SERVER_ROOT_URL`/`serve_from_sub_path`/rewrite → broken Grafana when enabled (latent, ingress off by default).
 - **Verified clean:** unusually literate chart — `fail` guards on required values, SHM sidecar + `shareProcessNamespace`, kill-switch on writable volume under readOnlyRootFilesystem, loopback-trap env comments (EXCHANGE_WS_HOST/WS_URL/HFT_EXCHANGE_WS_URL), `/live`+`/ready` probes real (health_server:143-144), vendored files byte-identical to monitoring/, network-policy honest about DNS/443, sim Deployment inherits S303's DOA image (blast radius, not new).
-- **Commit:** <pending>
+- **Commit:** `6aab6c3`
 
 ## R142 — web-ui vitest suite vacuity scan (0 findings — honest zero #4)
 
