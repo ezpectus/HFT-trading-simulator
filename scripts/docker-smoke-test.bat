@@ -2,12 +2,18 @@
 REM Docker Compose smoke test — verify all services start and respond.
 REM Usage: scripts\docker-smoke-test.bat
 
+REM docker-compose.yml has ${GRAFANA_PASSWORD:?...} — `docker compose up` fails
+REM interpolation without it. Throwaway for the smoke run unless caller set one.
+if not defined GRAFANA_PASSWORD set GRAFANA_PASSWORD=ci-smoke
+
 echo === Docker Compose Smoke Test ===
 echo.
 
 REM Start all services
 echo [1/5] Starting services...
-docker compose up -d --wait --timeout 60
+REM --wait-timeout bounds the healthy-wait; --timeout is the container
+REM *shutdown* timeout and does not bound --wait.
+docker compose up -d --wait --wait-timeout 240
 if errorlevel 1 (
     echo   ^❌ Failed to start services
     exit /b 1

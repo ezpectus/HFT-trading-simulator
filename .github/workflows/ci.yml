@@ -329,12 +329,23 @@ jobs:
   docker-smoke:
     name: Docker Compose Smoke Test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Cold run builds 4 images (hft C++ is the long pole) + ~2-3 min for the
+    # full depends_on healthy chain — 10 min was not enough headroom.
+    timeout-minutes: 20
     needs: [test-python, test-js]
+    env:
+      # docker-compose.yml has ${GRAFANA_PASSWORD:?...} and CI has no .env —
+      # `docker compose up` fails interpolation without it. Throwaway value;
+      # the stack is removed by `down -v` in this same job.
+      GRAFANA_PASSWORD: ci-smoke
     steps:
       - uses: actions/checkout@v4
-      - name: Build and start services
-        run: docker compose up -d --wait --timeout 60
+      - name: Build images
+        run: docker compose build
+      - name: Start services
+        # --wait-timeout bounds the healthy-wait; `--timeout` is the container
+        # *shutdown* timeout and does not bound --wait.
+        run: docker compose up -d --wait --wait-timeout 240
       - name: Verify Exchange Simulator
         run: |
           sleep 5

@@ -4,12 +4,18 @@
 
 set -euo pipefail
 
+# docker-compose.yml has ${GRAFANA_PASSWORD:?...} — `docker compose up` fails
+# interpolation without it. Throwaway for the smoke run unless caller set one.
+export GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-ci-smoke}"
+
 echo "=== Docker Compose Smoke Test ==="
 echo ""
 
 # Start all services
 echo "[1/5] Starting services..."
-docker compose up -d --wait --timeout 60
+# --wait-timeout bounds the healthy-wait; --timeout is the container *shutdown*
+# timeout and does not bound --wait.
+docker compose up -d --wait --wait-timeout 240
 
 # Verify Exchange Simulator
 echo "[2/5] Verifying Exchange Simulator (health on port 8775; WS is :8765)..."
