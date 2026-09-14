@@ -818,3 +818,32 @@ harnesses are un-unit-testable by design).
 - **Fix:** DEPLOYMENT.md Option 4 rewritten to describe the real substrate (VPC/EKS/S3, stateless — no DB/cache tier, deploy via Helm onto EKS); README's phantom CloudWatch bullet dropped. The `db_password` tfvars part was already closed via S273/S314 (R167/R170).
 - **Files:** `docs/DEPLOYMENT.md` (Option 4), `terraform/README.md`
 - **Commit:** 8fe770d
+### S222 — visualizer: Windows arrows + first-exchange, no binance hardcode
+- **Bug:** `msvcrt.getch()` emits `à`/` ` prefix for arrows but `_handle_key` routed only `` — `<- -> Switch tabs` dead on Windows; the Windows branch then read two bytes where one follows. `exchanges.get("binance")` hardcoded at :71/:218 — renaming the exchange silently emptied the UI; `__main__` catch-list missed AttributeError/KeyError.
+- **Fix:** `à`/` ` routed to the handler on Windows (single K/M suffix byte, POSIX branch untouched); symbols/exchange resolve via `next(iter(exchanges.values()))`; number keys generalized 1-9 matching the dynamic footer; catch extended. Verified: instantiate with `{'kraken': ...}` → symbols populate; numkey routing works.
+- **Files:** `exchange_simulator/visualizer.py:71,127,137-151,219,263-267`, `exchange_simulator/__main__.py:110`
+- **Commit:** 7a00aeb
+
+### S206 — e2e honesty: real assertions + scoped overlay kill
+- **Bug:** smoke 'status bar' asserted `body`; mock-mode 'toggle sidebar' never toggled; trading 'mock banner' asserted `header`; `dismiss-onboarding` CSS-killed every `.fixed.inset-0.z-50` overlay + the notifications region (error dialogs/toasts invisible to e2e); console-error allowlist swallowed `NaN`/`attribute`/`SVG`/`Warning:`/generic `network`.
+- **Fix:** status bar asserts `role=contentinfo`; sidebar does a real collapse→expand round-trip (skip on mobile viewports where the control isn't rendered); mock banner asserts `role=alert` + "DEMO MODE" (harness always serves `dev:mock`); overlay CSS scoped to `data-testid="onboarding-modal"` (added to the component; stale "204 panels/44+ models" copy corrected to 271/~60); allowlist keeps only WebSocket/favicon/ERR_CONNECTION_REFUSED. +4 vitest cases for the modal.
+- **Files:** `web-ui/e2e/{smoke,mock-mode,trading}.spec.js`, `web-ui/e2e/dismiss-onboarding.js`, `web-ui/src/components/OnboardingTutorial.jsx`, `web-ui/src/test/onboardingTutorial.test.jsx`
+- **Commit:** 3fa0a27
+
+### S209 — docs label gitignored dev tools as local-only
+- **Bug:** `docs/ARCHITECTURE.md:202,228,591` + `docs/WEB_UI.md:495-496` presented `run_logger.py`/`error_monitor.py`/`price_monitor.py` as canonical components — all three are gitignored local scripts (`.gitignore:179-181`), absent in clean clones (the code itself says "not shipped" at `run.py:31`, `__main__.py:21`).
+- **Fix:** all 5 doc sites marked local dev tool / gitignored / optional; finding content preserved.
+- **Files:** `docs/ARCHITECTURE.md`, `docs/WEB_UI.md`
+- **Commit:** b8a868b
+
+### S216 — dev-verifier residue: posix installer + cargo phantom + e2e-aware gate
+- **Bug (live parts):** `install-hooks.sh` referenced by both sh hook headers but only `.bat` existed; `pre-commit-check.py` docstring + `install-hooks.bat` promised cargo build/test with zero Cargo.toml; coverage gate flagged playwright `*.spec.*`/`e2e/` files as untested sources. (Stale parts: `ci-equivalence.py` and `health-check.py` were already deleted in 4b11cef/S262 — their phantom-rust row and src/-only scan died with them.)
+- **Fix:** created `install-hooks.sh` (POSIX twin: copies the two `*-hook-git.sh` into `.git/hooks`, chmod +x, honest check list); cargo claims stripped from docstring/usage/echo; coverage gate now skips `.spec.` and `e2e/` like other test files.
+- **Files:** `scripts/install-hooks.sh` (new), `scripts/pre-commit-check.py:7-9,20,575-580`, `scripts/install-hooks.bat:51-55`
+- **Commit:** fd5b044
+
+### S217 — CONTRIBUTING run instructions + counts corrected
+- **Bug (live parts):** `cd exchange_simulator && python -m exchange_simulator` can't resolve the package from inside it; `./hft_trade_bot config/config.yaml` from `build/` missed `../`; stale counts "36/155/49 test files" and "7 wired strategies". (Stale parts: `ml/`/`research/` tree rows, "50 symbols", "docs (15 files)", prod-compose PostgreSQL/Redis were already corrected earlier — the finding's line refs predate that refresh.)
+- **Fix:** run section rewritten root-relative with the build step noted; counts → ~28 files/412 tests (sim), ~94/1400+ (ai-bot), 25 files/~274 TEST_CASEs (hft), 6 wired strategies.
+- **Files:** `CONTRIBUTING.md:247-258,339,350,378,435`
+- **Commit:** b8a868b

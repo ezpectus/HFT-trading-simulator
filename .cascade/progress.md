@@ -2373,3 +2373,13 @@ Re-checked every unverified done-log entry (R170×10 + R171×5 + R172×5) advers
 - **S205** — DEPLOYMENT Option 4 describes live terraform; README CloudWatch bullet gone.
 
 Zero unverified entries remain. Next: board has 18 open → R174 slop-fix continues the Info pack (S206, S209, S216, S217, S222, ...).
+
+## R174 — slop-fix — 5 findings closed (Info batch)
+
+- **S222** — visualizer: Windows arrow keys routed (à/  prefix, single K/M byte), first-configured-exchange replaces "binance" hardcode, dynamic footer+numkeys, AttributeError/KeyError caught.
+- **S206** — e2e honesty: 3 vacuous specs now assert real elements (contentinfo / collapse-expand round-trip / DEMO MODE alert); overlay kill scoped to data-testid=onboarding-modal (was all .fixed.inset-0.z-50 + notifications region); console allowlist trimmed to transport noise; +4 modal vitest cases; stale 204/44+ copy corrected.
+- **S209** — run_logger/error_monitor/price_monitor marked local-only/gitignored at all 5 doc sites (code already disclosed it).
+- **S216** — live parts only: install-hooks.sh created (POSIX twin), phantom cargo claims stripped, coverage gate now skips .spec./e2e as test layer. ci-equivalence.py/health-check.py were already deleted in S262 — those sub-claims were stale.
+- **S217** — CONTRIBUTING run cmds fixed (root-relative -m, ../config path), counts corrected (28/412, 94/1400+, 25/~274, 6 strategies). ml//research//symbols/docs-count sub-claims were already stale-fixed.
+
+Gate: staged ALL GREEN. Commits: 7a00aeb, 3fa0a27, fd5b044, b8a868b. Board: 13 open (S309 Medium Docker-blocked + 12 Info).
