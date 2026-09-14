@@ -124,8 +124,10 @@ The bot connects to the exchange simulator and begins generating signals.
 ### Step 4: Start HFT Trade Bot (Optional)
 
 ```bash
-cd hft-trade-bot/build
-./hft_trade_bot
+# run from hft-trade-bot/ — the binary resolves the config path relative to CWD
+# (positional argv[1], not a --config flag)
+cd hft-trade-bot
+./build/hft_trade_bot config/config.yaml
 ```
 
 Connects to both exchange simulator (for market data) and AI signal bot (for signals)

@@ -121,31 +121,23 @@ docker-compose build web-ui
 
 Create `.env` file in project root.
 
-> **⚠ Audit note (S253):** the template below is stale — none of its 8 variable
-> names are read by any compose file or service. The variables that actually
-> work today are `EXCHANGE_WS_HOST`, `EXCHANGE_CONTROL_TOKEN`, `GRAFANA_USER`,
-> `GRAFANA_PASSWORD`, `LOG_FORMAT`, `HFT_EXCHANGE_WS_URL` (see `.env.example` /
-> `.env.prod.example`).
+In dev mode `docker-compose.yml` interpolates only the Grafana credentials —
+everything else (service URLs, ports, tokens) is configured inside the compose
+`environment:` blocks and the component yaml files mounted into the containers:
 
 ```bash
-# Exchange Simulator
-EXCHANGE_SIMULATOR_HOST=0.0.0.0
-EXCHANGE_SIMULATOR_PORT=8765
+# Grafana admin — REQUIRED: compose fails with
+# "GRAFANA_PASSWORD must be set" without it.
+GRAFANA_PASSWORD=change-me-strong-password
 
-# AI Signal Bot
-AI_SIGNAL_BOT_HOST=0.0.0.0
-AI_SIGNAL_BOT_PORT=8766
-
-# Web UI
-WEB_UI_PORT=3000
-
-# Database
-DATABASE_PATH=./data/trading.db
-
-# Monitoring
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3001
+# Optional — defaults to admin
+GRAFANA_USER=admin
 ```
+
+For production, copy `.env.prod.example` to `.env.prod` instead — it lists the
+real prod variables (`EXCHANGE_CONTROL_TOKEN`, `VITE_*` build args,
+`HFT_EXCHANGE_WS_URL`, `WS_URL`, …) that `docker-compose.prod.yml` consumes via
+`env_file` and `${VAR:?required}` interpolation.
 
 #### 3. Start Services
 
@@ -378,12 +370,12 @@ Server prerequisites (one-time): `docker login ghcr.io` if the package is not
 public, and a real `/opt/hft/.env.prod` (see `.env.prod.example`) — the
 workflow copies the example, not secrets.
 
-> **⚠ Audit note (S263):** `.env.prod` alone is not enough — service-level
-> `env_file:` loads it into containers but NOT into `${VAR}` interpolation.
-> The five `:?required` vars (`GRAFANA_PASSWORD`, `EXCHANGE_CONTROL_TOKEN`,
-> `VITE_WS_*`) must come from `.env` or an explicit
-> `docker compose --env-file .env.prod -f docker-compose.prod.yml …`.
-> Neither `deploy.yml` nor `Makefile.prod` passes `--env-file` today.
+> **Note:** `.env.prod` alone is not enough — service-level `env_file:` loads
+> it into containers but NOT into `${VAR}` interpolation. The `:?required`
+> vars (`GRAFANA_PASSWORD`, `EXCHANGE_CONTROL_TOKEN`, `VITE_WS_*`) resolve via
+> `docker compose --env-file .env.prod -f docker-compose.prod.yml …` — both
+> `deploy.yml` and `Makefile.prod` pass it, so use `make prod-up` (or the same
+> `--env-file` flag) rather than bare `docker compose -f … up`.
 
 `docker-compose.hub.yml` runs the same `:latest` ghcr images locally without
 building — `docker compose -f docker-compose.hub.yml up`.
