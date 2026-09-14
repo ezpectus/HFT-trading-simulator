@@ -2628,3 +2628,16 @@ Target: `ai-signal-bot/src/{llm_engine,signal_validation,data_collection,databas
 - **S339** validator drawdown dead (Medium): `_check_drawdown` reads `_daily_pnl` but `update_pnl` is test-only — gate can never fire. Advertised risk limit disconnected from its data.
 
 Clean (traced): `llm_engine` — real OpenAI/Anthropic/Ollama HTTP calls, SecretStr keys, honest `provider="none"` fallback + rule_based; `data_collection` — ccxt-backed RealExchangeAdapter/RealAccountManager live path via lazy ExchangeFactory (run.py:644-655); hawkes `fit_hawkes`/`hawkes_intensity` live via WS `hawkes_fit` endpoint; `Database` — real WAL sqlite with init script; SignalValidator's other four checks live and locked.
+
+## R196 — slop-verify — done-log batch re-check — 6 entries: 4 verified, 1 reverted, 1 partial
+
+Target: freshest done-log claims (R178–R183 era), re-verified adversarially against current code — four were independently reviewed as code commits this session.
+
+- **S297** — ❌ REVERTED → **S340** (High). Claimed "audit merge-restore": `deploy.sh:69` backs up `exchange_simulator/logs/audit/` — the dir doesn't exist (audit is the FILE `logs/audit.log`, config.yaml:184); `|| true` hides it → `audit_$TS` never created → both restore branches dead. And `cp -r` overwrite on a single rotating file loses post-backup lines — "merge" claim false. ai_data restore + stop-before-swap are real and stay.
+- **S301** — ✅ verified: title-match dedup + `!pull_request` exclusion + comment-vs-create; dropped `pip install pytest` is genuinely dead (0 pytest invocations in workflow).
+- **S252** — ✅ verified: `ex|sym` keying on all stores, default→shm→bare resolution, primary-venue by-id gating, adversarial 3-venue doctest; sim wire protocol carries `exchange` (ws_broadcast.py:431/439).
+- **S268** — ✅ verified: ran the suite — 1360 passed/2 skipped exactly as claimed; all 7 ported coverage items present with real assertions; deleted-file behaviors covered under diverged names.
+- **S309** — ✅ verified: `GRAFANA_PASSWORD` sole `:?` var, `--wait-timeout 240` real, 4 health curls, docker-smoke in ci-gate.
+- **S321** — ⚠ partial → **S341** (Info): cited files clean, but 28 `docker-compose ` v1 command sites survive in DEVELOPMENT_GUIDE/MONITORING_GUIDE/useful_info_en/WEB_UI.
+
+Board: 20 open (S340 High joins the top tier). Done-log marked inline per entry.

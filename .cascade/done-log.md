@@ -891,7 +891,7 @@ harnesses are un-unit-testable by design).
 - **Files:** `hft-trade-bot/src/core/config_validate.h`, `config/config.yaml`, `tests/test_doctest_hft_config.cpp`, `tests/test_integration_config.cpp`
 - **Commit:** b848454
 
-### S252 — per-venue market data stores ✅ · verified R177 · re-verified R185
+### S252 — per-venue market data stores ✅ · verified R177 · re-verified R185 · re-verified R196
 - **Bug:** `prices_`/`order_books_`/`candle_history_` keyed by bare symbol — the sim's "exchange|symbol" wire keys and `candle.exchange` were parsed and discarded; three venues overwrote/interleaved each other; an orderbook delta could mutate a different venue's book. (Also found: `using Spinlock = SpinLock` referenced a type that never existed — the header could not compile standalone.)
 - **Fix:** all three stores keyed `exchange|symbol`; `SignalReceiver::set_default_exchange` wired from `config.default_exchange` in `init_core_components`; symbol-only accessors resolve default-venue then shm then bare; by-id arrays and `get_all_prices` serve the primary venue only (pos_mgr semantics preserved); deltas resolve their own venue; `feed_frame_json` test seam added (mirrors `inject_snapshot`); new doctest asserts three-venue isolation for prices/books/deltas/candles.
 - **Files:** `hft-trade-bot/src/communication/signal_receiver_data.h`, `signal_receiver_handlers.h`, `signal_receiver.h`, `src/core/bot_setup.cpp`, `tests/test_doctest_signal_receiver.cpp`, `CMakeLists.txt`
@@ -903,7 +903,7 @@ harnesses are un-unit-testable by design).
 - **Files:** `docs/TESTING.md`, `docs/ARCHITECTURE.md`, `docs/WEB_UI.md`, `README.md`, `CONTRIBUTING.md`, `docs/guides/TRADING_GUIDE.md`
 - **Commit:** 9961ce8
 
-### S268 — single canonical test tree ✅ · verified R177
+### S268 — single canonical test tree ✅ · verified R177 · re-verified R196
 - **Bug:** `ai-signal-bot/tests/` and `tests/unit/` held 6 same-name pairs as diverged parallel suites; canonical layer undocumented.
 - **Fix:** canonical = `tests/unit/` (per TESTING.md). Ported root-unique coverage first — kelly min_risk negative regression, TF/MR directional signals, `Signal.rr_ratio_neutral`, breakeven+trailing interaction, SHORT peak/trough tracking, ATR gap/missing-prev_close edges, backtest-request param pass-through — then deleted the 6 root files, moved the remaining 24 verbatim, `test_integration.py` → `tests/integration/`, removed phantom `tests/mocks/` (only `__pycache__`). 1360 passed, 2 skipped.
 - **Files:** `ai-signal-bot/tests/` (30 files: 6 deleted, 24 moved), `tests/unit/test_{kelly,strategies,risk_manager,backtest_requests}.py`
@@ -911,12 +911,12 @@ harnesses are un-unit-testable by design).
 
 ## R178 — slop-fix — 2 findings closed (Info tier emptied)
 
-### S297 — rollback restores all four backup artifacts ✅ · verified R181
+### S297 — rollback restores all four backup artifacts ✅ · verified R181 — ❌ REVERTED R196: audit half never worked — `deploy.sh:69` backs up `exchange_simulator/logs/audit/` which doesn't exist (audit log is the FILE `logs/audit.log`, config.yaml:184); `|| true` hides the miss → `audit_$TS` never created → both new restore branches dead code. And "merge" is wrong for a single rotating file — `cp -r` overwrite loses post-backup lines. ai_data restore + stop-order real → reopened as S340.
 - **Bug:** `backup_deployment` wrote config tar + exchange `data` + `ai_data` + `audit` (`deploy.sh:53-69`, `deploy.bat:51-66`) but `rollback` restored only config + exchange data — the AI bot's SQLite/WAL signals/trades db and the audit snapshot were write-only; "Rollback completed" reported on a half-rolled-back system.
 - **Fix:** both rollback paths now restore all four artifacts — `ai_data` via atomic swap (a merged old/new WAL pair can corrupt the db), `audit` via merge-copy so post-backup entries survive; `stop_deployment` moved before the file swaps (was after — live writers could race the restore). Verified end-to-end in a sandbox: all four restore, post-backup audit entries survive, order is stop→restore→start.
 - **Files:** `scripts/deploy.sh`, `scripts/deploy.bat`
 
-### S301 — nightly issue dedup + dead pytest install removed ✅ · verified R181
+### S301 — nightly issue dedup + dead pytest install removed ✅ · verified R181 · re-verified R196
 - **Bug:** `nightly-backtest.yml` `Create issue on regression` (`if: failure()`) called `issues.create` unconditionally — a persistent failure opened a new issue every night forever; `pip install pytest pytest-asyncio` (:37) installed packages no step invoked. (The third sub-claim — `walk_forward_ci.py` orphaned — was already stale: wired in R171/S214, called at :73.)
 - **Fix:** the step now lists open issues, finds an existing one by title (PRs excluded via `!pull_request`), and comments with the latest run URL instead of duplicating; dead pip install removed. YAML + embedded JS both parse-verified.
 - **Files:** `.github/workflows/nightly-backtest.yml`
@@ -938,14 +938,14 @@ harnesses are un-unit-testable by design).
 - **Fix:** real PGO two-pass + positional config + yaml-flag note; REST row replaced by the no-REST pointer; 6 strategies; Measured column disclaimed as ad-hoc + benchmark_suite caveat noted.
 - **Files:** `docs/PERFORMANCE.md`
 
-### S321 — docker-compose v1 → docker compose v2 in docs ✅ · verified R181
+### S321 — docker-compose v1 → docker compose v2 in docs ✅ · verified R181 — ⚠ R196: cited 3 files are clean but 28 v1-command sites survive in 4 other docs → S341
 - **Bug:** ~23 sites taught the EOL v1 binary: DEPLOYMENT.md ×14, QUICK_START.md ×7, README.md ×2 (S302 fixed the Makefile but docs were left).
 - **Fix:** all command positions converted; compose *file* names (`docker-compose.prod.yml` etc.) preserved.
 - **Files:** `docs/DEPLOYMENT.md`, `docs/guides/QUICK_START.md`, `README.md`
 
 ## R182 — slop-fix — 1 finding closed (S309 — docker-smoke un-red; board empty)
 
-### S309 — docker-smoke was red by construction; all three permanent-fail causes removed ✅ · verified R183
+### S309 — docker-smoke was red by construction; all three permanent-fail causes removed ✅ · verified R183 · re-verified R196
 - **Bug (deeper than the original entry):** the finding blamed S303's dead sim image, but the job actually died *earlier* — `docker-compose.yml:242` has `${GRAFANA_PASSWORD:?...}` and CI has no `.env`, so `docker compose up` failed at variable interpolation before any image was built (reproduced on this host: `docker compose config` → `required variable GRAFANA_PASSWORD is missing a value`). Two more structural defects behind it: `--timeout 60` is the container-*shutdown* timeout — it never bounded `--wait`, which waits forever, so a stuck health chain surfaced as a 10-min job timeout rather than a compose error; and `timeout-minutes: 10` was marginal for a cold 4-image build (hft C++ in-Docker compile is the long pole) + ~2-3 min `depends_on: service_healthy` chain.
 - **Fix:** `.github/workflows/ci.yml:329-348` — job-level `env: GRAFANA_PASSWORD: ci-smoke` (throwaway; `down -v` in the same job destroys the stack), `docker compose build` split into its own step so build failures stop masquerading as smoke failures, `--wait-timeout 240` gives the healthy-wait a real bound, `timeout-minutes` 10→20. Same defect pair fixed in `scripts/docker-smoke-test.sh` (`export GRAFANA_PASSWORD="${GRAFANA_PASSWORD:-ci-smoke}"`) and `scripts/docker-smoke-test.bat` (`if not defined`) — both died on the `:?` for any dev without the var, this host included (no `.env` present).
 - **Verified:** `docker compose config` repro-fail → with `GRAFANA_PASSWORD=ci-smoke` → clean parse; `--wait-timeout` flag exists in the installed compose; ci.yml YAML-valid; `bash -n` clean; pre-commit-check 9/9 ALL GREEN.

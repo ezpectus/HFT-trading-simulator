@@ -11,9 +11,9 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 1245 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84, scripts +13, helm +12, terraform +8, workflows +5, root/web-ui configs +9, dockerfiles/compose +10, docs-residue +3, .github meta +5) |
-| Всего находок | ~339 (S001–S339) |
-| Закрыто | 226 |
-| Открыто | **18** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 · R193 sim fill-model: S330–S333 · R194 C++ core: S334–S336 · R195 safety-gates: S337–S339 |
+| Всего находок | ~341 (S001–S341) |
+| Закрыто | 225 |
+| Открыто | **20** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 · R193 sim fill-model: S330–S333 · R194 C++ core: S334–S336 · R195 safety-gates: S337–S339 · R196 verify-reopens: S340–S341 |
 
 **Текущее состояние:** R195 ai-signal-bot safety-gates audit — 3 находки, все про "защита, которая не защищает": **S337** (High — CircuitBreaker не может сработать: `record_failure` без prod-caller'ов; и даже сработав, гейтит только broadcast — ордера и SHM-фид идут дальше), **S338** (Medium — `is_trading_active` гейтит только paper; live-путь без halt-гейта; `_hft_kill_active` до ордеров не доходит), **S339** (Medium — validator drawdown-чек мёртв: `update_pnl` никто не вызывает). Чисто: llm_engine (реальные HTTP-клиенты + honest provider=none), real_account/exchange_factory (ccxt-backed live path), hawkes (живой WS-endpoint), Database (WAL sqlite), SignalValidator остальные чеки живые. Board: 18 open.
 
@@ -53,6 +53,8 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 | **S337** | CircuitBreaker can never trip — and wouldn't stop orders if it did | `communication/circuit_breaker.py` is a real CLOSED/OPEN/HALF_OPEN machine wired into `signal_publisher.broadcast_signal` (:308 `allow_signal`), but `record_failure`/`record_success` have **zero prod callers** (only tests) → `consecutive_failures` stays 0 → CLOSED forever. And even tripped it would only silence the WS broadcast: `run.py:571` ignores `broadcast_signal`'s return and `_execute_paper_order`/`_execute_live_order` (:578-584) run regardless; the SHM feed to the hft bot (:572) isn't breaker-gated either. A circuit breaker that can't open and doesn't protect execution is decoration. Fix: record failures on order/broadcast errors, and gate the order+SHM paths on breaker state — not just the publish. | High | [ ] Open |
 | **S338** | Halt signals never reach order execution | `run.py:578-584` — `exchange.is_trading_active` gates only `_execute_paper_order`; `_execute_live_order` has no halt check at all (live orders fire during a sim halt — real-money blast radius). Separately `_hft_kill_active` (:389,:572) pauses only the SHM signal feed — neither order path checks it. The order path needs the same halt gates the feed has. | Medium | [ ] Open |
 | **S339** | `SignalValidator` drawdown check is dead — `update_pnl` never called | `signal_validation/validator.py:64-68` + :103-105 — `_check_drawdown` reads `self._daily_pnl`, but `update_pnl` is called only by tests (prod caller count: 0; `run.py:725` is `metrics.update_pnl`, different object). `_daily_pnl` stays 0.0 → the advertised "max daily drawdown" gate can never fire. A risk limit that's disconnected from its data is worse than none — it reads as protected. Fix: call `validator.update_pnl` on realized trade results, or drop the check honestly. | Medium | [ ] Open |
+| **S340** | Audit logs still write-only — backup path points at a nonexistent dir (S297 reverted) | `deploy.sh:69` + `deploy.bat` backup `exchange_simulator/logs/audit/` — that dir does not exist; the audit log is the single rotating FILE `logs/audit.log` (`config.yaml:184`, `audit_logger.py:41`). `cp -r … || true` swallows the miss → `audit_$TS` is never created → the S297 restore branches (`deploy.sh` rollback + .bat) are dead code. Even if the path existed, `cp -r backup/. live/` overwrite ≠ "merge" — post-backup lines appended to the live `audit.log` are lost. Fix: back up the file (`logs/audit.log`), then pick honest restore semantics (restore-as-snapshot or append-merge). | High | [ ] Open |
+| **S341** | `docker-compose` v1 syntax survives in 4 docs (S321 remainder) | S321 converted DEPLOYMENT/QUICK_START/README (~23 sites) but 28 v1 command sites remain: `docs/guides/DEVELOPMENT_GUIDE.md`, `docs/MONITORING_GUIDE.md` (:177,:521+), `docs/theory/useful_info_en.md` (:182-186+), `docs/WEB_UI.md`. Same defect class — the docs still teach the EOL `docker-compose` binary. Fix: same `docker-compose ` → `docker compose ` pass on those four files (preserve compose *file* names). | Info | [ ] Open |
 
 
 
@@ -335,9 +337,10 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 1. **S337** (High, R195) — CircuitBreaker декоративный: `record_failure` без prod-вызовов (не может сработать) + гейтит только broadcast, не execution. Самая опасная находка раунда — "защита", которой нет.
 2. **S329 + S332** (High, R192/R193) — lookahead во ОБОИХ бэктест-движках: сигнал на `i-1`, филл на `i`.
-3. **S338/S339** (Medium, R195) — halt-гейты не доходят до order path; validator drawdown мёртв.
-4. **S330/S331** (Medium, R193) — sim fill-model: iceberg без marketability + мёртвая slice-модель; partial-liquidation без fee/slippage/audit.
-5. **S334/S335** (Medium, R194) — C++ position book: fee-двойной-учёт; `sync_position` не удаляет → фантомы.
-6. **S322** (Medium, R191) — copy-paste venue-runners ×3. **S328** (Medium, R192) — мёртвый backtest-стек ~580 строк.
-7. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering.
+3. **S340** (High, R196 verify-reopen) — audit backup глядит на несуществующий `logs/audit/` (реальный файл `logs/audit.log`) → snapshot never created, restore-ветки мёртвы; "merge"-семантика неверна для append-mode файла.
+4. **S338/S339** (Medium, R195) — halt-гейты не доходят до order path; validator drawdown мёртв.
+5. **S330/S331** (Medium, R193) — sim fill-model: iceberg без marketability + мёртвая slice-модель; partial-liquidation без fee/slippage/audit.
+6. **S334/S335** (Medium, R194) — C++ position book: fee-двойной-учёт; `sync_position` не удаляет → фантомы.
+7. **S322** (Medium, R191) — copy-paste venue-runners ×3. **S328** (Medium, R192) — мёртвый backtest-стек ~580 строк.
+8. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering · **S341** docker-compose v1 остаток ×28 в 4 docs.
 8. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
