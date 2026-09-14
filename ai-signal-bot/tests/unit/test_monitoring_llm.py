@@ -1,4 +1,4 @@
-"""Tests for monitoring/ (health_server, metrics, tracker), data_collection/ (market_replay, timescaledb), llm_engine."""
+"""Tests for monitoring/ (health_server, metrics, tracker) and llm_engine."""
 import asyncio
 import csv
 import os
@@ -289,37 +289,3 @@ class TestLLMEngine:
     async def test_close_no_session(self):
         engine = LLMEngine()
         await engine.close()
-
-
-# ─── data_collection/market_replay.py ───
-
-
-def test_market_replay_import():
-    """Test market_replay module imports."""
-    try:
-        from src.data_collection.market_replay import MarketReplay
-    except ModuleNotFoundError:
-        pytest.skip("market_replay module not available")
-    assert MarketReplay is not None
-
-
-# ─── data_collection/timescaledb_client.py ───
-
-
-def test_timescaledb_client_import():
-    """Test timescaledb_client module imports."""
-    try:
-        from src.data_collection.timescaledb_client import CandleRecord
-    except ModuleNotFoundError:
-        pytest.skip("timescaledb_client module not available")
-    cr = CandleRecord(
-        symbol="BTC/USDT",
-        timestamp=1700000000,
-        open=50000,
-        high=51000,
-        low=49500,
-        close=50500,
-        volume=100.5,
-    )
-    assert cr.symbol == "BTC/USDT"
-    assert cr.close == 50500

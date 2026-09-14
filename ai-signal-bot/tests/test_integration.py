@@ -43,20 +43,76 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture
-async def exchange_websocket():
-    """Connect to a running exchange simulator on localhost:8765.
+SIM_PORT = 18765
 
-    Requires the exchange simulator to be running.
-    Skips test if connection fails.
+
+@pytest.fixture
+async def sim_url(tmp_path):
+    """A real in-process exchange simulator on a test port.
+
+    The wire protocol is the production one — these tests genuinely run
+    instead of skipping when no external sim happens to be on :8765.
     """
+    import websockets.asyncio.server  # noqa: F401 — resolves websockets.asyncio.* used by start()
+    from exchange_simulator import audit_logger as al
+    from exchange_simulator.exchange import SimulatedExchange
+    from exchange_simulator.market_simulator import MarketSimulator
+    from exchange_simulator.websocket_server import ExchangeWebSocketServer
+
+    # Keep the server's audit sink inside tmp_path — the global default
+    # writes logs/audit.log under the cwd.
+    test_logger = al.AuditLogger(log_file_path=str(tmp_path / "audit.log"))
+    previous = al._global_audit_logger
+    al.set_audit_logger(test_logger)
+
+    market = MarketSimulator(
+        symbols=["BTC/USDT"], exchanges=["binance"],
+        initial_prices={"BTC/USDT": 65000.0},
+        volatility={"BTC/USDT": 0.01},
+        warmup_candles=50, seed=42,
+    )
+    exchange = SimulatedExchange(
+        exchange_id="binance", name="Binance Sim",
+        fee_pct=0.075, slippage_bps=5.0, market=market,
+        initial_balance=100000.0,
+    )
+    server = ExchangeWebSocketServer(
+        exchanges={"binance": exchange}, market=market,
+        host="127.0.0.1", port=SIM_PORT, metrics_enabled=False,
+    )
+    server._tick_interval = 0.05  # 20 candles/s — the suite stays fast
+    task = asyncio.create_task(server.start())
+    url = f"ws://127.0.0.1:{SIM_PORT}"
+    for _ in range(100):
+        try:
+            probe = await websockets.connect(url)
+            await probe.close()
+            break
+        except OSError:
+            await asyncio.sleep(0.05)
+    else:
+        task.cancel()
+        pytest.fail("in-process simulator failed to start")
+
+    yield url
+
+    await server.stop()
+    task.cancel()
     try:
-        ws = await websockets.connect("ws://localhost:8765", ping_interval=10)
-        await ws.send(json.dumps({"type": "subscribe"}))
-        yield ws
-        await ws.close()
-    except (ConnectionRefusedError, OSError, websockets.exceptions.InvalidURI):
-        pytest.skip("Exchange simulator not running on localhost:8765")
+        await task
+    except asyncio.CancelledError:
+        pass
+    if previous is not None:
+        al.set_audit_logger(previous)
+    test_logger.close()
+
+
+@pytest.fixture
+async def exchange_websocket(sim_url):
+    ws = await websockets.connect(sim_url, ping_interval=10)
+    await ws.send(json.dumps({"type": "subscribe"}))
+    yield ws
+    await ws.close()
 
 
 class TestExchangeConnection:
@@ -64,10 +120,16 @@ class TestExchangeConnection:
 
     @pytest.mark.asyncio
     async def test_connect(self, exchange_websocket):
-        """Test that we can connect and receive a snapshot."""
-        msg = await asyncio.wait_for(exchange_websocket.recv(), timeout=5.0)
-        data = json.loads(msg)
-        assert data["type"] in ("snapshot", "candles")
+        """Test that we can connect and receive market data."""
+        # Protocol v2 greets with "welcome" first — read until market data.
+        for _ in range(5):
+            msg = await asyncio.wait_for(exchange_websocket.recv(), timeout=5.0)
+            data = json.loads(msg)
+            if data["type"] == "welcome":
+                continue
+            assert data["type"] in ("snapshot", "candles")
+            return
+        pytest.fail("No market data after welcome")
 
     @pytest.mark.asyncio
     async def test_receive_candles(self, exchange_websocket):
@@ -101,32 +163,34 @@ class TestExchangeClient:
     """Test the ExchangeClient class against a live simulator."""
 
     @pytest.mark.asyncio
-    async def test_client_connect(self):
+    async def test_client_connect(self, sim_url):
         """Test ExchangeClient connection."""
-        client = ExchangeClient("ws://localhost:8765")
+        client = ExchangeClient(sim_url)
+        listener = None
         try:
             connected = await asyncio.wait_for(client.connect(), timeout=5.0)
-            if not connected:
-                pytest.skip("Exchange simulator not running")
+            assert connected
             assert client.connected
 
-            # Wait for data
-            await asyncio.sleep(2)
+            listener = asyncio.create_task(client.listen())
+            await asyncio.sleep(0.5)
             assert len(client.latest_candles) > 0 or len(client.latest_prices) > 0
         finally:
+            if listener:
+                listener.cancel()
             await client.disconnect()
 
     @pytest.mark.asyncio
-    async def test_client_submit_order(self):
+    async def test_client_submit_order(self, sim_url):
         """Test order submission through ExchangeClient."""
-        client = ExchangeClient("ws://localhost:8765")
+        client = ExchangeClient(sim_url)
+        listener = None
         try:
             connected = await asyncio.wait_for(client.connect(), timeout=5.0)
-            if not connected:
-                pytest.skip("Exchange simulator not running")
+            assert connected
 
-            # Wait for data
-            await asyncio.sleep(2)
+            listener = asyncio.create_task(client.listen())
+            await asyncio.sleep(0.5)
 
             # Submit a small market order
             await client.submit_order(
@@ -138,6 +202,8 @@ class TestExchangeClient:
             # If we get here without exception, order was sent
             assert client.connected
         finally:
+            if listener:
+                listener.cancel()
             await client.disconnect()
 
 
@@ -145,18 +211,19 @@ class TestSignalGeneration:
     """Test signal generation pipeline with live data."""
 
     @pytest.mark.asyncio
-    async def test_strategy_pipeline(self):
+    async def test_strategy_pipeline(self, sim_url):
         """Test that strategies can process live candle data."""
-        client = ExchangeClient("ws://localhost:8765")
+        client = ExchangeClient(sim_url)
+        listener = None
         try:
             connected = await asyncio.wait_for(client.connect(), timeout=5.0)
-            if not connected:
-                pytest.skip("Exchange simulator not running")
+            assert connected
 
-            # Collect candle data
+            listener = asyncio.create_task(client.listen())
+            # Collect candle data — the sim ticks at 50ms, poll it faster
             candle_cache = {}
-            for _ in range(60):  # Wait up to 60 seconds
-                await asyncio.sleep(1)
+            for _ in range(400):  # up to ~20s
+                await asyncio.sleep(0.05)
                 for symbol, candle in client.latest_candles.items():
                     if symbol not in candle_cache:
                         candle_cache[symbol] = []
@@ -178,8 +245,10 @@ class TestSignalGeneration:
                         assert hasattr(result, "confidence")
                         return
 
-            pytest.skip("Not enough candle data received in time")
+            pytest.fail("Not enough candle data received in time")
         finally:
+            if listener:
+                listener.cancel()
             await client.disconnect()
 
 
