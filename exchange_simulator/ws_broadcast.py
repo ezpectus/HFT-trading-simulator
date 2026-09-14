@@ -12,6 +12,7 @@ import websockets
 
 from exchange_simulator.models import OrderType, Side
 from exchange_simulator.ws_constants import (
+    _HAS_MSGPACK,
     _HAS_ORJSON,
     WebSocketServerConnection,
     _sanitize_log,
@@ -22,6 +23,11 @@ try:
     import orjson
 except ImportError:
     orjson = None
+
+try:
+    import msgpack
+except ImportError:
+    msgpack = None
 
 try:
     import struct
@@ -41,32 +47,40 @@ class BroadcastMixin:
         self, websocket: WebSocketServerConnection, data: dict
     ) -> None:
         """Send message to client with negotiated encoding and protocol version."""
-        from exchange_simulator.ws_constants import _HAS_MSGPACK, PROTOCOL_VERSION
-
-        try:
-            import msgpack
-        except ImportError:
-            msgpack = None
+        from exchange_simulator.ws_constants import PROTOCOL_VERSION
 
         client_ver = self._client_versions.get(websocket, 1)
         if client_ver >= 2 and "protocol_version" not in data:
             data = {**data, "protocol_version": PROTOCOL_VERSION}
-        encoding = self._client_encodings.get(websocket, "json")
+        message_bytes = self._encode(data, self._client_encodings.get(websocket, "json"))
+        await websocket.send(message_bytes)
 
-        message_bytes = b""
-        if encoding == "msgpack" and _HAS_MSGPACK:
-            message_bytes = msgpack.packb(data, use_bin_type=True)
-            await websocket.send(message_bytes)
-        elif _HAS_ORJSON:
-            message_bytes = orjson.dumps(data)
-            await websocket.send(message_bytes)
-        else:
-            message_str = json.dumps(data, separators=(',', ':'))
-            message_bytes = message_str.encode('utf-8')
-            await websocket.send(message_str)
-
-        self.metrics.record_message(len(message_bytes))
+        payload_len = len(message_bytes) if isinstance(message_bytes, (bytes, bytearray)) else len(message_bytes.encode('utf-8'))
+        self.metrics.record_message(payload_len)
         self.metrics.client_count = len(self.clients)
+
+    def _encode(self, data: dict, encoding: str) -> str | bytes:
+        """Encode a payload honoring the negotiated wire encoding.
+
+        JSON goes out as a TEXT frame, msgpack as binary — clients discriminate
+        on the frame type, so JSON-as-bytes (raw orjson.dumps) would be read as
+        msgpack by any client that has the lib installed (S212)."""
+        if encoding == "msgpack" and _HAS_MSGPACK:
+            return msgpack.packb(data, use_bin_type=True)
+        if _HAS_ORJSON:
+            return orjson.dumps(data).decode('utf-8')
+        return json.dumps(data, separators=(',', ':'))
+
+    def _encoded_variants(self, data: dict) -> dict:
+        """Encode a shared broadcast payload once per negotiated encoding
+        present in self.clients (S212 — broadcasts previously ignored the
+        negotiated encoding entirely)."""
+        variants = {}
+        for c in self.clients:
+            enc = self._client_encodings.get(c, "json")
+            if enc not in variants:
+                variants[enc] = self._encode(data, enc)
+        return variants
 
     async def _send_market_snapshot(
         self, websocket: WebSocketServerConnection
@@ -241,15 +255,12 @@ class BroadcastMixin:
         logs = []
         while self._audit_pending:
             logs.append(self._audit_pending.popleft())
-        if _HAS_ORJSON:
-            payload = orjson.dumps({"type": "audit_logs", "logs": logs})
-        else:
-            payload = json.dumps({"type": "audit_logs", "logs": logs}, separators=(',', ':'))
+        variants = self._encoded_variants({"type": "audit_logs", "logs": logs})
         disconnected = set()
 
         async def _send(client):
             try:
-                await client.send(payload)
+                await client.send(variants[self._client_encodings.get(client, "json")])
             except websockets.ConnectionClosed:
                 disconnected.add(client)
 
@@ -273,10 +284,12 @@ class BroadcastMixin:
 
             batched_fills = []
             for order in closed_orders:
+                close_reason = ""
                 if order.status.value == "FILLED":
                     reason = ""
                     if exchange.account.trade_history:
                         reason = exchange.account.trade_history[-1].reason
+                    close_reason = reason
                     logger.info(
                         f"  {reason or 'SL/TP'} CLOSED: {order.symbol} @ {order.filled_price:.2f} "
                         f"qty={order.filled_quantity:.4f} | {ex_id}"
@@ -301,31 +314,31 @@ class BroadcastMixin:
                         f"  ORDER {order.status.value}: {order.symbol} "
                         f"| {ex_id} | {order.rejection_reason or ''}"
                     )
-                batched_fills.append(order.to_dict())
+                d = order.to_dict()
+                if close_reason:
+                    d["close_reason"] = close_reason
+                batched_fills.append(d)
 
             if batched_fills:
                 await self._broadcast_fills_batch(batched_fills)
 
     async def _broadcast_fills_batch(self, fills: list[dict]) -> None:
         """Broadcast a batch of fill notifications to all clients."""
-        if _HAS_ORJSON:
-            fill_msg = orjson.dumps({"type": "fills_batch", "orders": fills})
-        else:
-            fill_msg = json.dumps({"type": "fills_batch", "orders": fills}, separators=(',', ':'))
+        variants = self._encoded_variants({"type": "fills_batch", "orders": fills})
         disconnected = set()
 
-        async def _send_fill(client, payload, _disc=disconnected):
+        async def _send_fill(client, _disc=disconnected):
             try:
-                await client.send(payload)
+                await client.send(variants[self._client_encodings.get(client, "json")])
             except websockets.ConnectionClosed:
                 _disc.add(client)
 
         await asyncio.gather(*[
-            _send_fill(c, fill_msg) for c in self.clients
+            _send_fill(c) for c in self.clients
         ], return_exceptions=True)
         self.clients -= disconnected
 
-    async def _process_arbitrage(self) -> bytes | str | None:
+    async def _process_arbitrage(self) -> dict | None:
         """Scan for arbitrage opportunities and auto-execute if profitable."""
         if not self.arb_detector:
             return None
@@ -335,16 +348,13 @@ class BroadcastMixin:
             return None
 
         arb_dict = self.arb_detector.to_dict()
-        if _HAS_ORJSON:
-            arb_data = orjson.dumps(arb_dict)
-        else:
-            arb_data = json.dumps(arb_dict, separators=(',', ':'))
 
         for opp in new_arbs:
             if opp.spread_bps > 20.0 and opp.max_quantity > 0.01 and self._trading_active:
                 await self._execute_arbitrage(opp)
 
-        return arb_data
+        # Return the raw dict — the broadcast encodes it per client encoding.
+        return arb_dict
 
     async def _execute_arbitrage(self, opp) -> None:
         """Auto-execute an arbitrage opportunity."""
@@ -448,11 +458,15 @@ class BroadcastMixin:
 
         disconnected = set()
 
-        async def _send_to_client(client, payload, extra=None, _disc=disconnected):
+        extra_variants = self._encoded_variants(arb_data) if arb_data else {}
+
+        async def _send_to_client(client, payload, _disc=disconnected):
             try:
                 await client.send(payload)
-                if extra:
-                    await client.send(extra)
+                if extra_variants:
+                    await client.send(
+                        extra_variants[self._client_encodings.get(client, "json")]
+                    )
             except websockets.ConnectionClosed:
                 _disc.add(client)
 
@@ -469,11 +483,8 @@ class BroadcastMixin:
                     seq, candle_dicts, prices, accounts,
                     funding_rates, orderbooks, orderbook_deltas, subs,
                 )
-            if _HAS_ORJSON:
-                data = orjson.dumps(msg)
-            else:
-                data = json.dumps(msg, separators=(',', ':'))
-            tasks.append(_send_to_client(client, data, arb_data))
+            data = self._encode(msg, self._client_encodings.get(client, "json"))
+            tasks.append(_send_to_client(client, data))
 
         await asyncio.gather(*tasks, return_exceptions=True)
         self.clients -= disconnected

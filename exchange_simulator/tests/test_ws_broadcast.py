@@ -124,6 +124,54 @@ class TestAuditDrainBroadcast:
         assert len(server._audit_pending) == 0
 
 
+class TestNegotiatedEncodingBroadcast:
+    """S212: broadcast must send TEXT frames to JSON clients and binary
+    frames to msgpack clients — never orjson bytes to a JSON client (clients
+    discriminate on frame type and would parse bytes as msgpack)."""
+
+    @pytest.mark.asyncio
+    async def test_json_client_gets_text_frame(self, server):
+        ws = AsyncMock(spec=ServerConnection)
+        server.clients.add(ws)
+        server._client_encodings[ws] = 'json'
+        await server._broadcast_fills_batch([{'order_id': 'o1'}])
+        payload = ws.send.call_args[0][0]
+        assert isinstance(payload, str)
+        assert json.loads(payload)['type'] == 'fills_batch'
+
+    @pytest.mark.asyncio
+    async def test_msgpack_client_gets_binary_frame(self, server):
+        msgpack = pytest.importorskip('msgpack')
+        ws = AsyncMock(spec=ServerConnection)
+        server.clients.add(ws)
+        server._client_encodings[ws] = 'msgpack'
+        await server._broadcast_fills_batch([{'order_id': 'o1'}])
+        payload = ws.send.call_args[0][0]
+        assert isinstance(payload, (bytes, bytearray))
+        assert msgpack.unpackb(payload)['type'] == 'fills_batch'
+
+    @pytest.mark.asyncio
+    async def test_mixed_clients_get_respective_frames(self, server):
+        msgpack = pytest.importorskip('msgpack')
+        ws_json = AsyncMock(spec=ServerConnection)
+        ws_pack = AsyncMock(spec=ServerConnection)
+        server.clients.update({ws_json, ws_pack})
+        server._client_encodings[ws_json] = 'json'
+        server._client_encodings[ws_pack] = 'msgpack'
+        await server._broadcast_fills_batch([{'order_id': 'o1'}])
+        assert isinstance(ws_json.send.call_args[0][0], str)
+        assert isinstance(ws_pack.send.call_args[0][0], (bytes, bytearray))
+
+    @pytest.mark.asyncio
+    async def test_send_json_honors_negotiated_encoding(self, server):
+        msgpack = pytest.importorskip('msgpack')
+        ws = AsyncMock(spec=ServerConnection)
+        server.clients.add(ws)
+        server._client_encodings[ws] = 'msgpack'
+        await server._send_json(ws, {'type': 'x'})
+        assert isinstance(ws.send.call_args[0][0], (bytes, bytearray))
+
+
 class _FakeServeCtx:
     async def __aenter__(self):
         return self
