@@ -5,7 +5,9 @@ All notable changes to this project are documented in this file.
 > **Versioning note:** entries use dated `[Unreleased]` sprint headers; the only
 > tagged product releases are `[v4.0]`/`[v4.1]` at the bottom. Component
 > versions are tracked separately — `web-ui/package.json` (2.2.0),
-> `exchange_simulator/__init__.py` (1.0.0) — and do not map to the tags above.
+> `hft-trade-bot` CMake `project()` (2.0.0), helm `appVersion` (2.0.0) —
+> and do not map to the tags above. Both Python packages declare
+> `__version__ = "4.1.0"`, matching the latest tag.
 
 ## [Unreleased] — 2026-09-13 (Slop-loop audit — contract drift, dead config, docs refresh)
 

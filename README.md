@@ -2,10 +2,10 @@
 
 ![CI](https://img.shields.io/github/actions/workflow/status/ezpectus/HFT-TradeBot--Lite-version/ci.yml?branch=main&label=CI)
 [![codecov](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version/branch/main/graph/badge.svg)](https://codecov.io/gh/ezpectus/HFT-TradeBot--Lite-version)
-![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)
 
-Educational high-frequency trading simulator v2.2.0. C++20 signal engine, Python quant models, shared-memory IPC. Zero real money — 100% for learning.
+Educational high-frequency trading simulator v4.1.0. C++20 signal engine, Python quant models, shared-memory IPC. Zero real money — 100% for learning.
 
 ---
 
@@ -101,7 +101,7 @@ Open **http://localhost:3000**.
 
 ### AI Signal Bot (Python)
 - Signal loop: data collection → technical analysis → strategies → validation → publish
-- 7 wired strategies: Trend, MeanReversion, FFT, StatArb, MarketMaking, Sentiment, MLEnsemble
+- 7 code-wired strategies: Trend, MeanReversion, FFT, StatArb, Sentiment on by default; MarketMaking, MLEnsemble opt-in (`*_enabled` flags)
 - Backtesting engine with walk-forward validation
 - Risk management: VaR, CVaR, Kelly criterion, stress tests
 - Portfolio optimization: Markowitz, Black-Litterman, risk parity
@@ -118,7 +118,7 @@ Open **http://localhost:3000**.
 - Dark/light/auto theme, PWA, WCAG AA accessibility
 - Backtest comparison, session replay, strategy competition
 - Real-time WebSocket data, mock mode for standalone demo
-- ~158 test files (Vitest), 4 E2E specs (Playwright)
+- 159 test files (Vitest), 4 E2E specs (Playwright)
 
 ---
 
@@ -133,6 +133,8 @@ What's real, what's a demo, what's dormant — verified against the code:
 | **Demo / educational** | ~60 math-model UI panels (visualizations, not wired to trading), mock mode (`VITE_MOCK_MODE=true`), exchange-themed UI clones, strategy competition |
 | **Dormant** | Live-trading path: `paper_trading: false` + `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` + `pip install ccxt` → real orders via `RealExchangeAdapter` (ccxt). Off by default, untested — not recommended |
 | **Removed** | Real price feeds, Rust FFI executor, PostgreSQL/Redis, Terraform, research/ML modules (see `docs/theory/` for the deletion rationale) |
+
+**Known gaps** (from the ongoing audit — see `docs/AUDIT_FINDINGS.md`): the signal-bot's circuit breaker and daily-drawdown gate are currently decorative (no production callers feed them), and halt signals gate the paper path but not the dormant live path. Both backtest engines decide and fill on the same bar close, so backtest results are systematically flattering — treat them as directional, not predictive.
 
 ---
 
@@ -192,7 +194,7 @@ hft-trading-system/
 │   │   └── communication/       # WebSocket, SHM
 │   └── tests/
 ├── hft-trade-bot/               # C++20: HFT execution engine
-├── web-ui/                      # React 18: dashboard (295 components, ~158 test files)
+├── web-ui/                      # React 18: dashboard (295 components, 159 test files)
 ├── docs/                        # 13 documentation files + 4 guides + 8 theory docs
 ├── monitoring/                  # Prometheus + Alertmanager + Grafana config
 ├── docker-compose.yml           # Development
@@ -211,7 +213,7 @@ hft-trading-system/
 | HFT Trade Bot | `hft-trade-bot/config/config.yaml` |
 | Shared | `shared_config.yaml` |
 
-Key defaults: 49 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 8% daily drawdown limit, 65% min confidence, paper trading mode.
+Key defaults: 49 symbols, 5m timeframe, 60s signal interval, 2% risk per trade, 65% min confidence, paper trading mode. (An 8% daily-drawdown value exists in config but the enforcing check is currently unwired — see Known gaps.)
 
 ---
 

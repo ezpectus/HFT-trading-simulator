@@ -183,7 +183,7 @@ cd /path/to/trading-system
 ./no-docker.sh start
 
 # Or with Docker
-docker-compose up
+docker compose up
 ```
 
 ---
@@ -241,7 +241,7 @@ docker compose up
 **Linux/macOS:**
 ```bash
 # Start all components with Docker (includes Web UI)
-docker-compose up
+docker compose up
 # Web UI available at http://localhost:3000
 
 # Or run individually (from the repo root):
@@ -448,7 +448,7 @@ hft-trading-system/
 │   ├── tests/                    # C++ tests
 │   ├── config/config.yaml
 │   └── CMakeLists.txt
-├── web-ui/                       # React 18: dashboard (295 components, 153 unit + 4 e2e test files)
+├── web-ui/                       # React 18: dashboard (295 components, 159 unit + 4 e2e test files)
 │   ├── src/
 │   │   ├── components/           # UI components (React.lazy)
 │   │   ├── panels/               # Panel registry
