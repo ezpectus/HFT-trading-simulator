@@ -275,13 +275,12 @@ Navigate to the **Perf** tab to view:
 
 ## Detachable Panels
 
-Click the detach icon on any panel to open it in a separate window:
+Click the detach icon on a panel to open it in a separate window. Currently wired
+(audit S235 — the other `PANEL_CONFIG` entries have renderers but no
+`<DetachablePanel>` wrapper yet):
 
 - Chart
 - Order Book
-- Account
-- Signals
-- Arbitrage
 
 Detached panels remain synchronized with the main dashboard.
 

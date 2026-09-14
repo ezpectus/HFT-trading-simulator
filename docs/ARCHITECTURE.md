@@ -398,14 +398,14 @@ Four binary message types for Python ↔ C++ communication. All structs use `#pr
 | Bot status | AI + HFT bot status cards, portfolio overview, activity feed |
 | Order flow | CVD, tape, depth chart, spoofing detector, dark order flow, imbalance |
 | Technical analysis | Fibonacci, FVG, pattern detector/scanner, support/resistance, order blocks |
-| Risk and analytics | Monte Carlo, drawdown, VaR/CVaR/beta, Kelly, Greeks, volatility surface, hedging |
-| Portfolio | Markowitz optimizer, auto-rebalance, multi-account, session stats, heatmap calendar |
-| Strategy | Visual strategy builder, TWAP/VWAP execution bot, walk-forward, alert webhooks |
+| Risk and analytics | Monte Carlo, drawdown, VaR/CVaR/beta, Kelly, Greeks, volatility surface, hedging — **audit S230:** server-compute results (CVaR, stress test, vol surface, position size, Hawkes, portfolio opt, funding arb) are dropped by the store sync and never reach these panels; they show a 30s timeout |
+| Portfolio | Markowitz optimizer, auto-rebalance, multi-account, session stats, heatmap calendar — **audit S230:** server-side optimizer results don't reach the panel |
+| Strategy | Visual strategy builder, TWAP/VWAP execution bot, walk-forward, alert webhooks — **audit S232:** webhook configs persist but no dispatcher exists; only the manual "Send test" button ever fetches |
 | Export | Session JSON, trade stats CSV, trade journal with tags |
 | Advanced math models | 60+ UI components: GARCH, HMM, PCA, LSTM, Kalman, Wavelet, Copula, VAE, HMC, OT, TDA, and more (UI-only, not in trading logic) |
 | Price alerts | User-set threshold prices with toast + sound |
 | Smart order router | Best price across exchanges |
-| Multi-monitor | Detachable panels via popup windows |
+| Multi-monitor | Detachable panels via popup windows — **audit S235:** only Chart and Order Book are wired; account/signals/arbitrage/performance branches are unreachable |
 | Theme | Dark/light toggle, persisted in localStorage |
 | Sound alerts | Fills, SL/TP, connection changes (Web Audio API) |
 | Mobile | Responsive layout with panel toggle |
@@ -482,7 +482,7 @@ All sidebar analytic/strategy panels are registered in `src/panels/registry.js` 
 - **ErrorBoundary + Suspense** — Each panel wrapped in ErrorBoundary and Suspense (triple protection)
 - **React.lazy ready** — Suspense wrapper in place for future lazy import conversion
 - **VirtualList** — FillsPanel and SignalFeed use windowed rendering for performance
-- **Detachable panels** — Panels can be popped out to separate windows for multi-monitor setups
+- **Detachable panels** — Chart and Order Book can be popped out to separate windows for multi-monitor setups (audit S235: 4 more renderers exist but are unreachable)
 
 ## Data Flow
 
