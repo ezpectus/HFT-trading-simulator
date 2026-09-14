@@ -239,7 +239,9 @@ def main():
 
     logger.info("=" * 60)
     logger.info("  HFT TRADING SIMULATOR v2.2.0")
-    logger.info("  3 Exchanges | 3 Symbols | Paper Trading")
+    n_exchanges = len(exchanges)
+    n_symbols = len(next(iter(exchanges.values())).symbols) if exchanges else 0
+    logger.info("  %d Exchanges | %d Symbols | Paper Trading", n_exchanges, n_symbols)
     logger.info("=" * 60)
     logger.info("  Log file: %s", log_path)
 
