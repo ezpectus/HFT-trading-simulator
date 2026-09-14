@@ -2213,3 +2213,25 @@ Commits: `48fe08d` (sim S281/S289), `9c7d6c2` (deploy.sh+bat S215/S295/S296), `6
 - **S296** — deploy.bat: health loop now aggregates + exits non-zero (was can't-fail); stop kills by CIM commandline match (WINDOWTITLE never matched `start /B`); same start/config/compose fixes as .sh.
 - **S298** — build-all.bat: sim import check runs from repo root; phantom `cross_exchange_arb`/`marketplace` imports → real `funding_arb_detector`/`statistical_arbitrage`. Sim tests no longer silently skipped.
 - **S309** — deferred again: Docker daemon still down.
+
+### R161 — 2026-09-15 — slop-verify: 13/13 VERIFIED, 0 reverts
+
+Re-checked R155 + R159 claims adversarially against committed code:
+
+- **S240** — config.h:96/154-157 fields present; parser reads blacklisted_symbols/per_symbol_max_qty (:303-307); RiskManager::Params populated (bot_setup.cpp:74); adaptive_toxic_threshold → selector (:187); prod yaml ai_signal_bot.enabled: false.
+- **S232** — Auth.jsx real auth_ok/auth_failed probe (:69-70) + auth-token-changed (:25); featureFlags.js exists; AlertWebhook consumes close_reason (:119), server emits it from trade_history reason (ws_broadcast.py:287-291).
+- **S231** — WebSocket ctor free of perMessageDeflate subprotocol (:107); reconnectAttempts counter + maxReconnectsRef cap (:67-69); disconnect() clears timers + sets manualCloseRef.
+- **S212** — _encode returns str|bytes (:62); _HAS_MSGPACK/_HAS_ORJSON module-level (:15-16); _encoded_variants on all broadcast paths (:258,:327,:461); protocol doc updated (:1078-1085).
+- **S257** — PERFORMANCE.md free of Rust benchmark table; WEBSOCKET_PROTOCOL.md post-S212 semantics; ensemble count correct (:551).
+- **S272** — 25 live producer call sites in run.py+signal_publisher.py; the 3 cut metrics absent from metrics.py.
+- **S288** — record_error/set_bot_drawdown/set_bot_win_rate/set_bot_pnl_total among live call sites.
+- **S292** — MetricsCollector exposes 17-method producer surface incl. record_kill_switch.
+- **S290** — run.py:436 property access; all 3 test mocks attribute-form (uptime_seconds=0).
+- **S275** — registry:755 ctx.signals.circuitBreaker.
+- **S276** — zero fantasy-field reads in prod code (realized_pnl only survives in new regression-test names); position-level unrealized_pnl is a real wire field; audit-logs order_id is real (ws_broadcast.py:307).
+- **S284** — all 5 fixture files on real schema.
+- **S270** — vitest include src/**, thresholds ratcheted to 20.
+
+Cleanup: stale CostBasis docstring claimed realized_pnl — corrected to trade_history pnl.
+
+Still unverified: R160 six (S281/S289/S215/S295/S296/S298) — next verify round.
