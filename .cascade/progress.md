@@ -1999,4 +1999,4 @@ Commit: 685d68f
 
 **Clean:** ai-bot gauge/counter имена 1:1 dashboard-запросам; exchange latency-bucket'ы существуют; hft shm_queue_depth trio реально; dashboards provisioned корректно (R133 helm-vendored byte-identical).
 
-Commit: pending
+Commit: f7c4710
