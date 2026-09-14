@@ -1810,4 +1810,4 @@ Commit: 1f468ce
 
 **Clean:** models.py — все контракты корректны (equity=balance+Σmargin+unrealized, trailing-ratchet, iceberg replenish, OCOGroup.on_fill); `__main__` — настоящий composition root (validate_or_exit, audit-config до exchanges, EXCHANGE_WS_HOST env-override с honest comment); config_validator — реальные range/cross-ref проверки; data_export — настоящий CSV/parquet; test_security/test_property_based/test_integration — честные (spec'd mocks, Hypothesis, реальные ассерты); 0 TODO/FIXME в пакете.
 
-Commit: TBD
+Commit: adc54f4

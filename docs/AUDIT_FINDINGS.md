@@ -2167,4 +2167,4 @@ Scope: `models.py` (488 — every `to_dict` wire contract), `__main__.py` (277),
 
 **Verified clean:** `models.py` — every wire contract correct (equity = balance + Σmargin + unrealized_pnl, trailing-stop ratchet, iceberg replenish, `OCOGroup.on_fill`); `__main__.py` is a real composition root (`validate_or_exit` → audit config before `build_exchanges` → `EXCHANGE_WS_HOST` env override with an honest container comment → signal handlers); `config_validator` does real range checks + prices↔volatility cross-refs; `data_export` is a real CSV/parquet writer with pyarrow fallback; `test_security` uses spec'd MagicMocks and real injection cases, `test_property_based` is genuine Hypothesis with `skipif` guards, `test_integration_dataflow` asserts real OHLC/symbol invariants; zero TODO/FIXME/NotImplementedError in the whole package.
 
-Commit: TBD
+Commit: adc54f4
