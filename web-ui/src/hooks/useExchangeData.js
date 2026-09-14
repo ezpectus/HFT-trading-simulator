@@ -275,18 +275,40 @@ export function useExchangeData() {
     // (sendExchange queues while disconnected) dedupes server-side on flush —
     // and the sim echoes it back in the fill ack, which resolves the promise.
     const cid = order.client_order_id || `ui_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-    sendExchange({ type: 'order', ...order, client_order_id: cid })
-    // Resolves with the acked order, or null if no ack within 5s. A `false`
-    // from sendExchange means queued-not-dropped — the ack may still arrive
-    // after reconnect flushes the queue, so we wait either way.
+    const sent = sendExchange({ type: 'order', ...order, client_order_id: cid })
+    // Resolves with the acked order, or null if no ack within 5s. S236: the
+    // 5s window only applies when the message actually went on the wire — a
+    // queued message will send on reconnect with the SAME cid, so the ack may
+    // still arrive and server-side dedup still applies. Timing it out at 5s
+    // while it sat queued told the UI "no response" for an order that was
+    // about to be sent — and a user retry with a fresh cid bypassed dedup
+    // into a double order.
     return new Promise((resolve) => {
-      const timer = setTimeout(() => {
-        pendingAcks.current.delete(cid)
-        resolve(null)
-      }, 5000)
-      pendingAcks.current.set(cid, { resolve, timer })
+      const pending = { resolve, timer: null }
+      pendingAcks.current.set(cid, pending)
+      if (sent) {
+        pending.timer = setTimeout(() => {
+          pendingAcks.current.delete(cid)
+          resolve(null)
+        }, 5000)
+      }
     })
   }, [sendExchange])
+
+  // Orders queued while offline carry no ack timer — once the socket is back,
+  // useWebSocket's onopen flush has already put them on the wire (with the
+  // same cid, so server dedup still applies), so start their 5s window here.
+  useEffect(() => {
+    if (!exchangeConnected) return
+    pendingAcks.current.forEach((pending, cid) => {
+      if (pending.timer === null) {
+        pending.timer = setTimeout(() => {
+          pendingAcks.current.delete(cid)
+          pending.resolve(null)
+        }, 5000)
+      }
+    })
+  }, [exchangeConnected])
 
   const cancelOrder = useCallback((exchange, orderId) => {
     return sendExchange({ type: 'cancel_order', exchange, order_id: orderId })

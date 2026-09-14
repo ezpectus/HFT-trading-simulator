@@ -25,7 +25,7 @@ describe('useExchangeData', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSend = vi.fn()
+    mockSend = vi.fn(() => true) // real send() returns true when connected
     useWebSocket.mockReturnValue({
       connected: true,
       send: mockSend,
@@ -473,6 +473,68 @@ describe('useExchangeData', () => {
     vi.useRealTimers()
   })
 
+  it('submitOrder queued offline does not time out until sent after reconnect', async () => {
+    // S236: an order queued while disconnected must not arm its 5s ack window
+    // — it goes on the wire only when the reconnect flush runs, with the same
+    // client_order_id, so server dedup still applies.
+    vi.useFakeTimers()
+    const queuedSend = vi.fn(() => false)
+    useWebSocket.mockImplementation((url, opts) => {
+      mockOnMessage = opts.onMessage
+      return { connected: false, send: queuedSend, latency: 0, reconnects: 0 }
+    })
+    const { result, rerender } = renderHook(() => useExchangeData())
+    let ackPromise
+    let resolved = 'pending'
+    act(() => {
+      ackPromise = result.current.submitOrder({ exchange: 'binance', symbol: 'BTC/USDT', side: 'BUY', quantity: 1 })
+      ackPromise.then((v) => { resolved = v })
+    })
+    // 6s pass while still disconnected — the order sat in the queue, never on
+    // the wire; timing it out here was the S236 bug.
+    await act(async () => {
+      vi.advanceTimersByTime(6000)
+      await Promise.resolve()
+    })
+    expect(resolved).toBe('pending')
+
+    // Reconnect: the onopen flush puts it on the wire, then the connected
+    // effect arms the 5s window — which now elapses normally.
+    useWebSocket.mockImplementation((url, opts) => {
+      mockOnMessage = opts.onMessage
+      return { connected: true, send: mockSend, latency: 50, reconnects: 1 }
+    })
+    rerender()
+    await act(async () => {
+      vi.advanceTimersByTime(6000)
+      await ackPromise
+    })
+    await expect(ackPromise).resolves.toBeNull()
+    vi.useRealTimers()
+  })
+
+  it('submitOrder queued offline resolves with the post-reconnect ack', async () => {
+    const queuedSend = vi.fn(() => false)
+    useWebSocket.mockImplementation((url, opts) => {
+      mockOnMessage = opts.onMessage
+      return { connected: false, send: queuedSend, latency: 0, reconnects: 0 }
+    })
+    const { result } = renderHook(() => useExchangeData())
+    let ackPromise
+    act(() => {
+      ackPromise = result.current.submitOrder({ exchange: 'binance', symbol: 'BTC/USDT', side: 'BUY', quantity: 1 })
+    })
+    const cid = queuedSend.mock.calls[0][0].client_order_id
+    await act(async () => {
+      mockOnMessage({
+        type: 'fill',
+        order: { id: 'o9', exchange: 'binance', status: 'FILLED', filled_price: 51000, client_order_id: cid },
+      })
+      await ackPromise
+    })
+    await expect(ackPromise).resolves.toMatchObject({ status: 'FILLED', filled_price: 51000 })
+  })
+
   it('cancelOrder sends cancel_order message', () => {
     const { result } = renderHook(() => useExchangeData())
     act(() => {
@@ -535,7 +597,7 @@ describe('useSignalData', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSend = vi.fn()
+    mockSend = vi.fn(() => true) // real send() returns true when connected
     useWebSocket.mockImplementation((url, opts) => {
       mockOnMessage = opts.onMessage
       return { connected: true, send: mockSend, latency: 30, reconnects: 0 }
