@@ -1670,3 +1670,19 @@ Re-checks: S218 (README_PROJECT_OVERVIEW фоссил) подтверждён и
 Clean: MONITORING_GUIDE — 5 dashboards + 22 alerts имя-в-имя; TRADING_STRATEGIES/ADVANCED_ORDER_TYPES/RISK_MANAGEMENT — параметры и реализации совпадают с кодом; CONFIGURATION_GUIDE ~60 ключей все с читателями; audit/+theory/+PROJECT_AUDIT/REFACTORING_PLAN — честные point-in-time дисклеймеры; DEPLOYMENT endpoint-URLs и `data/trading.db` валидны; `ipc.*.capacity`/`order_book_depth`/`audit.*`/`latency_optimization.*` парсятся; helm sidecar-архитектура легитимна.
 
 Commit: 2b71bea
+
+---
+
+## R119 — repo-wide dead-code sweep (финальный пункт ротации)
+
+**Scope:** importer-граф по всем 104 non-test py-модулям, file+named-export reachability в web-ui (295 файлов / 165 экспортов), CMake-coverage всех 25 hft-тестов, root-утилиты, `__init__.py` `__all__` re-export'ы, class-instantiation scan (python+js), scripts/ (25 файлов), git-hooks wiring, e2e/playwright wiring, docker HEALTHCHECK refs, committed data/assets.
+
+**Findings (4):**
+- S259 (Medium): `src/backtesting/walk_forward.py` — 201-строчный мёртвый близнец `StrategyOptimizer.walk_forward`; импортируют только `tests/unit/{test_backtest,test_walk_forward}.py`, prod-путь идёт через optimizer. + `backtesting/__init__.py:2,16` — `BacktestResult as BacktestEngineResult` в `__all__` с нулём ссылок.
+- S260 (Low): мёртвый public API — zero-ref `simulate_hawkes` (hawkes_funcs.py:85), `validate_prices` (indicators.py:18), `HawkesResult` (hawkes_model.py:31); test-only `macd` (indicators.py:114), `bind_context`/`clear_context` (observability/logging.py:158,167). 6 единиц без prod-потребителей.
+- S261 (Medium): web-ui — `useToasts` (Toast.jsx:6) мёртвый дубль `useToastStore` (только toast.test.jsx); `performanceMonitor.js` — `onAlert`/`offAlert`/`getMetricsHistory` zero-ref + `getPerformanceSummary`/`recordCustomMetric`/`resetMetrics`/`resetPanelMetrics` test-only (7/14 экспортов мертвы) — `checkBudgets` → `triggerAlert` в пустой callback-list, budget-violations молча теряются; + test-only `bgColorForSide` (format.ts).
+- S262 (Low): 4 мёртвых hook-варианта `pre-commit-hook.{sh,bat}`/`commit-msg-hook.{sh,bat}` (~118 строк) — шапки ссылаются на несуществующий `install-hooks.sh` (на него же ссылается `.pre-commit-config.yaml:8`), а реальный `install-hooks.bat` ставит `-git`-близнецов; `.bat`-хуки git вообще не может spawn'ить (баг-класс S071). + orphan `scripts/{ci-equivalence,health-check}.py` — 0 ссылок.
+
+**Retracted/false positives:** `main.jsx` (загружается через index.html script-tag), `generateAccounts`/`bivariateNormalCDF`/`sqDistance`/`euclidean`/`baumWelchStep`/`kmeansPlusPlus`/`kmeansIterate`/`normInv`/`tCDF`/`get_tracer` (внутренние helpers, self-use ≥2), `market_making`/`statistical_arbitrage` (package-imports + build_strategies), factory-типы (внутри exchange_factory), `HawkesParams`/hawkes-функции (живут через analysis_requests — мёртв только result-класс), `error_monitor`/`price_monitor`/`trade_csv_logger`/`run_all_tests`/`build-all.bat` (документированы/операционны), `logs/trades_*.csv` (gitignored residue, не committed).
+
+Commit: TBD

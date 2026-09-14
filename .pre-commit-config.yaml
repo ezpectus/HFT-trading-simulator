@@ -1,7 +1,8 @@
 # Pre-commit configuration
 #
 # The canonical checks live in scripts/pre-commit-hook-git.sh — installed into
-# .git/hooks by scripts/install-hooks.bat (Windows) or install-hooks.sh.
+# .git/hooks by scripts/install-hooks.bat (Windows). (install-hooks.sh is
+# referenced here but does not exist — S262.)
 # This config exists for contributors who use the `pre-commit` framework;
 # it runs the SAME script so both install paths run identical checks.
 repos:
