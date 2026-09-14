@@ -322,23 +322,6 @@ function(add_hft_test name source)
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
 
-# SHM ring buffer tests (POSIX-only — shm_open, mmap)
-if(NOT WIN32)
-    add_hft_test(test_shm tests/test_shm.cpp)
-    if(UNIX AND NOT APPLE)
-        target_link_libraries(test_shm PRIVATE rt)
-    endif()
-endif()
-
-# ─── New unit tests (monitoring, network) ───
-add_hft_test(test_monitoring tests/unit/test_monitoring.cpp)
-add_hft_test(test_network tests/unit/test_network.cpp)
-
-# ─── Integration tests ───
-if(NOT WIN32)
-    add_hft_test(test_integration_signal_flow tests/integration/test_signal_flow.cpp)
-endif()
-
 # ─── doctest-based unit tests (header-only, no external deps) ───
 function(add_doctest_test name source)
     add_executable(${name} ${source})
@@ -361,6 +344,23 @@ function(add_doctest_test name source)
     endif()
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
+
+# SHM ring buffer tests (POSIX-only — shm_open, mmap)
+if(NOT WIN32)
+    add_doctest_test(test_shm tests/test_shm.cpp)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(test_shm PRIVATE rt)
+    endif()
+endif()
+
+# ─── New unit tests (monitoring, network) ───
+add_doctest_test(test_monitoring tests/unit/test_monitoring.cpp)
+add_doctest_test(test_network tests/unit/test_network.cpp)
+
+# ─── Integration tests ───
+if(NOT WIN32)
+    add_doctest_test(test_integration_signal_flow tests/integration/test_signal_flow.cpp)
+endif()
 
 # Fallback: on some distros (Ubuntu 24.04) the fmt::fmt CMake target may be
 # header-only, causing undefined references to fmt::v9 symbols at link time.

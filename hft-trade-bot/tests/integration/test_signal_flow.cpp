@@ -5,22 +5,23 @@
 #include "../src/monitoring/system_monitor.h"
 #include "../src/network/watchdog.h"
 #include <atomic>
-#include <cassert>
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest.h"
 #include <chrono>
 #include <iostream>
 #include <thread>
 
 using namespace hft;
 
-void test_signal_to_fill_pipeline() {
+TEST_CASE("test_signal_to_fill_pipeline") {
     std::cout << "  Testing signal → SHM → execution → fill pipeline...\n";
 
     // 1. Create SHM ring buffers
     ShmRingBuffer<FastSignal> signal_buf("/hft_test_signals", 1024, true);
     ShmRingBuffer<FastOrder>  order_buf("/hft_test_orders", 1024, true);
 
-    assert(signal_buf.size() == 0);
-    assert(order_buf.size() == 0);
+    REQUIRE(signal_buf.size() == 0);
+    REQUIRE(order_buf.size() == 0);
 
     // 2. Push a signal (simulating AI bot writing)
     FastSignal sig{};
@@ -32,15 +33,15 @@ void test_signal_to_fill_pipeline() {
     sig.take_profit = 52000.0;
     sig.timestamp   = FastSignal::now_epoch_ns();
 
-    assert(signal_buf.try_push(sig));
-    assert(signal_buf.size() == 1);
+    REQUIRE(signal_buf.try_push(sig));
+    REQUIRE(signal_buf.size() == 1);
 
     // 3. Pop signal (simulating C++ bot reading)
     FastSignal received{};
-    assert(signal_buf.try_pop(received));
-    assert(received.direction == FastSignal::Direction::LONG);
-    assert(received.confidence == 85);
-    assert(received.entry_price == 50000.0);
+    REQUIRE(signal_buf.try_pop(received));
+    REQUIRE(received.direction == FastSignal::Direction::LONG);
+    REQUIRE(received.confidence == 85);
+    REQUIRE(received.entry_price == 50000.0);
 
     // 4. Create order from signal
     FastOrder order{};
@@ -51,14 +52,14 @@ void test_signal_to_fill_pipeline() {
     order.price     = received.entry_price;
     order.timestamp = FastSignal::now_epoch_ns();
 
-    assert(order_buf.try_push(order));
-    assert(order_buf.size() == 1);
+    REQUIRE(order_buf.try_push(order));
+    REQUIRE(order_buf.size() == 1);
 
     // 5. Pop order (simulating exchange adapter)
     FastOrder executed{};
-    assert(order_buf.try_pop(executed));
-    assert(executed.side == FastOrder::Side::BUY);
-    assert(executed.quantity == 0.1);
+    REQUIRE(order_buf.try_pop(executed));
+    REQUIRE(executed.side == FastOrder::Side::BUY);
+    REQUIRE(executed.quantity == 0.1);
 
     // 6. Update monitoring
     SystemMonitor mon;
@@ -67,34 +68,22 @@ void test_signal_to_fill_pipeline() {
     mon.increment(SystemMonitor::Metric::ORDERS_SENT);
     mon.increment(SystemMonitor::Metric::ORDERS_FILLED);
 
-    assert(mon.get(SystemMonitor::Metric::SIGNALS_RECEIVED) == 1);
-    assert(mon.get(SystemMonitor::Metric::ORDERS_FILLED) == 1);
-    assert(mon.fill_rate() == 1.0);
-
-    std::cout << "  [PASS] Signal → fill pipeline test\n";
+    REQUIRE(mon.get(SystemMonitor::Metric::SIGNALS_RECEIVED) == 1);
+    REQUIRE(mon.get(SystemMonitor::Metric::ORDERS_FILLED) == 1);
+    REQUIRE(mon.fill_rate() == 1.0);
 }
 
-void test_watchdog_timeout_flow() {
+TEST_CASE("test_watchdog_timeout_flow") {
     std::cout << "  Testing watchdog timeout flow...\n";
 
     net::Watchdog wd(50); // 50ms timeout
-    assert(wd.is_alive());
+    REQUIRE(wd.is_alive());
 
     // Simulate no activity
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    assert(!wd.is_alive());
+    REQUIRE(!wd.is_alive());
 
     // Feed and check alive again
     wd.feed();
-    assert(wd.is_alive());
-
-    std::cout << "  [PASS] Watchdog timeout flow test\n";
-}
-
-int main() {
-    std::cout << "=== Integration Tests ===\n";
-    test_signal_to_fill_pipeline();
-    test_watchdog_timeout_flow();
-    std::cout << "=== All integration tests passed! ===\n";
-    return 0;
+    REQUIRE(wd.is_alive());
 }
