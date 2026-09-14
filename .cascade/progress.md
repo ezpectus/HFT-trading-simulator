@@ -2272,3 +2272,14 @@ Done-log now fully verified through R162.
 
 Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 55 open.
 
+## R165 — slop-fix (dead-infra + model/counter/rotation sweep) — 6 closed
+
+- **S250** — ObjectPool/CircuitBreaker/RetryPolicy (~150 lines) deleted with their tests; `top5_depth` now computed from the book (GTD branch + `expire_ms` wire path live); shm header comment tells the truth about the consumer-only C++ side.
+- **S225** — `run.py --paper` removed — no flag parser existed; the bot only ever trades the sim.
+- **S213** — per-(exchange,symbol) OU deviation lets venue prices diverge: detector fired 9×/400 candles, best 22.6bps (auto-exec path reachable).
+- **S221** — `_CountingOrderHistory` + `Order.__setattr__` listener → cumulative monotonic counters surviving eviction; HELP/TYPE added.
+- **S219** — `RotatingFileHandler` (10MB×5, config-wired) replaces open-per-write; `close()` added; tests on `tmp_path`.
+- **S226** — `test.sh` can't-fail fixed (missing tools → FAIL; exchange_simulator suite added); `make ci-full` wires the orphan tree.
+
+Gate: `pre-commit-check.py` 9/9 ALL GREEN. Board: 49 open.
+
