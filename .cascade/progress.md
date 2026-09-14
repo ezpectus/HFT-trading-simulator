@@ -2129,4 +2129,4 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S249** — `reset_daily` no longer zeroes `total_exposure_` (holdings persist over midnight); test-only `update_pnl` removed; tests migrated to `update_pnl_v2` + exposure-preservation assert.
 - **S239** — metrics loopback: sim gets `EXCHANGE_METRICS_HOST` env override; `metrics.host` key dropped from config.yaml so the ws-host fallback engages; `AI_BOT_BIND_HOST=0.0.0.0` in all 4 compose files; both vars documented in `.env.prod.example`.
 - **Verification:** pre-commit-check 8/8 ALL GREEN (vitest 53/53 incl. 2 new S236 regressions; g++ syntax-clean on all touched headers).
-- **Commits:** (backfilled after commit)
+- **Commits:** `2f69b10` (web-ui S236), `1ad574d` (hft S247), `4328ca6` (hft S248/S249), `1e4ea54` (infra S239), `38167fe` (ledgers)
