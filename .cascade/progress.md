@@ -2244,3 +2244,21 @@ Still unverified: R160 six (S281/S289/S215/S295/S296/S298) — next verify round
 - **S305** — CONTRIBUTING: `no-docker.bat`/`docker compose`, prod-compose deps corrected; CHANGELOG versioning note.
 - **S306** — WEB_UI.md launcher line corrected.
 - Stale queue entries dropped: S279 (R147), S162 (verified R96). S309 still deferred (daemon down).
+
+### R163 — 2026-09-15 — slop-verify: 11/11 VERIFIED, 0 reverts
+
+Re-checked R160 + R162 claims adversarially against committed code:
+
+- **S281** — ws_prometheus.py:129-130 counts `status.value == "FILLED"/"REJECTED"` (real enum values).
+- **S289** — cascade verified: rejection/fill-rate PromQL now reads live counters.
+- **S215** — deploy.sh: sim from repo root (:169), pid-file stop (:124-135), ENVIRONMENT selects configs (:21-30), `docker compose` v2 ×4.
+- **S295** — `--metrics --config` at :180; mode-aware web check (:249-250); status via pid files.
+- **S296** — deploy.bat: HEALTHY aggregate + `exit /b 1` (:226-239); CIM commandline stop (:113-115); compose v2; --metrics.
+- **S298** — build-all.bat import check from root (:51-52); real `funding_arb_detector`/`statistical_arbitrage` imports (:96,:100).
+- **S280** — broadcast try/except at ws_broadcast.py:251-255; `_valid_number` + `rejected` reporting in ws_message_handler.py:531-580.
+- **S304** — hub :88 `/app/hft_trade_bot config/config.prod.yaml`; staging grafana provisioning mounts :219-220 + GF_DASHBOARDS env :217; V3 line gone.
+- **S302** — Makefile dev-exchange from root :15; `docker compose` ×4.
+- **S305** — CONTRIBUTING free of start.bat/phantom deps; CHANGELOG versioning note at :5.
+- **S306** — WEB_UI.md launcher line corrected.
+
+Done-log now fully verified through R162.

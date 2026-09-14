@@ -533,32 +533,32 @@
 
 ## Round 160 — slop-fix (6 closed)
 
-### S281 — order-status counters count real enum values ✅
+### S281 — order-status counters count real enum values ✅ · verified R163
 - **Bug:** `ws_prometheus.py:129-130` compared `o.status.value` against lowercase `"filled"`/`"rejected"` while `OrderStatus` stores `"FILLED"`/`"REJECTED"` → `exchange_orders_filled_total`/`exchange_orders_rejected_total` were eternal zeros (ported from never-started `health.py` with the case bug).
 - **Fix:** uppercase comparisons matching the codebase idiom (`o.status.value == "FILLED"`); regression test feeds real `OrderStatus` values through the exposition path.
 - **Files:** `exchange_simulator/ws_prometheus.py`, `tests/test_ws_prometheus.py`
 
-### S289 — exchange ratio alerts un-dead ✅
+### S289 — exchange ratio alerts un-dead ✅ · verified R163
 - **Bug:** `HighOrderRejectionRate` (`rejected/submitted > 0.1`) could never fire and `LowFillRate` (`filled/submitted < 0.8` for 10m) fired permanently — both fed by S281's eternal-zero metrics. Crying wolf + blind spot.
 - **Fix:** closed by the S281 fix — the PromQL was correct, the data was dead; both metrics now report real counts.
 - **Files:** `exchange_simulator/ws_prometheus.py` (no alerts.yml change needed)
 
-### S215 — deploy.sh native brokenness ✅
+### S215 — deploy.sh native brokenness ✅ · verified R163
 - **Bug:** `cd exchange_simulator && python -m exchange_simulator` (can't import a package from inside itself); `pkill -f "ai_signal_bot"` never matches `python run.py` → stop/restart left a live bot; `ENVIRONMENT` read+logged but never branched; `docker-compose` v1 (EOL) ×4.
 - **Fix:** sim starts from repo root; stop is pid-file driven (files start_native already wrote); `ENVIRONMENT=dev|production` now selects `settings.testnet.yaml`/`config.yaml` vs `settings.yaml`/`config.prod.yaml` — matching the compose mounts; all compose calls on `docker compose` v2.
 - **Files:** `scripts/deploy.sh`
 
-### S295 — deploy.sh native health-gate reachable ✅
+### S295 — deploy.sh native health-gate reachable ✅ · verified R163
 - **Bug:** `start_native` ran bare `python run.py` (no `--metrics`, `metrics.enabled: false`) → HealthServer never started → `:8080/ready` failed all 30 retries → guaranteed `exit 1`; web check curled `:3000/health` — vite preview SPA-fallbacks 200 on any path; `status` grepped a non-matching pattern.
 - **Fix:** ai-bot starts `--metrics --config "$AI_CONFIG"` (mirrors docker-compose.yml:82); web check is mode-aware (docker `/health` vs native `id="root"` marker); `status` reports from pid files.
 - **Files:** `scripts/deploy.sh`
 
-### S296 — deploy.bat can fail + can stop ✅
+### S296 — deploy.bat can fail + can stop ✅ · verified R163
 - **Bug:** health loop logged per-service warns but never aggregated → returned success after 30 iterations regardless; `taskkill /FI "WINDOWTITLE eq …"` matches nothing under `start /B` (shared console) → stop killed nothing; same-family: broken-from-inside sim start, no `--metrics`, `docker-compose` v1, vacuum `:3000/health`.
 - **Fix:** health check aggregates `HEALTHY` per round, breaks early on all-4, exits non-zero on failure; stop kills by CIM `Win32_Process` commandline match (python `-m exchange_simulator`/`run.py --metrics`, node `vite preview`) + `taskkill /IM` for the exe; same start/config/compose fixes as deploy.sh.
 - **Files:** `scripts/deploy.bat`
 
-### S298 — build-all.bat permanently-red checks fixed ✅
+### S298 — build-all.bat permanently-red checks fixed ✅ · verified R163
 - **Bug:** `python -c "import exchange_simulator"` ran from inside the package dir → guaranteed ModuleNotFoundError that also skipped the sim test suite; `cross_exchange_arb`/`marketplace` imports never existed.
 - **Fix:** import check runs from repo root (tests still run from the package dir); phantom imports replaced with real modules — `funding_arb_detector.FundingRateArbitrageDetector`, `statistical_arbitrage.StatisticalArbitrage` — all three verified live.
 - **Files:** `build-all.bat`
@@ -569,27 +569,27 @@
 
 ## Round 162 — slop-fix (5 closed)
 
-### S280 — broadcast loop contained + update_config validated ✅
+### S280 — broadcast loop contained + update_config validated ✅ · verified R163
 - **Bug:** `_broadcast_loop` had zero try/except — any exception in `next_candle()`/arb/serialization killed the task silently while `/health` stayed green. `_handle_update_config` wrote `updates["volatility"][symbol]` straight into `market._volatility` unchecked → string → `sigma = "abc" / sqrt_cpy` TypeError in the tick path → feed dead (dev: unauthenticated, prod: authed-DoS).
 - **Fix:** tick body wrapped — `logger.exception` + 1s backoff + continue (CancelledError still propagates). `_valid_number` gate rejects non-finite/non-numeric (bool/nan/str) writes for volatility/fees/slippage/leverage; rejected keys reported in `config_updated.rejected`. 3 regression tests (non-numeric reject, NaN reject, loop survives tick failure).
 - **Files:** `exchange_simulator/ws_broadcast.py`, `ws_message_handler.py`, `tests/test_websocket_server.py`
 
-### S304 — hub compose runs the prod-image path ✅
+### S304 — hub compose runs the prod-image path ✅ · verified R163
 - **Bug:** `docker-compose.hub.yml` hft command `./build/hft_trade_bot config/config.yaml` — dev-layout path absent from the `Dockerfile.prod` runtime stage (binary at `/app/hft_trade_bot`) → service could never start via hub. Staging header claimed "Signal Engine V3 enabled (HMM)" with nothing enabling it; staging grafana had no provisioning mounts → empty Grafana under a monitoring claim.
 - **Fix:** hub command → `/app/hft_trade_bot config/config.prod.yaml` (env `HFT_EXCHANGE_WS_URL` resolves identically). Staging: V3 header line removed; grafana mounts `monitoring/grafana/{datasources,dashboards}` + `GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH` (matches main compose).
 - **Files:** `docker-compose.hub.yml`, `docker-compose.staging.yml`
 
-### S302 — Makefile dev-exchange works + compose v2 ✅
+### S302 — Makefile dev-exchange works + compose v2 ✅ · verified R163
 - **Bug:** `dev-exchange` ran `cd exchange_simulator && python -m exchange_simulator` — guaranteed ModuleNotFoundError (5th broken-from-inside site); `dev`/`docker-up`/`docker-down`/`docker-hub` called EOL `docker-compose` v1.
 - **Fix:** `dev-exchange` runs `python -m exchange_simulator --no-visualizer` from repo root; all four targets use `docker compose`.
 - **Files:** `Makefile`
 
-### S305 — CONTRIBUTING/CHANGELOG truth pass ✅
+### S305 — CONTRIBUTING/CHANGELOG truth pass ✅ · verified R163
 - **Bug:** `CONTRIBUTING.md` pointed at deleted `start.bat` in two quick-start blocks and claimed prod-compose carries PostgreSQL/Redis (it ships Prometheus/Alertmanager/Grafana only). CHANGELOG versions don't map to any shipped version.
 - **Fix:** both blocks now name `no-docker.bat` + `docker compose`; install note → `no-docker.bat install`; prod-compose comment corrected; CHANGELOG gains a versioning note explaining dated `[Unreleased]` sprints vs component versions (package.json 2.2.0, `__version__` 1.0.0).
 - **Files:** `CONTRIBUTING.md`, `CHANGELOG.md`
 
-### S306 — WEB_UI.md dead launchers ✅
+### S306 — WEB_UI.md dead launchers ✅ · verified R163
 - **Bug:** "Use `start.bat`/`start.sh` to launch all 4 services + 4 monitors in 8 terminal windows" — both files deleted, the 8-window count was never true, real launchers unnamed.
 - **Fix:** line now names `no-docker.{bat,sh}` / `docker compose up` and states monitors run as separate commands.
 - **Files:** `docs/WEB_UI.md`
