@@ -107,7 +107,7 @@ def run_visualizer_thread(
                 chart_height=viz_cfg.get("chart_height", 15),
             )
             viz.start()
-        except (RuntimeError, OSError, ValueError, TypeError) as e:
+        except (RuntimeError, OSError, ValueError, TypeError, AttributeError, KeyError) as e:
             logger.error("Visualizer error: %s", e)
 
     thread = threading.Thread(target=_viz_loop, daemon=True)

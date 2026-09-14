@@ -1,4 +1,4 @@
-﻿"""Terminal visualizer -- tabbed interface with candle charts, order book, and account dashboard.
+"""Terminal visualizer -- tabbed interface with candle charts, order book, and account dashboard.
 
 Tab switching: 1=BTC, 2=ETH, 3=SOL, A=Account, Q=Quit
 Animated real-time market data using ANSI escape codes.
@@ -68,7 +68,8 @@ class TabbedVisualizer(ChartMixin, AccountMixin):
         self.chart_width = chart_width
         self.chart_height = chart_height
 
-        self.symbols = list(exchanges.get("binance").symbols) if "binance" in exchanges else []
+        first_exchange = next(iter(exchanges.values()), None)
+        self.symbols = list(first_exchange.symbols) if first_exchange else []
         self.tab_names = self.symbols + ["Account"]
         self.current_tab = 0
         self._active = False
@@ -123,30 +124,26 @@ class TabbedVisualizer(ChartMixin, AccountMixin):
             pass
 
     def _handle_key(self, key: bytes) -> None:
-        if key == b'1' and len(self.symbols) >= 1:
-            self.current_tab = 0
-        elif key == b'2' and len(self.symbols) >= 2:
-            self.current_tab = 1
-        elif key == b'3' and len(self.symbols) >= 3:
-            self.current_tab = 2
+        if b'1' <= key <= b'9' and (key[0] - ord('1')) < len(self.symbols):
+            self.current_tab = key[0] - ord('1')
         elif key in (b'a', b'A'):
             self.current_tab = len(self.tab_names) - 1
         elif key in (b'q', b'Q'):
             self.stop()
-        elif key == b'\x1b':
+        elif key == b'\x1b' or (platform.system() == "Windows" and key in (b'\xe0', b'\x00')):
             self._handle_arrow_key()
 
     def _handle_arrow_key(self) -> None:
         """Handle escape sequence for arrow keys."""
         if platform.system() == "Windows":
+            # msvcrt returns a single code after the \xe0/\x00 prefix:
+            # K=left, M=right (H/P = up/down, unused).
             if msvcrt.kbhit():
-                msvcrt.getch()
-                if msvcrt.kbhit():
-                    arrow = msvcrt.getch()
-                    if arrow == b'D':
-                        self.current_tab = (self.current_tab - 1) % len(self.tab_names)
-                    elif arrow == b'C':
-                        self.current_tab = (self.current_tab + 1) % len(self.tab_names)
+                arrow = msvcrt.getch()
+                if arrow == b'K':
+                    self.current_tab = (self.current_tab - 1) % len(self.tab_names)
+                elif arrow == b'M':
+                    self.current_tab = (self.current_tab + 1) % len(self.tab_names)
         else:
             import select as sel
             rlist, _, _ = sel.select([sys.stdin], [], [], 0.1)
@@ -215,7 +212,7 @@ class TabbedVisualizer(ChartMixin, AccountMixin):
 
     def _render_symbol_tab(self, symbol: str) -> None:
         """Render a symbol tab: candle chart + indicators + order book."""
-        ex = self.exchanges.get("binance")
+        ex = next(iter(self.exchanges.values()), None)
         if not ex:
             return
 
@@ -259,7 +256,10 @@ class TabbedVisualizer(ChartMixin, AccountMixin):
         print(f"  {self.DIM}{'-' * 82}{self.RESET}")
         print(f"  {self.CYAN}{ticker_str}{self.RESET}")
         print()
-        print(f"  {self.DIM}[1] BTC  [2] ETH  [3] SOL  [A] Account  [Q] Quit  "
+        num_keys = "  ".join(
+            f"[{i + 1}] {sym.split('/')[0]}" for i, sym in enumerate(self.symbols[:9])
+        )
+        print(f"  {self.DIM}{num_keys}  [A] Account  [Q] Quit  "
               f"|  <- -> Switch tabs  |  Frame: {self._frame}{self.RESET}")
 
 
