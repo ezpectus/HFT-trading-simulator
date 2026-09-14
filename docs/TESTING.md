@@ -313,7 +313,7 @@ python scripts/pre-commit-check.py --all     # full suite
 | Python tests | Python 3.12 | Install deps → pytest → coverage |
 | C++ tests | Ubuntu (gcc-14, clang-17), Windows (MSVC) | cmake → build → ctest |
 | JS tests | Node 22 | npm ci → vitest → playwright |
-| Linting | Python (ruff), JS (eslint — `*.{js,jsx}` only; `.ts` files unlinted, S269) | ruff check, eslint |
+| Linting | Python (ruff), JS (eslint `*.{js,jsx}` + `tsc --noEmit` for `.ts`, S269 fixed R156) | ruff check, eslint, typecheck |
 
 ---
 

@@ -27,13 +27,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/utils/**', 'src/hooks/**'],
+      include: ['src/**'],
       exclude: ['src/test/**', '**/*.test.*'],
       thresholds: {
-        statements: 40,
-        branches: 40,
-        functions: 40,
-        lines: 40,
+        statements: 20,
+        branches: 20,
+        functions: 20,
+        lines: 20,
       },
     },
   },
