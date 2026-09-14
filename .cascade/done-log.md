@@ -457,3 +457,32 @@
 - Docker Desktop daemon unreachable on this host (`npipe:////./pipe/dockerDesktopLinuxEngine` absent) — `docker compose up` impossible. Static audit: all four `/health` endpoints exist on the CI-curled ports (sim :8775 `websocket_server.py:248`, ai-bot :9090 `metrics.py:410`, hft :9091 sidecar, web-ui :3000 `nginx.conf:26`) and every compose service has a healthcheck for `--wait`. Whether S303's image fix makes the job actually pass needs a live daemon — stays Open with the note on the board.
 
 **Gate:** `pre-commit-check.py` 9/9 ALL GREEN (new `tsc: web-ui` check live).
+
+## Round 157 — slop-fix (5 closed)
+
+### S260 — dead public API in ai-signal-bot cut ✅
+- **Bug:** six units of public surface with zero production consumers: `simulate_hawkes` (hawkes_funcs.py — Ogata thinning, zero refs incl. tests), `validate_prices` (indicators.py — zero refs), `HawkesResult` (hawkes_model.py — the params/functions are live via analysis_requests, the result class orphaned), `macd` (indicators.py — 2 test trees, 0 prod), `bind_context`/`clear_context` (observability/logging.py — structlog contextvars wrappers existing only for no-crash tests).
+- **Fix:** all six deleted at the definition site; `import random` in hawkes_funcs went with `simulate_hawkes`; module docstrings updated. Nothing else referenced them — verified by grep over src/ + tests/ + run*.py.
+- **Files:** `ai-signal-bot/src/technical_analysis/{hawkes_funcs,hawkes_model,indicators}.py`, `src/observability/logging.py`
+
+### S267 — tests no longer warm dead code ✅
+- **Bug:** ~6 test files asserted exclusively on zero-prod-consumer surface — the dead `WalkForwardAnalyzer` (S259), `useToasts` (S261), perf-monitor test-only exports (S261), `bind_context`/`clear_context` no-crash asserts, and `TestMACD` classes in both `test_indicators` trees.
+- **Fix:** the S259/S261 legs closed in R156 (tests migrated to live APIs). This round: `TestMACD` + the `macd` import removed from both `tests/unit/test_indicators.py` and `tests/test_indicators.py`; `test_bind_context_no_crash`/`test_clear_context_no_crash` + the dead import removed from `test_observability.py`. Remaining S267 surface: none — the finding's list is fully covered.
+- **Files:** `ai-signal-bot/tests/{test_indicators.py,unit/test_indicators.py,unit/test_observability.py}`
+
+### S262 — dead hook variants + phantom installer + orphans ✅
+- **Bug:** `scripts/pre-commit-hook.{sh,bat}` + `commit-msg-hook.{sh,bat}` (~118 lines) claimed "Installed by install-hooks.{sh,bat}" — but `install-hooks.sh` never existed and `install-hooks.bat` installs only the `*-git.sh` twins; the `.bat` variants are doubly dead (git can't spawn .bat hooks). `.pre-commit-config.yaml` referenced the phantom `install-hooks.sh`. `scripts/ci-equivalence.py` + `scripts/health-check.py` had zero references in docs/Makefile/CI/docker.
+- **Fix:** six files deleted; `.pre-commit-config.yaml` comment now documents the real install path (`install-hooks.bat` → `*-git.sh` via git's sh spawn). Canonical hook `pre-commit-hook-git.sh` untouched.
+- **Files:** `scripts/{pre-commit-hook.sh,pre-commit-hook.bat,commit-msg-hook.sh,commit-msg-hook.bat,ci-equivalence.py,health-check.py}` (deleted), `.pre-commit-config.yaml`
+
+### S264 — deploy.yml notify gates read the right context ✅
+- **Bug:** `if: vars.DISCORD_WEBHOOK_URL != ''` / `vars.TELEGRAM_BOT_TOKEN != ''` gated steps whose values come from `secrets.*` — secrets aren't allowed in `if:` conditions, so the author reached for `vars`; an operator setting only the secrets (the natural place) gets notifications silently skipped forever, and the pattern nudges a bot token into unmasked `vars`.
+- **Fix:** both secrets hoisted to job-level `env:` (`DISCORD_WEBHOOK_URL`, `TELEGRAM_BOT_TOKEN`) — allowed there — and the step gates now read `env.*`. Notifications fire when the secrets are actually set.
+- **Files:** `.github/workflows/deploy.yml`
+
+### S265 — ci.yml dead gate removed + websocketpp pinned ✅
+- **Bug:** `audit-deps` ran `npm audit --audit-level=high` (already non-zero on high/critical) then a second step grepped `|| true` output for "critical|high" — unreachable dead check. `test-cpp-msvc` cloned `zaphoyd/websocketpp` at unpinned HEAD while the vcpkg clone beside it was commit-pinned.
+- **Fix:** dead second step deleted (the single real gate remains); clone pinned `--branch 0.8.2 --depth 1` (last stable release, matching the repo's dormant upstream).
+- **Files:** `.github/workflows/ci.yml`
+
+**Gate:** `pre-commit-check.py` 9/9 ALL GREEN.

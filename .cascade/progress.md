@@ -2163,3 +2163,13 @@ Commits: `0a062ee` (ai-bot S259), `93fa05f` (web-ui S266), `f4e045c` (web-ui S26
 - **S261** — `useToasts` local-state dup removed from `Toast.jsx` (test migrated to `useToastStore`); `DashboardProfiler` subscribes `onAlert`/`offAlert` — budget alerts now reach a banner instead of an empty callback list; dead `getMetricsHistory`+`metricsHistory`, `getPerformanceSummary`, `recordCustomMetric`+`customMetrics` cut.
 - **S269** — `vite-env.d.ts` (vite/client types); `tsc --noEmit` strict-clean; `typecheck` script; `check_tsc()` 9th gate check in pre-commit-check.py (staged-aware); CI lint-js runs `npm run typecheck`. No new deps.
 - **S309** — deferred: no Docker daemon on host. Static check passed (all 4 health endpoints exist on CI ports; compose healthchecks present). Row stays Open with the R156 note.
+
+### R157 — 2026-09-15 — slop-fix: S260, S267, S262, S264, S265 (5 Low)
+
+Commits: `cbd2686` (ai-bot S260/S267), `4b11cef` (scripts S262), `0d635cc` (ci S264/S265). Gate 9/9 ALL GREEN.
+
+- **S260** — six dead public-API units cut: `simulate_hawkes`(+`import random`), `HawkesResult`, `validate_prices`, `macd`, `bind_context`/`clear_context`. Zero prod consumers verified by grep.
+- **S267** — warming tests removed with them: `TestMACD`+import out of both test_indicators trees; no-crash `bind_context`/`clear_context` tests out of test_observability. (S259/S261 legs were closed in R156.)
+- **S262** — `pre-commit-hook.{sh,bat}` + `commit-msg-hook.{sh,bat}` + orphan `ci-equivalence.py`/`health-check.py` deleted; `.pre-commit-config.yaml` comment now names the real install path.
+- **S264** — deploy.yml: notify secrets hoisted to job `env:`; step gates read `env.*` (secrets can't sit in `if:`) — notifications actually send now.
+- **S265** — unreachable second audit-deps gate deleted; websocketpp clone pinned `--branch 0.8.2 --depth 1`.
