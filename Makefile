@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals test-js test-cpp lint build docker-up docker-down clean logs ci-test ci-quick benchmark walk-forward docker-hub
+.PHONY: help install dev dev-exchange dev-signals dev-ui test test-exchange test-signals test-js test-cpp lint build docker-up docker-down clean logs ci-test ci-quick ci-full benchmark walk-forward docker-hub
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -76,6 +76,9 @@ ci-test: ## Run CI/CD test pipeline (all stages)
 
 ci-quick: ## Run CI/CD quick test (lint + fast tests)
 	@python scripts/pre-commit-check.py --quick
+
+ci-full: ## Run the self-hosted CI orchestrator (lint+tests+helm+security[+build])
+	@bash scripts/ci/run-all.sh --skip-build --skip-scan
 
 benchmark: ## Run latency benchmark suite (p50/p95/p99/p999)
 	@python scripts/benchmark_suite.py --output logs/benchmark.json

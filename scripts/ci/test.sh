@@ -16,14 +16,22 @@ echo ""
 echo "[Python] Running pytest..."
 if command -v pytest &>/dev/null; then
   if pytest ai-signal-bot/tests/ -v --tb=short 2>&1; then
-    echo "  ✅ pytest: PASS"
+    echo "  ✅ pytest ai-signal-bot: PASS"
     PASS=$((PASS + 1))
   else
-    echo "  ❌ pytest: FAIL"
+    echo "  ❌ pytest ai-signal-bot: FAIL"
+    FAIL=$((FAIL + 1))
+  fi
+  if pytest exchange_simulator/tests/ -v --tb=short 2>&1; then
+    echo "  ✅ pytest exchange_simulator: PASS"
+    PASS=$((PASS + 1))
+  else
+    echo "  ❌ pytest exchange_simulator: FAIL"
     FAIL=$((FAIL + 1))
   fi
 else
-  echo "  ⚠️  pytest not installed — run 'pip install pytest pytest-asyncio'"
+  echo "  ❌ pytest not installed — run 'pip install pytest pytest-asyncio'"
+  FAIL=$((FAIL + 1))
 fi
 
 # ── JavaScript (vitest) ──
@@ -38,7 +46,8 @@ if [ -f web-ui/node_modules/.bin/vitest ]; then
     FAIL=$((FAIL + 1))
   fi
 else
-  echo "  ⚠️  vitest not installed — run 'cd web-ui && npm install'"
+  echo "  ❌ vitest not installed — run 'cd web-ui && npm install'"
+  FAIL=$((FAIL + 1))
 fi
 
 # ── Summary ──
