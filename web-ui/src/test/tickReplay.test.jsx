@@ -4,9 +4,9 @@ import TickReplay from '../components/TickReplay'
 
 // fills arrive newest-first; component replays oldest→newest
 const FILLS = [
-  { order_id: 'o3', symbol: 'BTC/USDT', exchange: 'binance', side: 'SELL', filled_qty: 0.5, price: 44102, timestamp: 1700000003 },
-  { order_id: 'o2', symbol: 'BTC/USDT', exchange: 'okx', side: 'BUY', filled_qty: 0.3, price: 44101, timestamp: 1700000002 },
-  { order_id: 'o1', symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_qty: 0.2, price: 44100, timestamp: 1700000001 },
+  { id: 'o3', symbol: 'BTC/USDT', exchange: 'binance', side: 'SELL', filled_quantity: 0.5, filled_price: 44102, timestamp: 1700000003 },
+  { id: 'o2', symbol: 'BTC/USDT', exchange: 'okx', side: 'BUY', filled_quantity: 0.3, filled_price: 44101, timestamp: 1700000002 },
+  { id: 'o1', symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_quantity: 0.2, filled_price: 44100, timestamp: 1700000001 },
 ]
 
 describe('TickReplay', () => {
@@ -42,7 +42,7 @@ describe('TickReplay', () => {
   })
 
   it('filters fills by symbol', () => {
-    const mixed = [...FILLS, { order_id: 'o9', symbol: 'ETH/USDT', exchange: 'binance', side: 'BUY', filled_qty: 1, price: 2400, timestamp: 1700000000 }]
+    const mixed = [...FILLS, { id: 'o9', symbol: 'ETH/USDT', exchange: 'binance', side: 'BUY', filled_quantity: 1, filled_price: 2400, timestamp: 1700000000 }]
     render(<TickReplay symbol="BTC/USDT" fills={mixed} />)
     expect(screen.getByText('1/3')).toBeInTheDocument()
   })

@@ -16,7 +16,7 @@ const ACCOUNTS = {
 }
 const PRICES = { 'binance|BTC/USDT': 44100, 'binance|ETH/USDT': 2430 }
 const FILLS = [
-  { symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_qty: 0.5, price: 43000, timestamp: 1700000000 },
+  { symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_quantity: 0.5, filled_price: 43000, timestamp: 1700000000 },
 ]
 
 describe('CostBasis', () => {

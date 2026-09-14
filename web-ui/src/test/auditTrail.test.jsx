@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import AuditTrail from '../components/AuditTrail'
 
 const FILLS = [
-  { order_id: 'o1', symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_qty: 0.2, price: 44100, timestamp: 1700000001 },
-  { order_id: 'o2', symbol: 'ETH/USDT', exchange: 'okx', side: 'SELL', filled_qty: 2, price: 2400, timestamp: 1700000002 },
+  { id: 'o1', symbol: 'BTC/USDT', exchange: 'binance', side: 'BUY', filled_quantity: 0.2, filled_price: 44100, timestamp: 1700000001 },
+  { id: 'o2', symbol: 'ETH/USDT', exchange: 'okx', side: 'SELL', filled_quantity: 2, filled_price: 2400, timestamp: 1700000002 },
 ]
 const SIGNALS = [
   { timestamp: 1700000005, strategy: 'TrendFollower', symbol: 'BTC/USDT', exchange: 'binance', direction: 'LONG', confidence: 82 },
