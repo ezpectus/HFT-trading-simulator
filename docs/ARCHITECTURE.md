@@ -1,5 +1,16 @@
 # Architecture
 
+## Contents
+
+- [Theory: Architectural patterns and why they were chosen](#theory-architectural-patterns-and-why-they-were-chosen)
+- [Overview](#overview)
+- [Components](#components)
+- [Data Flow](#data-flow)
+- [Data Model](#data-model)
+- [Technology Stack](#technology-stack)
+- [Design Principles](#design-principles)
+- [Error Recovery & Fault Tolerance](#error-recovery--fault-tolerance)
+
 ## Theory: Architectural patterns and why they were chosen
 
 ### Microservices vs Monolith

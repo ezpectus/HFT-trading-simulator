@@ -2,6 +2,24 @@
 
 Browser-based trading dashboard for the HFT trading simulator. Binance-inspired dark/light theme with TradingView-style candle charts, **295 React component files**, **271 registered panels** (278 registry ids incl. 7 category rows) across 7 categories, **60+ advanced mathematical model components** (educational visualizations), **PWA support**, **WCAG AA accessibility**, and **Vitest test suite**.
 
+## Contents
+
+- [Theory: UI architecture and why this stack](#theory-ui-architecture-and-why-this-stack)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Configuration](#configuration)
+- [Tech Stack](#tech-stack)
+- [Performance Optimizations](#performance-optimizations)
+- [PWA (Progressive Web App)](#pwa-progressive-web-app)
+- [Accessibility (WCAG AA)](#accessibility-wcag-aa)
+- [Testing](#testing)
+- [Layout](#layout)
+- [Core Components (App.jsx layout)](#core-components-appjsx-layout)
+- [Panel Registry System](#panel-registry-system)
+- [Building](#building)
+- [CLI Monitor Scripts](#cli-monitor-scripts)
+
 ## Theory: UI architecture and why this stack
 
 ### React — why not vanilla JS or Vue/Angular?

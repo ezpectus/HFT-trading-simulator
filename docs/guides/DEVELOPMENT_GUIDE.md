@@ -118,8 +118,8 @@ trading-system-lite/
 
 | Component | Language | Framework | Test Framework |
 |-----------|----------|-----------|----------------|
-| Exchange Simulator | Python 3.12 | asyncio, websockets, numpy | pytest, hypothesis |
-| AI Signal Bot | Python 3.12 | asyncio, numpy, scipy, PyTorch | pytest |
+| Exchange Simulator | Python 3.12 | asyncio, websockets, msgpack/orjson | pytest, hypothesis (optional) |
+| AI Signal Bot | Python 3.12 | asyncio, websockets, numpy, aiohttp, matplotlib (scipy optional) | pytest |
 | HFT Trade Bot | C++20 | Boost, websocketpp, spdlog | doctest |
 | Web UI | JavaScript | React 18, Vite, TailwindCSS | Vitest, Playwright |
 
@@ -274,7 +274,7 @@ pytest tests/ -k "test_var" -v
 # With coverage
 pytest tests/ --cov=src --cov-report=html
 
-# Parallel
+# Parallel (needs: pip install pytest-xdist — not in requirements-dev.txt)
 pytest tests/ -v -n auto
 ```
 

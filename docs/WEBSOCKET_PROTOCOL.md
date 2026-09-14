@@ -2,6 +2,22 @@
 
 This document describes all WebSocket message types exchanged between the three system components.
 
+## Contents
+
+- [Theory: Why WebSocket instead of HTTP polling or REST?](#theory-why-websocket-instead-of-http-polling-or-rest)
+- [Connections](#connections)
+- [Port 8765: Exchange Simulator](#port-8765-exchange-simulator)
+- [Port 8766: AI Signal Bot Signal Publisher](#port-8766-ai-signal-bot-signal-publisher)
+- [Message Type Summary](#message-type-summary)
+- [Data Types](#data-types)
+- [Connection Resilience](#connection-resilience)
+- [Compression](#compression)
+- [Mock Mode (Web UI)](#mock-mode-web-ui)
+- [Message Encoding](#message-encoding)
+- [Order Types Reference](#order-types-reference)
+- [Connection Lifecycle](#connection-lifecycle)
+- [Reconnection & Backoff](#reconnection--backoff)
+
 ## Theory: Why WebSocket instead of HTTP polling or REST?
 
 ### WebSocket vs HTTP for real-time trading
