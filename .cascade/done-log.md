@@ -876,3 +876,35 @@ harnesses are un-unit-testable by design).
 - **Fix:** `npm uninstall @testing-library/user-event` — gone from package.json + lockfile; vitest still green.
 - **Files:** `web-ui/package.json`, `web-ui/package-lock.json`
 - **Commit:** chore sweep (R175)
+
+## R176 — slop-fix — 5 findings closed
+
+### S242 — exchange auth token documented + honest banner
+- **Bug:** `web-ui/.env.example` omitted `VITE_EXCHANGE_TOKEN` (real reader `useExchangeData.js:12` sends it as the auth frame for order/cancel/set_speed/replay) — dev setting `EXCHANGE_CONTROL_TOKEN` on the sim got `auth_failed` with no documented remedy. `exchange_simulator/__main__.py` banner hardcoded "3 Symbols" (real: 49).
+- **Fix:** `.env.example` documents `VITE_EXCHANGE_TOKEN` ↔ `EXCHANGE_CONTROL_TOKEN` pairing; banner derives counts from the built exchange map + symbol universe — prints "3 Exchanges | 49 Symbols".
+- **Files:** `web-ui/.env.example`, `exchange_simulator/__main__.py`
+- **Commit:** 324afcb
+
+### S251 — HFT config validation can fail; fraction/percent mine disarmed
+- **Bug:** every check in `config_validate.h` was `spdlog::warn` — zero fail paths; `Config::load` ignored any result. `max_drawdown_pct` (fraction consumed by the kill switch at `bot_loop.cpp`) was never validated while its percent-scale sibling `max_daily_drawdown_pct` sat beside it in yaml. The prod test fixture itself carried `max_drawdown_pct: 10.0` — the exact percent-thinking typo.
+- **Fix:** `validate_config` collects violations and throws `std::runtime_error` listing all of them; `max_drawdown_pct` enforced in (0,1]; `ws_url` required only when `!ipc_enabled` (SHM mode legitimately has none); yaml documents the fraction-vs-percent distinction; fixture corrected to 0.10; +3 doctest cases (impossible risk value, percent-in-fraction key, missing ws_url).
+- **Files:** `hft-trade-bot/src/core/config_validate.h`, `config/config.yaml`, `tests/test_doctest_hft_config.cpp`, `tests/test_integration_config.cpp`
+- **Commit:** b848454
+
+### S252 — per-venue market data stores
+- **Bug:** `prices_`/`order_books_`/`candle_history_` keyed by bare symbol — the sim's "exchange|symbol" wire keys and `candle.exchange` were parsed and discarded; three venues overwrote/interleaved each other; an orderbook delta could mutate a different venue's book. (Also found: `using Spinlock = SpinLock` referenced a type that never existed — the header could not compile standalone.)
+- **Fix:** all three stores keyed `exchange|symbol`; `SignalReceiver::set_default_exchange` wired from `config.default_exchange` in `init_core_components`; symbol-only accessors resolve default-venue then shm then bare; by-id arrays and `get_all_prices` serve the primary venue only (pos_mgr semantics preserved); deltas resolve their own venue; `feed_frame_json` test seam added (mirrors `inject_snapshot`); new doctest asserts three-venue isolation for prices/books/deltas/candles.
+- **Files:** `hft-trade-bot/src/communication/signal_receiver_data.h`, `signal_receiver_handlers.h`, `signal_receiver.h`, `src/core/bot_setup.cpp`, `tests/test_doctest_signal_receiver.cpp`, `CMakeLists.txt`
+- **Commit:** 4e6e3c7
+
+### S258 — numeric doc drift converged
+- **Bug:** live docs confidently stated different numbers — "278 panels" where 7 of 278 registry entries are category rows (271 component-mapped panels), "289/291 components" (295 .jsx), "157 web-ui test files" (153 unit + 4 e2e), "50 symbols" (49 configured), TESTING "316/311 test files".
+- **Fix:** TESTING.md, ARCHITECTURE.md, README.md, WEB_UI.md (incl. :14 "289 components"), CONTRIBUTING.md (157→153 unit + 4 e2e), TRADING_GUIDE (50→49) all converge on the verified counts; WEB_UI now distinguishes 271 panels vs 278 registry entries.
+- **Files:** `docs/TESTING.md`, `docs/ARCHITECTURE.md`, `docs/WEB_UI.md`, `README.md`, `CONTRIBUTING.md`, `docs/guides/TRADING_GUIDE.md`
+- **Commit:** 9961ce8
+
+### S268 — single canonical test tree
+- **Bug:** `ai-signal-bot/tests/` and `tests/unit/` held 6 same-name pairs as diverged parallel suites; canonical layer undocumented.
+- **Fix:** canonical = `tests/unit/` (per TESTING.md). Ported root-unique coverage first — kelly min_risk negative regression, TF/MR directional signals, `Signal.rr_ratio_neutral`, breakeven+trailing interaction, SHORT peak/trough tracking, ATR gap/missing-prev_close edges, backtest-request param pass-through — then deleted the 6 root files, moved the remaining 24 verbatim, `test_integration.py` → `tests/integration/`, removed phantom `tests/mocks/` (only `__pycache__`). 1360 passed, 2 skipped.
+- **Files:** `ai-signal-bot/tests/` (30 files: 6 deleted, 24 moved), `tests/unit/test_{kelly,strategies,risk_manager,backtest_requests}.py`
+- **Commit:** c0ba78c

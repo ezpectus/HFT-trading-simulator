@@ -2393,3 +2393,13 @@ Gate: staged ALL GREEN. Commits: 7a00aeb, 3fa0a27, fd5b044, b8a868b. Board: 13 o
 - **S241** — @testing-library/user-event uninstalled (0 imports); numpy half was already S313.
 
 Gate: staged ALL GREEN. Commits: chore sweep, f400a30, 691a41c. Board: 8 open (S309 Medium Docker-blocked + 7 Info).
+
+## R176 — slop-fix — 5 findings closed (Info batch)
+
+- **S242** — `VITE_EXCHANGE_TOKEN` documented in `web-ui/.env.example` (must match `EXCHANGE_CONTROL_TOKEN`); sim banner derives counts from built exchanges — "3 Exchanges | 49 Symbols" verified, was hardcoded "3 Symbols".
+- **S251** — `config_validate.h` now collects violations and throws `std::runtime_error` (was warn-only, 0 fail paths); `max_drawdown_pct` enforced as fraction (0,1]; ws_url required unless `ipc_enabled`; prod fixture itself carried the "10.0" percent-typo → fixed to 0.10; +3 doctest cases.
+- **S252** — `prices_`/`order_books_`/`candle_history_` keyed `exchange|symbol` matching the wire protocol; accessors resolve `default_exchange` (wired at setup) with shm/legacy fallback; by-id arrays + `get_all_prices` serve primary venue only; deltas hit their own book; dead `using Spinlock = SpinLock` alias removed (type never existed — header couldn't compile standalone); +doctest 3-venue isolation.
+- **S258** — live docs converged: 271 panels (278 registry entries incl. 7 category rows), 295 components, 153 unit + 4 e2e test files, 49 symbols; fixed WEB_UI "289"/"278 panels", TRADING_GUIDE "50 symbols".
+- **S268** — canonical `tests/unit/` established: 6 same-name pairs consolidated after porting unique coverage (kelly min_risk negative, TF/MR directional, rr_ratio_neutral, breakeven+trailing, SHORT peak/trough, ATR edges, backtest params); 24 files moved verbatim, test_integration.py → integration/, phantom tests/mocks/ removed; 1360 passed, 2 skipped.
+
+Gate: staged ALL GREEN. Commits: 324afcb, b848454, 4e6e3c7, c0ba78c, 9961ce8. Board: 3 open (S297, S301 Info; S309 Medium Docker-blocked).
