@@ -1838,3 +1838,15 @@ Commit: c2add83
 **Clean:** все 93 test_*.py содержат test-функции; conftest-фикстуры честные (детерминированные candles); skipif/importorskip — настоящие dep-gates (cvar→scipy, prometheus_client, aiohttp); test_signal_publisher гоняет реальный backtest с проверкой длины equity_curve; SecretStr repr-leak тест — продуманный; 54 assert_called-ассерта на 16k строк — моки не самосбывающиеся.
 
 Commit: 2736402
+
+
+## R130 — hft-trade-bot/tests/ leaf-sweep (26 files / 5.2k lines)
+
+**Scope:** весь `hft-trade-bot/tests/` — doctest-сьюты + raw-assert integration файлы + tests/unit/ + tests/integration/ + CMake wiring + config re-check.
+
+**Findings (1):**
+- S287 (Low): 84 raw `assert()` в 4 тест-файлах — `test_shm.cpp` (36), `test_monitoring.cpp` (25), `test_signal_flow.cpp` (19), `test_network.cpp` (4). Под `-DNDEBUG` они компилируются в ничто; CMake ставит NDEBUG в Release, оба Dockerfile собирают Release. CI test-cpp строит Debug (ассерты живы), но ctest на Release-сборке — вакуумный зелёный из 0 проверок. Doctest CHECK/REQUIRE вместо raw assert.
+
+**Clean:** сотни doctest CHECK с точными значениями; V3-HMM тесты на детерминированных synthetic-сериях (LCG seed=42); test_signal_flow — реальный SHM ring-buffer push/pop pipeline; все 26 файлов wired в CMake (v2_* через foreach-loop, integration_shm под `if(NOT WIN32)`); CI test-cpp честно бежит `ctest --output-on-failure` на gcc-14+clang-17 с coverage; max_drawdown unit-амбивалентность — уже S251 (config percent 8.0 vs params fraction 0.15, оба пути самосогласованы).
+
+Commit: TBD

@@ -2198,3 +2198,16 @@ Scope: all of `ai-signal-bot/tests/` — both trees (`tests/` root + `tests/unit
 **Verified clean:** all 93 `test_*.py` contain test functions; conftest fixtures are honest deterministic candles; `skipif`/`importorskip` gates are legitimate (cvar→scipy, prometheus_client, aiohttp); `test_signal_publisher` runs a real backtest asserting `len(equity_curve) == 151`; the `SecretStr` repr-leak test is thoughtful; 54 `assert_called*` across 16k lines — mocks aren't self-fulfilling.
 
 Commit: 2736402
+
+
+---
+
+## Round 130 — hft-trade-bot/tests/ leaf-sweep (1 finding: S287)
+
+Scope: all of `hft-trade-bot/tests/` — 26 files / ~5,185 lines (doctest suites, raw-assert integration files, `tests/unit/`, `tests/integration/`), plus CMake wiring and config re-check.
+
+**S287 (Low) — Open.** 84 raw `assert()` calls across 4 test files — `test_shm.cpp` (36), `test_monitoring.cpp` (25), `test_signal_flow.cpp` (19), `test_network.cpp` (4). Under `-DNDEBUG` they compile to nothing; CMake sets NDEBUG for Release, and both `Dockerfile`/`Dockerfile.prod` build Release. CI's `test-cpp` builds Debug where the asserts are live, but any `ctest` run against a Release build is a vacuous green — zero checks execute. Use doctest `CHECK`/`REQUIRE` (the convention the other 22 files already follow).
+
+**Verified clean:** hundreds of doctest `CHECK`s with exact values; V3-HMM tests run on deterministic synthetic price series (LCG seed=42); `test_signal_flow` is a real SHM ring-buffer push/pop pipeline; all 26 files wired into CMake (`v2_*` via foreach, `integration_shm` correctly POSIX-gated); CI `test-cpp` genuinely runs `ctest --output-on-failure` on gcc-14 + clang-17 with coverage; the `max_drawdown_pct` percent-vs-fraction ambiguity is already S251 (config `8.0` percent vs params `0.15` fraction — both paths internally consistent).
+
+Commit: TBD
