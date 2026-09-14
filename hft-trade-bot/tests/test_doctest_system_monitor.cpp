@@ -1,6 +1,6 @@
-// Unit tests for SystemMonitor, MemoryTracker, HealthStatus
+// Unit tests for SystemMonitor, HealthStatus
 // Tests: increment/get, fill_rate, rejection_rate, snapshot fields, reset,
-//        format_json contains all metrics, MemoryTracker alloc/dealloc,
+//        format_json contains all metrics,
 //        HealthStatus is_healthy, HealthStatus format_json
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
@@ -23,7 +23,6 @@ TEST_CASE("SystemMonitor: default all counters are zero") {
     CHECK(sm.get(SystemMonitor::Metric::ERRORS) == 0);
     CHECK(sm.get(SystemMonitor::Metric::RECONNECTS) == 0);
     CHECK(sm.get(SystemMonitor::Metric::SHM_DROPS) == 0);
-    CHECK(sm.get(SystemMonitor::Metric::HEARTBEATS_SENT) == 0);
     CHECK(sm.get(SystemMonitor::Metric::HEARTBEATS_MISSED) == 0);
 }
 
@@ -91,7 +90,6 @@ TEST_CASE("SystemMonitor: snapshot reflects all counters") {
     sm.increment(SystemMonitor::Metric::ERRORS, 2);
     sm.increment(SystemMonitor::Metric::RECONNECTS, 1);
     sm.increment(SystemMonitor::Metric::SHM_DROPS, 3);
-    sm.increment(SystemMonitor::Metric::HEARTBEATS_SENT, 100);
     sm.increment(SystemMonitor::Metric::HEARTBEATS_MISSED, 5);
 
     auto s = sm.snapshot();
@@ -104,7 +102,6 @@ TEST_CASE("SystemMonitor: snapshot reflects all counters") {
     CHECK(s.errors == 2);
     CHECK(s.reconnects == 1);
     CHECK(s.shm_drops == 3);
-    CHECK(s.heartbeats_sent == 100);
     CHECK(s.heartbeats_missed == 5);
     CHECK(s.fill_rate == doctest::Approx(0.8));
     CHECK(s.rejection_rate == doctest::Approx(0.1));
@@ -132,7 +129,6 @@ TEST_CASE("SystemMonitor: format_json contains all metric fields") {
     sm.increment(SystemMonitor::Metric::ORDERS_FILLED, 8);
     sm.increment(SystemMonitor::Metric::ORDERS_REJECTED, 1);
     sm.increment(SystemMonitor::Metric::ORDERS_CANCELED, 1);
-    sm.increment(SystemMonitor::Metric::HEARTBEATS_SENT, 100);
     sm.increment(SystemMonitor::Metric::HEARTBEATS_MISSED, 5);
 
     std::string json = sm.format_json();
@@ -145,7 +141,6 @@ TEST_CASE("SystemMonitor: format_json contains all metric fields") {
     CHECK(json.find("\"errors\":") != std::string::npos);
     CHECK(json.find("\"reconnects\":") != std::string::npos);
     CHECK(json.find("\"shm_drops\":") != std::string::npos);
-    CHECK(json.find("\"heartbeats_sent\":100") != std::string::npos);
     CHECK(json.find("\"heartbeats_missed\":5") != std::string::npos);
     CHECK(json.find("\"fill_rate\":") != std::string::npos);
     CHECK(json.find("\"rejection_rate\":") != std::string::npos);
@@ -157,49 +152,6 @@ TEST_CASE("SystemMonitor: format_json is valid JSON structure") {
     std::string   json = sm.format_json();
     CHECK(json.front() == '{');
     CHECK(json.back() == '}');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MemoryTracker
-// ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("MemoryTracker: initial state is zero") {
-    MemoryTracker mt;
-    CHECK(mt.current_usage() == 0);
-    CHECK(mt.total_allocated() == 0);
-    CHECK(mt.max_single_alloc() == 0);
-}
-
-TEST_CASE("MemoryTracker: record_allocation updates all metrics") {
-    MemoryTracker mt;
-    mt.record_allocation(1024);
-    CHECK(mt.current_usage() == 1024);
-    CHECK(mt.total_allocated() == 1024);
-    CHECK(mt.max_single_alloc() == 1024);
-}
-
-TEST_CASE("MemoryTracker: multiple allocations accumulate") {
-    MemoryTracker mt;
-    mt.record_allocation(512);
-    mt.record_allocation(2048);
-    CHECK(mt.current_usage() == 2560);
-    CHECK(mt.total_allocated() == 2560);
-    CHECK(mt.max_single_alloc() == 2048);
-}
-
-TEST_CASE("MemoryTracker: record_deallocation reduces current usage") {
-    MemoryTracker mt;
-    mt.record_allocation(2048);
-    mt.record_deallocation(512);
-    CHECK(mt.current_usage() == 1536);
-    CHECK(mt.total_allocated() == 2048); // total doesn't decrease
-}
-
-TEST_CASE("MemoryTracker: max_single_alloc tracks largest single allocation") {
-    MemoryTracker mt;
-    mt.record_allocation(100);
-    mt.record_allocation(500);
-    mt.record_allocation(200);
-    CHECK(mt.max_single_alloc() == 500);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

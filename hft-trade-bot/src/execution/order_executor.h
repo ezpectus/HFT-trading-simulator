@@ -4,6 +4,7 @@
 #include "../data/aligned_types.h"
 #include "../data/signal.h"
 #include "../data/types.h"
+#include "../monitoring/system_monitor.h"
 #include "../network/watchdog.h"
 #include "order_type_selector.h"
 #include <algorithm>
@@ -304,6 +305,11 @@ class OrderExecutor {
 
     bool is_connected() const { return connected_; }
 
+    // S246: expose channel age + metric sink so /health and hft_* counters
+    // reflect the executor socket instead of defaults.
+    uint64_t last_activity_ms() const { return activity_watchdog_.idle_ms(); }
+    void     set_monitor(SystemMonitor* m) { monitor_ = m; }
+
     // Execute arbitrage: buy on one exchange, sell on another
     // Manual JSON serialization — avoids 2x nlohmann::json heap allocations
     bool execute_arbitrage(const std::string& symbol, const std::string& buy_exchange,
@@ -416,6 +422,7 @@ class OrderExecutor {
                                    [this] { return reconnect_cancel_.load(); });
             clk.unlock();
             if (should_reconnect_ && !reconnect_cancel_.load(std::memory_order_relaxed)) {
+                if (monitor_) monitor_->increment(SystemMonitor::Metric::RECONNECTS);
                 if (ws_thread_.joinable()) ws_thread_.join();
                 do_connect();
             }
@@ -433,6 +440,7 @@ class OrderExecutor {
             if (!activity_watchdog_.is_alive()) {
                 spdlog::warn("OrderExecutor stale ({}ms silent) — forcing reconnect",
                              activity_watchdog_.idle_ms());
+                if (monitor_) monitor_->increment(SystemMonitor::Metric::HEARTBEATS_MISSED);
                 activity_watchdog_.feed(); // don't re-trip while teardown runs
                 websocketpp::lib::error_code ec;
                 auto con = client_snapshot()->get_con_from_hdl(connection_, ec);
@@ -468,6 +476,7 @@ class OrderExecutor {
     std::atomic<bool>           reconnect_cancel_{false};
     std::mutex                  reconnect_cv_mtx_;
     std::condition_variable     reconnect_cv_;
+    SystemMonitor*              monitor_{nullptr};
 };
 
 } // namespace hft

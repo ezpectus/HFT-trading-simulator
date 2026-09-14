@@ -73,19 +73,6 @@ void test_uptime() {
     std::cout << "  [PASS] test_uptime\n";
 }
 
-void test_memory_tracker() {
-    MemoryTracker mt;
-    mt.record_allocation(1024);
-    assert(mt.current_usage() == 1024);
-    mt.record_allocation(2048);
-    assert(mt.current_usage() == 3072);
-    mt.record_deallocation(1024);
-    assert(mt.current_usage() == 2048);
-    assert(mt.total_allocated() == 3072);
-    assert(mt.max_single_alloc() == 2048);
-    std::cout << "  [PASS] test_memory_tracker\n";
-}
-
 void test_health_status() {
     HealthStatus hs;
     assert(hs.is_healthy());
@@ -118,7 +105,6 @@ int main() {
     test_reset();
     test_json_format();
     test_uptime();
-    test_memory_tracker();
     test_health_status();
     test_health_json();
     std::cout << "=== All tests passed! ===\n";

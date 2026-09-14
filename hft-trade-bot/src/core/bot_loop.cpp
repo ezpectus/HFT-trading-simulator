@@ -177,6 +177,11 @@ static Signal convert_fast_signal(BotContext& ctx, const FastSignal& fast_sig) {
     sig.entry_price = fast_sig.entry_price;
     sig.stop_loss   = fast_sig.stop_loss;
     sig.take_profit = fast_sig.take_profit;
+    // S243: carry engine-computed leverage + timestamp — timestamp feeds the
+    // wire client_order_id ("hft_<sym>_<ts>"); dropping it collapsed every
+    // engine order onto cid "..._0" and the sim dedup replayed the first fill.
+    sig.leverage  = fast_sig.leverage;
+    sig.timestamp = fast_sig.timestamp;
     char reason_buf[128];
     std::snprintf(reason_buf, sizeof(reason_buf),
                   "v2: comp=%+.3f EMA=%+.2f RSI=%+.2f OBI=%+.2f VWAP=%+.2f ADX=%.1f P=%+.2f",
@@ -305,6 +310,9 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
         sig.stop_loss   = fast_sig.stop_loss;
         sig.take_profit = fast_sig.take_profit;
         sig.reason      = fast_sig.reason;
+        // S243: V1's FastSignal carries no timestamp — stamp order time so the
+        // wire client_order_id is unique per order (sim dedups on sym+ts).
+        sig.timestamp = FastSignal::now_ns();
         auto rr = ctx.risk_mgr->check_signal(sig, current_balance, ctx.pos_mgr.position_count());
         if (!rr.passed || ctx.pos_mgr.has_position(symbol)) continue;
         double qty = ctx.risk_mgr->calculate_position_size(sig, current_balance);
@@ -356,6 +364,39 @@ void update_risk_state(BotContext& ctx, double current_balance) {
         spdlog::critical("Max drawdown breached: equity={:.2f} peak={:.2f}", equity, peak);
         ctx.kill_switch->activate(KillSwitch::Reason::MAX_DRAWDOWN);
     }
+}
+
+// Refresh the /health snapshot from live state every loop iteration — the
+// endpoint is only as honest as this feed (S246). All fields are cheap
+// atomic reads; the error window is a file-local rolling baseline.
+void update_health_status(BotContext& ctx) {
+    if (!ctx.health_server) return;
+
+    static int64_t err_baseline = 0;
+    static auto    err_window   = std::chrono::steady_clock::now();
+    const int64_t  err_total    = ctx.sys_monitor.get(SystemMonitor::Metric::ERRORS);
+    const auto     now_steady   = std::chrono::steady_clock::now();
+    if (now_steady - err_window >= std::chrono::minutes(5)) {
+        err_window   = now_steady;
+        err_baseline = err_total;
+    }
+
+    const int64_t last_fill = ctx.last_fill_ms.load(std::memory_order_relaxed);
+    const int64_t now_ms    = std::chrono::duration_cast<std::chrono::milliseconds>(
+                               std::chrono::system_clock::now().time_since_epoch())
+                               .count();
+
+    HealthStatus hs;
+    hs.shm_healthy = !ctx.config.ipc_enabled || (ctx.shm_signal_consumer != nullptr);
+    hs.exchange_connected =
+        ctx.receiver->is_connected() && ctx.executor && ctx.executor->is_connected();
+    hs.signal_engine_active = ctx.config.signal_engine_v2_enabled ? (ctx.engine_v2 || ctx.engine_v3)
+                                                                  : (ctx.engine_v1 != nullptr);
+    hs.last_signal_age_ms   = ctx.receiver->last_activity_ms();
+    hs.last_fill_age_ms     = last_fill > 0 ? static_cast<uint64_t>(now_ms - last_fill) : 0;
+    hs.error_count_5min     = err_total - err_baseline;
+    hs.memory_usage_mb      = process_memory_mb();
+    ctx.health_server->update_health(hs);
 }
 
 void print_status(BotContext& ctx) {

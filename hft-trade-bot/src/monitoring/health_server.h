@@ -9,6 +9,7 @@
 #include "../utils/low_latency.h"
 #include <atomic>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -68,7 +69,10 @@ class HealthServer {
 #endif
     }
 
-    void update_health(const HealthStatus& status) { health_ = status; }
+    void update_health(const HealthStatus& status) {
+        std::lock_guard<std::mutex> lk(health_mtx_);
+        health_ = status;
+    }
 
   private:
     void run() {
@@ -155,8 +159,14 @@ class HealthServer {
                 std::string status_line;
 
                 if (is_health) {
-                    body        = build_health_json();
-                    status_line = health_.is_healthy() ? "200 OK" : "503 Service Unavailable";
+                    HealthStatus snap;
+                    {
+                        std::lock_guard<std::mutex> lk(health_mtx_);
+                        snap = health_;
+                    }
+                    body = std::string("{\"status\":") + snap.format_json() +
+                           ",\"metrics\":" + (monitor_ ? monitor_->format_json() : "{}") + "}";
+                    status_line = snap.is_healthy() ? "200 OK" : "503 Service Unavailable";
                 } else if (is_metrics) {
                     body        = monitor_ ? monitor_->format_prometheus() : "";
                     status_line = "200 OK";
@@ -202,12 +212,6 @@ class HealthServer {
         server_sock_ = kInvalidSocket;
     }
 
-    std::string build_health_json() {
-        std::string health_json  = health_.format_json();
-        std::string monitor_json = monitor_ ? monitor_->format_json() : "{}";
-        return std::string("{\"status\":") + health_json + ",\"metrics\":" + monitor_json + "}";
-    }
-
     uint16_t          port_;
     std::string       host_;
     bool              metrics_enabled_{true};
@@ -215,6 +219,7 @@ class HealthServer {
     std::thread       thread_;
     std::atomic<bool> running_{false};
     SystemMonitor*    monitor_{nullptr};
+    std::mutex        health_mtx_; // guards health_ — written by the main loop (S246)
     HealthStatus      health_;
 };
 

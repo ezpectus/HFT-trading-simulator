@@ -82,6 +82,8 @@ struct BotContext {
     ArbOpportunity    latest_arb{};
     Spinlock          arb_lock;
 
+    // Wall-clock ms of the last FILLED event — feeds /health last_fill_age_ms.
+    std::atomic<int64_t>                    last_fill_ms{0};
     std::unordered_map<std::string, double> prices_cache;
     Spinlock                                prices_cache_lock;
     std::vector<Candle>                     candles_buf;

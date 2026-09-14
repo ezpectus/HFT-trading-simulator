@@ -33,8 +33,10 @@ class SystemMonitor {
         ERRORS            = 6,
         RECONNECTS        = 7,
         SHM_DROPS         = 8,
-        HEARTBEATS_SENT   = 9,
-        HEARTBEATS_MISSED = 10,
+        // HEARTBEATS_SENT removed (S246): the bot never initiates heartbeats —
+        // it only auto-pongs — so no honest increment site exists. MISSED is
+        // real: the feed watchdog trips when the expected broadcast goes silent.
+        HEARTBEATS_MISSED = 9,
         COUNT
     };
 
@@ -68,7 +70,6 @@ class SystemMonitor {
         int64_t  errors;
         int64_t  reconnects;
         int64_t  shm_drops;
-        int64_t  heartbeats_sent;
         int64_t  heartbeats_missed;
         double   fill_rate;
         double   rejection_rate;
@@ -86,7 +87,6 @@ class SystemMonitor {
         s.errors            = get(Metric::ERRORS);
         s.reconnects        = get(Metric::RECONNECTS);
         s.shm_drops         = get(Metric::SHM_DROPS);
-        s.heartbeats_sent   = get(Metric::HEARTBEATS_SENT);
         s.heartbeats_missed = get(Metric::HEARTBEATS_MISSED);
         s.fill_rate         = fill_rate();
         s.rejection_rate    = rejection_rate();
@@ -114,16 +114,15 @@ class SystemMonitor {
             buf, sizeof(buf),
             "{\"orders_sent\":%llu,\"orders_filled\":%llu,\"orders_rejected\":%llu,"
              "\"orders_canceled\":%llu,\"signals_received\":%llu,\"signals_processed\":%llu,"
-             "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,\"heartbeats_sent\":%llu,"
+             "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,"
              "\"heartbeats_missed\":%llu,\"fill_rate\":%.4f,\"rejection_rate\":%.4f,"
              "\"uptime_seconds\":%llu}",
             (unsigned long long)s.orders_sent, (unsigned long long)s.orders_filled,
             (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
             (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
             (unsigned long long)s.errors, (unsigned long long)s.reconnects,
-            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_sent,
-            (unsigned long long)s.heartbeats_missed, s.fill_rate, s.rejection_rate,
-            (unsigned long long)s.uptime_seconds);
+            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed, s.fill_rate,
+            s.rejection_rate, (unsigned long long)s.uptime_seconds);
         if (n <= 0) return "{}";
         n = std::min(n, static_cast<int>(sizeof(buf) - 1));
         return std::string(buf, static_cast<size_t>(n));
@@ -163,10 +162,7 @@ class SystemMonitor {
              "# HELP hft_shm_drops_total Shared-memory ring drops\n"
              "# TYPE hft_shm_drops_total counter\n"
              "hft_shm_drops_total %llu\n"
-             "# HELP hft_heartbeats_sent_total Heartbeats sent\n"
-             "# TYPE hft_heartbeats_sent_total counter\n"
-             "hft_heartbeats_sent_total %llu\n"
-             "# HELP hft_heartbeats_missed_total Heartbeats missed\n"
+             "# HELP hft_heartbeats_missed_total Expected feed frames missed\n"
              "# TYPE hft_heartbeats_missed_total counter\n"
              "hft_heartbeats_missed_total %llu\n"
              "# HELP hft_fill_rate Ratio of filled to sent orders\n"
@@ -182,9 +178,8 @@ class SystemMonitor {
             (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
             (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
             (unsigned long long)s.errors, (unsigned long long)s.reconnects,
-            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_sent,
-            (unsigned long long)s.heartbeats_missed, s.fill_rate, s.rejection_rate,
-            (unsigned long long)s.uptime_seconds);
+            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed, s.fill_rate,
+            s.rejection_rate, (unsigned long long)s.uptime_seconds);
         if (n <= 0) return {};
         n = std::min(n, static_cast<int>(sizeof(buf) - 1));
         return std::string(buf, static_cast<size_t>(n)) + format_runtime_prometheus();
@@ -295,39 +290,6 @@ class SystemMonitor {
     std::array<std::atomic<uint64_t>, LATENCY_BUCKETS> latency_buckets_{};
     std::atomic<uint64_t>                              latency_count_{0};
     std::atomic<double>                                latency_sum_us_{0.0};
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// MemoryTracker — track approximate memory usage
-// ─────────────────────────────────────────────────────────────────────────────
-class MemoryTracker {
-  public:
-    void record_allocation(size_t bytes) noexcept {
-        total_allocated_.fetch_add(bytes, std::memory_order_relaxed);
-        current_usage_.fetch_add(bytes, std::memory_order_relaxed);
-        if (bytes > max_single_alloc_.load(std::memory_order_relaxed)) {
-            max_single_alloc_.store(bytes, std::memory_order_relaxed);
-        }
-    }
-
-    void record_deallocation(size_t bytes) noexcept {
-        current_usage_.fetch_sub(bytes, std::memory_order_relaxed);
-    }
-
-    size_t current_usage() const noexcept { return current_usage_.load(std::memory_order_relaxed); }
-
-    size_t total_allocated() const noexcept {
-        return total_allocated_.load(std::memory_order_relaxed);
-    }
-
-    size_t max_single_alloc() const noexcept {
-        return max_single_alloc_.load(std::memory_order_relaxed);
-    }
-
-  private:
-    std::atomic<size_t> current_usage_{0};
-    std::atomic<size_t> total_allocated_{0};
-    std::atomic<size_t> max_single_alloc_{0};
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

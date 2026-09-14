@@ -58,7 +58,7 @@ bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
     if (argc > 1) config_path = argv[1];
     std::filesystem::create_directories("logs");
     ctx.config = Config::load(config_path);
-    Logger::init(ctx.config.log_level, "logs", ctx.config.is_production);
+    Logger::init(ctx.config.log_level, "logs", ctx.config.is_production, &ctx.sys_monitor);
     log_banner(ctx.config);
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
@@ -214,6 +214,11 @@ void init_monitoring(BotContext& ctx) {
     ctx.health_server = std::make_unique<HealthServer>(
         ctx.config.metrics_port, ctx.config.metrics_host, ctx.config.metrics_enabled);
     ctx.health_server->start(&ctx.sys_monitor);
+    // S246: reconnect/staleness counters live inside the sockets — hand them
+    // the monitor so hft_reconnects_total/hft_heartbeats_missed_total move.
+    if (ctx.receiver) ctx.receiver->set_monitor(&ctx.sys_monitor);
+    if (ctx.ai_signal_receiver) ctx.ai_signal_receiver->set_monitor(&ctx.sys_monitor);
+    if (ctx.executor) ctx.executor->set_monitor(&ctx.sys_monitor);
 }
 
 void init_ipc(BotContext& ctx) {
@@ -303,6 +308,10 @@ void init_callbacks(BotContext& ctx) {
         auto res = ctx.pos_mgr.apply_fill(sym, side, qty, price, fee, status);
         if (status == "FILLED") {
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_FILLED);
+            ctx.last_fill_ms.store(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                       std::chrono::system_clock::now().time_since_epoch())
+                                       .count(),
+                                   std::memory_order_relaxed);
             if (res.effect == PositionManager::FillEffect::OPENED ||
                 res.effect == PositionManager::FillEffect::INCREASED) {
                 ctx.risk_mgr->on_fill(sym, side, qty, price, fee);
@@ -317,7 +326,9 @@ void init_callbacks(BotContext& ctx) {
                                                                                : "reduced",
                              res.realized_pnl);
             }
-        } else if (status == "REJECTED" || status == "CANCELLED") {
+        } else if (status == "CANCELLED") {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED);
+        } else if (status == "REJECTED") {
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
         }
     });
@@ -341,6 +352,7 @@ void init_callbacks(BotContext& ctx) {
     // Exchange-side cancels release the pending-order slot so the symbol can
     // be traded again.
     ctx.receiver->on_order_cancelled([&](const std::string& sym) {
+        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED);
         if (sym.empty())
             ctx.pos_mgr.clear_pending_orders();
         else

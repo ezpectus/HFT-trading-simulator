@@ -3,6 +3,7 @@
 // Production mode uses rotating file sinks to prevent unbounded log growth.
 #pragma once
 
+#include "../monitoring/system_monitor.h"
 #include <chrono>
 #include <ctime>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include <memory>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/sinks/sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
@@ -19,10 +21,29 @@
 
 namespace hft {
 
+// Counts error/critical log events into SystemMonitor — hft_errors_total
+// means "errors logged", matching its HELP text (S246).
+class ErrorCountSink : public spdlog::sinks::sink {
+  public:
+    explicit ErrorCountSink(SystemMonitor* monitor) : monitor_(monitor) {}
+
+    void log(const spdlog::details::log_msg& msg) override {
+        if (monitor_ && msg.level >= spdlog::level::err) {
+            monitor_->increment(SystemMonitor::Metric::ERRORS);
+        }
+    }
+    void flush() override {}
+    void set_pattern(const std::string&) override {}
+    void set_formatter(std::unique_ptr<spdlog::formatter>) override {}
+
+  private:
+    SystemMonitor* monitor_;
+};
+
 class Logger {
   public:
     static void init(const std::string& level = "info", const std::string& dir = "logs",
-                     bool json = false) {
+                     bool json = false, SystemMonitor* monitor = nullptr) {
         // Create logs directory
         log_dir_ = dir;
         std::filesystem::create_directories(dir);
@@ -61,6 +82,10 @@ class Logger {
 
         auto logger = std::make_shared<spdlog::logger>(
             "hft", spdlog::sinks_init_list{console_sink, file_sink, latest_sink});
+
+        if (monitor) {
+            logger->sinks().push_back(std::make_shared<ErrorCountSink>(monitor));
+        }
 
         if (json) {
             // JSON structured logging — one JSON object per line

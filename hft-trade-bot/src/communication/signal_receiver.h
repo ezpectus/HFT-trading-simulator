@@ -8,6 +8,7 @@
 #include "../data/signal.h"
 #include "../data/types.h"
 #include "../ipc/shm_fill_producer.h"
+#include "../monitoring/system_monitor.h"
 #include "../network/watchdog.h"
 #include "../utils/low_latency.h"
 #include "signal_receiver_data.h"
@@ -113,12 +114,19 @@ class SignalReceiver : private SignalReceiverData {
                 [this](websocketpp::connection_hdl, std::string) { activity_watchdog_.feed(); });
             ep->set_message_handler([this](websocketpp::connection_hdl, WSClient::message_ptr msg) {
                 activity_watchdog_.feed();
-                if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
-                    const auto& bin  = msg->get_payload();
-                    auto        data = json::from_msgpack(bin);
-                    handle_message_json(data);
-                } else {
-                    handle_message(msg->get_payload());
+                try {
+                    if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
+                        const auto& bin  = msg->get_payload();
+                        auto        data = json::from_msgpack(bin);
+                        handle_message_json(data);
+                    } else {
+                        handle_message(msg->get_payload());
+                    }
+                } catch (const std::exception& e) {
+                    // S244: one malformed frame must not kill the process —
+                    // websocketpp invokes this handler unguarded, so an escape
+                    // here is std::terminate on ws_thread_.
+                    spdlog::warn("SignalReceiver dropped unparseable frame: {}", e.what());
                 }
             });
             websocketpp::lib::error_code ec;
@@ -128,7 +136,18 @@ class SignalReceiver : private SignalReceiverData {
                 return false;
             }
             ep->connect(con);
-            ws_thread_ = std::thread([this]() { client_snapshot()->run(); });
+            // Last-resort guard (S244): any exception escaping client->run()
+            // would terminate the process — catch, log, let close/reconnect
+            // handlers drive recovery.
+            ws_thread_ = std::thread([this]() {
+                try {
+                    client_snapshot()->run();
+                } catch (const std::exception& e) {
+                    spdlog::error("SignalReceiver ws thread died: {}", e.what());
+                    connected_ = false;
+                    schedule_reconnect();
+                }
+            });
             return true;
         } catch (const std::exception& e) {
             spdlog::error("SignalReceiver connect failed: {}", e.what());
@@ -166,7 +185,12 @@ class SignalReceiver : private SignalReceiverData {
     void set_fill_producer(ipc::ShmFillProducer* p) { fill_producer_ = p; }
 
     bool is_connected() const { return connected_; }
-    bool is_trading_active() const { return trading_active_.load(std::memory_order_relaxed); }
+
+    // S246: feed-age + monitor hooks so /health and hft_* counters reflect
+    // real socket state instead of defaults.
+    uint64_t last_activity_ms() const { return activity_watchdog_.idle_ms(); }
+    void     set_monitor(SystemMonitor* m) { monitor_ = m; }
+    bool     is_trading_active() const { return trading_active_.load(std::memory_order_relaxed); }
 
     bool wait_for_data(int timeout_ms = 1000) {
         std::unique_lock<std::mutex> lk(mutex_);
@@ -260,6 +284,7 @@ class SignalReceiver : private SignalReceiverData {
                                    [this] { return reconnect_cancel_.load(); });
             clk.unlock();
             if (should_reconnect_ && !reconnect_cancel_.load(std::memory_order_relaxed)) {
+                if (monitor_) monitor_->increment(SystemMonitor::Metric::RECONNECTS);
                 if (ws_thread_.joinable()) ws_thread_.join();
                 do_connect();
             }
@@ -278,6 +303,7 @@ class SignalReceiver : private SignalReceiverData {
             if (!activity_watchdog_.is_alive()) {
                 spdlog::warn("SignalReceiver stale ({}ms silent) — forcing reconnect",
                              activity_watchdog_.idle_ms());
+                if (monitor_) monitor_->increment(SystemMonitor::Metric::HEARTBEATS_MISSED);
                 activity_watchdog_.feed(); // don't re-trip while teardown runs
                 websocketpp::lib::error_code ec;
                 auto con = client_snapshot()->get_con_from_hdl(connection_, ec);
@@ -324,6 +350,7 @@ class SignalReceiver : private SignalReceiverData {
     OrderCancelledCallback order_cancelled_cb_;
 
     ipc::ShmFillProducer* fill_producer_{nullptr};
+    SystemMonitor*        monitor_{nullptr};
 };
 
 } // namespace hft

@@ -55,7 +55,10 @@ void handle_message_json(const json& data) {
                     f.price       = static_cast<float>(o.value("filled_price", 0.0));
                     f.fee         = static_cast<float>(o.value("fee", 0.0));
                     f.exchange_id = 3; // Simulator
-                    fill_producer_->push_fill(f);
+                    // S246: a full SHM ring silently dropped fills — count it.
+                    if (!fill_producer_->push_fill(f) && monitor_) {
+                        monitor_->increment(SystemMonitor::Metric::SHM_DROPS);
+                    }
                 }
             }
         }
