@@ -789,3 +789,32 @@ harnesses are un-unit-testable by design).
 - **Bug:** root-level snapshot presented deleted code as live (Rust hft-executor FFI, ml/, research/, "kept" slop modules) with no disclaimer — two contradictory root READMEs.
 - **Fix:** HISTORICAL banner added (same pattern as REFACTORING_PLAN_10DAYS.md) naming the dead claims and pointing at README.md + the audit ledger. File is gitignored/untracked — fix lives in the working tree.
 - **Files:** `README_PROJECT_OVERVIEW.md` (local-only)
+### S197 — consistency gate can fail now
+- **Bug:** `test_risk_parameter_consistency` printed WARNINGs but always returned True — shared/AI/HFT risk drift could never break the gate; `_shared_signal_ws` loaded but never compared (fixed in R170/S316 wiring); duplicated `audit` section check.
+- **Fix:** all three configs now compared on `max_risk_per_trade_pct`/`max_daily_drawdown_pct`/`min_confidence` — mismatch → ERROR + `False`; duplicate audit block removed. Proven live: `min_confidence: 99.0` in shared → `✗ FAIL` + nonzero; revert → all 5 checks pass.
+- **Files:** `scripts/test_config_consistency.py:215-227`
+- **Commit:** 57f5773
+
+### S198 — stale Open markers corrected
+- **Bug:** `docs/AUDIT_FINDINGS.md` catalog entries still said "— Open." for findings already fixed and verified: S116/S117 (fixed R40), S157/S158/S164 (R86), S178/S179/S180/S188 (R84). (S109/S155/S156 carried no false-Open marker.) 9 flips, not 12 — the finding's count was itself stale.
+- **Fix:** each marker rewritten to its real fix round (`— Fixed in R40.` etc.); historical finding text untouched.
+- **Files:** `docs/AUDIT_FINDINGS.md` (catalog entries)
+- **Commit:** 8fe770d
+
+### S199 — dead tests/requirements.txt removed
+- **Bug:** `exchange_simulator/tests/requirements.txt` pinned only `pytest>=7.0` with zero repo references; real deps live in `requirements-dev.txt`. Installing it gives pytest without pytest-asyncio → async suite silently skipped.
+- **Fix:** file deleted; no CI/Makefile/docs/Dockerfile referenced it (only historical ledger notes mention the path).
+- **Files:** `exchange_simulator/tests/requirements.txt` (deleted)
+- **Commit:** 8d14a43
+
+### S201 — development guide tree refreshed
+- **Bug:** `docs/guides/DEVELOPMENT_GUIDE.md` showed `exchange_simulator/config/` (real: `config.yaml`), `web-ui/src/contexts/` (nonexistent), `hft-trade-bot/pch.h` (real: `src/pch.h`), "88 test files" (real ~94), "227 React components" (real ~295), `panels/PanelRegistry.jsx` (real `registry.js`); sim `tools/` dir absent. ("28 test files" was accurate post-R167 — 28 `test_*.py` remain after the tools move.)
+- **Fix:** every claim corrected against the live tree; nonexistent dirs replaced by real `panels/`/`stores/`/`utils/`; counts made approximate (`~`) where churn is high.
+- **Files:** `docs/guides/DEVELOPMENT_GUIDE.md` project-tree + panel-registration sections
+- **Commit:** 8fe770d
+
+### S205 — terraform docs match reality
+- **Bug:** `docs/DEPLOYMENT.md` Option 4 claimed "terraform/ … was removed in the S109 cleanup" — the directory exists (VPC/EKS/S3 modules; only RDS/ElastiCache went). `terraform/README.md` promised "CloudWatch log groups" — no such resource exists.
+- **Fix:** DEPLOYMENT.md Option 4 rewritten to describe the real substrate (VPC/EKS/S3, stateless — no DB/cache tier, deploy via Helm onto EKS); README's phantom CloudWatch bullet dropped. The `db_password` tfvars part was already closed via S273/S314 (R167/R170).
+- **Files:** `docs/DEPLOYMENT.md` (Option 4), `terraform/README.md`
+- **Commit:** 8fe770d

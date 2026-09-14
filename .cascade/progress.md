@@ -2340,3 +2340,13 @@ Gate: staged ALL GREEN (WD_SKIP_COVERAGE for the config-string commits). Board: 
 - **S218** — README_PROJECT_OVERVIEW got the HISTORICAL banner (gitignored file — local fix).
 
 Gate: staged ALL GREEN. Board: 23 open (0 Low left — only S309 Medium blocked on Docker + Info pack).
+
+## R172 — slop-fix — 5 findings closed (Info batch)
+
+- **S197** — risk-parameter check now compares shared/AI/HFT and returns False on drift (was warning-only); duplicate audit block cut. Proven: injected drift → FAIL, revert → 5/5 pass.
+- **S198** — 9 stale "— Open." markers in AUDIT_FINDINGS flipped to real fix rounds (S116/S117 R40, S157/S158/S164 R86, S178/S179/S180/S188 R84; S109/S155/S156 had no false marker).
+- **S199** — dead `exchange_simulator/tests/requirements.txt` deleted (0 refs; real deps in requirements-dev.txt).
+- **S201** — DEVELOPMENT_GUIDE tree corrected: config.yaml, tools/, src/pch.h, ~295 components, panels/stores/, registry.js.
+- **S205** — DEPLOYMENT Option 4 describes the live terraform (VPC/EKS/S3, DB removed in S109); terraform README's phantom CloudWatch claim dropped.
+
+Gate: staged ALL GREEN (9/9 on the tests-dir commit). Commits: 57f5773, 8d14a43, 8fe770d. Board: 18 open (S309 Medium Docker-blocked + 17 Info).
