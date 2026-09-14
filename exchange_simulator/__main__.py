@@ -157,11 +157,16 @@ async def run_websocket_server(
         metrics_host=metrics_cfg.get("host"),
     )
 
-    # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C)
+    # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C).
+    # Windows' ProactorEventLoop doesn't implement add_signal_handler —
+    # NotImplementedError there, KeyboardInterrupt still covers Ctrl+C (S220).
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        loop.add_signal_handler(sig, server._shutdown_event.set)
-    logger.info("Signal handlers installed (SIGTERM/SIGINT → graceful shutdown)")
+    try:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            loop.add_signal_handler(sig, server._shutdown_event.set)
+        logger.info("Signal handlers installed (SIGTERM/SIGINT → graceful shutdown)")
+    except NotImplementedError:
+        logger.info("add_signal_handler unsupported on this platform — Ctrl+C still stops via KeyboardInterrupt")
 
     await server.start()
     logger.info("Exchange simulator shutdown complete")

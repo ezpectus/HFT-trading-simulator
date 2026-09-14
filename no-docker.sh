@@ -74,7 +74,9 @@ case "$MODE" in
 
         # Start Exchange Simulator
         echo "[1/4] Starting Exchange Simulator on :8765..."
-        cd "$PROJECT_ROOT/exchange_simulator"
+        # python -m needs the package importable — run from the repo ROOT,
+        # not inside exchange_simulator/ (S220)
+        cd "$PROJECT_ROOT"
         python3 -m exchange_simulator --no-visualizer &
         SIM_PID=$!
         echo "  PID: $SIM_PID"

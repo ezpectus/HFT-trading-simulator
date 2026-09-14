@@ -14,7 +14,7 @@ WORKDIR /app
 # Create non-root user and copy packages
 RUN groupadd -r appuser && useradd -r -g appuser -m appuser
 COPY --from=builder /root/.local /home/appuser/.local
-COPY . .
+COPY . ./exchange_simulator/
 
 RUN chown -R appuser:appuser /app
 USER appuser

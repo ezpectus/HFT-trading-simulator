@@ -14,7 +14,7 @@ WORKDIR /app
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 COPY --from=builder /root/.local /home/appuser/.local
-COPY . .
+COPY . ./exchange_simulator/
 
 RUN chown -R appuser:appuser /app
 

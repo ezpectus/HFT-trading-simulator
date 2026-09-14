@@ -24,7 +24,7 @@ services:
       - "18765:8765"
       - "18775:8775"
     volumes:
-      - ./exchange_simulator/config.yaml:/app/config.yaml:ro
+      - ./exchange_simulator/config.yaml:/app/exchange_simulator/config.yaml:ro
       - staging-sim-data:/app/data
       - staging-sim-logs:/app/logs
     command: python -m exchange_simulator --no-visualizer

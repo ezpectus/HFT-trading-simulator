@@ -24,7 +24,7 @@ services:
       - "8765:8765"
       - "8775:8775"
     volumes:
-      - ./exchange_simulator/config.yaml:/app/config.yaml:ro
+      - ./exchange_simulator/config.yaml:/app/exchange_simulator/config.yaml:ro
       - sim-data:/app/data
       - sim-logs:/app/logs
     environment:
