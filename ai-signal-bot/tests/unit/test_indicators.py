@@ -9,7 +9,6 @@ from src.technical_analysis.indicators import (
     atr,
     bollinger_bands,
     ema,
-    macd,
     rsi,
     sma,
     vwap,
@@ -105,28 +104,6 @@ class TestRSI:
         result = rsi(candles, period=14)
         assert all(math.isnan(v) for v in result)
 
-
-class TestMACD:
-    def test_returns_three_lists(self):
-        candles = make_candles([100 + i for i in range(50)])
-        macd_line, signal_line, histogram = macd(candles)
-        assert len(macd_line) == 50
-        assert len(signal_line) == 50
-        assert len(histogram) == 50
-
-    def test_nan_before_valid(self):
-        candles = make_candles([100 + i for i in range(50)])
-        macd_line, _, _ = macd(candles, fast=12, slow=26)
-        # MACD line should be NaN before slow EMA is available
-        assert math.isnan(macd_line[0])
-        assert not math.isnan(macd_line[-1])
-
-    def test_histogram_is_difference(self):
-        candles = make_candles([100 + i for i in range(50)])
-        macd_line, signal_line, histogram = macd(candles)
-        for m, s, h in zip(macd_line, signal_line, histogram, strict=True):
-            if not math.isnan(m) and not math.isnan(s):
-                assert h == pytest.approx(m - s)
 
 
 class TestBollingerBands:

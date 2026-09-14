@@ -2,12 +2,11 @@
 
 Contains the core computational routines for the Hawkes process:
 parameter fitting via grid-search MLE, conditional intensity evaluation,
-and simulation via Ogata's thinning algorithm.
+functions.
 """
 from __future__ import annotations
 
 import math
-import random
 
 from src.technical_analysis.hawkes_model import HawkesParams, hawkes_log_lik
 
@@ -82,32 +81,3 @@ def hawkes_intensity(
     return intensity
 
 
-def simulate_hawkes(
-    mu: float,
-    alpha: float,
-    beta: float,
-    t: float,
-    max_events: int = DEFAULT_MAX_EVENTS,
-    seed: int | None = None,
-) -> list[float]:
-    """Simulate a Hawkes process via Ogata's thinning algorithm."""
-    rng = random.Random(seed)
-    events: list[float] = []
-    time = 0.0
-    intensity = mu
-
-    while time < t and len(events) < max_events:
-        u = rng.random()
-        if u <= 0 or intensity <= 0:
-            break
-        time += -math.log(u) / intensity
-        if time >= t:
-            break
-        new_intensity = hawkes_intensity(time, events, mu, alpha, beta)
-        if rng.random() < new_intensity / intensity:
-            events.append(time)
-            intensity = new_intensity + alpha
-        else:
-            intensity = new_intensity
-
-    return events

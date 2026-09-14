@@ -11,7 +11,7 @@ from src.observability.health_checks import (
     HealthChecker,
     HealthStatus,
 )
-from src.observability.logging import bind_context, clear_context, get_logger
+from src.observability.logging import get_logger
 from src.observability.tracing import get_tracer, shutdown_tracing
 
 
@@ -152,8 +152,3 @@ class TestLogging:
         log = get_logger("test_module")
         assert callable(log.info) and callable(log.bind)  # working logger contract
 
-    def test_bind_context_no_crash(self):
-        bind_context(symbol="BTC/USDT", strategy="trend")
-
-    def test_clear_context_no_crash(self):
-        clear_context()

@@ -8,7 +8,6 @@ from src.technical_analysis.indicators import (
     atr,
     bollinger_bands,
     ema,
-    macd,
     rsi,
     sma,
     vwap,
@@ -79,17 +78,6 @@ class TestRSI:
         result = rsi(candles, 14)
         assert all(math.isnan(v) for v in result)
 
-
-class TestMACD:
-    def test_basic(self):
-        closes = [100 + i * 0.5 for i in range(50)]
-        candles = make_candles(closes)
-        macd_line, signal_line, hist = macd(candles, 12, 26, 9)
-        assert len(macd_line) == 50
-        assert len(signal_line) == 50
-        assert len(hist) == 50
-        # MACD should be positive in uptrend
-        assert macd_line[-1] > 0
 
 
 class TestBollingerBands:

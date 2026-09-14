@@ -1,6 +1,6 @@
 """Hawkes Process model classes and log-likelihood function.
 
-Contains the data containers (HawkesParams, HawkesResult) and the
+Contains the data containers (HawkesParams) and the
 log-likelihood function used by the fitting routines.
 """
 from __future__ import annotations
@@ -27,43 +27,6 @@ class HawkesParams:
         self.log_lik = log_lik
         self.branching_ratio = branching_ratio
 
-
-class HawkesResult:
-    """Container for Hawkes process analysis results."""
-
-    def __init__(
-        self,
-        events: list[float],
-        t: float,
-        params: HawkesParams,
-        intensity_path: list[dict],
-        simulated: list[float],
-        inter_arrivals: list[float],
-        mean_ia: float,
-        mean_sim_ia: float,
-        max_burst: int,
-        signal: str,
-        reason: str,
-        current_intensity: float,
-        intensity_ratio: float,
-        n_events: int,
-        n_simulated: int,
-    ) -> None:
-        self.events = events
-        self.t = t
-        self.params = params
-        self.intensity_path = intensity_path
-        self.simulated = simulated
-        self.inter_arrivals = inter_arrivals
-        self.mean_ia = mean_ia
-        self.mean_sim_ia = mean_sim_ia
-        self.max_burst = max_burst
-        self.signal = signal
-        self.reason = reason
-        self.current_intensity = current_intensity
-        self.intensity_ratio = intensity_ratio
-        self.n_events = n_events
-        self.n_simulated = n_simulated
 
 
 def hawkes_log_lik(

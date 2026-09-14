@@ -155,19 +155,3 @@ def get_logger(name: str = __name__):
         return logging.getLogger(name)
 
 
-def bind_context(**kwargs) -> None:
-    """Bind contextual fields to all subsequent log entries in this async context."""
-    try:
-        import structlog
-        structlog.contextvars.bind_contextvars(**kwargs)
-    except ImportError:
-        pass
-
-
-def clear_context() -> None:
-    """Clear all bound context variables."""
-    try:
-        import structlog
-        structlog.contextvars.clear_contextvars()
-    except ImportError:
-        pass

@@ -1,4 +1,4 @@
-"""Technical analysis indicators — RSI, EMA, SMA, MACD, Bollinger Bands, ATR, ADX, VWAP.
+"""Technical analysis indicators — RSI, EMA, SMA, Bollinger Bands, ATR, ADX, VWAP.
 
 Pure functions operating on lists of candle dicts or Candle objects.
 Returns lists aligned with input, NaN-padded where insufficient data.
@@ -15,12 +15,6 @@ except ImportError:
 NAN = float("nan")
 
 
-def validate_prices(prices: list[float]) -> list[float]:
-    """Validate that all values are finite. Raises ValueError on NaN/Inf."""
-    for i, p in enumerate(prices):
-        if not math.isfinite(p):
-            raise ValueError(f"Non-finite value at index {i}: {p}")
-    return prices
 
 
 def _closes(candles: list[dict]) -> list[float]:
@@ -111,31 +105,6 @@ def rsi(candles: list[dict], period: int = 14) -> list[float]:
     return result
 
 
-def macd(
-    candles: list[dict], fast: int = 12, slow: int = 26, signal: int = 9
-) -> tuple[list[float], list[float], list[float]]:
-    c = _closes(candles)
-    ema_fast = ema(c, fast)
-    ema_slow = ema(c, slow)
-
-    macd_line = [NAN] * len(c)
-    for i, (f, s) in enumerate(zip(ema_fast, ema_slow, strict=True)):
-        if not math.isnan(f) and not math.isnan(s):
-            macd_line[i] = f - s
-
-    valid_start = next((i for i, v in enumerate(macd_line) if not math.isnan(v)), len(c))
-    valid = macd_line[valid_start:]
-    sig_valid = ema(valid, signal) if len(valid) >= signal else [NAN] * len(valid)
-
-    signal_line = [NAN] * len(c)
-    signal_line[valid_start:] = sig_valid
-
-    histogram = [NAN] * len(c)
-    for i, (m, s) in enumerate(zip(macd_line, signal_line, strict=True)):
-        if not math.isnan(m) and not math.isnan(s):
-            histogram[i] = m - s
-
-    return macd_line, signal_line, histogram
 
 
 def bollinger_bands(
