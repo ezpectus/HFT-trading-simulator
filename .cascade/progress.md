@@ -1989,6 +1989,21 @@ Commit: 9a1f83b
 
 Commit: 685d68f
 
+## R146 — slop-verify batch (8 entries — all VERIFIED, 0 WRONG/ROTTED)
+
+- **Batch:** S196 (R103), S145 (High, R63), S147 (R68), S146 (R66), S134 (R57), S132 (R56), S131 (R56), S130 (R55) — freshest unverified + highest severity.
+- **Verdicts — all real:**
+  - **S196** — `ipc.kill_switch` single-home holds (prod yaml :53-57 + shadow-comment :122), `parse_prod_risk` clean, `bot_setup.cpp:179-180` reads cfg fields, env-expansion live.
+  - **S145** — prod-compose 4× `ghcr.io/.../${IMAGE_TAG}`, deploy.yml scp covers all bind-mounts, `IMAGE_TAG` v-strip, `latest` on default-branch.
+  - **S147** — fill-handler pushes real `FillMsg` (handlers:44-58, `0=BUY,1=SELL` :53) matching Python decode `{0:BUY,1:SELL}` (run.py:336); `set_fill_producer` wired (bot_setup:225).
+  - **S146** — `tabulate==0.9.0` pinned; `cvar.py` `_HAS_SCIPY` guard + `_norm_ppf` fallback real.
+  - **S134** — all 4 compose publish :8080 + probe `/ready`; helm `/live`+`/ready` on :8080.
+  - **S132** — `shm_kill_switch_consumer.py` exists, polling wired (run.py:301-306), latch+`record_kill_switch`+CRITICAL rule (:346,:417), push-gate :512.
+  - **S131** — dashboards query real names (R140 full cross-check re-proved: 40/40 resolve).
+  - **S130** — registry reverse-drift fixed (perf-dashboard:490 accounts+fills+signals; backtest-runner:723 signals-connected+sendSignalMessage+backtestResult; indicator-builder:358 onIndicatorsChange→setCustomIndicators).
+- **Done-log:** 8 entries marked `✅ verified R146`. Unverified backlog: ~109 remain.
+- **Commit:** <pending>
+
 ## R145 — terraform/ tree + root stragglers (4 findings)
 
 - **Areas:** `terraform/` (all 8 files — README, vpc/eks/s3 modules, dev+prod envs, tfvars examples) — last untouched IaC tree; stragglers: `shared_config.yaml`, `netlify.toml`, monitor.py ×3, `.dockerignore` ×4.
