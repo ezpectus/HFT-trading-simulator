@@ -847,3 +847,32 @@ harnesses are un-unit-testable by design).
 - **Fix:** run section rewritten root-relative with the build step noted; counts → ~28 files/412 tests (sim), ~94/1400+ (ai-bot), 25 files/~274 TEST_CASEs (hft), 6 wired strategies.
 - **Files:** `CONTRIBUTING.md:247-258,339,350,378,435`
 - **Commit:** b8a868b
+### S227 — committed residue swept
+- **Bug:** `hft-trade-bot/package-lock.json` — empty `{}` npm lockfile with no package.json (accidental artifact); 9 stale `.gitkeep` placeholders in populated directories.
+- **Fix:** lockfile + 9 `.gitkeep` deleted (hft scripts/tests/src{monitoring,network,utils}, ai-signal-bot tests/src{data_collection,llm_engine,utils}); `ai-signal-bot/scripts/.gitkeep` kept — that dir is still legitimately empty.
+- **Files:** 10 deletions
+- **Commit:** chore sweep (R175)
+
+### S223 — WS metrics observable via /metrics
+- **Bug:** `WebSocketMetrics` maintained live counters (`message_count`, `bytes_sent`, `compression_ratio`, `delta_update_ratio`, `client_count`, broadcast latency, message sizes) whose only reader was `get_metrics()` — a dict accessor called exclusively by its own test; the real `/metrics` endpoint never saw them.
+- **Fix:** `_append_sim_metrics` now emits all nine as Prometheus series (`exchange_simulator_messages_total`, `bytes_sent_total`, `clients_connected`, `compression_ratio`, `delta_update_ratio`, `bandwidth_mbps`, `broadcast_latency_p95_ms`, `message_size_bytes_{avg,p95}`); dead `get_metrics()` chain removed from ws_metrics + websocket_server; test now asserts the real exposition.
+- **Files:** `exchange_simulator/ws_prometheus.py`, `ws_metrics.py`, `websocket_server.py`, `tests/test_websocket_server.py`
+- **Commit:** f400a30
+
+### S238 — WsInspector shows real WS frames
+- **Bug:** fabricated one synthetic record per `candles.length`/`signals.length` change — invented sizes/timestamps/previews, not real frames. (The finding's "use getBufferedMessages" premise was stale — S231 removed that API for having zero consumers; WsInspector is now its first real consumer class.)
+- **Fix:** module-level frame tap in `useWebSocket` — `publishWsFrame`/`subscribeWsFrames` (zero-cost when unsubscribed); `ws.onmessage` publishes `{label, data, size, receivedAt}`; `useExchangeData` labels its sockets 'exchange'/'signal'; inspector consumes real frames; dead props removed from registry; +4 tests driving real frames through the tap.
+- **Files:** `web-ui/src/hooks/useWebSocket.ts`, `hooks/useExchangeData.js`, `components/WsInspector.jsx`, `panels/registry.js:764`, `test/wsInspector.test.jsx`
+- **Commit:** 691a41c
+
+### S237 — mock hooks reach shape parity
+- **Bug:** `useMockExchangeData`/`useMockSignalData` returned ~half the real shape — `openOrders`, `auditLogs`, `optionsChain`, `lastError`, `cancelOrder`, `cancelAllOrders`, `requestOptionsChain`, `connect`, `nextReconnectIn`, `exchangeReconnects` plus all 7 `*Result` fields and `authState` missing; mock-mode consumers would crash on `undefined` (masked today by early-returns).
+- **Fix:** both returns carry full parity — honest nulls/empties for data slots, no-op senders matching the file's convention, `authState:'disabled'` mirroring the real no-token default; contract test asserts every real-hook key exists.
+- **Files:** `web-ui/src/hooks/useMockData.js`, `test/useMockData.test.jsx`
+- **Commit:** 691a41c
+
+### S241 — dead pinned deps removed
+- **Bug:** `numpy` in sim requirements was already cut by S313 (stale half); `@testing-library/user-event@^14.5.2` had zero imports across web-ui.
+- **Fix:** `npm uninstall @testing-library/user-event` — gone from package.json + lockfile; vitest still green.
+- **Files:** `web-ui/package.json`, `web-ui/package-lock.json`
+- **Commit:** chore sweep (R175)

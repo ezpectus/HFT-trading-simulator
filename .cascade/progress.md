@@ -2383,3 +2383,13 @@ Zero unverified entries remain. Next: board has 18 open → R174 slop-fix contin
 - **S217** — CONTRIBUTING run cmds fixed (root-relative -m, ../config path), counts corrected (28/412, 94/1400+, 25/~274, 6 strategies). ml//research//symbols/docs-count sub-claims were already stale-fixed.
 
 Gate: staged ALL GREEN. Commits: 7a00aeb, 3fa0a27, fd5b044, b8a868b. Board: 13 open (S309 Medium Docker-blocked + 12 Info).
+
+## R175 — slop-fix — 5 findings closed (Info batch)
+
+- **S227** — empty hft package-lock + 9 stale .gitkeep deleted; ai-signal-bot/scripts/.gitkeep kept (dir still empty).
+- **S223** — live WS counters (message_count/bytes_sent/compression/delta_ratio/clients/bandwidth/p95/sizes) now emitted on /metrics; dead test-only get_metrics() chain removed; test asserts real exposition.
+- **S238** — WsInspector consumes real frames via new useWebSocket tap (publish/subscribe, zero-cost idle); fabricated-length records gone; sockets labeled exchange/signal; +4 tests. (getBufferedMessages premise was stale — removed in S231; inspector is the first real consumer.)
+- **S237** — both mock hooks now return the full real shape (all missing keys incl. 7 *Result + authState='disabled' + no-op senders); contract test locks parity.
+- **S241** — @testing-library/user-event uninstalled (0 imports); numpy half was already S313.
+
+Gate: staged ALL GREEN. Commits: chore sweep, f400a30, 691a41c. Board: 8 open (S309 Medium Docker-blocked + 7 Info).
