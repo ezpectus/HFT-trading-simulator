@@ -1767,4 +1767,4 @@ Commit: a5c93ca
 
 **Clean:** 296 компонент — 0 hardcoded data-массивов, 0 неочищенных интервалов/слушателей, props-drift только у 5 файлов (4 — underscore-осознанные/trivial).
 
-Commit: TBD
+Commit: 427c5c0

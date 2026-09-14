@@ -2117,4 +2117,4 @@ The 296-file panel layer was never leaf-checked for data-path honesty: unused pr
 
 **Retracted:** `_audit_pending` is NOT write-only — `_broadcast_audit_events` (ws_broadcast.py:235) drains it and ships `audit_logs`; `Object.values(acc.positions)` is shape-tolerant to the list; `f.received_at` is an honest client stamp (ms); CostBasis/ExpectedValueCalculator/KellyCalculator/MonteCarlo/TimeOfDayPerformance/PnLAttributionChart/SessionStats read real fields (`closed_at`, `pnl`); `SessionExport` performs a real Blob download; `AccountPanel`'s `t.time` is key-only with `|| i` fallback; zero unclosed intervals/listeners across all 296 files; zero hardcoded data arrays.
 
-Commit: TBD
+Commit: 427c5c0
