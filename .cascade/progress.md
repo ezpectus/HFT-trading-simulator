@@ -1913,4 +1913,4 @@ Commit: f27711e
 
 **Clean:** release.yml честный; codeql.yml осознанная cpp-only матрица; nightly импорты/сигнатуры резолвятся и пайплайн реальный (seeded-GBM + Backtester + walk-forward окна); prod-compose порты/mounts согласованы со scp-листом; оба Dockerfile объявляют 4 VITE_* ARG; nginx.conf честный (/health, security-headers, SW-cache); screenshots.spec реальный; Makefile.prod/.env.prod.example консистентны; dependabot — 8 живых экосистем; shared_config.yaml — подтверждённый reference (S136).
 
-Commit: <pending>
+Commit: f0d4554
