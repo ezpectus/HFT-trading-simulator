@@ -920,3 +920,25 @@ harnesses are un-unit-testable by design).
 - **Bug:** `nightly-backtest.yml` `Create issue on regression` (`if: failure()`) called `issues.create` unconditionally — a persistent failure opened a new issue every night forever; `pip install pytest pytest-asyncio` (:37) installed packages no step invoked. (The third sub-claim — `walk_forward_ci.py` orphaned — was already stale: wired in R171/S214, called at :73.)
 - **Fix:** the step now lists open issues, finds an existing one by title (PRs excluded via `!pull_request`), and comments with the latest run URL instead of duplicating; dead pip install removed. YAML + embedded JS both parse-verified.
 - **Files:** `.github/workflows/nightly-backtest.yml`
+
+## R180 — slop-fix — 4 findings closed (R179 doc-drift batch)
+
+### S318 — CONFIGURATION_GUIDE rewritten to live shared_config surface
+- **Bug:** `docs/guides/CONFIGURATION_GUIDE.md:59-118` documented `system:`, `default_exchange:`, `timeframe:`/`timeframe_seconds:`, `account:` — all removed from `shared_config.yaml` in S316/R170 — plus "50 pairs" (real: 49).
+- **Fix:** the shared-config section now opens with the gate-reference disclaimer (not runtime-loaded; consumed by `test_config_consistency.py`), lists only the live sections (symbols/exchanges/risk/websocket), corrects 49 pairs.
+- **Files:** `docs/guides/CONFIGURATION_GUIDE.md`
+
+### S319 — all 6 wired strategies documented
+- **Bug:** TRADING_STRATEGIES.md had detailed sections for TrendFollowing/MeanReversion/FFTCycle only; MarketMaking/MLEnsemble/Sentiment (all wired `bot_helpers.py:54-63`) were undescribed.
+- **Fix:** added sections describing each strategy's real mechanics (EVENT_SENTIMENT_MAP + fade/follow thresholds; Avellaneda-Stoikov reservation price + inventory skew + toxicity; HMM regime + GBM classifier + anomaly filter, sklearn/lightgbm optional); voter member list corrected to all 6.
+- **Files:** `docs/TRADING_STRATEGIES.md`
+
+### S320 — PERFORMANCE.md methodology is runnable now
+- **Bug:** `./hft_trade_bot --config <path> --enable-latency-histograms` — config is positional `argv[1]` (`bot_setup.cpp:58`), no such flag (yaml `latency_histogram_enabled`); `cmake -DENABLE_PROFILING=ON` — no such option (real: `-DUSE_PGO=ON` + `-DCMAKE_BUILD_TYPE=Profile`); "REST API 5-20ms ~10ms" row measured a nonexistent API; "5 strategies" (real: 6); "Measured" column produced by nothing, benchmark_suite (S214 toy-theater) cited as source.
+- **Fix:** real PGO two-pass + positional config + yaml-flag note; REST row replaced by the no-REST pointer; 6 strategies; Measured column disclaimed as ad-hoc + benchmark_suite caveat noted.
+- **Files:** `docs/PERFORMANCE.md`
+
+### S321 — docker-compose v1 → docker compose v2 in docs
+- **Bug:** ~23 sites taught the EOL v1 binary: DEPLOYMENT.md ×14, QUICK_START.md ×7, README.md ×2 (S302 fixed the Makefile but docs were left).
+- **Fix:** all command positions converted; compose *file* names (`docker-compose.prod.yml` etc.) preserved.
+- **Files:** `docs/DEPLOYMENT.md`, `docs/guides/QUICK_START.md`, `README.md`

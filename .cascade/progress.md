@@ -2443,3 +2443,12 @@ Scope: docs/ non-theory (~9.5k lines). Protocol doc fully diffed vs real dispatc
 - **S321** — docker-compose v1 syntax ×23 sites (DEPLOYMENT/QUICK_START/README); S302 fixed Makefile only.
 
 Board: 5 open (S309 Medium Docker-blocked + S318–S321 Info).
+
+## R180 — slop-fix — 4 findings closed (all R179 doc-drift)
+
+- **S318** — CONFIGURATION_GUIDE rewritten to live shared_config surface (gate-reference disclaimer, 4 dead sections out, 49 pairs).
+- **S319** — +3 strategy sections (Sentiment/MarketMaking/MLEnsemble) with real mechanics; voter list = all 6.
+- **S320** — PERFORMANCE: real PGO/positional-config/yaml-histogram commands; REST row out; 5→6 strategies; Measured column + benchmark_suite honestly disclaimed.
+- **S321** — docker-compose → docker compose ×23 sites across DEPLOYMENT/QUICK_START/README.
+
+Gate: staged ALL GREEN. Commit: 8f81f37. Board: 1 open (S309 Medium, Docker-blocked). Unverified done-log: 6 (R178×2 + R180×4).
