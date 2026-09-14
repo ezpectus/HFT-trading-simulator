@@ -25,6 +25,7 @@ from exchange_simulator.ws_constants import (
     WebSocketServerConnection,
     logger,
 )
+from exchange_simulator.ws_exchange_events import ExchangeEventsMixin
 from exchange_simulator.ws_message_handler import MessageHandlerMixin
 from exchange_simulator.ws_metrics import WebSocketMetrics
 from exchange_simulator.ws_prometheus import PrometheusMixin
@@ -40,7 +41,7 @@ except ImportError:
 
 
 class ExchangeWebSocketServer(
-    MessageHandlerMixin, BroadcastMixin, PrometheusMixin
+    MessageHandlerMixin, BroadcastMixin, ExchangeEventsMixin, PrometheusMixin
 ):
     """WebSocket server that streams simulated market data.
 
