@@ -206,7 +206,8 @@ jobs:
         run: |
           ${{ github.workspace }}/vcpkg/vcpkg install boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp --triplet x64-windows
       - name: Clone websocketpp
-        run: git clone https://github.com/zaphoyd/websocketpp.git
+        # pinned to the last stable release — unpinned HEAD in a build path (S265)
+        run: git clone --branch 0.8.2 --depth 1 https://github.com/zaphoyd/websocketpp.git
       - name: Configure CMake
         working-directory: hft-trade-bot
         run: |
@@ -323,16 +324,6 @@ jobs:
       - run: npm ci
         working-directory: web-ui
       - run: npm audit --audit-level=high
-        working-directory: web-ui
-      - name: Check for vulnerabilities
-        run: |
-          AUDIT_OUTPUT=$(npm audit 2>&1 || true)
-          echo "$AUDIT_OUTPUT"
-          if echo "$AUDIT_OUTPUT" | grep -qE "(critical|high)"; then
-            echo "::error::High or critical vulnerabilities found"
-            exit 1
-          fi
-          echo "No high/critical vulnerabilities found"
         working-directory: web-ui
 
   docker-smoke:

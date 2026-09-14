@@ -168,9 +168,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-push, deploy, health-check]
     if: always()
+    env:
+      # secrets.* isn't allowed in step `if:` — hoist to env so the gates
+      # actually see the values (S264: vars.* gates never opened).
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
       - name: Discord notification
-        if: ${{ vars.DISCORD_WEBHOOK_URL != '' }}
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
         uses: Ilshidur/action-discord@0.4.0
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -178,7 +183,7 @@ jobs:
           args: "Deployment ${{ github.ref_name }}: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && 'SUCCESS' || 'FAILED' }}"
 
       - name: Telegram notification
-        if: ${{ vars.TELEGRAM_BOT_TOKEN != '' }}
+        if: ${{ env.TELEGRAM_BOT_TOKEN != '' }}
         uses: appleboy/telegram-action@v1.0.1
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
