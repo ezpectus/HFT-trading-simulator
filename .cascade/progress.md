@@ -2496,3 +2496,18 @@ Still unverified (next verify round): S203+S310+S312, S311, S204+S315, S255, S22
 - **S255** — DEPLOYMENT.md:600-604 documents the real `EXCHANGE_API_*` names with the S255 audit note; S255 markers at :623/:738 present; zero stale "key ignored" text; :9099 mention is the honest port-mapping note.
 
 Done-log fully verified — zero unverified entries remain. Board: 0 open.
+
+## R185 — slop-verify — adversarial re-check of 7 previously-verified claims: 7/7 hold, 0 reverts
+
+Verified marks are claims too — re-opened a High-priority sample against current code.
+
+- **S252** — `book_key(ex,sym)` → `ex|sym` keying live (signal_receiver_data.h:32-33,46-49,108,117); `set_default_exchange` wired bot_setup.cpp:71; 3-venue doctest present.
+- **S248** — `mark_closing`/`closing_since_`/`CLOSING_RETRY` all present (position_manager.h:244-272,307); `process_sl_tp` sends wire close + marks (bot_loop.cpp:45-61), no trigger-price booking; `apply_fill` CLOSED path books real `realized_pnl` (:123-125); erase-on-reject at :86/:114/:122.
+- **S212** — `_encode` str|bytes (:62), `_encoded_variants` (:74), negotiated-variant sends at :264/:333/:467/:492; 12 broadcast tests (≥4 claimed).
+- **S236** — queued pending carries `timer:null` (:318), armed only on real send (:321) or post-reconnect effect (:333-342); ack resolves the order (:73-77).
+- **S214** — real Backtester×2 strategies (:30-33,93), `windows` emitted (:127), `--baseline/--threshold` degradation gate (:135-157); nightly-backtest.yml:72 calls the script; Makefile:91 works.
+- **S197** — 3-config × 3-key comparison → ERROR+False (test_config_consistency.py:216-224) — real fail path.
+- **S281** — mechanism drifted better than described: `_CountingOrderHistory` registers `_status_listener` per order (exchange.py:32-53) — in-place PENDING→FILLED transitions counted via `status.value.lower()`; exposition reads `counters.get("filled")` (ws_prometheus.py:170); test asserts exact series incl. in-place transition recount.
+- **ЧИСТО spot-check (R138):** 0 bare `assert` in prod Python — holds.
+
+Done-log fully verified including re-checks. Board: 0 open.

@@ -373,7 +373,7 @@
 
 ## R153 — slop-fix (5 findings)
 
-### S236 — web-ui offline-queue ack race — ✅ verified R154
+### S236 — web-ui offline-queue ack race — ✅ verified R154 · re-verified R185
 - **Bug:** `useExchangeData.submitOrder` armed a 5s ack timer even when `send()` returned `false` (queued while disconnected) → resolved `null` ("no response") for an order that hadn't hit the wire; on reconnect the queue flushed it with the same `client_order_id` — UI had already given up, and a user retry with a fresh cid bypassed server dedup → duplicate orders.
 - **Fix:** `web-ui/src/hooks/useExchangeData.js` — pending entry created without a timer when queued; timer arms only on real send, or in a `useEffect` on `exchangeConnected` after `useWebSocket`'s onopen flush has already put queued messages on the wire. Ack handler unchanged — resolves with the order.
 - **Files:** `web-ui/src/hooks/useExchangeData.js` (submitOrder + connected-effect)
@@ -385,7 +385,7 @@
 - **Files:** `hft-trade-bot/src/data/aligned_types.h`, `src/strategies/pressure_model.h`, `src/strategies/signal_engine_v2.h` (2 sites)
 - **Note:** selector toxic-gate stays — correct under 0 when unmeasured; flag documents the contract.
 
-### S248 — SL/TP booked at trigger price; real close-fill dropped — ✅ verified R154
+### S248 — SL/TP booked at trigger price; real close-fill dropped — ✅ verified R154 · re-verified R185
 - **Bug:** `process_sl_tp` (bot_loop.cpp) sent `close_position` then immediately `pos_mgr.close_position(symbol, trigger.price)` + `balance.fetch_add` at the trigger price. The real fill arrived later → position already erased → "stray fill" drop → real price + close fee never reconciled (PnL/balance drifted by slippage+fee per close); `risk_mgr->reduce_exposure` also never ran → exposure leak. Kill-switch callback had the same pattern.
 - **Fix:** keep the position on the book; `mark_closing(symbol)` suppresses `check_sl_tp` re-triggers for 10s (stale marks expire → retry); `apply_fill` books the close at real fill price with fee via the normal CLOSED path (which also does `reduce_exposure` + `balance.fetch_add(realized_pnl)`); REJECTED/CANCELLED clears the mark so SL/TP can re-fire.
 - **Files:** `hft-trade-bot/src/position/position_manager.h` (`closing_since_`, `mark_closing`, `CLOSING_RETRY`), `src/core/bot_loop.cpp` (process_sl_tp), `src/core/bot_setup.cpp` (kill switch)
@@ -419,7 +419,7 @@
 - **Fix:** dead knobs removed (`perMessageDeflate`, `batchTypes`, `batchInterval`, `maxBufferSize`, `getBufferedMessages`, `clearBuffer`, `bufferSize`, `queueSize`); attempts counted per onclose failure → `maxReconnects` actually caps (regression-tested); `isRetryRef` distinguishes auto-retry from manual `connect()` (which resets the budget); `disconnect()` sets `manualCloseRef` — no more auto-reconnect after manual close; `error` wired to `useExchangeData.lastError` → toast pipeline. 3 new tests (no bogus subprotocol, cap-reachable, disconnect-stays-down); buffer tests removed with the API.
 - **Files:** `web-ui/src/hooks/useWebSocket.ts`, `hooks/useExchangeData.js`, `test/useWebSocket.test.jsx`
 
-### S212 — msgpack negotiation honored on broadcasts ✅ · verified R161
+### S212 — msgpack negotiation honored on broadcasts ✅ · verified R161 · re-verified R185
 - **Bug:** `_client_encodings` was honored only by `_send_json`; all hot broadcasts (candles/fills_batch/audit_logs/arb) sent `orjson.dumps` BYTES to every client — binary frames that any msgpack-installed client tried to `unpackb` → total feed loss for JSON clients too.
 - **Fix:** `_encode()` returns str for JSON (TEXT frame) / bytes for msgpack (binary); `_encoded_variants()` pre-encodes shared payloads per negotiated encoding; audit-drain, fills_batch, arb, and the per-client market-data path all send the negotiated variant; `_send_json` unified on the same helper; protocol_version stamping preserved. 4 regression tests in `test_ws_broadcast.py` (text frame to json client, binary to msgpack, mixed-client fan-out, `_send_json` honors encoding).
 - **Files:** `exchange_simulator/ws_broadcast.py`, `tests/test_ws_broadcast.py`
@@ -533,7 +533,7 @@
 
 ## Round 160 — slop-fix (6 closed)
 
-### S281 — order-status counters count real enum values ✅ · verified R163
+### S281 — order-status counters count real enum values ✅ · verified R163 · re-verified R185
 - **Bug:** `ws_prometheus.py:129-130` compared `o.status.value` against lowercase `"filled"`/`"rejected"` while `OrderStatus` stores `"FILLED"`/`"REJECTED"` → `exchange_orders_filled_total`/`exchange_orders_rejected_total` were eternal zeros (ported from never-started `health.py` with the case bug).
 - **Fix:** uppercase comparisons matching the codebase idiom (`o.status.value == "FILLED"`); regression test feeds real `OrderStatus` values through the exposition path.
 - **Files:** `exchange_simulator/ws_prometheus.py`, `tests/test_ws_prometheus.py`
@@ -779,7 +779,7 @@ harnesses are un-unit-testable by design).
 - **Files:** `.github/workflows/ci.yml`
 - **Commit:** 2e2ed33
 
-### S214 — walk_forward_ci.py is the real walk-forward now ✅ · verified R173
+### S214 — walk_forward_ci.py is the real walk-forward now ✅ · verified R173 · re-verified R185
 - **Bug:** the script set `WF_STRATEGY` but the subprocess never read it — every named strategy produced identical buy-and-hold metrics on the same candle stream, labeled 'Walk-Forward Optimization CI'. Meanwhile `nightly-backtest.yml` carried the real implementation inline and never called the script.
 - **Fix:** script rewritten as the real walk-forward (rolling 30d/7d windows, real `Backtester` × TrendFollowing+MeanReversion, per-strategy aggregates, `--baseline`/`--threshold` degradation gate); workflow calls the script (downstream check reads `report['windows']`); `make walk-forward` works standalone via embedded seeded-GBM fixture labeled `synthetic-gbm-seed42`. Verified live: 5 windows × 2 strategies, strategy-specific metrics.
 - **Files:** `scripts/walk_forward_ci.py`, `.github/workflows/nightly-backtest.yml`
@@ -789,7 +789,7 @@ harnesses are un-unit-testable by design).
 - **Bug:** root-level snapshot presented deleted code as live (Rust hft-executor FFI, ml/, research/, "kept" slop modules) with no disclaimer — two contradictory root READMEs.
 - **Fix:** HISTORICAL banner added (same pattern as REFACTORING_PLAN_10DAYS.md) naming the dead claims and pointing at README.md + the audit ledger. File is gitignored/untracked — fix lives in the working tree.
 - **Files:** `README_PROJECT_OVERVIEW.md` (local-only)
-### S197 — consistency gate can fail now ✅ · verified R173
+### S197 — consistency gate can fail now ✅ · verified R173 · re-verified R185
 - **Bug:** `test_risk_parameter_consistency` printed WARNINGs but always returned True — shared/AI/HFT risk drift could never break the gate; `_shared_signal_ws` loaded but never compared (fixed in R170/S316 wiring); duplicated `audit` section check.
 - **Fix:** all three configs now compared on `max_risk_per_trade_pct`/`max_daily_drawdown_pct`/`min_confidence` — mismatch → ERROR + `False`; duplicate audit block removed. Proven live: `min_confidence: 99.0` in shared → `✗ FAIL` + nonzero; revert → all 5 checks pass.
 - **Files:** `scripts/test_config_consistency.py:215-227`
@@ -891,7 +891,7 @@ harnesses are un-unit-testable by design).
 - **Files:** `hft-trade-bot/src/core/config_validate.h`, `config/config.yaml`, `tests/test_doctest_hft_config.cpp`, `tests/test_integration_config.cpp`
 - **Commit:** b848454
 
-### S252 — per-venue market data stores ✅ · verified R177
+### S252 — per-venue market data stores ✅ · verified R177 · re-verified R185
 - **Bug:** `prices_`/`order_books_`/`candle_history_` keyed by bare symbol — the sim's "exchange|symbol" wire keys and `candle.exchange` were parsed and discarded; three venues overwrote/interleaved each other; an orderbook delta could mutate a different venue's book. (Also found: `using Spinlock = SpinLock` referenced a type that never existed — the header could not compile standalone.)
 - **Fix:** all three stores keyed `exchange|symbol`; `SignalReceiver::set_default_exchange` wired from `config.default_exchange` in `init_core_components`; symbol-only accessors resolve default-venue then shm then bare; by-id arrays and `get_all_prices` serve the primary venue only (pos_mgr semantics preserved); deltas resolve their own venue; `feed_frame_json` test seam added (mirrors `inject_snapshot`); new doctest asserts three-venue isolation for prices/books/deltas/candles.
 - **Files:** `hft-trade-bot/src/communication/signal_receiver_data.h`, `signal_receiver_handlers.h`, `signal_receiver.h`, `src/core/bot_setup.cpp`, `tests/test_doctest_signal_receiver.cpp`, `CMakeLists.txt`
