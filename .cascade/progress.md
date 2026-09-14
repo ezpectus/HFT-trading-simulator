@@ -2130,3 +2130,16 @@ Verdicts: 7 VERIFIED / 0 WRONG / 0 ROTTED. Done-log marked `✅ verified R150` �
 - **S239** — metrics loopback: sim gets `EXCHANGE_METRICS_HOST` env override; `metrics.host` key dropped from config.yaml so the ws-host fallback engages; `AI_BOT_BIND_HOST=0.0.0.0` in all 4 compose files; both vars documented in `.env.prod.example`.
 - **Verification:** pre-commit-check 8/8 ALL GREEN (vitest 53/53 incl. 2 new S236 regressions; g++ syntax-clean on all touched headers).
 - **Commits:** `2f69b10` (web-ui S236), `1ad574d` (hft S247), `4328ca6` (hft S248/S249), `1e4ea54` (infra S239), `38167fe` (ledgers)
+
+## R154 — slop-verify (8/8 VERIFIED, 0 reverts)
+
+Re-checked R152+R153 claims adversarially against committed code:
+
+- **S236** — `submitOrder` arms `pending.timer` only when `send()` returned true; `exchangeConnected` effect arms post-flush. `useWebSocket.send` returns true only on real transmission. 2 regression tests present, 53/53 green in R153 gate.
+- **S247** — `PressureResult.has_trade_flow` (aligned_types.h:212) set in `analyze` (pressure_model.h:98); both V2 composite sites (signal_engine_v2.h:306,465) renormalize `raw_pressure` over live legs.
+- **S248** — `process_sl_tp`/kill-switch call `mark_closing` (bot_loop.cpp:61, bot_setup.cpp:207); `closing_since_` erased on non-FILLED/REDUCED/CLOSED fills (position_manager.h:86,114,122); `check_sl_tp` skips fresh marks, `CLOSE_RETRY=10s`.
+- **S249** — `reset_daily` no longer stores `total_exposure_`; `update_pnl` deleted; tests on `update_pnl_v2`; exposure-preservation assert (`total_exposure()==20000` after on_fill+reset).
+- **S239** — `EXCHANGE_METRICS_HOST` override in `__main__.py:159`; `metrics.host` key gone from config.yaml (parsed dict has no `host`); `AI_BOT_BIND_HOST=0.0.0.0` in all 4 compose files; both documented in `.env.prod.example`.
+- **S224** — `Logger::init` honors `log_file` (dir/stem/ext → `<stem>_<ts>` + `_latest`); `ipc/shm_heartbeat.h` producer exists; `beat()` called with real metrics (bot_loop.cpp:399-401); `scripts/monitor.py` reads `/hft_heartbeat`, `monitor.py` tails `_latest.log`.
+- **S256** — `run.py::setup_logging` fallback delegates to `observability.logging.setup_logging(log_file=...)` → RotatingFileHandler on configured path; `run.py:751` passes `config.log_file`.
+- **S318** — both Windows SHM sites use the C++ name verbatim (`tag = name`); zero `lstrip` in ai-signal-bot/src.
