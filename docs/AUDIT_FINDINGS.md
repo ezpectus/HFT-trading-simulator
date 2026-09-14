@@ -2102,3 +2102,19 @@ The dashboard layer was never data-traced: 5 grafana JSONs (56 expressions, 40 u
 **Verified clean:** helm templates are genuinely good — fail-fast on `webUi.wsExchange`/`wsSignals`/`grafana.adminPassword`, correct env names (`WS_URL`, `HFT_EXCHANGE_WS_URL`, `EXCHANGE_CONTROL_TOKEN`, `EXCHANGE_WS_HOST`), probes on real endpoints (`/live`, `/ready`, `/health`, `/-/healthy`, `/-/ready`, `/api/health`), hft sidecar sharing `/dev/shm` via emptyDir-Memory, kill-switch redirected to a writable volume, vendored alerts/dashboards via `.Files.Get`/`.Files.Glob`; terraform s3 module has real public-access-block + versioning + encryption; s3 backend with dynamodb lock.
 
 Commit: a5c93ca
+
+---
+
+## Round 124 — web-ui component-internals sweep (3 findings: S274–S276)
+
+The 296-file panel layer was never leaf-checked for data-path honesty: unused props, ctx-path resolution (registry `props:` vs `usePanelContext` keys), wire-field contracts against `models.py` `to_dict` shapes, timestamp units (wire sends seconds), hardcoded data, listener leaks.
+
+**S274 (Medium) — Open.** `MarketDepthReplay.jsx:4` takes `orderbooks: _orderbooks` — deliberately ignored — while `registry.js:336` pipes in the real `ctx.exchange.orderbooks`. The panel instead synthesizes a 10-level book from candle OHLC (`mid ± spread·levels` with deterministic jitter, :33–46) — a "depth replay" showing depth that never existed. Bonus unit-mix: `:25` `f.timestamp || f.received_at` joins seconds-stamped wire fills against client-stamped ms in the same proximity window.
+
+**S275 (Medium) — Open.** `registry.js:755` wires `circuitBreaker: ctx.exchange.circuitBreaker` — but the field lives at `ctx.signals.circuitBreaker` (`usePanelContext.js:104`). `BotStatus.jsx:142–179` renders a full circuit-breaker section (state / consecutiveLosses / totalTrips / totalBlocks + a red TRIPPED ring) off a permanently-undefined prop → it shows "No data" forever; a real breaker trip is invisible in the UI. One-line namespace fix.
+
+**S276 (Medium) — Open.** Wire-field-name drift across 7 panels — components written against fields the wire never sends. `SessionReportExport.jsx`: reads `trade.realized_pnl` (ClosedTrade sends `pnl`) → win-rate/profit-factor always 0; `t.timestamp || t.time` (real field: `closed_at`) → every trade stamped "now"; `new Date(f.timestamp)` (:73) on second-timestamps → 1970 dates in the export. `DrawdownAnalysis.jsx:17`, `TradeReplay.jsx:28`, `TaxReport.jsx:18` read `f.pnl` off fills — `Order.to_dict()` has no `pnl` → flat-zero equity curve, $0.00 running PnL, a tax report reporting zero realized PnL. `PerformanceAttribution.jsx:27` reads `t.timestamp || t.time` on ClosedTrade → `ts=0` → every trade lands in the 1970-01-01 00:00-Thursday bucket → byHour/byDayOfWeek render as single-bar theater. `AuditTrail.jsx:34`/`TickReplay.jsx:25` use `f.order_id` (real: `id`), `f.filled_qty` (real: `filled_quantity`), `f.fill_price` (real: `filled_price`) — wrong names partially saved by fallbacks.
+
+**Retracted:** `_audit_pending` is NOT write-only — `_broadcast_audit_events` (ws_broadcast.py:235) drains it and ships `audit_logs`; `Object.values(acc.positions)` is shape-tolerant to the list; `f.received_at` is an honest client stamp (ms); CostBasis/ExpectedValueCalculator/KellyCalculator/MonteCarlo/TimeOfDayPerformance/PnLAttributionChart/SessionStats read real fields (`closed_at`, `pnl`); `SessionExport` performs a real Blob download; `AccountPanel`'s `t.time` is key-only with `|| i` fallback; zero unclosed intervals/listeners across all 296 files; zero hardcoded data arrays.
+
+Commit: TBD

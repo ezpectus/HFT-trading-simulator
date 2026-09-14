@@ -1751,3 +1751,20 @@ Commit: 13c4862
 **Clean:** helm templates — fail-fast на обязательных values, верные env-имена (WS_URL/HFT_EXCHANGE_WS_URL/EXCHANGE_CONTROL_TOKEN/EXCHANGE_WS_HOST — S253-verified), probes на реальных endpoints, hft-sidecar + SHM-Memory + kill-switch на writable-volume, .Files.Get vendoring честный; terraform s3 — public-access-block+versioning+encryption; backend s3 с dynamodb-lock.
 
 Commit: a5c93ca
+
+---
+
+## R124 — web-ui/src/components panel-internals sweep
+
+**Scope:** 296 component-файлов — unused-prop scan, ctx-path resolution (registry props vs usePanelContext keys), wire-field contracts (Order/ClosedTrade/Position/Account to_dict), timestamp-единицы (wire=seconds), hardcoded-data + listener-leak scans.
+
+**Findings (3):**
+- S274 (Medium): `MarketDepthReplay.jsx:4` — `orderbooks: _orderbooks` намеренно игнорируется при том, что registry:336 прокидывает настоящий `ctx.exchange.orderbooks`. Панель синтезирует 10-уровневую книгу из candle OHLC (mid±spread×levels + детерминированный джиттер, :33-46) — «depth replay» показывает глубину, которой не было. Бонус: `:25` `f.timestamp || f.received_at` мешает seconds/ms в join-окне.
+- S275 (Medium): `registry.js:755` — `circuitBreaker: ctx.exchange.circuitBreaker` (поле живёт на `ctx.signals`) → `BotStatus.jsx:142-179` CB-секция (state/losses/trips/blocks + TRIPPED-кольцо) по вечно-undefined → «No data» навсегда, реальный trip невидим.
+- S276 (Medium): wire-field-name drift, 7 панелей. SessionReportExport: `realized_pnl` (ClosedTrade шлёт `pnl`) → нулевая статистика; `t.timestamp||t.time` → все сделки «now»; `new Date(f.timestamp)` секунды → 1970. DrawdownAnalysis:17/TradeReplay:28/TaxReport:18 — `f.pnl` по fills (в Order.to_dict нет pnl) → плоские нули в drawdown-кривой/running-PnL/налоговом отчёте. PerformanceAttribution:27 — `t.timestamp||t.time` на ClosedTrade → ts=0 → все сделки в epoch-бакете (1970-01-01 00:00 Thu) → byHour/byDayOfWeek мертвы. AuditTrail:34/TickReplay:25 — `f.order_id` (поле `id`), `f.filled_qty` (поле `filled_quantity`), `f.fill_price` (поле `filled_price`).
+
+**Retracted/false positives:** `_audit_pending` — НЕ write-only: `_broadcast_audit_events` (ws_broadcast:235) дренит и шлёт `audit_logs`; `Object.values(acc.positions)` — shape-tolerant; `f.received_at` — честный client-stamp; `CostBasis`/`ExpectedValueCalculator`/`KellyCalculator`/`MonteCarlo`/`TimeOfDayPerformance`/`PnLAttributionChart`/`SessionStats` — реальные поля (`closed_at`/`pnl`); `SessionExport` — реальный Blob; `AccountPanel t.time` — key-only с `|| i` fallback; все интервалы/слушатели с cleanup.
+
+**Clean:** 296 компонент — 0 hardcoded data-массивов, 0 неочищенных интервалов/слушателей, props-drift только у 5 файлов (4 — underscore-осознанные/trivial).
+
+Commit: TBD
