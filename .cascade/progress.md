@@ -2403,3 +2403,25 @@ Gate: staged ALL GREEN. Commits: chore sweep, f400a30, 691a41c. Board: 8 open (S
 - **S268** — canonical `tests/unit/` established: 6 same-name pairs consolidated after porting unique coverage (kelly min_risk negative, TF/MR directional, rr_ratio_neutral, breakeven+trailing, SHORT peak/trough, ATR edges, backtest params); 24 files moved verbatim, test_integration.py → integration/, phantom tests/mocks/ removed; 1360 passed, 2 skipped.
 
 Gate: staged ALL GREEN. Commits: 324afcb, b848454, 4e6e3c7, c0ba78c, 9961ce8. Board: 3 open (S297, S301 Info; S309 Medium Docker-blocked).
+
+## R177 — slop-verify — 15/15 claims VERIFIED, 0 reverts
+
+Re-checked every unverified done-log entry (R174×5 + R175×5 + R176×5) against committed code:
+
+- **S222** — `next(iter(exchanges.values()))` at visualizer.py:71/:215; `\xe0`/`\x00` Windows prefix routed :133; no "binance" literal.
+- **S206** — `getByRole('contentinfo')` smoke.spec.js:70; DEMO MODE role=alert trading.spec.js:90-93; overlay CSS scoped to `data-testid="onboarding-modal"` (dismiss-onboarding.js:23/:51, OnboardingTutorial.jsx:63).
+- **S209** — all 5 doc sites carry local-only/gitignored marks (ARCHITECTURE:202/:228/:591, WEB_UI:496-497).
+- **S216** — `scripts/install-hooks.sh` exists; gate classifies `.spec.`/`e2e/` as test layer (pre-commit-check.py:576-577); the `cargo` token at :143 is a shell-needed binary allowlist, not a phantom capability claim.
+- **S217** — CONTRIBUTING run section root-relative (`python -m exchange_simulator` :249, `../config/config.yaml` :257).
+- **S227** — hft package-lock absent; sole remaining `.gitkeep` is `ai-signal-bot/scripts/` (dir still empty — legit).
+- **S223** — `exchange_simulator_messages_total`/`bytes_sent_total` emitted at ws_prometheus.py:105-109; `get_metrics` survives only as a comment.
+- **S238** — `publishWsFrame` called in the real onmessage path (useWebSocket.ts:186); WsInspector subscribes (WsInspector.jsx:20); fabrication removed.
+- **S237** — mock hooks return full shape: openOrders/auditLogs/optionsChain/cancelOrder/cancelAllOrders (useMockData.js:147-151), authState='disabled' (:206).
+- **S241** — `@testing-library/user-event` absent from package.json and all imports.
+- **S242** — `VITE_EXCHANGE_TOKEN` documented at .env.example:20; banner derives counts (`__main__.py:242-244`).
+- **S251** — validator throws `std::runtime_error` on collected errors (config_validate.h); 3 `CHECK_THROWS_AS` regression cases (test_doctest_hft_config.cpp:195/:213/:226).
+- **S252** — `book_key(ex,sym)` composite keys throughout; `default_exchange_`/`set_default_exchange_impl` wired (signal_receiver_data.h:24-49); shm fallback + `primary_exchange` scoping; `get_all_prices` filters by venue (:179); dead `using Spinlock = SpinLock` alias absent.
+- **S258** — zero residual wrong counts in live docs; every "278" qualified as registry-ids-incl-category-rows (ARCHITECTURE:35/:376/:431/:479, README:117); real vitest file count now 158 (README says ~158 — drifted up from 153 via new tests, current docs accurate).
+- **S268** — root `tests/` holds only `__init__.py`; 85 unit files; `test_integration.py` under `tests/integration/`; no stray mocks dir.
+
+Done-log fully verified through R176 — zero unverified. Board: 3 open (S297, S301 Info; S309 Medium Docker-blocked).

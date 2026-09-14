@@ -818,60 +818,60 @@ harnesses are un-unit-testable by design).
 - **Fix:** DEPLOYMENT.md Option 4 rewritten to describe the real substrate (VPC/EKS/S3, stateless — no DB/cache tier, deploy via Helm onto EKS); README's phantom CloudWatch bullet dropped. The `db_password` tfvars part was already closed via S273/S314 (R167/R170).
 - **Files:** `docs/DEPLOYMENT.md` (Option 4), `terraform/README.md`
 - **Commit:** 8fe770d
-### S222 — visualizer: Windows arrows + first-exchange, no binance hardcode
+### S222 — visualizer: Windows arrows + first-exchange, no binance hardcode ✅ · verified R177
 - **Bug:** `msvcrt.getch()` emits `à`/` ` prefix for arrows but `_handle_key` routed only `` — `<- -> Switch tabs` dead on Windows; the Windows branch then read two bytes where one follows. `exchanges.get("binance")` hardcoded at :71/:218 — renaming the exchange silently emptied the UI; `__main__` catch-list missed AttributeError/KeyError.
 - **Fix:** `à`/` ` routed to the handler on Windows (single K/M suffix byte, POSIX branch untouched); symbols/exchange resolve via `next(iter(exchanges.values()))`; number keys generalized 1-9 matching the dynamic footer; catch extended. Verified: instantiate with `{'kraken': ...}` → symbols populate; numkey routing works.
 - **Files:** `exchange_simulator/visualizer.py:71,127,137-151,219,263-267`, `exchange_simulator/__main__.py:110`
 - **Commit:** 7a00aeb
 
-### S206 — e2e honesty: real assertions + scoped overlay kill
+### S206 — e2e honesty: real assertions + scoped overlay kill ✅ · verified R177
 - **Bug:** smoke 'status bar' asserted `body`; mock-mode 'toggle sidebar' never toggled; trading 'mock banner' asserted `header`; `dismiss-onboarding` CSS-killed every `.fixed.inset-0.z-50` overlay + the notifications region (error dialogs/toasts invisible to e2e); console-error allowlist swallowed `NaN`/`attribute`/`SVG`/`Warning:`/generic `network`.
 - **Fix:** status bar asserts `role=contentinfo`; sidebar does a real collapse→expand round-trip (skip on mobile viewports where the control isn't rendered); mock banner asserts `role=alert` + "DEMO MODE" (harness always serves `dev:mock`); overlay CSS scoped to `data-testid="onboarding-modal"` (added to the component; stale "204 panels/44+ models" copy corrected to 271/~60); allowlist keeps only WebSocket/favicon/ERR_CONNECTION_REFUSED. +4 vitest cases for the modal.
 - **Files:** `web-ui/e2e/{smoke,mock-mode,trading}.spec.js`, `web-ui/e2e/dismiss-onboarding.js`, `web-ui/src/components/OnboardingTutorial.jsx`, `web-ui/src/test/onboardingTutorial.test.jsx`
 - **Commit:** 3fa0a27
 
-### S209 — docs label gitignored dev tools as local-only
+### S209 — docs label gitignored dev tools as local-only ✅ · verified R177
 - **Bug:** `docs/ARCHITECTURE.md:202,228,591` + `docs/WEB_UI.md:495-496` presented `run_logger.py`/`error_monitor.py`/`price_monitor.py` as canonical components — all three are gitignored local scripts (`.gitignore:179-181`), absent in clean clones (the code itself says "not shipped" at `run.py:31`, `__main__.py:21`).
 - **Fix:** all 5 doc sites marked local dev tool / gitignored / optional; finding content preserved.
 - **Files:** `docs/ARCHITECTURE.md`, `docs/WEB_UI.md`
 - **Commit:** b8a868b
 
-### S216 — dev-verifier residue: posix installer + cargo phantom + e2e-aware gate
+### S216 — dev-verifier residue: posix installer + cargo phantom + e2e-aware gate ✅ · verified R177
 - **Bug (live parts):** `install-hooks.sh` referenced by both sh hook headers but only `.bat` existed; `pre-commit-check.py` docstring + `install-hooks.bat` promised cargo build/test with zero Cargo.toml; coverage gate flagged playwright `*.spec.*`/`e2e/` files as untested sources. (Stale parts: `ci-equivalence.py` and `health-check.py` were already deleted in 4b11cef/S262 — their phantom-rust row and src/-only scan died with them.)
 - **Fix:** created `install-hooks.sh` (POSIX twin: copies the two `*-hook-git.sh` into `.git/hooks`, chmod +x, honest check list); cargo claims stripped from docstring/usage/echo; coverage gate now skips `.spec.` and `e2e/` like other test files.
 - **Files:** `scripts/install-hooks.sh` (new), `scripts/pre-commit-check.py:7-9,20,575-580`, `scripts/install-hooks.bat:51-55`
 - **Commit:** fd5b044
 
-### S217 — CONTRIBUTING run instructions + counts corrected
+### S217 — CONTRIBUTING run instructions + counts corrected ✅ · verified R177
 - **Bug (live parts):** `cd exchange_simulator && python -m exchange_simulator` can't resolve the package from inside it; `./hft_trade_bot config/config.yaml` from `build/` missed `../`; stale counts "36/155/49 test files" and "7 wired strategies". (Stale parts: `ml/`/`research/` tree rows, "50 symbols", "docs (15 files)", prod-compose PostgreSQL/Redis were already corrected earlier — the finding's line refs predate that refresh.)
 - **Fix:** run section rewritten root-relative with the build step noted; counts → ~28 files/412 tests (sim), ~94/1400+ (ai-bot), 25 files/~274 TEST_CASEs (hft), 6 wired strategies.
 - **Files:** `CONTRIBUTING.md:247-258,339,350,378,435`
 - **Commit:** b8a868b
-### S227 — committed residue swept
+### S227 — committed residue swept ✅ · verified R177
 - **Bug:** `hft-trade-bot/package-lock.json` — empty `{}` npm lockfile with no package.json (accidental artifact); 9 stale `.gitkeep` placeholders in populated directories.
 - **Fix:** lockfile + 9 `.gitkeep` deleted (hft scripts/tests/src{monitoring,network,utils}, ai-signal-bot tests/src{data_collection,llm_engine,utils}); `ai-signal-bot/scripts/.gitkeep` kept — that dir is still legitimately empty.
 - **Files:** 10 deletions
 - **Commit:** chore sweep (R175)
 
-### S223 — WS metrics observable via /metrics
+### S223 — WS metrics observable via /metrics ✅ · verified R177
 - **Bug:** `WebSocketMetrics` maintained live counters (`message_count`, `bytes_sent`, `compression_ratio`, `delta_update_ratio`, `client_count`, broadcast latency, message sizes) whose only reader was `get_metrics()` — a dict accessor called exclusively by its own test; the real `/metrics` endpoint never saw them.
 - **Fix:** `_append_sim_metrics` now emits all nine as Prometheus series (`exchange_simulator_messages_total`, `bytes_sent_total`, `clients_connected`, `compression_ratio`, `delta_update_ratio`, `bandwidth_mbps`, `broadcast_latency_p95_ms`, `message_size_bytes_{avg,p95}`); dead `get_metrics()` chain removed from ws_metrics + websocket_server; test now asserts the real exposition.
 - **Files:** `exchange_simulator/ws_prometheus.py`, `ws_metrics.py`, `websocket_server.py`, `tests/test_websocket_server.py`
 - **Commit:** f400a30
 
-### S238 — WsInspector shows real WS frames
+### S238 — WsInspector shows real WS frames ✅ · verified R177
 - **Bug:** fabricated one synthetic record per `candles.length`/`signals.length` change — invented sizes/timestamps/previews, not real frames. (The finding's "use getBufferedMessages" premise was stale — S231 removed that API for having zero consumers; WsInspector is now its first real consumer class.)
 - **Fix:** module-level frame tap in `useWebSocket` — `publishWsFrame`/`subscribeWsFrames` (zero-cost when unsubscribed); `ws.onmessage` publishes `{label, data, size, receivedAt}`; `useExchangeData` labels its sockets 'exchange'/'signal'; inspector consumes real frames; dead props removed from registry; +4 tests driving real frames through the tap.
 - **Files:** `web-ui/src/hooks/useWebSocket.ts`, `hooks/useExchangeData.js`, `components/WsInspector.jsx`, `panels/registry.js:764`, `test/wsInspector.test.jsx`
 - **Commit:** 691a41c
 
-### S237 — mock hooks reach shape parity
+### S237 — mock hooks reach shape parity ✅ · verified R177
 - **Bug:** `useMockExchangeData`/`useMockSignalData` returned ~half the real shape — `openOrders`, `auditLogs`, `optionsChain`, `lastError`, `cancelOrder`, `cancelAllOrders`, `requestOptionsChain`, `connect`, `nextReconnectIn`, `exchangeReconnects` plus all 7 `*Result` fields and `authState` missing; mock-mode consumers would crash on `undefined` (masked today by early-returns).
 - **Fix:** both returns carry full parity — honest nulls/empties for data slots, no-op senders matching the file's convention, `authState:'disabled'` mirroring the real no-token default; contract test asserts every real-hook key exists.
 - **Files:** `web-ui/src/hooks/useMockData.js`, `test/useMockData.test.jsx`
 - **Commit:** 691a41c
 
-### S241 — dead pinned deps removed
+### S241 — dead pinned deps removed ✅ · verified R177
 - **Bug:** `numpy` in sim requirements was already cut by S313 (stale half); `@testing-library/user-event@^14.5.2` had zero imports across web-ui.
 - **Fix:** `npm uninstall @testing-library/user-event` — gone from package.json + lockfile; vitest still green.
 - **Files:** `web-ui/package.json`, `web-ui/package-lock.json`
@@ -879,31 +879,31 @@ harnesses are un-unit-testable by design).
 
 ## R176 — slop-fix — 5 findings closed
 
-### S242 — exchange auth token documented + honest banner
+### S242 — exchange auth token documented + honest banner ✅ · verified R177
 - **Bug:** `web-ui/.env.example` omitted `VITE_EXCHANGE_TOKEN` (real reader `useExchangeData.js:12` sends it as the auth frame for order/cancel/set_speed/replay) — dev setting `EXCHANGE_CONTROL_TOKEN` on the sim got `auth_failed` with no documented remedy. `exchange_simulator/__main__.py` banner hardcoded "3 Symbols" (real: 49).
 - **Fix:** `.env.example` documents `VITE_EXCHANGE_TOKEN` ↔ `EXCHANGE_CONTROL_TOKEN` pairing; banner derives counts from the built exchange map + symbol universe — prints "3 Exchanges | 49 Symbols".
 - **Files:** `web-ui/.env.example`, `exchange_simulator/__main__.py`
 - **Commit:** 324afcb
 
-### S251 — HFT config validation can fail; fraction/percent mine disarmed
+### S251 — HFT config validation can fail; fraction/percent mine disarmed ✅ · verified R177
 - **Bug:** every check in `config_validate.h` was `spdlog::warn` — zero fail paths; `Config::load` ignored any result. `max_drawdown_pct` (fraction consumed by the kill switch at `bot_loop.cpp`) was never validated while its percent-scale sibling `max_daily_drawdown_pct` sat beside it in yaml. The prod test fixture itself carried `max_drawdown_pct: 10.0` — the exact percent-thinking typo.
 - **Fix:** `validate_config` collects violations and throws `std::runtime_error` listing all of them; `max_drawdown_pct` enforced in (0,1]; `ws_url` required only when `!ipc_enabled` (SHM mode legitimately has none); yaml documents the fraction-vs-percent distinction; fixture corrected to 0.10; +3 doctest cases (impossible risk value, percent-in-fraction key, missing ws_url).
 - **Files:** `hft-trade-bot/src/core/config_validate.h`, `config/config.yaml`, `tests/test_doctest_hft_config.cpp`, `tests/test_integration_config.cpp`
 - **Commit:** b848454
 
-### S252 — per-venue market data stores
+### S252 — per-venue market data stores ✅ · verified R177
 - **Bug:** `prices_`/`order_books_`/`candle_history_` keyed by bare symbol — the sim's "exchange|symbol" wire keys and `candle.exchange` were parsed and discarded; three venues overwrote/interleaved each other; an orderbook delta could mutate a different venue's book. (Also found: `using Spinlock = SpinLock` referenced a type that never existed — the header could not compile standalone.)
 - **Fix:** all three stores keyed `exchange|symbol`; `SignalReceiver::set_default_exchange` wired from `config.default_exchange` in `init_core_components`; symbol-only accessors resolve default-venue then shm then bare; by-id arrays and `get_all_prices` serve the primary venue only (pos_mgr semantics preserved); deltas resolve their own venue; `feed_frame_json` test seam added (mirrors `inject_snapshot`); new doctest asserts three-venue isolation for prices/books/deltas/candles.
 - **Files:** `hft-trade-bot/src/communication/signal_receiver_data.h`, `signal_receiver_handlers.h`, `signal_receiver.h`, `src/core/bot_setup.cpp`, `tests/test_doctest_signal_receiver.cpp`, `CMakeLists.txt`
 - **Commit:** 4e6e3c7
 
-### S258 — numeric doc drift converged
+### S258 — numeric doc drift converged ✅ · verified R177
 - **Bug:** live docs confidently stated different numbers — "278 panels" where 7 of 278 registry entries are category rows (271 component-mapped panels), "289/291 components" (295 .jsx), "157 web-ui test files" (153 unit + 4 e2e), "50 symbols" (49 configured), TESTING "316/311 test files".
 - **Fix:** TESTING.md, ARCHITECTURE.md, README.md, WEB_UI.md (incl. :14 "289 components"), CONTRIBUTING.md (157→153 unit + 4 e2e), TRADING_GUIDE (50→49) all converge on the verified counts; WEB_UI now distinguishes 271 panels vs 278 registry entries.
 - **Files:** `docs/TESTING.md`, `docs/ARCHITECTURE.md`, `docs/WEB_UI.md`, `README.md`, `CONTRIBUTING.md`, `docs/guides/TRADING_GUIDE.md`
 - **Commit:** 9961ce8
 
-### S268 — single canonical test tree
+### S268 — single canonical test tree ✅ · verified R177
 - **Bug:** `ai-signal-bot/tests/` and `tests/unit/` held 6 same-name pairs as diverged parallel suites; canonical layer undocumented.
 - **Fix:** canonical = `tests/unit/` (per TESTING.md). Ported root-unique coverage first — kelly min_risk negative regression, TF/MR directional signals, `Signal.rr_ratio_neutral`, breakeven+trailing interaction, SHORT peak/trough tracking, ATR gap/missing-prev_close edges, backtest-request param pass-through — then deleted the 6 root files, moved the remaining 24 verbatim, `test_integration.py` → `tests/integration/`, removed phantom `tests/mocks/` (only `__pycache__`). 1360 passed, 2 skipped.
 - **Files:** `ai-signal-bot/tests/` (30 files: 6 deleted, 24 moved), `tests/unit/test_{kelly,strategies,risk_manager,backtest_requests}.py`
