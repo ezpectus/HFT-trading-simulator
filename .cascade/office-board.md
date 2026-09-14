@@ -343,4 +343,4 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 6. **S334/S335** (Medium, R194) — C++ position book: fee-двойной-учёт; `sync_position` не удаляет → фантомы.
 7. **S322** (Medium, R191) — copy-paste venue-runners ×3. **S328** (Medium, R192) — мёртвый backtest-стек ~580 строк.
 8. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering.
-8. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
+9. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.
