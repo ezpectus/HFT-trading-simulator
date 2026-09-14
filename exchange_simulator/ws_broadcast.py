@@ -281,18 +281,19 @@ class BroadcastMixin:
                         f"  {reason or 'SL/TP'} CLOSED: {order.symbol} @ {order.filled_price:.2f} "
                         f"qty={order.filled_quantity:.4f} | {ex_id}"
                     )
-                    self.trade_logger.log_fill({
-                        "timestamp": time.time(),
-                        "exchange": ex_id,
-                        "symbol": order.symbol,
-                        "side": order.side.value,
-                        "type": order.order_type.value,
-                        "price": order.filled_price,
-                        "quantity": order.filled_quantity,
-                        "fee": order.fee,
-                        "order_id": order.id,
-                        "status": f"CLOSED_{reason or 'SLTP'}",
-                    })
+                    if self.trade_logger is not None:
+                        self.trade_logger.log_fill({
+                            "timestamp": time.time(),
+                            "exchange": ex_id,
+                            "symbol": order.symbol,
+                            "side": order.side.value,
+                            "type": order.order_type.value,
+                            "price": order.filled_price,
+                            "quantity": order.filled_quantity,
+                            "fee": order.fee,
+                            "order_id": order.id,
+                            "status": f"CLOSED_{reason or 'SLTP'}",
+                        })
                 else:
                     # Terminal non-fill (GTD expiry, IOC/FOK no-fill cancel) —
                     # clients must see it or the order strands in openOrders.
@@ -386,16 +387,17 @@ class BroadcastMixin:
             f"qty={exec_qty:.4f} profit~${opp.net_spread * exec_qty:.2f}"
         )
         arb_ts = time.time()
-        self.trade_logger.log_batch([
-            {"timestamp": arb_ts, "exchange": opp.buy_exchange, "symbol": opp.symbol,
-             "side": "BUY", "type": "ARB", "price": buy_order.filled_price,
-             "quantity": buy_order.filled_quantity, "fee": buy_order.fee,
-             "order_id": buy_order.id, "status": "ARB_BUY"},
-            {"timestamp": arb_ts, "exchange": opp.sell_exchange, "symbol": opp.symbol,
-             "side": "SELL", "type": "ARB", "price": sell_order.filled_price,
-             "quantity": sell_order.filled_quantity, "fee": sell_order.fee,
-             "order_id": sell_order.id, "status": "ARB_SELL"},
-        ])
+        if self.trade_logger is not None:
+            self.trade_logger.log_batch([
+                {"timestamp": arb_ts, "exchange": opp.buy_exchange, "symbol": opp.symbol,
+                 "side": "BUY", "type": "ARB", "price": buy_order.filled_price,
+                 "quantity": buy_order.filled_quantity, "fee": buy_order.fee,
+                 "order_id": buy_order.id, "status": "ARB_BUY"},
+                {"timestamp": arb_ts, "exchange": opp.sell_exchange, "symbol": opp.symbol,
+                 "side": "SELL", "type": "ARB", "price": sell_order.filled_price,
+                 "quantity": sell_order.filled_quantity, "fee": sell_order.fee,
+                 "order_id": sell_order.id, "status": "ARB_SELL"},
+            ])
         for fill_order in (buy_order, sell_order):
             if fill_order.status.value == "FILLED":
                 await self._broadcast_fills_batch([fill_order.to_dict()])
