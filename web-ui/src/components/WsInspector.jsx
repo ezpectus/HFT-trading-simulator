@@ -1,37 +1,35 @@
-import { memo, useMemo, useState, useEffect, useCallback } from 'react'
+import { memo, useMemo, useState, useEffect, useRef } from 'react'
 import { MessageSquare, Search, Pause, Play, Trash2, ArrowDown, Radio, Server } from 'lucide-react'
 import { EmptyState } from './LoadingSkeleton'
+import { subscribeWsFrames } from '../hooks/useWebSocket'
 
 const MAX_MESSAGES = 100
 
-const WsInspector = memo(function WsInspector({ exchange, signals }) {
+const WsInspector = memo(function WsInspector() {
   const [messages, setMessages] = useState([])
   const [paused, setPaused] = useState(false)
   const [search, setSearch] = useState('')
   const [autoScroll, setAutoScroll] = useState(true)
 
-  const addMessage = useCallback((source, data) => {
-    if (paused) return
-    setMessages(prev => [{
-      id: Date.now() + Math.random(),
-      source,
-      type: data.type || 'unknown',
-      symbol: data.symbol || '',
-      timestamp: data.timestamp || Date.now() / 1000,
-      size: JSON.stringify(data).length,
-      preview: JSON.stringify(data).slice(0, 120),
-    }, ...prev].slice(0, MAX_MESSAGES))
-  }, [paused])
+  const pausedRef = useRef(false)
+  pausedRef.current = paused
 
+  // Real frames: subscribe to the raw WS tap — every parsed frame from the
+  // exchange and signal sockets arrives with its true byte size.
   useEffect(() => {
-    if (!exchange?.candles?.length) return
-    addMessage('exchange', { type: 'candles', symbol: exchange.candles[0]?.symbol, timestamp: Date.now() / 1000 })
-  }, [exchange?.candles?.length, addMessage])
-
-  useEffect(() => {
-    if (!signals?.signals?.length) return
-    addMessage('signal', { type: 'signal', symbol: signals.signals[0]?.symbol, timestamp: Date.now() / 1000 })
-  }, [signals?.signals?.length, addMessage])
+    return subscribeWsFrames((frame) => {
+      if (pausedRef.current) return
+      setMessages(prev => [{
+        id: frame.receivedAt + Math.random(),
+        source: frame.label,
+        type: frame.data.type || 'unknown',
+        symbol: frame.data.symbol || '',
+        timestamp: frame.receivedAt / 1000,
+        size: frame.size,
+        preview: JSON.stringify(frame.data).slice(0, 120),
+      }, ...prev].slice(0, MAX_MESSAGES))
+    })
+  }, [])
 
   const filtered = useMemo(() => {
     if (!search) return messages

@@ -762,7 +762,7 @@ export const PANELS = [
   { id: 'onboarding', name: 'Onboarding Tutorial', category: 'config', component: OnboardingTutorial,
     props: () => ({}) },
   { id: 'ws-inspector', name: 'Raw WebSocket Inspector', category: 'config', component: WsInspector,
-    props: (ctx) => ({ exchange: ctx.exchange, signals: ctx.signals }) },
+    props: () => ({}) },
   { id: 'feature-flags', name: 'Feature Flags Manager', category: 'config', component: FeatureFlags,
     props: (ctx) => ({ addToast: ctx.addToast }) },
   { id: 'chart-templates', name: 'Chart Templates', category: 'config', component: ChartTemplates,

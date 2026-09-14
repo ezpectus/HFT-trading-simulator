@@ -138,11 +138,18 @@ export function useMockExchangeData({ enabled = IS_MOCK } = {}) {
   const startTrading = useCallback(() => setTradingActive(true), [])
   const stopTrading = useCallback(() => setTradingActive(false), [])
 
+  // Shape parity with useExchangeData — every key the real hook returns must
+  // exist here or mock-mode consumers crash on undefined. Orders fill
+  // instantly in mock, so openOrders is legitimately always empty.
   return {
     candles, prices, accounts, arbitrage: null, fills, orderbooks,
     fundingRates, candlesToFunding, newsEvent, weekendMode, replayPaused, tradingActive,
+    auditLogs: [], optionsChain: null, lastError: null, openOrders: [],
     connected: true, latency: 0, reconnects: 0,
+    connect: () => {}, nextReconnectIn: null,
     submitOrder, closePosition, sendSpeedChange, sendConfigUpdate,
+    cancelOrder: () => true, cancelAllOrders: () => true,
+    requestOptionsChain: () => true,
     toggleReplay, scrubReplay, startTrading, stopTrading,
   }
 }
@@ -188,9 +195,17 @@ export function useMockSignalData({ enabled = IS_MOCK } = {}) {
     }
   }, [])
 
+  // Shape parity with useSignalData — result slots stay null in mock (no
+  // backend answers those requests); authState mirrors the real hook's
+  // no-token default.
   return {
     signals, regime, backtestResult: null, circuitBreaker: null,
+    portfolioResult: null, volSurfaceResult: null, cvarResult: null,
+    stressTestResult: null, positionSizeResult: null, hawkesResult: null,
+    fundingArbResult: null,
+    authState: 'disabled',
     connected: true, sendSignalMessage: () => true, latency: 0,
+    connect: () => {}, nextReconnectIn: null,
   }
 }
 

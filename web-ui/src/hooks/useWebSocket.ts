@@ -2,7 +2,31 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 
 type MessageData = Record<string, unknown> & { type?: string; symbol?: string; timestamp?: number }
 
+export interface RawWsFrame {
+  label: string
+  data: MessageData
+  size: number
+  receivedAt: number
+}
+
+type WsTapListener = (frame: RawWsFrame) => void
+const wsTapListeners = new Set<WsTapListener>()
+
+/** Subscribe to raw parsed WS frames from every socket (WsInspector).
+ *  Zero overhead when nobody is listening — publish() is gated on size. */
+export function subscribeWsFrames(listener: WsTapListener): () => void {
+  wsTapListeners.add(listener)
+  return () => { wsTapListeners.delete(listener) }
+}
+
+export function publishWsFrame(frame: RawWsFrame): void {
+  if (wsTapListeners.size === 0) return
+  for (const fn of wsTapListeners) fn(frame)
+}
+
 export interface UseWebSocketOptions {
+  /** Stream label shown by WS-tap consumers (e.g. 'exchange' | 'signal'). */
+  label?: string
   onMessage?: (data: MessageData) => void
   onOpen?: () => void
   onClose?: () => void
@@ -28,7 +52,7 @@ export interface UseWebSocketReturn {
 
 export function useWebSocket(url: string, options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {
-    onMessage, onOpen, onClose, autoConnect = true,
+    label = url, onMessage, onOpen, onClose, autoConnect = true,
     authToken, syncOnReconnect = false, getLastTimestamp,
     maxReconnects = 20,
   } = options
@@ -158,6 +182,13 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
       ws.onmessage = (event: MessageEvent) => {
         try {
           const data: MessageData = JSON.parse(event.data)
+
+          publishWsFrame({
+            label,
+            data,
+            size: typeof event.data === 'string' ? event.data.length : (event.data as ArrayBuffer).byteLength ?? 0,
+            receivedAt: Date.now(),
+          })
 
           if (data.type === 'pong' && lastPingRef.current > 0) {
             setLatency(Date.now() - lastPingRef.current)

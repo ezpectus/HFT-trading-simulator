@@ -273,6 +273,7 @@ export function useExchangeData() {
   }, [])
 
   const { connected: exchangeConnected, error: exchangeWsError, send: sendExchange, latency: exchangeLatency, reconnects: exchangeReconnects, connect: exchangeConnect, disconnect: exchangeDisconnect, nextReconnectIn: exchangeNextReconnect } = useWebSocket(WS_EXCHANGE, {
+    label: 'exchange',
     onMessage: handleExchangeMessage,
     onOpen: () => { lastSeqRef.current = 0 },  // server restarts its counter — reset baseline
     authToken: exchangeToken || EXCHANGE_TOKEN || undefined,
@@ -505,6 +506,7 @@ export function useSignalData(options = {}) {
   }, [])
 
   const { connected, send, latency: signalLatency, connect: signalConnect, nextReconnectIn: signalNextReconnect } = useWebSocket(WS_SIGNALS, {
+    label: 'signal',
     onMessage: handleSignalMessage,
     authToken: SIGNAL_TOKEN || undefined,
     onOpen: () => { if (SIGNAL_TOKEN) setAuthState('pending') },

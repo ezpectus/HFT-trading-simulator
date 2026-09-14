@@ -193,3 +193,38 @@ describe('IS_MOCK', () => {
     expect(typeof IS_MOCK).toBe('boolean')
   })
 })
+
+// Contract: mock hooks must return every key the real hooks return —
+// a missing key crashes mock-mode consumers on `undefined` (S237).
+describe('mock/real shape parity', () => {
+  const REAL_EXCHANGE_KEYS = [
+    'candles', 'prices', 'accounts', 'arbitrage', 'fills', 'auditLogs',
+    'orderbooks', 'fundingRates', 'candlesToFunding', 'newsEvent',
+    'weekendMode', 'replayPaused', 'tradingActive', 'optionsChain',
+    'lastError', 'openOrders', 'connected', 'latency', 'reconnects',
+    'connect', 'nextReconnectIn', 'submitOrder', 'cancelOrder',
+    'cancelAllOrders', 'closePosition', 'requestOptionsChain',
+    'sendSpeedChange', 'sendConfigUpdate', 'toggleReplay', 'scrubReplay',
+    'startTrading', 'stopTrading',
+  ]
+  const REAL_SIGNAL_KEYS = [
+    'signals', 'regime', 'backtestResult', 'circuitBreaker',
+    'portfolioResult', 'volSurfaceResult', 'cvarResult', 'stressTestResult',
+    'positionSizeResult', 'hawkesResult', 'fundingArbResult', 'authState',
+    'connected', 'sendSignalMessage', 'latency', 'connect', 'nextReconnectIn',
+  ]
+
+  it('useMockExchangeData exposes every useExchangeData key', () => {
+    const { result } = renderHook(() => useMockExchangeData({ enabled: true }))
+    for (const key of REAL_EXCHANGE_KEYS) {
+      expect(result.current, `missing key: ${key}`).toHaveProperty(key)
+    }
+  })
+
+  it('useMockSignalData exposes every useSignalData key', () => {
+    const { result } = renderHook(() => useMockSignalData({ enabled: true }))
+    for (const key of REAL_SIGNAL_KEYS) {
+      expect(result.current, `missing key: ${key}`).toHaveProperty(key)
+    }
+  })
+})
