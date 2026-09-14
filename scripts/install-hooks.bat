@@ -48,12 +48,11 @@ echo       3. clang-format on staged C++ files (hft-trade-bot)
 echo     TESTS:
 echo       4. pytest for changed Python source files
 echo       5. vitest for changed JS/JSX source files
-echo       6. cmake build + ctest for C++ (in --full/--all mode)
-echo       7. cargo build + test for Rust (in --full/--all mode)
+echo       6. cmake build + ctest for C++ (in --tests/--full/--all mode)
 echo     BUILD:
-echo       8. vite build for web-ui (in --full/--all mode)
+echo       7. vite build for web-ui (in --full/--all mode)
 echo     SECURITY:
-echo       9. bandit scan on Python (in --full/--all mode)
+echo       8. bandit scan on Python (in --full/--all mode)
 echo      10. npm audit on web-ui (in --full/--all mode)
 echo     E2E:
 echo      11. playwright e2e tests (--all mode only)

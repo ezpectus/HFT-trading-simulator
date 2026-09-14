@@ -5,8 +5,8 @@ WHAT IT DOES (matches .github/workflows/ci.yml):
   1. Detects staged files via `git diff --cached --name-only`
   2. Lint: ruff (Python) + eslint + tsc (JS) + clang-format (C++) — only changed files
   3. Tests: pytest (Python) + vitest (JS) + ctest (C++, under --tests/--full/--all or
-     CI test-cpp; staged/quick runs clang-format only) + cargo test (Rust) — only relevant
-  4. Build: vite build (JS) + cmake build (C++) + cargo build (Rust)
+     CI test-cpp; staged/quick runs clang-format only) — only relevant
+  4. Build: vite build (JS) + cmake build (C++)
   5. Security: bandit (Python) + npm audit (JS)
   6. E2E: Playwright (web-ui, mock mode)
   7. Coverage gap: every changed source file must have a test file
@@ -17,7 +17,7 @@ Usage:
     python scripts/pre-commit-check.py                    # Default: lint + tests (all languages)
     python scripts/pre-commit-check.py --staged           # Hook: only staged files, fast
     python scripts/pre-commit-check.py --lint             # Lint only (ruff + eslint + clang-format)
-    python scripts/pre-commit-check.py --tests            # Tests only (pytest + vitest + ctest + cargo)
+    python scripts/pre-commit-check.py --tests            # Tests only (pytest + vitest + ctest)
     python scripts/pre-commit-check.py --full             # Full: lint + tests + build + security
     python scripts/pre-commit-check.py --all              # ALL CI: + e2e (slowest, ~10-15 min)
     python scripts/pre-commit-check.py --msg-file <path>  # Validate commit message
@@ -572,8 +572,11 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
         # Skip __init__.py, conftest.py, setup.py, manage.py, __main__.py
         if p.name in {"__init__.py", "conftest.py", "setup.py", "manage.py", "__main__.py", "run.py", "monitor.py"}:
             continue
-        # Skip files that ARE tests
-        if p.name.startswith("test_") or ".test." in p.name:
+        # Skip files that ARE tests — pytest (test_*), vitest (*.test.*),
+        # playwright (*.spec.* under e2e/)
+        if p.name.startswith("test_") or ".test." in p.name or ".spec." in p.name:
+            continue
+        if "e2e" in p.parts:
             continue
         # Skip config/migration/docker files
         if "migrations" in p.parts or "config" in p.parts or "deploy" in p.parts:
