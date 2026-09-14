@@ -199,7 +199,7 @@ The system implements production-grade observability across all components:
 - `exchange_advanced_orders.py` — Stop-limit, trailing-stop, OCO, iceberg order types
 - `options_simulator.py` — Black-Scholes engine with Greeks (per-day theta) + Newton-Raphson IV
 - `ws_message_handler.py` / `ws_broadcast.py` / `ws_metrics.py` / `ws_prometheus.py` — WS message routing, broadcasts, metrics exposition
-- `__main__.py` — Entry point with timestamped logging via `run_logger.py`
+- `__main__.py` — Entry point with timestamped logging via `run_logger.py` (local dev script — gitignored, absent in clean clones; logging falls back to console)
 
 ### 2. AI Signal Bot (`ai-signal-bot/`)
 
@@ -225,7 +225,7 @@ The system implements production-grade observability across all components:
 - Order book replay for backtesting OBI/pressure strategies
 - Backtest WebSocket endpoint (run backtests from Web UI)
 - CSV logging for signals and trades
-- Timestamped file logging via `run_logger.py`
+- Timestamped file logging via `run_logger.py` (local dev script — gitignored, optional)
 - CLI monitor script (`monitor.py`) for live signal feed
 - Circuit breaker: signal protection with CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery
 - Prometheus metrics server: counters (signals sent/blocked, backtests, circuit breaker trips) and gauges (WS clients, CB state, uptime) on `:9090/metrics`
@@ -588,7 +588,7 @@ from this series.
 | CI/CD | GitHub Actions (Python lint+test, C++ build+test, JS lint+test, Docker) | - |
 | Linting | ruff (Python), clang-format (C++), ESLint (JS) | - |
 | Testing | pytest + pytest-asyncio, CTest, Vitest + @testing-library/react | - |
-| Logging | run_logger.py (Python), spdlog (C++), timestamped per-run files | - |
+| Logging | run_logger.py (Python, local-only/gitignored), spdlog (C++), timestamped per-run files | - |
 | Deployment | Netlify (Web UI), Docker Hub (images), docker-compose.prod (full stack) | - |
 
 ## Design Principles

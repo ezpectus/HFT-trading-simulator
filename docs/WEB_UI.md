@@ -492,7 +492,7 @@ Four CLI monitor scripts provide terminal-based monitoring alongside the Web UI:
 |--------|----------|-------------|
 | `monitor.py` | `ai-signal-bot/` | Live signal feed, bot log tail, signal history |
 | `monitor.py` | `hft-trade-bot/` | C++ process status, color-coded log tail |
-| `error_monitor.py` | root | Unified error+warning viewer across all services |
-| `price_monitor.py` | root | Dual WS connection, live prices + signals + fills |
+| `error_monitor.py` | root (local dev tool — gitignored, not in the repo) | Unified error+warning viewer across all services |
+| `price_monitor.py` | root (local dev tool — gitignored, not in the repo) | Dual WS connection, live prices + signals + fills |
 
 Launch the services with `no-docker.bat` (Windows) / `no-docker.sh` (Linux/Mac) or `docker compose up`; each monitor script is a separate terminal command — they are not spawned automatically.

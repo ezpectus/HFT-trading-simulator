@@ -244,18 +244,17 @@ docker compose up
 docker-compose up
 # Web UI available at http://localhost:3000
 
-# Or run individually:
+# Or run individually (from the repo root):
 # 1. Exchange simulator
-cd exchange_simulator
 python -m exchange_simulator
 
 # 2. AI Signal Bot
 cd ai-signal-bot
 python run.py --dashboard
 
-# 3. HFT Trade Bot
+# 3. HFT Trade Bot (build first: cd hft-trade-bot && cmake -B build && cmake --build build)
 cd hft-trade-bot/build
-./hft_trade_bot config/config.yaml
+./hft_trade_bot ../config/config.yaml
 
 # 4. Web UI (development mode)
 cd web-ui
@@ -337,7 +336,7 @@ cd ai-signal-bot
 python -m pytest tests/ -v --tb=short --cov=src --cov-report=xml
 ```
 
-Exchange simulator: 36 test files, 579+ tests covering:
+Exchange simulator: ~28 test files, 412 tests covering:
 - Exchange order matching, fees, slippage, partial fills
 - Market simulator: GBM price generation, correlation, funding history
 - Liquidation engine: partial liquidation, insurance fund, SL/TP
@@ -348,7 +347,7 @@ Exchange simulator: 36 test files, 579+ tests covering:
 - Arbitrage detection, config validation, data export
 - WebSocket server, order book streaming, integration dataflow
 
-AI signal bot: 155 test files, 568+ tests covering:
+AI signal bot: ~94 test files, 1400+ tests covering:
 - Signal validation: confidence, R:R ratio, drawdown, position limits, cooldown
 - Circuit breaker: closed/open/half-open states, failure threshold, recovery
 - Metrics server: Prometheus format, counters, gauges, HTTP endpoint, server lifecycle
@@ -376,7 +375,7 @@ cd hft-trade-bot/build
 ctest --output-on-failure
 ```
 
-Test files are in `hft-trade-bot/tests/`. Current coverage: 49 C++ test files (doctest + CTest), 700+ test cases covering:
+Test files are in `hft-trade-bot/tests/`. Current coverage: 25 C++ test files (doctest + CTest), ~274 test cases covering:
 
 ### CI Pipeline
 
@@ -433,7 +432,7 @@ hft-trading-system/
 │   └── Dockerfile
 ├── ai-signal-bot/                # Python: AI signal generation
 │   ├── src/
-│   │   ├── strategies/           # 7 wired trading strategies
+│   │   ├── strategies/           # 6 wired trading strategies
 │   │   ├── technical_analysis/   # Indicators, FFT, Hawkes, Kalman, etc.
 │   │   ├── communication/        # WebSocket, SHM, FIX
 │   │   ├── backtesting/          # Backtester, optimizer, walk-forward
