@@ -1,7 +1,7 @@
 ﻿# OFFICE BOARD — AI SLOP AUDIT
 
 > Аудит: 11 сен 2026 → текущий раунд R198+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
-> **Закрытые находки перенесены в `.cascade/done-log.md`** (99 шт, R4–R60) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
+> **Закрытые находки перенесены в `.cascade/done-log.md`** (226 шт на R198) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
 > История работ: `.cascade/progress.md`, баги: `.cascade/bug_log.md`.
 
 ---
@@ -10,7 +10,7 @@
 
 | Метрика | Значение |
 |---------|----------|
-| Tracked файлов | 1245 (ai-signal-bot 332, web-ui/src 460, hft-trade-bot 146, exchange_simulator 84, scripts +13, helm +12, terraform +8, workflows +5, root/web-ui configs +9, dockerfiles/compose +10, docs-residue +3, .github meta +5) |
+| Tracked файлов | 985 (ai-signal-bot 192, web-ui 533, hft-trade-bot 85, exchange_simulator 67, scripts 20, helm 20, monitoring 12, terraform 6, .github 10, docs 16, docker/compose 12, root 21, .cascade 3). Untracked на диске: `hft-skills/` (1132 ф., gitignored), `deploy/k8s/` (1 ф.) |
 | Всего находок | ~341 (S001–S341) |
 | Закрыто | 226 |
 | Открыто | **19** — R191 bloat: S322–S327 · R192 domain-math: S328–S329 · R193 sim fill-model: S330–S333 · R194 C++ core: S334–S336 · R195 safety-gates: S337–S339 · R196 verify-reopens: S340 |

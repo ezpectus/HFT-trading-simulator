@@ -1,7 +1,7 @@
 # Audit Findings — Full Project Grep Scan
 
-**Date:** 2026-08-22 (last verified: 2026-08-25)
-**Scope:** Entire project (`ai-signal-bot/`, `exchange_simulator/`, `hft-trade-bot/`, `hft-executor/`, `monitoring/`, `web-ui/`, `scripts/`, root-level files)
+**Date:** 2026-08-22 (updated through R198, Sep 2026)
+**Scope:** Entire project (`ai-signal-bot/`, `exchange_simulator/`, `hft-trade-bot/`, `monitoring/`, `web-ui/`, `scripts/`, `deploy/`, `helm/`, `terraform/`, root-level files). `hft-executor/` (Rust) deleted — S058.
 **Method:** grep-based scan for: TODO/FIXME/HACK, `except Exception`, `print()`, `import *`, `type: ignore`, `NotImplementedError`, `global`, `: Any`, `# noqa`, `pass`, hardcoded values (localhost, ports, /dev/shm), duplicate files, dead code, credentials/secrets, redundant exception tuples, f-string logging, `nosec`/`codeql` annotations, `os.system`, SQL injection patterns
 
 ---
