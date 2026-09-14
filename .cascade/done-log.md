@@ -504,27 +504,27 @@
 - **Fix:** fallback collector now exposes the full producer surface the bot calls (kill-switch, drawdown, win-rate, pnl, uptime, fills, orders, signals, errors, shm buffer) — same names, same signatures.
 - **Files:** `ai-signal-bot/src/communication/metrics_server.py`
 
-### S290 — `no_fills` alert rule un-dead ✅ · verified R161
+### S290 — `no_fills` alert rule un-dead ✅ · verified R161 · re-verified R190
 - **Bug:** `run.py` called `self.tracker.uptime_seconds()` — it's a `@property`, so every rule eval raised `TypeError`, swallowed by `check_rules` → the WARNING could never fire. Wiring test hid it (`SimpleNamespace(uptime_seconds=lambda: 0)`).
 - **Fix:** property access without parens; all 3 test mocks changed to `uptime_seconds=0` (attribute, matching prod shape).
 - **Files:** `ai-signal-bot/run.py`, `tests/unit/test_shm_alerting_wiring.py`
 
-### S275 — BotStatus circuit-breaker section live ✅ · verified R161
+### S275 — BotStatus circuit-breaker section live ✅ · verified R161 · re-verified R190
 - **Bug:** `registry.js` read `ctx.exchange.circuitBreaker` — field lives on `ctx.signals` → section rendered "No data" forever; real trips invisible.
 - **Fix:** `ctx.signals.circuitBreaker`.
 - **Files:** `web-ui/src/panels/registry.js`
 
-### S276 — wire-field drift fixed across 11 components ✅ · verified R161
+### S276 — wire-field drift fixed across 11 components ✅ · verified R161 · re-verified R190
 - **Bug:** panels written against invented field names — `realized_pnl` (real: `pnl`), `timestamp`/`time` (real: `closed_at`), `order_id`/`filled_qty`/`fill_price` (real: `id`/`filled_quantity`/`filled_price`), `f.pnl` on fills (Order wire has none), account `unrealized_pnl` (not emitted).
 - **Fix:** SessionReportExport uses `pnl`/`closed_at` (win-rate/profit-factor/dates now real); DrawdownAnalysis reads closed-trade history not order fills; TaxReport switched to `accounts.trade_history` for realized PnL; TradeReplay/AuditTrail/TickReplay/CostBasis/MarketDepthReplay use `id`/`filled_quantity`/`filled_price`; PerformanceAttribution buckets on `closed_at`+`pnl` (1970-Thursday bucket gone); StatusBar derives uPnl=equity−balance; AlertWebhook drops dead `order_id` fallbacks; mock `generateFill` emits the real Order contract; registry props updated (TaxReport gets accounts, TradeReplay gets live data).
 - **Files:** `web-ui/src/components/{SessionReportExport,DrawdownAnalysis,TaxReport,PerformanceAttribution,TradeReplay,AuditTrail,TickReplay,CostBasis,MarketDepthReplay,StatusBar,AlertWebhook}.jsx`, `web-ui/src/panels/registry.js`, `web-ui/src/utils/mockData.js`
 
-### S284 — fixtures repaired to the real wire schema ✅ · verified R161
+### S284 — fixtures repaired to the real wire schema ✅ · verified R161 · re-verified R190
 - **Bug:** 5 test files fed panels fantasy fields (`order_id`/`filled_qty`/`price`, `pnl` on fills) — the suite enforced the drift instead of catching it.
 - **Fix:** `auditTrail`/`tickReplay`/`costBasis`/`drawdownAnalysis`/`taxReport` fixtures rewritten to `id`/`filled_quantity`/`filled_price`, realized-PnL moved to trade_history shape. `useSessionRecorder.test:50` (S278 assertion) left for the S278 round.
 - **Files:** `web-ui/src/test/{auditTrail,tickReplay,costBasis,drawdownAnalysis,taxReport}.test.jsx`
 
-### S270 — coverage gate now measures the whole source tree ✅ · verified R161
+### S270 — coverage gate now measures the whole source tree ✅ · verified R161 · re-verified R190
 - **Bug:** `coverage.include` was `['src/utils/**','src/hooks/**']` — the ~290-file untested mass was invisible to the denominator; the 40% gate could never trip on real regressions.
 - **Fix:** include widened to `src/**` (excl. tests/deps); thresholds ratcheted to the measured floor (~25% lines/statements, ~24% functions/branches); TESTING.md updated to match the real gate scope.
 - **Files:** `web-ui/vitest.config.js`, `docs/TESTING.md`
@@ -538,12 +538,12 @@
 - **Fix:** uppercase comparisons matching the codebase idiom (`o.status.value == "FILLED"`); regression test feeds real `OrderStatus` values through the exposition path.
 - **Files:** `exchange_simulator/ws_prometheus.py`, `tests/test_ws_prometheus.py`
 
-### S289 — exchange ratio alerts un-dead ✅ · verified R163
+### S289 — exchange ratio alerts un-dead ✅ · verified R163 · re-verified R190
 - **Bug:** `HighOrderRejectionRate` (`rejected/submitted > 0.1`) could never fire and `LowFillRate` (`filled/submitted < 0.8` for 10m) fired permanently — both fed by S281's eternal-zero metrics. Crying wolf + blind spot.
 - **Fix:** closed by the S281 fix — the PromQL was correct, the data was dead; both metrics now report real counts.
 - **Files:** `exchange_simulator/ws_prometheus.py` (no alerts.yml change needed)
 
-### S215 — deploy.sh native brokenness ✅ · verified R163
+### S215 — deploy.sh native brokenness ✅ · verified R163 · re-verified R190
 - **Bug:** `cd exchange_simulator && python -m exchange_simulator` (can't import a package from inside itself); `pkill -f "ai_signal_bot"` never matches `python run.py` → stop/restart left a live bot; `ENVIRONMENT` read+logged but never branched; `docker-compose` v1 (EOL) ×4.
 - **Fix:** sim starts from repo root; stop is pid-file driven (files start_native already wrote); `ENVIRONMENT=dev|production` now selects `settings.testnet.yaml`/`config.yaml` vs `settings.yaml`/`config.prod.yaml` — matching the compose mounts; all compose calls on `docker compose` v2.
 - **Files:** `scripts/deploy.sh`

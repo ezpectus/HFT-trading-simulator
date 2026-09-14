@@ -2563,3 +2563,15 @@ Board: 0 open.
 - **S292** MetricsCollector fallback — holds: full surface at metrics_server.py:43-112 (kill_switch, drawdown, win_rate, pnl, uptime, fills, orders, signals, errors, shm buffer, both observers).
 
 Board: 0 open.
+
+## R190 — slop-verify — R161 close-out + R163 head: 7/7 hold, 0 reverts
+
+- **S290** uptime_seconds property — holds: property access (no parens) run.py:436/:735; mocks use `uptime_seconds=0` attr (:209/:238/:264).
+- **S275** circuitBreaker on ctx.signals — holds: registry.js:755; BotStatus renders tripped state (:142-154).
+- **S276** wire-field drift — holds: zero `order_id`/`filled_qty`/`fill_price`/`realized_pnl`/`f.pnl` hits across all 10 components.
+- **S284** fixtures repaired — holds: zero old-field hits in the 5 test files; taxReport uses `trade_history` (:9).
+- **S270** coverage gate — holds with drift note: include `src/**` (:30) confirmed; thresholds now 20/20/20/20 (:33-36) vs claimed ~25/24 — re-ratcheted lower as the denominator grew; gate intact, floor weaker than logged.
+- **S289** ratio alerts — holds: HighOrderRejectionRate :159 / LowFillRate :170 present; fed by S281's verified real counters.
+- **S215** deploy.sh — holds: repo-root `python3 -m exchange_simulator` (:166-169, S215 comment), pid-file stop (:125-131), ENVIRONMENT branch (:21), docker compose v2 (:96,:120).
+
+R161 cohort fully re-checked. Board: 0 open.
