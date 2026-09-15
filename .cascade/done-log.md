@@ -1451,3 +1451,29 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Noise reviewed and deliberately NOT touched:** `logger.h` file-static init may-throw (process-init only, not runtime); `main` exception-escape (intentional catch-all around the loop); `performance-enum-size` on SHM wire enums (cross-process ABI contract); `bugprone-easily-swappable-parameters` on `(high, low, close)` math helpers (idiomatic); websocketpp third-party warnings; doctest static-init in test code.
 - **Files:** `src/utils/low_latency.h` (type_traits + honest push), `src/core/bot_setup.cpp` (+fmt/ranges.h), `src/monitoring/health_server.h` (+spdlog include, response-build rework).
 - **Verified:** `bot_setup.cpp` now `-fsyntax-only` clean against vendored deps; `bugprone-exception-escape` clean on TUs including SPSCQueue; rebuild + **ctest 23/23 green**.
+
+
+## R255 — slop-verify batch (cadence: 5 done-entries since R249) — all confirmed
+
+Verified R250–R254 claims against code — **12 sites, 0 rot**:
+- **S373:** `foreach(v2test …)` registration at `CMakeLists.txt:354`; `toxic_penalty = 1.0` at `test_v2_engine.cpp:274` (assert now possible).
+- **S374:** `test_integration_kill_switch_monitor` uses the real contract — `KillSwitch ks(trigger_file)` (:18), `Metric::ORDERS_SENT` (:55); config fixtures use real keys `websocket_url:`/`default_exchange:` (`test_integration_config.cpp:17-18,49`); spectral fixture carries the `freq` param (`test_signal_engine.cpp:79,84`, `freq=1.0` usage documented at :143).
+- **S375:** `deps/openssl/` holds `openssl/ssl.h` + static `libssl.a`/`libcrypto.a`; CMake gate at :499 + include/link wiring at :511-512; OpenSSL step present in `fetch-test-deps.sh` (:38-45).
+- **S376:** `try_get_cache` (`signal_engine_v2.h:78`) + `try_get_hmm_state` (`signal_engine_v3.h:372`) exist, both `noexcept`; `set_long_signal` signature has no `now_ms` (`signal_engine_v2_finalize.h:17`); `test_fixtures.h` helpers are `inline`; cooldown doctest uses `analyze_incremental` + `FastSignal::now_ns()` (`test_doctest_signal_engine.cpp:311-312`).
+- **S377:** `if constexpr (is_nothrow_copy_assignable_v)` + try→false in `low_latency.h:103-108`; `#include <fmt/ranges.h>` in `bot_setup.cpp:8`; `#include <spdlog/spdlog.h>` in `health_server.h:13`; response built via `+=` (:181-184).
+
+Verify-debt: 0.
+
+
+## R256 — hot-path benchmark harness + first measured baseline
+
+No benchmark existed — every "fast"/"zero-alloc" claim was architectural, not measured. Added `tests/bench_hot_path.cpp` → `hft_bench` target (dev tool, deliberately NOT a ctest test: timings under CI are noise). Uses the existing proven fixtures (trending candles + deep book), prepopulated cache, `steady_clock` per-sample, reports med/p99/mean, anti-DCE sink.
+
+**First measured baseline (LLVM-MinGW clang 22, -O3, this host, n=3000):**
+| Path | med | p99 |
+|---|---|---|
+| `SignalEngineV2::analyze_incremental` (prepopulated, 70 candles, 20-level book) | **900 ns** | 1.4 µs |
+| `SPSCQueue<Signal,16>` push+pop round trip | ~0 ns | 100 ns |
+| `FastSignal` ctor + field setters | ~0 ns | 100 ns |
+
+The nominal trading path computes a full signal in **sub-microsecond** time. Future perf work now has a reproducible baseline to argue against — run `./hft_bench [iters]` from `build-mingw/`.

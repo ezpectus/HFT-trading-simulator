@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R255–R256 — verify + perf baseline)
+
+### Added
+- **`hft_bench` hot-path microbenchmark (R256):** `tests/bench_hot_path.cpp` measures the paths claimed to be low-latency — `SignalEngineV2::analyze_incremental` on a prepopulated cache, `SPSCQueue<Signal,16>` push+pop, `FastSignal` setters — with med/p99/mean over N samples and an anti-DCE sink. Dev tool only, deliberately not a ctest target (CI timings are noise). First baseline (clang 22, -O3): signal compute **med 900ns / p99 1.4µs** — sub-microsecond on the nominal path; queue handoff ~27ns mean. Perf claims now have a reproducible evidence baseline: `./hft_bench [iters]`.
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R254 — clang-tidy header-TU sweep)
 
 ### Fixed

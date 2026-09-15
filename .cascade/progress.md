@@ -3176,3 +3176,11 @@ Board: 0 open.
 - Header wrappers exposed: `SPSCQueue::push(const T&)` noexcept lie — Signal's std::string copy-assign can throw bad_alloc → terminate. if-constexpr fast path + try→false degrade (caller already handles false as queue-full). bot_setup.cpp missing `fmt/ranges.h` for `fmt::join` (latent compile break). health_server.h missing direct spdlog include + string-concat cleanup.
 - Deliberately untouched: SHM enum sizes (ABI), math-helper param names, logger init-time static, third-party.
 - ctest 23/23 green. Board: 0 open.
+
+## R255 — slop-verify batch → all confirmed
+
+- Cadence verify of R250–R254 (S373–S377): 12 claim-sites checked against code — registrations, API usage, fixture keys, freq param, vendored OpenSSL wiring, try_get_* noexcept, if-constexpr push, direct includes. **0 rot.**
+
+## R256 — hot-path benchmark baseline → hft_bench
+
+- Added tests/bench_hot_path.cpp → hft_bench target (dev tool, not ctest — CI timing is noise). First measured numbers: analyze_incremental med 900ns/p99 1.4µs; SPSCQueue push+pop ~27ns mean; FastSignal setters ~20ns mean. Sub-microsecond signal compute on the nominal path — evidence baseline now exists for future perf claims.

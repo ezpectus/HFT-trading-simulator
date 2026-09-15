@@ -2851,3 +2851,9 @@ First static-analysis pass over the trading-loop TUs (clang-tidy 22.1.8, driver-
 ## R254 — clang-tidy header-TU sweep — 1 finding fixed (S377)
 
 Second static-analysis pass via wrapper translation units for headers: **S377 (Medium)** — `SPSCQueue<Signal,16>::push(const T&)` was `noexcept` but `Signal`'s copy-assign can allocate (`std::string` members) → `bad_alloc` → `std::terminate` in the AI-signal handoff; fixed with a `if constexpr (std::is_nothrow_copy_assignable_v<T>)` fast path and a try→false degrade matching the existing queue-full semantics (move-push/pop unaffected — move-assign is noexcept). Also fixed: `bot_setup.cpp` missing `#include <fmt/ranges.h>` for `fmt::join` (latent compile break, proven via `-fsyntax-only` on vendored fmt); `health_server.h` missing direct spdlog include (IWYU) + inefficient chained string concatenation in HTTP response assembly. Reviewed-and-kept: SHM wire enum sizes (ABI), math-helper parameter names, logger init-time statics, third-party headers. **ctest: 23/23 green.**
+
+## R255–R256 — verify batch (0 rot) + first hot-path perf baseline
+
+**R255:** cadence slop-verify over R250–R254 (S373–S377) — 12 claim-sites re-checked against code (CMake registrations, real-API test usage, fixture keys, vendored OpenSSL wiring, `try_get_*` noexcept sites, `if constexpr` queue push, direct includes). All confirmed, verify-debt 0.
+
+**R256:** no benchmark existed — every perf claim was architectural. Added `tests/bench_hot_path.cpp` → `hft_bench` (dev tool, not a ctest target). Baseline on this host (clang 22, -O3, n=3000): `analyze_incremental` on a prepopulated cache **med 900ns / p99 1.4µs**; `SPSCQueue` push+pop ~27ns mean; `FastSignal` setters ~20ns mean. Sub-microsecond signal compute — a reproducible baseline (`./hft_bench [iters]`) now exists for any future optimization claims.
