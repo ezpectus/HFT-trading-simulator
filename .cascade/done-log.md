@@ -1420,3 +1420,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
   (d) `test_v2_engine` toxicity test (from R250) confirmed impossible-assert under saturation — already fixed.
 - **Files:** `hft-trade-bot/CMakeLists.txt` (deps/ INTERFACE+IMPORTED targets, asio/openssl-aware signal_receiver gate, ws2_32/mswsock, `_WEBSOCKETPP_CPP11_THREAD_`, `YAML_CPP_STATIC_DEFINE`); `tests/test_integration_kill_switch_monitor.cpp` (rewritten to real API); `tests/test_doctest_hft_config.cpp`, `tests/test_integration_config.cpp` (real yaml keys); `tests/test_signal_engine.cpp` (freq param); `fetch-test-deps.sh` (new); `.gitignore` (+deps/).
 - **Verified:** `ctest` **22/22 binaries green** (was 17): kill_switch doctest, hft_config, integration_config, kill_switch_monitor now live; signal_receiver remains dep-blocked on OpenSSL headers (documented). 26/26 test files accounted for.
+
+
+## R252 — last dep-gated ctest target unblocked (OpenSSL vendored) — S375
+
+### S375 — test_doctest_signal_receiver was the only remaining dep-blocked suite (Low) ✅
+- **Context:** after R251 it stayed gated because asio's TLS client path parses `openssl/*.h` even when unused, and OpenSSL source trees ship only `.in` header templates requiring a full Configure+build. Resolved by vendoring the msys2 `ucrt64` prebuilt OpenSSL 3.6.4 package (same UCRT ABI as LLVM-MinGW): real `include/openssl/` headers + static `libssl.a`/`libcrypto.a` under `deps/openssl/` (+`ws2_32 gdi32 crypt32` link deps from pkgconfig). Fetch added to `fetch-test-deps.sh` (needs `pip install zstandard` — the package is zstd-compressed and bsdtar here lacks zstd).
+- **Files:** `hft-trade-bot/CMakeLists.txt` (openssl include/link for the signal_receiver target); `fetch-test-deps.sh` (+OpenSSL step).
+- **Verified:** `ctest` **23/23 binaries green — every Windows-compatible test file now executes.** The only un-run files left are `test_shm`/`integration_signal_flow` — POSIX `shm_open`/`ftruncate`-only by design (need Linux/WSL, not more deps).

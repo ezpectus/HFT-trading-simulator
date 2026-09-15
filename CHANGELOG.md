@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R252 — last dep-gated test unblocked)
+
+### Fixed
+- **`test_doctest_signal_receiver` now runs via vendored OpenSSL (S375):** the prebuilt msys2 `ucrt64` OpenSSL 3.6.4 package (UCRT ABI-compatible with LLVM-MinGW) supplies real headers + static libs under `deps/openssl/`, reproduced by `fetch-test-deps.sh`. **ctest: 23/23 binaries green — 100% of Windows-compatible tests execute**; only the POSIX `shm_open` pair (`test_shm`, `integration_signal_flow`) remains platform-gated by design.
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R251 — dep-gated tests unblocked)
 
 ### Fixed

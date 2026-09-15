@@ -3158,3 +3158,9 @@ Board: 0 open.
 - ctest: **22/22 green**. Only signal_receiver still gated (needs real OpenSSL headers) + POSIX-only pair.
 - Correction: S373's "never registered" was wrong — quartet was fmt-gated via foreach vars (grep-invisible); fixed the record.
 - Board: 0 open.
+
+## R252 — signal_receiver unblocked via vendored OpenSSL (msys2 ucrt64) → S375
+
+- OpenSSL source headers are .in templates; vendored the prebuilt msys2 ucrt64 3.6.4 package instead (UCRT ABI-compatible with LLVM-MinGW): real headers + static libssl/libcrypto under deps/openssl/ (+gdi32/crypt32 link deps). Reproduced in fetch-test-deps.sh.
+- **ctest 23/23 green — 100% of Windows-compatible tests execute.** Remaining un-run: POSIX-only test_shm + integration_signal_flow (shm_open — by design).
+- Board: 0 open.
