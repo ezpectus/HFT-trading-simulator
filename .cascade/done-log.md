@@ -1246,3 +1246,11 @@ Ran every runnable suite end-to-end instead of read-verifying individual entries
 - **Verified:** var name matches `engine.py:60` `os.getenv` exactly; guide :385 already documents it — now symmetric.
 
 Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ `getenv` resolved — `EXCHANGE_WS_HOST`/`LOG_FORMAT` set by every compose + helm, `EXCHANGE_METRICS_HOST`/`AI_BOT_BIND_HOST`/`WS_URL`/tokens/`VITE_*` all in the example or `.env.mock`, `SHM_MARKET_*` documented in CONFIGURATION_GUIDE:423-425 (opt-in, both sides graceful — hft `init_shm_market_data` warns and falls back to WS), `AI_BOT_COMPUTE_RATE_LIMIT` sane default + code comment, `APP_VERSION`/`SIGNAL_WS_URL`/`OTEL_*`/`WD_SKIP_COVERAGE`/`NODE_OPTIONS` tooling/defaults. JS: all 5 `import.meta.env.VITE_*` reads documented.
+
+## R224 — imports-vs-requirements cross-check — S358
+
+### S358 — `tools/stress_load.py` bare `import psutil` not in any requirements file (Info) ✅
+- **Bug:** `stress_load.py:21` imports `psutil` unconditionally, but neither `requirements.txt` nor `requirements-dev.txt` pins it — a clean dev checkout crashes at import. Sibling `load_10k.py` guards it (`HAS_PSUTIL`); `stress_load` doesn't. Docker images only install `requirements.txt`, so the bare import was only ever true in dev envs — which lacked the pin.
+- **Fix:** `psutil>=5.9.0` added to `exchange_simulator/requirements-dev.txt` (dev tools live under dev deps; `>=` convention matches the file). Chosen over guarding the import: the memory-growth scenario is a named feature of the tool — silently skipping it would weaken the harness.
+- **Files:** `exchange_simulator/requirements-dev.txt:8-9`
+- **Verified:** `psutil 5.9.7` installed locally satisfies the floor; `stress_load` module imports cleanly; no other unguarded third-party imports exist in either Python tree (ccxt/lightgbm/xgboost/scipy/sklearn/structlog/opentelemetry/msgpack/orjson/pyarrow/run_logger/trade_csv_logger/psutil-in-load_10k all inside `try:` or function-level guards).

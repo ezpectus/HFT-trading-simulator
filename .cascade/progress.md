@@ -2912,3 +2912,10 @@ Board: 0 open.
 - Остальные 20 env-var reads чистые: compose/helm/example покрывают всё обязательное; SHM_MARKET_* opt-in с graceful fallback.
 
 Board: 0 open.
+
+## R224 — imports-vs-requirements cross-check — S358 найден+закрыт — BOARD EMPTY
+
+- **S358** — `stress_load.py:21` bare `import psutil` без пина в requirements (load_10k гардит, stress_load нет) → `psutil>=5.9.0` в requirements-dev.txt.
+- Все остальные 3rd-party импорты: pinned или guarded (try/func-level).
+
+Board: 0 open.

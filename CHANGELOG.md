@@ -9,9 +9,10 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
-## [Unreleased] — 2026-09-15 (Slop-fix R221–R223 — load-harness latency + doc truth)
+## [Unreleased] — 2026-09-15 (Slop-fix R221–R224 — load-harness latency + doc truth)
 
 ### Fixed
+- **`stress_load.py` crashed on clean dev installs (S358):** it imports `psutil` unconditionally but no requirements file declared it — now pinned in `requirements-dev.txt`.
 - **`.env.prod.example` missing `ANTHROPIC_API_KEY` (S357):** the anthropic LLM provider key was read by the engine and documented in the configuration guide but absent from the prod env template — added with a provider-hint comment.
 - **`load_10k` latency percentiles were structurally dead (S356):** broadcast messages carry the simulator's *simulated* clock (2024-epoch), so `wall_now − ts` ≈ years and every sample failed the sanity filter — the advertised p50/p95/p99 always printed N/A. Latency is now measured via real WS ping→pong RTT (the `load_50_symbols` pattern); the PASS/FAIL line now honors `--target` instead of a hardcoded 10k.
 

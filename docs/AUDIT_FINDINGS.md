@@ -2679,3 +2679,13 @@ Thematic pass never done before: every `os.environ`/`os.getenv`/`environ.get` re
 Clean: `EXCHANGE_WS_HOST`/`LOG_FORMAT` set by all composes + helm; `EXCHANGE_METRICS_HOST` commented in the example; all tokens/`VITE_*`/`WS_URL`/`HFT_*`/`GRAFANA_*`/`ALERT_*` covered; `SHM_MARKET_*` documented (guide :423-425) and opt-in by design — hft `init_shm_market_data` warns and falls back to WS cleanly when the segment is absent; `AI_BOT_COMPUTE_RATE_LIMIT` sane default + code comment; `APP_VERSION`/`SIGNAL_WS_URL`/`OTEL_*`/`WD_SKIP_COVERAGE`/`NODE_OPTIONS` are tooling/defaults. JS side: all 5 `import.meta.env.VITE_*` reads documented.
 
 **Fixed in R223 (same pass):** `ANTHROPIC_API_KEY=` added to `.env.prod.example` with provider-hint comment.
+
+## R224 — slop-audit — imports-vs-requirements cross-check — 1 finding
+
+AST walk of every `import`/`from` in `ai-signal-bot/` and `exchange_simulator/` (incl. tools/, tests/) — all third-party top-level names diffed against `requirements{,-dev}.txt` pins.
+
+- **S358 — `stress_load.py` unguarded `import psutil` undeclared (Info).** `tools/stress_load.py:21` imports `psutil` bare — not in either requirements file. Clean dev checkout → ImportError at line 21. Sibling `load_10k.py` guards the same import (`HAS_PSUTIL`); the inconsistency hid the missing pin.
+
+Clean: every other non-stdlib import resolves to a pin or a guard — `ccxt`/`lightgbm`/`xgboost`/`sklearn`/`scipy`/`structlog`/`opentelemetry`/`msgpack`/`orjson`/`pyarrow`/`run_logger`/`trade_csv_logger` all sit inside `try:` blocks or function bodies (the documented defensive-import pattern); `aiohttp`/`websockets`/`numpy`/`matplotlib`/`tabulate`/`prometheus_client`/`yaml`/`hypothesis` all pinned; `monitoring/`+`scripts/` use stdlib + `yaml` only.
+
+**Fixed in R224 (same pass):** `psutil>=5.9.0` in `exchange_simulator/requirements-dev.txt`.
