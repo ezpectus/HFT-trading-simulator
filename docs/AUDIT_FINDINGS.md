@@ -2556,3 +2556,9 @@ Dependency-advisory round, not a code finding. 9 open Dependabot alerts + 2 unfl
 - **S326 — metrics ctor sprawl (python).** 15 hand-rolled `Counter/Gauge` blocks → `_ALERT_METRIC_SPECS` table; the same table drives the no-prometheus None-init, fixing a real drift (4 attrs were never nulled).
 - **S327 — dispatch-case sprawl (web-ui).** 8 identical `*_result` cases in `useSignalData` → a `resultSetters` map lookup in `default:`.
 - Board: 2 open — Info only: S333 (fill-path precision), S336 (C++ connection-handle ordering).
+
+## R205 — final two Info findings (S333, S336 closed — board empty)
+
+- **S333 — fill-path precision.** `round(price, 2)` at every fill/book/candle site collapsed sub-cent assets to 0.00 (zero-price positions). New `models.round_price()` keeps the 2-decimal tick for dollar-scale prices and 8 decimals below $1 — identical output on existing symbols, sub-cent prices survive. The duplicated `_TYPICAL_VOLUME` turned out to be dead code in `exchange_advanced_orders.py` (zero references) — deleted; the live copy stays private to its sole consumer.
+- **S336 — connection-handle publication.** The non-atomic `websocketpp::connection_hdl` was written by the asio open-handler and read by submit/watchdog threads after a relaxed flag load — no happens-before (UB on weak-memory targets; torn reads on reconnect). Both WS clients (`order_executor.h` + sibling `signal_receiver.h`) now guard the hdl under `client_mtx_` via `set_conn`/`conn_snapshot` — the same idiom already used for `client_`.
+- **Board: 0 open.** All 19 findings from the R191–R195 audit sweep are closed (R199 dependabot, R200–R205 code findings).

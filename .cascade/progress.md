@@ -2713,3 +2713,10 @@ Board unchanged: 20 open.
 - **S327 (Info):** useSignalData — 8 одинаковых `*_result` кейсов → `resultSetters` ref-map в `default:`; `backtest_result` (callback) и `auth_*` (transform) остаются кейсами.
 - **Verified:** vitest 8+7+5, pytest 60, ruff/eslint чисто. Все фиксы поведенчески-нейтральны кроме S324 (кнопка наконец работает — это и была находка).
 - Board: 2 open — Info: S333 (round(·,2)+_TYPICAL_VOLUME dup), S336 (C++ hdl ordering).
+
+## R205 — slop-fix (audit-loop) — 2 находки закрыто. BOARD: 0 OPEN
+
+- **S333 (Info):** `models.round_price()` — tick по величине: ≥$1 → 2 знака (identical output), <$1 → 8 знаков (sub-cent ассеты больше не схлопываются в 0.00 → zero-price positions). 8 price-сайтов переведены; мёртвый `_TYPICAL_VOLUME` в advanced_orders удалён (live-копия в order_submission — единственный потребитель, осталась приватной).
+- **S336 (Info):** `connection_` hdl теперь под `client_mtx_` (тот же mutex, что и client_) — `set_conn`/`conn_snapshot` в **обоих** WS-клиентах (order_executor.h + signal_receiver.h, sibling-дефект закрыт в том же батче). Mutex > release/acquire: reconnect перезаписывает hdl — только взаимоисключение гарантирует отсутствие torn read.
+- **Verified:** 435 sim тестов, ruff, clang-format clean; идиом publish/snapshot прогнана в TSan-харнесе. Full cmake — CI (vcpkg отсутствует локально).
+- **Доска пуста** — все 19 находок R199–R205 закрыты: 9 dependabot + 4 High + 4 Medium + 3 Low + 3 Info (суммарно; часть Info закрыта с расширением blast-radius: sibling в signal_receiver.h).
