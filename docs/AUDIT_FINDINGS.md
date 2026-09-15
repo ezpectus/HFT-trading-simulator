@@ -2704,3 +2704,15 @@ Concurrency pass over all 13 `asyncio.create_task`/`ensure_future` sites in `ai-
 - **S359 — `ws_client._request_resync` un-referenced task swallows send failures (Info).** The only fire-and-forget site: a `ConnectionClosed` during `_send_resync` died in the GC exception handler with no log and a silently skipped resync (self-heals next gap + cooldown). All 12 sibling sites are clean — stored tasks with cancel+await (`signal_publisher`, `exchange_factory`, `market_data_feed`, `market_data_manager`, `real_account`, `alerting`, `websocket_server` ×2) or `_background_tasks` + `_on_task_done` done-callbacks (run.py ×5).
 
 **Fixed in R226 (same pass):** task reference + `_on_resync_done` done-callback logging failures, matching the codebase idiom; regression test added (failing send → warning asserted).
+
+## R227 — slop-audit — swallowed-exception sweep — 0 findings
+
+AST-walked every `except` handler in `ai-signal-bot/src`, `run.py`, `exchange_simulator`, `monitoring/`, `scripts/` (26 `pass`-body + ~60 `continue`/`break`/`return`-ending + 0 bare `except:` + 0 `suppress()`); regex-swept all `catch` in `web-ui/src` (0 empty/noop) and `hft-trade-bot/src` (0 non-logging).
+
+**Verdict: clean.** Every handler is a documented idiom:
+- Cooperative cancellation (`CancelledError` → re-raise/break in recv loops).
+- Disconnect paths (`ConnectionClosed` → `finally` cleanup) in both WS server + client.
+- Error-payload returns (health checks, request validators, `get_health`) — the error travels to the caller.
+- Documented fallbacks (`_load_prompt` FileNotFound → builtin; `lstsq` LinAlgError → degenerate alpha=0/beta=1; `_depth_covers` missing book → slippage model; LLM explain → `signal.reason`).
+- Best-effort cleanup (WAL checkpoint on close, SHM unlink, proc kill).
+- Error-recording skips (`pre-commit-check` appends to `broken` before `continue`).

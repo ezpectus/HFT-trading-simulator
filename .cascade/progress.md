@@ -2933,3 +2933,8 @@ Board: 0 open.
 - Остальные 12 сайтов чистые: stored+cancel+await или _background_tasks+_on_task_done.
 
 Board: 0 open.
+
+## R227 — swallowed-exception sweep — ЧИСТО — BOARD EMPTY
+
+- ~85 except/catch сайтов (Py 26 pass + ~60 return/continue/break, JS 0 empty, C++ 0 non-logging) — все идиомы: CancelledError, disconnect→finally, error-payload returns, documented fallbacks, best-effort cleanup, error-recording skips.
+- Board: 0 open.
