@@ -1236,3 +1236,13 @@ Ran every runnable suite end-to-end instead of read-verifying individual entries
 - `hft-trade-bot` ctest: **environment-blocked** — `build/Debug/*.exe` are ASan-instrumented MSVC-debug binaries produced under `S:/` (CTestTestfile paths don't resolve); they need `MSVCP140D`/`VCRUNTIME140D`/`ucrtbased`/`clang_rt.asan_dynamic` which are absent on this host (local toolchain is llvm-mingw; no VS debug CRT). Not a repo defect — the suite runs in CI; sources were clang-22 syntax-verified in R216.
 
 **Result: 2,920 tests green, 0 real failures.** Also audited verify-debt: the 4 done-log headers without a ✅ stamp (S207/S210/S230/S309) all carry inline `Верифицировано R150` or are the R182-closed S309 deferred note — zero actual unverified entries.
+
+## R223 — env-var cross-check sweep — S357
+
+### S357 — `.env.prod.example` asymmetric: `OPENAI_API_KEY` listed, `ANTHROPIC_API_KEY` absent (Info) ✅
+- **Bug:** `src/llm_engine/engine.py:60` reads `ANTHROPIC_API_KEY` when `llm.provider: anthropic` is configured; `docs/guides/CONFIGURATION_GUIDE.md:385` documents it — but the prod env template (the file operators copy to `.env.prod`, forwarded into containers via `env_file:`) listed only `OPENAI_API_KEY`. An anthropic deployer gets no hint of the var name.
+- **Fix:** added `ANTHROPIC_API_KEY=` with a provider-hint comment next to `OPENAI_API_KEY`.
+- **Files:** `.env.prod.example:59-61`
+- **Verified:** var name matches `engine.py:60` `os.getenv` exactly; guide :385 already documents it — now symmetric.
+
+Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ `getenv` resolved — `EXCHANGE_WS_HOST`/`LOG_FORMAT` set by every compose + helm, `EXCHANGE_METRICS_HOST`/`AI_BOT_BIND_HOST`/`WS_URL`/tokens/`VITE_*` all in the example or `.env.mock`, `SHM_MARKET_*` documented in CONFIGURATION_GUIDE:423-425 (opt-in, both sides graceful — hft `init_shm_market_data` warns and falls back to WS), `AI_BOT_COMPUTE_RATE_LIMIT` sane default + code comment, `APP_VERSION`/`SIGNAL_WS_URL`/`OTEL_*`/`WD_SKIP_COVERAGE`/`NODE_OPTIONS` tooling/defaults. JS: all 5 `import.meta.env.VITE_*` reads documented.

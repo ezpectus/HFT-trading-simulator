@@ -2905,3 +2905,10 @@ Board: 0 open.
 - hft-trade-bot ctest: env-blocked — build/Debug exes это ASan-инструментованные MSVC-debug билды с S:-drive, нужны MSVCP140D/VCRUNTIME140D/ucrtbased/clang_rt.asan_dynamic которых на хосте нет (тулчейн = llvm-mingw, VS debug CRT отсутствует). Не дефект репо — лимит окружения; C++ исходники syntax-verified в R216.
 
 Итог: 2920 тестов зелёные, 0 реальных падений. Verify-debt в done-log: 0 (4 незаштампованных header'а несут inline "Верифицировано R150").
+
+## R223 — env-var cross-check — S357 найден+закрыт — BOARD EMPTY
+
+- **S357** — `.env.prod.example`: OPENAI_API_KEY есть, ANTHROPIC_API_KEY нет (engine.py:60 читает оба, guide :385 документирует оба) → добавлен с provider-комментом.
+- Остальные 20 env-var reads чистые: compose/helm/example покрывают всё обязательное; SHM_MARKET_* opt-in с graceful fallback.
+
+Board: 0 open.

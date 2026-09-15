@@ -2669,3 +2669,13 @@ Clean: `load_50_symbols.py` (WS ping→pong latency done correctly), `stress_loa
 **Fixed in R221 (same pass):**
 
 - **S356** — dead timestamp-parse block removed; latency now sampled via 1 Hz WS ping→pong RTT (`_sample_latency` task, the `load_50_symbols` pattern — no protocol change); `report(target)` prints `Target ({target}/sec)` matching the exit gate. Verified live against a stub WS server: real RTT samples collected, ~18k msg/s throughput, custom `--target` label honored.
+
+## R223 — slop-audit — env-var cross-check — 1 finding
+
+Thematic pass never done before: every `os.environ`/`os.getenv`/`environ.get` read across Python (`ai-signal-bot`, `exchange_simulator`, `monitoring`, `scripts`) plus C++ `getenv` — 21 vars total — cross-checked against `.env.prod.example`, `web-ui/.env.example`, `.env.mock`, compose env blocks, helm templates, and `CONFIGURATION_GUIDE.md`.
+
+- **S357 — `.env.prod.example` asymmetric: `OPENAI_API_KEY` listed, `ANTHROPIC_API_KEY` absent (Info).** `engine.py:60` reads `ANTHROPIC_API_KEY` for `llm.provider: anthropic`; the guide documents it (:385); the prod template — the file copied to `.env.prod` and forwarded via compose `env_file:` — listed only OpenAI.
+
+Clean: `EXCHANGE_WS_HOST`/`LOG_FORMAT` set by all composes + helm; `EXCHANGE_METRICS_HOST` commented in the example; all tokens/`VITE_*`/`WS_URL`/`HFT_*`/`GRAFANA_*`/`ALERT_*` covered; `SHM_MARKET_*` documented (guide :423-425) and opt-in by design — hft `init_shm_market_data` warns and falls back to WS cleanly when the segment is absent; `AI_BOT_COMPUTE_RATE_LIMIT` sane default + code comment; `APP_VERSION`/`SIGNAL_WS_URL`/`OTEL_*`/`WD_SKIP_COVERAGE`/`NODE_OPTIONS` are tooling/defaults. JS side: all 5 `import.meta.env.VITE_*` reads documented.
+
+**Fixed in R223 (same pass):** `ANTHROPIC_API_KEY=` added to `.env.prod.example` with provider-hint comment.
