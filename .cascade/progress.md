@@ -3029,3 +3029,9 @@ Board: 0 open.
 - Verified clean (not touched): v2 loop already uses ctx buffers + _into getters; convert_fast_signal/execute_v2_order stack-only; update_health = mutex+POD copy per tick — acceptable.
 - By-value get_candles/get_order_book wrappers now have zero live callers — kept as public API.
 - Board: 0 open. Sweep converged — remaining paths are event-driven, not per-tick.
+
+## R235f — S364 shm-poll batch
+
+- poll_shm_market_data: per-symbol inject_snapshot re-took data_lock_ N times/tick → inject_snapshots_scoped (one lock per sweep; bonus: atomic cross-symbol snapshot).
+- inject_snapshot: order_books_[key] = ob copied level vectors every inject → keyed entry updated in place.
+- Syntax: data.h clang -fsyntax-only clean. Board: 0 open.
