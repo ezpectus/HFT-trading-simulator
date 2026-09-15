@@ -3,6 +3,7 @@
 
 #include <csignal>
 #include <filesystem>
+#include <unordered_set>
 
 #include <spdlog/spdlog.h>
 
@@ -364,11 +365,20 @@ void init_callbacks(BotContext& ctx) {
         const double bal = it->value("balance", 0.0);
         if (bal > 0.0) ctx.balance.store(bal, std::memory_order_relaxed);
         if (it->contains("positions") && (*it)["positions"].is_array()) {
+            std::unordered_set<std::string> broadcast_symbols;
             for (const auto& p : (*it)["positions"]) {
-                ctx.pos_mgr.sync_position(p.value("symbol", ""), p.value("side", "") == "BUY",
+                const std::string sym = p.value("symbol", "");
+                broadcast_symbols.insert(sym);
+                ctx.pos_mgr.sync_position(sym, p.value("side", "") == "BUY",
                                           p.value("quantity", 0.0), p.value("entry_price", 0.0),
                                           p.value("stop_loss", 0.0), p.value("take_profit", 0.0),
                                           ctx.config.default_exchange);
+            }
+            for (const auto& sym :
+                 ctx.pos_mgr.reconcile_positions(broadcast_symbols, ctx.config.default_exchange)) {
+                spdlog::warn("Dropped ghost position {} — absent from {} "
+                             "account broadcast (missed close fill)",
+                             sym, ctx.config.default_exchange);
             }
         }
     });

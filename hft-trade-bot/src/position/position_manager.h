@@ -104,12 +104,15 @@ class PositionManager {
                 res.effect = FillEffect::INCREASED;
             } else if (filled_qty + 1e-12 < it->quantity) {
                 // Opposite direction, partial — realize the closed slice.
+                // The close fill's fee is realized here in the slice pnl, so
+                // it must NOT also land in fees_paid — update_pnl nets
+                // fees_paid off the remainder and would subtract it twice
+                // (S334).
                 double pnl =
                     (it->is_long() ? (price - it->entry_price) : (it->entry_price - price)) *
                         filled_qty -
                     fee;
                 it->quantity -= filled_qty;
-                it->fees_paid += fee;
                 it->update_pnl(price);
                 closing_since_.erase(symbol);
                 realized_pnl_total_ += pnl;
@@ -157,7 +160,8 @@ class PositionManager {
 
     // Reconcile against the exchange account broadcast: adopt positions the
     // exchange reports but we don't track (e.g. opened while disconnected)
-    // and refresh qty/entry on tracked ones. Never removes — fills own removals.
+    // and refresh qty/entry on tracked ones. Removals are batched in
+    // reconcile_positions() — call it once per broadcast (S335).
     void sync_position(const std::string& symbol, bool is_long, double qty, double entry_price,
                        double stop_loss, double take_profit, const std::string& exchange) {
         if (qty <= 0.0 || symbol.empty()) return;
@@ -180,6 +184,39 @@ class PositionManager {
         pos.take_profit = take_profit;
         positions_.push_back(std::move(pos));
         active_symbols_.insert(symbol);
+    }
+
+    // Drop local positions the exchange no longer reports. Called once per
+    // account broadcast with the set of symbols it listed: a position absent
+    // for SYNC_MISS_LIMIT consecutive broadcasts is a ghost — its close fill
+    // was missed (disconnect gap, lost fills_batch) and it would block the
+    // symbol forever / fire close orders into nothing (S335). The miss
+    // counter keeps a just-filled position from flapping when the broadcast
+    // snapshot predates its own fill. Returns the removed symbols so the
+    // caller can log.
+    std::vector<std::string>
+    reconcile_positions(const std::unordered_set<std::string>& exchange_symbols,
+                        const std::string&                     exchange) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (const auto& sym : exchange_symbols)
+            sync_misses_.erase(sym);
+        std::vector<std::string> removed;
+        for (auto it = positions_.begin(); it != positions_.end();) {
+            if (it->exchange != exchange || exchange_symbols.count(it->symbol)) {
+                ++it;
+                continue;
+            }
+            if (++sync_misses_[it->symbol] < SYNC_MISS_LIMIT) {
+                ++it;
+                continue;
+            }
+            removed.push_back(it->symbol);
+            sync_misses_.erase(it->symbol);
+            closing_since_.erase(it->symbol);
+            active_symbols_.erase(it->symbol);
+            it = positions_.erase(it);
+        }
+        return removed;
     }
 
     std::optional<Position> close_position(const std::string& symbol, double exit_price) {
@@ -305,7 +342,10 @@ class PositionManager {
     std::unordered_map<std::string, PendingOrder> pending_orders_;
     // symbol → when its close order was sent (steady clock, for staleness)
     std::unordered_map<std::string, std::chrono::steady_clock::time_point> closing_since_;
-    static constexpr std::chrono::seconds                                  CLOSE_RETRY{10};
+    // symbol → consecutive account broadcasts that did not list it (S335)
+    std::unordered_map<std::string, int>  sync_misses_;
+    static constexpr std::chrono::seconds CLOSE_RETRY{10};
+    static constexpr int                  SYNC_MISS_LIMIT{3};
 };
 
 } // namespace hft
