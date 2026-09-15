@@ -1254,3 +1254,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Fix:** `psutil>=5.9.0` added to `exchange_simulator/requirements-dev.txt` (dev tools live under dev deps; `>=` convention matches the file). Chosen over guarding the import: the memory-growth scenario is a named feature of the tool — silently skipping it would weaken the harness.
 - **Files:** `exchange_simulator/requirements-dev.txt:8-9`
 - **Verified:** `psutil 5.9.7` installed locally satisfies the floor; `stress_load` module imports cleanly; no other unguarded third-party imports exist in either Python tree (ccxt/lightgbm/xgboost/scipy/sklearn/structlog/opentelemetry/msgpack/orjson/pyarrow/run_logger/trade_csv_logger/psutil-in-load_10k all inside `try:` or function-level guards).
+
+## R226 — async-task lifecycle audit — S359
+
+### S359 — `ws_client._request_resync` fire-and-forget task swallowed send failures (Info) ✅
+- **Bug:** `ws_client.py:258` was the only `create_task` site in the codebase with no task reference and no done callback — every sibling site either stores the task for cancel+await on shutdown or registers `add_done_callback(self._on_task_done)` (the run.py idiom). If `_send_resync`'s `ws.send` raised (e.g. `ConnectionClosed` on the flaky socket that caused the gap in the first place), the exception died in the GC "exception never retrieved" handler and the resync was silently skipped — self-healing only on the next gap + 5s cooldown, with no log anywhere.
+- **Fix:** keep the task reference + `add_done_callback(self._on_resync_done)` which logs `logger.warning("Resync request failed: %s", exc)` — matches the codebase's `_on_task_done` idiom.
+- **Files:** `ai-signal-bot/src/communication/ws_client.py:258-265`; `tests/unit/test_ws_client.py` (new `test_resync_send_failure_logged`).
+- **Verified:** new test drives a real seq-gap → `send` raising `ConnectionClosed` → asserts the warning fires (initial `caplog`/`assert_called_once` versions failed for honest reasons — structlog logger not caplog-visible, and the gap path itself warns — final version asserts the message in `call_args_list`). Full file: 27 tests green; compile+ruff clean.

@@ -2926,3 +2926,10 @@ Board: 0 open.
 - hft scripts/{monitor,run}.py чистые — heartbeat layout байт-в-байт с shm_heartbeat.h (контракт задокументирован с обеих сторон).
 
 Board: 0 open.
+
+## R226 — async-task lifecycle sweep — S359 найден+закрыт — BOARD EMPTY
+
+- **S359** — ws_client._request_resync: единственный un-referenced create_task (send-фейл умирал в GC handler молча) → done-callback с warning + регресс-тест (failing send → warning).
+- Остальные 12 сайтов чистые: stored+cancel+await или _background_tasks+_on_task_done.
+
+Board: 0 open.
