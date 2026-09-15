@@ -12,6 +12,8 @@ All notable changes to this project are documented in this file.
 ## [Unreleased] — 2026-09-15 (Slop-fix R199–R202 — supply-chain + safety gates + fill-model truth)
 
 ### Fixed
+- **WsManager Retry button (S324):** the button toasted "reconnect initiated" without reconnecting — it now calls the data hook's real `connect()`, and warns honestly when no connect exists.
+- **Dedup batch (S323/S325/S326/S327):** `runBacktest`'s position-close math was written twice (CLOSE_ALL vs end-of-data) — now one `closePosition`; the four stress-test scenarios share `_evaluate`; the 15 alert-metric constructor blocks are a spec table that also drives the no-prometheus init; `useSignalData`'s eight identical `*_result` switch cases collapsed into a setter map.
 - **Simulated-exchange fill model honesty (S330/S331):** priced iceberg orders no longer fill slices while the market is away from the limit (previously printed fills at a stale limit — free money); partial liquidation now routes through `submit_order` like every other close — pays the fee, takes slippage, and writes audit events instead of a shadow mid-price fill.
 - **HFT bot position book (S334/S335):** partial-close fees were subtracted twice from `realized_pnl_total_` (slice PnL and again via `fees_paid` at final close); positions the exchange stopped reporting are now dropped after 3 consecutive absent broadcasts — a missed close fill no longer leaves a ghost that blocks the symbol forever.
 - **Halt gates cover the live order path (S338/S339):** trading-halt and the C++ kill-switch now block both paper AND live orders (previously live orders fired through a halt); the validator's max-daily-drawdown check is fed real equity deltas — it was previously dead code that could never fire.

@@ -1074,3 +1074,35 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Files:** `ai-signal-bot/src/communication/backtest_requests.py:169-196`; `ai-signal-bot/src/backtesting/__init__.py:1-8`; `ai-signal-bot/src/backtesting/results.py:55`; deleted `src/backtesting/{backtest_engine,pnl_calculator}.py`, `tests/unit/{test_backtest,test_backtest_engine,test_pnl_calculator}.py`; `tests/unit/test_backtest_comparison.py:12-35`
 - **Verified:** 1253/1253 unit tests green; ruff clean; grep — zero remaining `backtest_engine`/`pnl_calculator`/`BacktestEngine`/`PnLCalculator` refs in src. Live `compare_backtests` path unchanged in shape (DTO fields are a strict subset of the canonical contract).
 - **Doc sync:** TESTING.md test-matrix rows (deleted files dropped; stale `test_comm_circuit_breaker` name fixed from the R200 rename), module_guide_en post-cleanup note now covers the deleted stack, project_architecture_en test-tree entry removed.
+
+## R204 — slop-fix — 5 findings closed (S323 backtestEngine dup, S324 fake Retry, S325/S326 python bloat, S327 dispatch)
+
+### S323 — one closePosition body for CLOSE_ALL + end-of-data ✅
+- **Bug:** the 25-line close block (slippage exit, signed pnl, fee, short-borrow, 9-field trades.push) existed twice — `case 'close_all'` and the trailing flush — `entryNotional1`/`entryNotional2` rename scars proving the copy. A fix to one copy (fee math, borrow window) would silently miss the other.
+- **Fix:** `closePosition(candle, reason)` closure inside `runBacktest` (owns `balance`/`position`/`trades` + fee params); `close_all` → `closePosition(candle,'CLOSE_ALL')`, tail flush → `closePosition(candles.at(-1),'END')`. Same math, one body.
+- **Files:** `web-ui/src/utils/backtestEngine.js:212-242` (helper), `:319-321` (close_all), `:356-359` (END flush)
+- **Verified:** vitest backtestEngine 8/8 — identical trades/equity (pure dedup).
+
+### S324 — WsManager Retry actually calls connect() ✅
+- **Bug:** `handleReconnect` only toasted "…reconnect initiated" — never invoked `connect()`; the Retry button was a placebo while the socket stayed dead.
+- **Fix:** `handleReconnect(label, source)` calls `source?.connect()` — both data hooks already expose `connect` (`useExchangeData.js:406`, `useSignalData.js:101`); missing connect falls back to a `warning` toast instead of lying.
+- **Files:** `web-ui/src/components/WsManager.jsx:100-107`, `:131`, `:141`; `src/test/wsManager.test.jsx` (+1 case)
+- **Verified:** vitest wsManager 7/7 — new test clicks Retry, asserts `connect` called once.
+
+### S325 — stress scenarios share one evaluation tail ✅
+- **Bug:** 4 scenario methods each re-spelled the same ~20-line tail (value pre/post → pnl → pnl_pct → margin → StressTestResult); only shock math + margin/liquidity/threshold scalars differed.
+- **Fix:** `_evaluate(name, prices, positions, shocked, margin_factor, liquidity_impact, pass_threshold)` owns the tail; each scenario computes `shocked_prices` and passes its constants (2008: .5/.02/.3 · covid: .4/.03/.25 · ftx: .6/.10/.4 · custom: .5/std-based/.3). File 202→~155 lines.
+- **Files:** `ai-signal-bot/src/risk/stress_test.py:30-50` (helper), `:52-109` (scenario bodies)
+- **Verified:** pytest test_stress_test + metrics suites — 60 passed; ruff clean.
+
+### S326 — alert metrics from one spec table; None-init can't drift ✅
+- **Bug:** `_init_alert_metrics` hand-rolled 15 `self.x = Counter/Gauge(...)` blocks; the no-prometheus `__init__` branch hand-listed attrs and had already drifted — missing `backtests_run_total`, `bot_cpu_usage_percent`, `bot_memory_usage_bytes`, `bot_sharpe_ratio` (AttributeError if ever touched without the HAS_PROMETHEUS guard).
+- **Fix:** module-level `_ALERT_METRIC_SPECS` = (attr, kind, prom-name, doc) ×15; `_init_alert_metrics` = setattr loop; None-init iterates the same table → all 15 nulled (4 previously missed). Names stay grep-able in the table literal.
+- **Files:** `ai-signal-bot/src/monitoring/metrics.py:24-43` (table), `:87-90` (None-init), `:170-174` (ctor loop)
+- **Verified:** ruff clean; pytest test_metrics + test_metrics_server + test_monitoring_metrics green.
+
+### S327 — `*_result` dispatch via setter-map ✅
+- **Bug:** `handleSignalMessage` spelled 8 identical `case 'x_result': setX(data); break` branches (board refs said useExchangeData.js — the switch moved to useSignalData.js when the hook was split).
+- **Fix:** `resultSetters` ref-map `{type: setter}` — setState functions are stable so a ref is safe; `default:` does `resultSetters.current[data.type]?.(data)`. `backtest_result` keeps its own case (fires the onBacktestResult callback); `auth_ok`/`auth_failed` stay (they transform, not `setX(data)`).
+- **Files:** `web-ui/src/hooks/useSignalData.js:30-44` (map), `:69-82` (switch)
+- **Verified:** vitest useSignalData 5/5; eslint clean.

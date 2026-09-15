@@ -2547,3 +2547,12 @@ Dependency-advisory round, not a code finding. 9 open Dependabot alerts + 2 unfl
 - **S322 — shared venue feed loop.** `_run_binance`/`_run_okx`/`_run_bybit` were three ~60-line copies of one skeleton; now `_run_feed(name, url, symbols, subscribe_payload)` owns connect/gap-fill/queue/backoff and each venue only builds its URL or subscribe frame. Import-guard now logs on all three (was binance-only — the drift the audit flagged).
 - **S328 — dead parallel backtest stack deleted.** `backtest_engine.py` + `pnl_calculator.py` (~580 lines) instantiated by nothing in prod; its `BacktestResult` leaked into the live `compare_backtests` handler as a diverging twin of `results.BacktestResult`. Modules + 3 sole-purpose test files deleted; the handler now builds the canonical result (`final_balance=`); `__init__` re-exports trimmed.
 - Board: 7 open — Low/Info only: S323, S324, S325, S326, S327, S333, S336.
+
+## R204 — bloat + fake-affordance batch (S323–S327 closed)
+
+- **S323 — duplicated close block (web-ui).** `runBacktest` spelled the 25-line position-close math twice (CLOSE_ALL rule vs end-of-data flush). Single `closePosition(candle, reason)` closure — the copies could no longer drift on fee/borrow math.
+- **S324 — placebo Retry button (web-ui).** WsManager's Retry toasted "reconnect initiated" without calling `connect()`. Now wired to the hook's real `connect`; a regression test asserts the call.
+- **S325 — stress-test tail ×4 (python).** Four scenario methods shared a ~20-line valuation tail; now `_evaluate(...)` owns it, scenarios pass shock params only.
+- **S326 — metrics ctor sprawl (python).** 15 hand-rolled `Counter/Gauge` blocks → `_ALERT_METRIC_SPECS` table; the same table drives the no-prometheus None-init, fixing a real drift (4 attrs were never nulled).
+- **S327 — dispatch-case sprawl (web-ui).** 8 identical `*_result` cases in `useSignalData` → a `resultSetters` map lookup in `default:`.
+- Board: 2 open — Info only: S333 (fill-path precision), S336 (C++ connection-handle ordering).

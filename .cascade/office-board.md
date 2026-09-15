@@ -14,7 +14,7 @@
 | Tracked файлов | 985 (ai-signal-bot 192, web-ui 533, hft-trade-bot 85, exchange_simulator 67, scripts 20, helm 20, monitoring 12, terraform 6, .github 10, docs 16, docker/compose 12, root 21, .cascade 3). Untracked на диске: `hft-skills/` (1132 ф., gitignored), `deploy/k8s/` (1 ф.) |
 | Всего находок | ~341 (S001–S341) |
 | Закрыто | 232 |
-| Открыто | **7** — R191 bloat: S323–S327 · R193: S333 · R194: S336 (S329/S332/S337/S340 → R200 · S338/S339 → R201 · S330/S331/S334/S335 → R202 · S322/S328 → R203) |
+| Открыто | **2** — R193: S333 · R194: S336 (S329/S332/S337/S340 → R200 · S338/S339 → R201 · S330/S331/S334/S335 → R202 · S322/S328 → R203 · S323–S327 → R204) |
 
 **Текущее состояние:** R195 ai-signal-bot safety-gates audit — 3 находки, все про "защита, которая не защищает": **S337** (High — CircuitBreaker не может сработать: `record_failure` без prod-caller'ов; и даже сработав, гейтит только broadcast — ордера и SHM-фид идут дальше), **S338** (Medium — `is_trading_active` гейтит только paper; live-путь без halt-гейта; `_hft_kill_active` до ордеров не доходит), **S339** (Medium — validator drawdown-чек мёртв: `update_pnl` никто не вызывает). Чисто: llm_engine (реальные HTTP-клиенты + honest provider=none), real_account/exchange_factory (ccxt-backed live path), hawkes (живой WS-endpoint), Database (WAL sqlite), SignalValidator остальные чеки живые. Board: 18 open.
 
@@ -36,11 +36,6 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 | ID | Находка | Детали | Приоритет | Статус |
 |----|---------|--------|-----------|--------|
 
-| **S323** | backtestEngine close-block duplicated | `web-ui/src/utils/backtestEngine.js:251-279` ≈ `:325-351` — 25-line close-position block (side-flip exitPrice, pnl sign, fee, short borrowFee, 9-field trades.push) duplicated for CLOSE_ALL/END; `entryNotional1`/`entryNotional2` rename scar proves the copy. Extract `closePosition(position,candle,reason)` → one body. | Low | [ ] Open |
-| **S324** | WsManager "Retry" button is a no-op affordance | `web-ui/src/components/WsManager.jsx:100-102` — `handleReconnect` only `addToast('info','…reconnect initiated')`; never calls `exchange.connect`/`signals.connect` (both exist in ctx; mock supplies `connect:()=>{}` so the fix is mock-safe). User clicks Retry → toast says it happened, nothing did. | Low | [ ] Open |
-| **S325** | stress_test scenario methods share ~18-line tail | `ai-signal-bot/src/risk/stress_test.py:40-155` — financial_crisis/covid/ftx/custom each end with the same value-sums→pnl→pnl_pct→StressTestResult→return block; only shock math + margin_pct/liquidity/threshold/name differ. `_evaluate_scenario(name, shocked, margin_pct, liquidity, threshold)` → ~120→~60 lines. | Low | [ ] Open |
-| **S326** | `_init_alert_metrics` — 15 hand-rolled ctor blocks | `ai-signal-bot/src/monitoring/metrics.py:155-216` — every metric spelled `self.x = Counter/Gauge("name","doc",registry=self.registry)`; pure table data masquerading as code. `[(attr,cls,name,doc),…]` + setattr loop → ~62→~22 lines; keeps names grep-able via the table literal. | Info | [ ] Open |
-| **S327** | useExchangeData `*_result` dispatch — 9 identical cases | `web-ui/src/hooks/useExchangeData.js:469-496` — `comparison_result…funding_arb_result` + `auth_ok` are all `setX(data); break`. Setter-map `{type: setter}` + lookup collapses ~27→~9 lines. | Info | [ ] Open |
 | **S333** | Fill-path precision nits: hardcoded 2-decimal tick, duplicated constant | `exchange_order_submission.py:363,449` + `exchange_advanced_orders.py:236,251,298` + `market_simulator.py:323-347` — `round(price, 2)` everywhere; harmless for the majors list, silently collapses any symbol priced < ~$0.005 (sub-cent assets round to 0.00 → zero-price positions). Also `_TYPICAL_VOLUME = 500.0` defined twice (`exchange_order_submission.py:20`, `exchange_advanced_orders.py:16`) — drift hazard between the impact model and the partial-fill-price model. Fix: single shared constant + tick-size-aware rounding or float passthrough. | Info | [ ] Open |
 | **S336** | `connection_` hdl published without ordering | `order_executor.h:54-56,466` — the asio open-handler writes non-atomic `connection_` then sets `connected_`; submit/watchdog threads read `connection_` after a relaxed `connected_` load (:439). No formal happens-before — benign on x86, formally a data race on ARM/weak-memory. Fix: release-store `connected_` after writing `connection_`, or guard the hdl under `client_mtx_`. | Info | [ ] Open |
 
@@ -332,6 +327,6 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 ## ПРИОРИТЕТЫ
 
-1. ~~S337~~ ~~S329+S332~~ ~~S340~~ (R200) ~~S338/S339~~ (R201) ~~S330/S331~~ ~~S334/S335~~ (R202) ~~S322~~ ~~S328~~ (R203) — все High/Medium закрыты. Осталось Low/Info only.
-2. Low: **S323** close-block ×2 · **S324** фейковая Retry-кнопка · **S325** stress_test tail ×4. Info: **S326** metrics-таблица · **S327** dispatch-map · **S333** round(·,2)+дубль константы · **S336** hdl ordering.
+1. ~~S337~~ ~~S329+S332~~ ~~S340~~ (R200) ~~S338/S339~~ (R201) ~~S330/S331~~ ~~S334/S335~~ (R202) ~~S322~~ ~~S328~~ (R203) ~~S323~~ ~~S324~~ ~~S325~~ ~~S326~~ ~~S327~~ (R204) — все High/Medium/Low закрыты. Осталось 2 Info.
+2. Info: **S333** round(·,2)+дубль константы · **S336** hdl ordering.
 3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам.

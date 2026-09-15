@@ -2703,3 +2703,13 @@ Board unchanged: 20 open.
 - **S328 (Medium):** dead parallel backtest stack deleted — `backtest_engine.py` + `pnl_calculator.py` (~580 ln) + 3 sole-purpose test files; `compare_backtests_request` now builds the canonical `results.BacktestResult` (was the twin contract from the dead stack). `__init__` re-exports trimmed.
 - **Verified:** 1253/1253 unit tests, ruff clean, zero remaining refs; new `test_market_data_feed.py` pins the shared loop contract.
 - Board: 7 open — Low: S323/S324/S325; Info: S326/S327/S333/S336.
+
+## R204 — slop-fix (audit-loop) — 5 находок закрыто, board 7 → 2 (Info only)
+
+- **S323 (Low):** `runBacktest` close-block ×2 → единый `closePosition(candle, reason)` — CLOSE_ALL и END-флаш больше не могут разъехаться в fee/borrow-математике.
+- **S324 (Low):** WsManager `Retry` реально вызывает `source.connect()` (оба хука его экспортируют); без connect — честный warning-тост вместо лживого "initiated". Регрессионный тест пинает вызов.
+- **S325 (Low):** stress_test — 4 сценария делят `_evaluate(...)` хвост; методы оставляют только shock-математику + 3 скаляра. 202→~155 строк.
+- **S326 (Info):** metrics — `_ALERT_METRIC_SPECS` таблица ×15 гоняет и ctor-цикл, и no-prometheus None-init → рассинхрон невозможен; побочно закрыт drift (4 атрибута раньше не нуллились).
+- **S327 (Info):** useSignalData — 8 одинаковых `*_result` кейсов → `resultSetters` ref-map в `default:`; `backtest_result` (callback) и `auth_*` (transform) остаются кейсами.
+- **Verified:** vitest 8+7+5, pytest 60, ruff/eslint чисто. Все фиксы поведенчески-нейтральны кроме S324 (кнопка наконец работает — это и была находка).
+- Board: 2 open — Info: S333 (round(·,2)+_TYPICAL_VOLUME dup), S336 (C++ hdl ordering).
