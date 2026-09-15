@@ -3035,3 +3035,9 @@ Board: 0 open.
 - poll_shm_market_data: per-symbol inject_snapshot re-took data_lock_ N times/tick → inject_snapshots_scoped (one lock per sweep; bonus: atomic cross-symbol snapshot).
 - inject_snapshot: order_books_[key] = ob copied level vectors every inject → keyed entry updated in place.
 - Syntax: data.h clang -fsyntax-only clean. Board: 0 open.
+
+## R236 — S364 Python feed side
+
+- _broadcast_market_data: rebuild+re-encode per client → encoded_cache by (enc, subs) — identical variants dump once.
+- _publish_shm_snapshot: buf-slice+unpack(bytes) per symbol → unpack_from/pack_into on mmap, zero copies.
+- Verified: exchange_simulator 446/446 green. Board: 0 open.
