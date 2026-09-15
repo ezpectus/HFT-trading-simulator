@@ -578,8 +578,15 @@ def check_test_coverage_gaps(staged_files: list[str]) -> CheckResult:
             continue
         if "e2e" in p.parts:
             continue
-        # Skip config/migration/docker files
-        if "migrations" in p.parts or "config" in p.parts or "deploy" in p.parts:
+        # Skip config/migration/docker files — both config/ dirs and
+        # tool-config filenames (eslint.config.js, vite.config.ts, …):
+        # they are not source units and cannot have test files.
+        if (
+            "migrations" in p.parts
+            or "config" in p.parts
+            or "deploy" in p.parts
+            or ".config." in p.name
+        ):
             continue
         # Skip .cascade/ files
         if ".cascade" in p.parts:

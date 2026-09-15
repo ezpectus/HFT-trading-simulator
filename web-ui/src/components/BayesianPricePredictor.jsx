@@ -286,13 +286,8 @@ function BayesianPricePredictor({ candles, symbol, exchange }) {
     }
   }, [candles, exchange, symbol, priorStrength, lookback, hazardRate])
 
-  if (!data) {
-    return <div className="p-4 text-sm text-gray-400">Need at least 30 candles for {symbol} on {exchange}</div>
-  }
-
-  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
-
-  // Beta distribution visualization
+  // Beta distribution visualization — hook must run unconditionally,
+  // before the !data early return below.
   const W = 400, H = 120, P = 20
   const betaPath = useMemo(() => {
     if (!data) return ''
@@ -304,6 +299,12 @@ function BayesianPricePredictor({ candles, symbol, exchange }) {
     }
     return points.length > 0 ? `M ${points.join(' L ')}` : ''
   }, [data])
+
+  if (!data) {
+    return <div className="p-4 text-sm text-gray-400">Need at least 30 candles for {symbol} on {exchange}</div>
+  }
+
+  const sigColor = data.signal === 'BUY' ? '#0ecb81' : data.signal === 'SELL' ? '#f6465d' : '#94a3b8'
 
   return (
     <div className="p-4 space-y-3">

@@ -134,6 +134,43 @@ const ctxTick = {
   },
 }
 
+// Selection switch: a different exchange|symbol pair drives per-selection
+// code paths (different candle series, order books, price lookups).
+const ALT_EX = MOCK_EXCHANGES[1] || EX
+const ALT_SYM = MOCK_SYMBOLS[1] || SYM
+const ctxAlt = {
+  ...ctxTick,
+  selectedExchange: ALT_EX,
+  selectedSymbol: ALT_SYM,
+  currentPrice: prices[ALT_EX]?.[ALT_SYM] || 100,
+  chartCandles: nextCandles
+    .filter(c => c.exchange === ALT_EX && c.symbol === ALT_SYM)
+    .map(c => ({ time: c.timestamp, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume })),
+}
+
+// Degenerate context: the pre-snapshot state — every feed empty. Panels must
+// degrade to a placeholder/NoDataFeed, never crash or emit NaN.
+const ctxEmpty = {
+  ...ctx,
+  chartCandles: [],
+  currentPrice: null,
+  exchange: {
+    ...ctx.exchange,
+    candles: [],
+    prices: {},
+    accounts: {},
+    orderbooks: {},
+    fills: [],
+    fundingRates: {},
+    arbitrage: { opportunities: [] },
+  },
+  signals: {
+    ...ctx.signals,
+    signals: [],
+    regime: null,
+  },
+}
+
 describe('panel mount sweep — every registry panel renders clean', () => {
   for (const panel of PANELS) {
     it(`[${panel.id}] mounts without crash, NaN, or React warnings`, async () => {
@@ -189,6 +226,25 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         rerender(
           <Suspense fallback={null}>
             <Component {...panel.props(ctxTick)} />
+          </Suspense>
+        )
+        await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
+        expect(container.innerHTML).not.toContain('NaN')
+
+        // Selection switch: different exchange|symbol — per-selection paths.
+        rerender(
+          <Suspense fallback={null}>
+            <Component {...panel.props(ctxAlt)} />
+          </Suspense>
+        )
+        await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
+        expect(container.innerHTML).not.toContain('NaN')
+
+        // Degenerate pass: pre-snapshot state (all feeds empty). A panel may
+        // legitimately render nothing — only crash/NaN/warnings are failures.
+        rerender(
+          <Suspense fallback={null}>
+            <Component {...panel.props(ctxEmpty)} />
           </Suspense>
         )
         await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
