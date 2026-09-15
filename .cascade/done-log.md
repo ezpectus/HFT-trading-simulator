@@ -1196,8 +1196,22 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R218 — slop-fix — S353 (stale docstrings, monitoring+scripts)
 
-### S353 — stale docstring claims corrected at both sites
+### S353 — stale docstring claims corrected at both sites ✅ · verified R219
 - **Bug:** doc-claims outlived code at two sites, same pattern: `monitoring/ebpf_monitor.py` `_report` docstring said "Log current stats as JSON **and update Prometheus metrics**" — the `prometheus_client` Gauge block was added in Пачка HH then deleted (git-confirmed; a Gauge with no `/metrics` endpoint exposed nothing anyway), docstring survived. `scripts/benchmark_suite.py` module docstring said "Latency measurement for **all HFT components**... for each pipeline stage" — all six benches are inline toy loops on canned data with zero pipeline imports (docs/PERFORMANCE.md:25-29 already discloses honestly; the script header still inflated).
 - **Fix:** corrected both docstrings to match reality — `_report` now says "Log current stats as JSON (no metrics export — standalone tool)"; benchmark header now says "synthetic proxy micro-benchmarks (NOT the real pipeline)" + points at PERFORMANCE.md. Rejected alternative: restoring the Gauge code — would require adding a metrics HTTP endpoint the standalone tool never had (scope creep, and likely why it was removed).
 - **Files:** `monitoring/ebpf_monitor.py:153`; `scripts/benchmark_suite.py:2-7`
 - **Verified:** `python -m py_compile` clean on both files.
+
+## R220 — slop-fix — S354/S355 (docs-vs-reality rot)
+
+### S354 — TESTING.md numbers + coverage claims corrected to verified actuals
+- **Bug:** systematic rot — every count wrong and self-contradictory (Py 118/126 → real 120; C++ 25 → real 26 incl. integration/+unit/ subdirs; JS ~158/162 → 159; totals 303/304/307 → 305+5 e2e), phantom test names (`test_trading_flow.py`, `test_marketplace`, `test_cross_exchange_arb`, `test_portfolio_optimizer`, `test_integration_signal_engine`), false coverage claims (`test_alerts.py` does NOT cross-check metric names — structure only; `test_integration.py` has zero health asserts — health coverage lives in `tests/unit/test_health_server.py`/`test_metrics_server.py`; sim `:8775/health` covered by docker-smoke + compose healthcheck, no pytest). Same-pattern fix: `ADVANCED_ORDER_TYPES.md:349` `test_order_types.py` → real `test_advanced_order_types.py`+`test_exchange_advanced_orders.py`; `QUICK_START.md:176` self-contradictory comment removed.
+- **Fix:** rewrote all counts to ls-verified actuals (120 Py / 26 C++ / 159 JS / 305 total +5 e2e), corrected integration count 4→3 with real file purposes, replaced phantom names with real ones, rewrote coverage claims to describe what tests actually do, corrected health-endpoint coverage attributions. Initial recount missed `tests/{integration,unit}/` subdirs — corrected C++ 23→26 and total 302→305 in the same pass.
+- **Files:** `docs/TESTING.md:23,84-92,95,103-105,113-117,122,157,166,182,193-194,229,235-241`; `docs/ADVANCED_ORDER_TYPES.md:349`; `docs/guides/QUICK_START.md:174-177`
+- **Verified:** every count re-globbed recursively (`find ... -name 'test_*'`); every named test file `ls`-checked; coverage claims re-read in source.
+
+### S355 — RISK_MANAGEMENT.md examples rewritten against the real API
+- **Bug:** phantom-API tour — entire `### RiskAnalyzer` section documented `src/risk/var_stress_test.py`+`RiskAnalyzer` which never existed; wrong method names (`calculate_historical_cvar`→`calculate_cvar`, `size_by_volatility`→`calculate_position_size`, `run_covid_crash`→`covid_crash_scenario`, `update_stop_loss`→`init_position`+`update`); wrong kwarg (`entry=`→`entry_price=`); phantom `test_risk_modules.py` (×2).
+- **Fix:** every example rewritten to real signatures (`calculate_cvar`, `calculate(balance, entry_price, stop_loss)`, `calculate_position_size(signal, price, volatility, risk_per_trade, method)`, `covid_crash_scenario(current_prices, positions)`, `init_position`+`update` with real `actions` keys `new_stop_loss/close_position/close_reason/partial_close_pct`); phantom RiskAnalyzer section deleted; test table → real files (test_risk/test_cvar*/test_kelly*/test_position_sizing/test_risk_manager).
+- **Files:** `docs/RISK_MANAGEMENT.md:135-141,176,204-213,241-253,293-303,341-349`
+- **Verified:** all class names `grep`-confirmed in `src/risk/`; all method names + signatures + result fields + actions-keys read from source; all 5 test files `ls`-confirmed.

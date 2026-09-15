@@ -2882,3 +2882,10 @@ Board: 0 open.
 **Чисто:** QUICK_START (всё верифицировано), TRADING_GUIDE (hotkeys точны), ARCHITECTURE (все пути + counts 278/271 точны, честные аннотации), ADV_ORDER_TYPES (классы/поля/семантика совпадают — гнил только test filename), root scripts честные, .pre-commit-config корректен.
 
 Board: 2 open (S354, S355).
+
+## R220 — slop-fix — S354+S355 закрыты — BOARD EMPTY
+
+- **S354** — TESTING.md: все counts → find-verified actuals (Py 120 / C++ 26 incl. subdirs / JS 159 / 305+5e2e; первый root-glob недосчитал C++ — исправлено в той же итерации), integration 4→3, phantom names → реальные файлы, coverage-клеймы → что тесты реально делают. Заодно ADV:349 + QUICK_START:176.
+- **S355** — RISK_MANAGEMENT.md: все examples → real API signatures (calculate_cvar / entry_price / calculate_position_size / covid_crash_scenario / init_position+update с реальными action-keys), phantom RiskAnalyzer/var_stress_test.py секция удалена, test-table → реальные файлы.
+
+Board: 0 open.
