@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 import { selectCandles } from '../utils/candles'
 
 // ─── Bayesian Structural Time Series (BSTS) ─────────────────────────────────
@@ -97,9 +97,16 @@ const kalmanFilterBSTS = (y, params) => {
     // Update
     for (let i = 0; i < stateDim; i++) x[i] = xPred[i] + K[i] * v
 
+    // Covariance: P = PPred − K·(Z·PPred). The previous element-wise
+    // K[i]·Z[j]·PPred[i][j] was not the Kalman update — P lost symmetry and
+    // positive-definiteness, blew up, and produced NaN forecasts.
+    const s = new Array(stateDim).fill(0)
+    for (let j = 0; j < stateDim; j++) {
+      for (let k = 0; k < stateDim; k++) s[j] += Z[k] * PPred[k][j]
+    }
     for (let i = 0; i < stateDim; i++) {
       for (let j = 0; j < stateDim; j++) {
-        P[i][j] = PPred[i][j] - K[i] * Z[j] * PPred[i][j] // simplified
+        P[i][j] = PPred[i][j] - K[i] * s[j]
       }
     }
 
@@ -158,6 +165,20 @@ function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
   const [sigmaLevel, setSigmaLevel] = useState(0.1)
   const [sigmaIrregular, setSigmaIrregular] = useState(0.1)
 
+  // Grid-search optimization writes param state — a side effect, so it lives
+  // in useEffect. Inside useMemo it ran the whole search twice per input
+  // change (write → dep change → recompute) and terminated only via float
+  // equality on the optimizer result.
+  useEffect(() => {
+    if (!autoOptimize) return
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < lookback + 1) return
+    const logPrices = cds.slice(-lookback).map(c => Math.log(Math.max(0.01, c.close)))
+    const p = optimizeBSTS(logPrices, period)
+    setSigmaLevel(p.sigmaLevel)
+    setSigmaIrregular(p.sigmaIrregular)
+  }, [autoOptimize, candles, exchange, symbol, lookback, period])
+
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)
     if (cds.length < lookback + 1) return null
@@ -166,12 +187,7 @@ function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
     // Use log prices for stability
     const logPrices = prices.map(p => Math.log(Math.max(0.01, p)))
 
-    let params = { sigmaLevel, sigmaSlope: 0.01, sigmaSeasonal: 0.05, sigmaIrregular, period }
-    if (autoOptimize) {
-      params = optimizeBSTS(logPrices, period)
-      setSigmaLevel(params.sigmaLevel)
-      setSigmaIrregular(params.sigmaIrregular)
-    }
+    const params = { sigmaLevel, sigmaSlope: 0.01, sigmaSeasonal: 0.05, sigmaIrregular, period }
 
     const result = kalmanFilterBSTS(logPrices, params)
 
@@ -203,7 +219,7 @@ function BayesianStructuralTimeSeries({ candles, symbol, exchange }) {
       residuals, params, currentPrice, forecastPrice, forecastReturn,
       signal, trendContribution, seasonalContribution,
     }
-  }, [candles, exchange, symbol, period, lookback, autoOptimize, sigmaLevel, sigmaIrregular])
+  }, [candles, exchange, symbol, period, lookback, sigmaLevel, sigmaIrregular])
 
   if (!data) {
     return <div className="p-4 text-sm text-gray-400">Need at least {lookback + 1} candles for {symbol} on {exchange}</div>

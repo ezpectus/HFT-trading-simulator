@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 import { selectCandles } from '../utils/candles'
 
 // ─── Gaussian Process Regression ────────────────────────────────────────────
@@ -179,6 +179,27 @@ function GaussianProcessRegression({ candles, symbol, exchange }) {
   const [nTrain, setNTrain] = useState(40)
   const [nPredict, setNPredict] = useState(10)
 
+  // Hyperparameter grid search writes param state — a side effect, so it
+  // lives in useEffect. Inside useMemo it ran the whole search twice per
+  // input change (write → dep change → recompute) and terminated only via
+  // float equality on the optimizer result.
+  useEffect(() => {
+    if (!autoOptimize) return
+    const cds = selectCandles(candles, exchange, symbol)
+    if (cds.length < nTrain + nPredict + 5) return
+    const N = nTrain + nPredict
+    const recent = cds.slice(-N).map(c => c.close)
+    const mean = recent.reduce((a, b) => a + b, 0) / N
+    const std = Math.sqrt(recent.reduce((s, p) => s + (p - mean) ** 2, 0) / N)
+    const yTrain = recent.map(p => std > 0 ? (p - mean) / std : 0).slice(0, nTrain)
+    const XTrain = Array.from({ length: nTrain }, (_, i) => i)
+    const kernel = kernelType === 'rbf' ? rbfKernel : kernelType === 'matern' ? matern52Kernel : periodicKernel
+    const p = optimizeHyperparams(XTrain, yTrain, kernel)
+    setSigmaF(p.sigmaF)
+    setLengthScale(p.lengthScale)
+    setSigmaN(p.sigmaN)
+  }, [autoOptimize, candles, exchange, symbol, kernelType, nTrain, nPredict])
+
   const data = useMemo(() => {
     const cds = selectCandles(candles, exchange, symbol)
     if (cds.length < nTrain + nPredict + 5) return null
@@ -200,13 +221,7 @@ function GaussianProcessRegression({ candles, symbol, exchange }) {
 
     const kernel = kernelType === 'rbf' ? rbfKernel : kernelType === 'matern' ? matern52Kernel : periodicKernel
 
-    let params = { sigmaF, lengthScale, sigmaN, period: 10 }
-    if (autoOptimize) {
-      params = optimizeHyperparams(XTrain, yTrain, kernel)
-      setSigmaF(params.sigmaF)
-      setLengthScale(params.lengthScale)
-      setSigmaN(params.sigmaN)
-    }
+    const params = { sigmaF, lengthScale, sigmaN, period: 10 }
 
     const { means, variances, logML } = gpPredict(XTrain, yTrain, XTest, kernel, params)
 
@@ -252,7 +267,7 @@ function GaussianProcessRegression({ candles, symbol, exchange }) {
       signal, currentPrice,
       XTrain: XTrain.length, N,
     }
-  }, [candles, exchange, symbol, kernelType, sigmaF, lengthScale, sigmaN, autoOptimize, nTrain, nPredict])
+  }, [candles, exchange, symbol, kernelType, sigmaF, lengthScale, sigmaN, nTrain, nPredict])
 
   if (!data) {
     return <div className="p-4 text-sm text-gray-400">Need at least {nTrain + nPredict + 5} candles for {symbol} on {exchange}</div>

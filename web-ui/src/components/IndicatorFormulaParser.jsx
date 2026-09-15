@@ -147,7 +147,6 @@ function evalAST(node, ctx) {
 
 function IndicatorFormulaParser({ candles, symbol, exchange }) {
   const [formula, setFormula] = useState('EMA(closes, 9) - EMA(closes, 21)')
-  const [error, setError] = useState(null)
 
   const result = useMemo(() => {
     const symCandles = candles
@@ -210,7 +209,6 @@ function IndicatorFormulaParser({ candles, symbol, exchange }) {
       const parsed = parseExpression(tokens, 0, ctx)
       if (parsed.pos < tokens.length) throw new Error('Unexpected trailing tokens')
       const values = evalAST(parsed.result, ctx)
-      setError(null)
 
       const validValues = values.filter(v => !isNaN(v))
       if (validValues.length === 0) return { values: [], error: 'No valid values' }
@@ -230,10 +228,14 @@ function IndicatorFormulaParser({ candles, symbol, exchange }) {
 
       return { values, last, prev, min, max, change, signal, n }
     } catch (e) {
-      setError(e.message)
-      return null
+      return { error: e.message }
     }
   }, [candles, symbol, exchange, formula])
+
+  // Error travels inside the memo result — a useState setError here was a
+  // render-phase write (and left stale errors + a crash on the
+  // { values: [] } path which never set it).
+  const error = result?.error || null
 
   const examples = [
     'EMA(closes, 9) - EMA(closes, 21)',
