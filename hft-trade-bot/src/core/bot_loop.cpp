@@ -498,12 +498,16 @@ void print_status(BotContext& ctx) {
 void poll_shm_market_data(BotContext& ctx) {
     if (!ctx.shm_market_data || !ctx.receiver->has_shm_data()) return;
     uint8_t max_sym = ctx.shm_market_data->max_symbols();
-    for (uint8_t sid = 0; sid < max_sym; ++sid) {
-        ipc::MarketSnapshotMsg snap;
-        if (ctx.shm_market_data->read_snapshot(sid, snap)) {
-            ctx.receiver->inject_snapshot(sid, snap.bid, snap.ask, snap.last, snap.volume);
+    // One lock for the whole sweep — per-symbol inject_snapshot() re-took the
+    // spinlock N times per tick.
+    ctx.receiver->inject_snapshots_scoped([&](auto inject) {
+        for (uint8_t sid = 0; sid < max_sym; ++sid) {
+            ipc::MarketSnapshotMsg snap;
+            if (ctx.shm_market_data->read_snapshot(sid, snap)) {
+                inject(sid, snap.bid, snap.ask, snap.volume);
+            }
         }
-    }
+    });
 }
 
 void graceful_shutdown(BotContext& ctx) {

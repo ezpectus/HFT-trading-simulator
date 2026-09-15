@@ -83,6 +83,19 @@ class SignalReceiver : private SignalReceiverData {
         inject_snapshot_impl(symbol_id, bid, ask, last, volume);
     }
 
+    // Batched inject — one data_lock_ acquisition for a whole sweep. The
+    // callback receives an injector; the per-tick SHM poll used to re-take the
+    // spinlock for every symbol.
+    template <typename F> void inject_snapshots_scoped(F&& fill) {
+        {
+            std::lock_guard<Spinlock> lock(data_lock_);
+            fill([this](uint16_t sid, double bid, double ask, double vol) {
+                inject_snapshot_locked(sid, bid, ask, vol);
+            });
+        }
+        has_new_data_.store(true, std::memory_order_release);
+    }
+
     bool has_shm_data() const noexcept { return has_shm_data_impl(); }
 
     bool connect() {

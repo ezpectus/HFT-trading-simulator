@@ -106,25 +106,40 @@ class SignalReceiverData {
         return true;
     }
 
-    void inject_snapshot_impl(uint16_t symbol_id, double bid, double ask, double /*last*/,
-                              double volume) {
+    // Core with data_lock_ already held — shared by the single-shot impl and
+    // the batched scoped variant used by the per-tick SHM poll sweep.
+    void inject_snapshot_locked(uint16_t symbol_id, double bid, double ask, double volume) {
         if (symbol_id >= id_to_symbol_.size()) return;
         const auto& sym = id_to_symbol_[symbol_id];
         double      mid = (bid + ask) / 2.0;
+        key_scratch_    = "shm|";
+        key_scratch_ += sym;
+        prices_[key_scratch_]    = mid;
+        prices_by_id_[symbol_id] = mid;
+        OrderBook& ob            = obs_by_id_[symbol_id];
+        ob.symbol                = sym;
+        ob.exchange              = "shm";
+        if (ob.bids.empty()) ob.bids.resize(1);
+        if (ob.asks.empty()) ob.asks.resize(1);
+        ob.bids[0] = {bid, volume * 0.1};
+        ob.asks[0] = {ask, volume * 0.1};
+        // Update the keyed book in place — copying `ob` re-copied the level
+        // vectors on every inject.
+        OrderBook& kob = order_books_[key_scratch_];
+        kob.symbol     = sym;
+        kob.exchange   = "shm";
+        if (kob.bids.empty()) kob.bids.resize(1);
+        if (kob.asks.empty()) kob.asks.resize(1);
+        kob.bids[0] = ob.bids[0];
+        kob.asks[0] = ob.asks[0];
+    }
+
+    void inject_snapshot_impl(uint16_t symbol_id, double bid, double ask, double /*last*/,
+                              double volume) {
+        if (symbol_id >= id_to_symbol_.size()) return;
         {
             std::lock_guard<Spinlock> lock(data_lock_);
-            key_scratch_ = "shm|";
-            key_scratch_ += sym;
-            prices_[key_scratch_]    = mid;
-            prices_by_id_[symbol_id] = mid;
-            OrderBook& ob            = obs_by_id_[symbol_id];
-            ob.symbol                = sym;
-            ob.exchange              = "shm";
-            if (ob.bids.empty()) ob.bids.resize(1);
-            if (ob.asks.empty()) ob.asks.resize(1);
-            ob.bids[0]                 = {bid, volume * 0.1};
-            ob.asks[0]                 = {ask, volume * 0.1};
-            order_books_[key_scratch_] = ob;
+            inject_snapshot_locked(symbol_id, bid, ask, volume);
         }
         has_new_data_.store(true, std::memory_order_release);
     }
