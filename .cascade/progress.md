@@ -3104,3 +3104,10 @@ Board: 0 open.
 - Immediately caught 2: PortfolioOptLab `setSelected(Set)` vs array contract (crash on first chip click); VariationalAutoencoder transposed decoder backprop — Wout indexed [hidden][input] though allocated [input][hidden], bout indexed over hiddenDim though inputDim-long — square 8×8 defaults masked it; window=4 → TypeError, hidden=4 → NaN weights → NaN SVG. Corrected to dWout[j][i]=dxHat[j]·h2[i], bout[j]-=lr·dxHat[j].
 - Sweep 271/271 with interactions; focused 9/9; full vitest 172 files / 1440 tests green; eslint clean.
 - Board: 0 open.
+
+## R245 — all-controls + tick pass → S370 found+fixed
+
+- panelsMount now covers every control type (buttons, number/text/textarea, checkbox/radio, range, select) fired twice (revealed controls + both toggle directions), then re-renders with a second-tick ctx (appended candle per series + new fill/signal) to exercise update-path setData/memo/effect re-runs.
+- Caught 2 numerical-stability defects invisible to mount-only: BurgersEquation — doc'd LF but implemented FTCS advection + same-update explicit Laplacian (Nyquist-unstable, |G(π)|=1+4d → blowup → sub=6.6e36 hang → NaN); fixed via operator splitting (conservative LF + separate diffusion substep, per-CFL substepping, dt≤0.5). RNN — lr unclamped → divergence → NaN; clamped ≤0.1 + non-finite-loss early return.
+- Sweep 271/271 with interactions+tick; full vitest 173f/1443t green; eslint clean.
+- Board: 0 open.
