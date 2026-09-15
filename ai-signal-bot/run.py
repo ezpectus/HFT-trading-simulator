@@ -127,6 +127,7 @@ class AISignalBot:
         # Ops alerting (only if config.alerting.enabled)
         self._alert_system = None
         self._day_start_balance: float | None = None
+        self._dd_last_equity: float | None = None
         # Live-order adapter — created lazily once, reused across signals
         # (a fresh ExchangeFactory per order pays load_markets per signal).
         self._live_factory = None
@@ -551,6 +552,15 @@ class AISignalBot:
         account = self.exchange.accounts.get(self.config.default_exchange, {})
         positions = account.get("positions", [])
         await self.validator.update_position_count(len(positions))
+        # Feed the drawdown gate (S339): no realized-PnL path exists in prod,
+        # so the validator accumulates equity deltas — cumulative daily equity
+        # change (realized + unrealized). First call only sets the baseline.
+        equity = account.get("equity", account.get("balance", 0.0))
+        if self._dd_last_equity is None:
+            self._dd_last_equity = equity
+        else:
+            await self.validator.update_pnl(equity - self._dd_last_equity)
+            self._dd_last_equity = equity
         result = await self.validator.validate(signal, balance)
         if not result.passed:
             self.logger.info("  Rejected: %s", result.reason)
@@ -580,11 +590,16 @@ class AISignalBot:
             if metrics is not None:
                 metrics.update_shm_buffer("signals", self._shm_producer.pending())
 
-        if self.config.paper_trading:
-            if self.exchange.is_trading_active:
-                await self._execute_paper_order(signal, signal_id, balance)
-            else:
-                self.logger.info("Trading stopped — skipping paper order execution")
+        # Halt gates cover BOTH order paths (S338): sim trading-halt and the
+        # C++ kill-switch latch stop live orders too, not just paper ones.
+        halted_by = ("kill-switch" if self._hft_kill_active
+                     else None if self.exchange.is_trading_active else "trading stopped")
+        if halted_by:
+            self.logger.warning(
+                "  Order execution halted (%s) — %s %s signal not executed",
+                halted_by, sig_dict.get("direction", "?"), symbol)
+        elif self.config.paper_trading:
+            await self._execute_paper_order(signal, signal_id, balance)
         else:
             await self._execute_live_order(signal, signal_id)
 
