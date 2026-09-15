@@ -2791,3 +2791,13 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **Dead-code** — 0 мёртвых экспортов/hooks/utils (ui-helpers.js — intentional TS-shim).
 
 Вердикт: область уже вычищена предыдущими раундами (S015, S151, S230–S236, S327 видны в коде как fix-комментарии). Новых находок нет — доска остаётся пустой.
+
+## R211 — slop-audit — exchange_simulator remainder — 3 находки
+
+Свежий грунт после R210 (web-ui/src ЧИСТО): весь non-exchange_* стек симулятора, ~4.6k строк. R193 покрывал fill-model (`exchange_*.py`); этот раунд — ws_*-стек, симуляторы, сервисы, модели.
+
+- **S347 (Medium)** — WS-layer /metrics полумёртв: `record_broadcast_latency`/`record_delta_update`/`compressed_size` — zero prod callers → 3 gauge'а вечных нуля (`broadcast_latency_p95_ms`, `delta_update_ratio`, `compression_ratio`); `record_message`/`client_count` только в `_send_json` → `messages_total`/`bytes_sent`/`clients_connected`/`message_size_*` не видят горячий тик-цикл. S344-семья (S223 завёл fed-счётчики, эти остались test-fed).
+- **S348 (Info)** — floating `asyncio.create_task(websocket.send(...))` ×4 (ws_message_handler:400,408,410,589) — GC-risk + потерянные исключения; `replay_state` при speed=0 единственный sync-канал.
+- **S349 (Info)** — `close_reason` = `trade_history[-1].reason` для каждого ордера батча → мислейбл при >1 закрытии/тик; доходит до AlertWebhook-классификации + trade CSV `CLOSED_{reason}`.
+
+Чисто: ws_message_handler (per-message try, rate-limit, auth-gate, idempotent dedup, NaN/TIF-валидация), ws_broadcast (per-encoding variants, per-client subs, seq, delta-compute), wire-schema ↔ web-ui consumer, websocket_server (SHM seqlock, health-endpoints, graceful shutdown), ws_metrics histogram, market_simulator (GBM+corr+OU), options_simulator (Black-Scholes+parity), arbitrage, audit_logger, config_validator, data_export, models, exchange, __main__.
