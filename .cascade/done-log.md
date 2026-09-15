@@ -1309,7 +1309,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R239 — playwright e2e unblocked — S365
 
-### S365 — e2e suite exposes 4 real runtime defects (Medium) ✅
+### S365 — e2e suite exposes 4 real runtime defects (Medium) ✅ · verified R243
 - **Context:** playwright e2e was recorded as "env-blocked, needs a running server" — wrong: `webServer` in playwright.config auto-spawns `dev:mock`. First real run: **32 pass / 3 fail**, and the console-errors test surfaced ~9.5k errors per load.
 - **Bugs:** (a) `OptionsStrategySimulator` emitted `NaN` into SVG `points`/`y1`/`y2` — `spot=0` → `range=0` → `0/0` inside `priceAtExpiry`, and `maxProfit===maxLoss` → `0/0` on the y-axis — thousands of React attribute warnings per render; (b) `IndicatorBuilder` called `onIndicatorsChange` (parent `setCustomIndicators` → Zustand setState) inside `useMemo` — a setState-during-render violation; (c) `OpenInterestTracker` crashed every render — an orphaned `.filter().sort()` chain after `return null` was ASI-glued into `null.filter(...)` (dead expression; OI comes from candle volume, result unused); (d) `PerfAreaChart` fed `lightweight-charts` mixed/duplicate `time` values (`p.time || i`) → `setData` threw its ascending-order assertion → error-boundary remount loop; (e) the fixed notifications region physically covered the tab bar — Playwright couldn't click `tab-backtest` (real users couldn't either while toasts were up — mock mode emits fill toasts continuously); (f) `getByRole('alert')` matched the mock banner AND every toast.
 - **Fix:** `priceAtExpiry` gets a flat 0..1 domain when `spot<=0`; chart mapping clamps non-finite `price`/`pnl` to the fallback (flat midline); `useMemo`→`useEffect` for the parent callback; orphaned chain deleted; `setData` input normalized to strictly-increasing finite times; notification region `pointer-events-none` with `pointer-events-auto` on toasts/buttons; test selector narrowed to the DEMO MODE banner.
@@ -1318,7 +1318,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R240 — S365-class sweep — S366
 
-### S366 — render-phase setState + broken Kalman covariance update (Medium) ✅
+### S366 — render-phase setState + broken Kalman covariance update (Medium) ✅ · verified R243
 - **Sweep:** S365 showed a defect *class* (setState inside `useMemo`). Scripted sweep of all block/expression `useMemo` bodies for `set*`/`on*` calls → 3 live sites.
 - **Bugs:** (a) `BayesianStructuralTimeSeries` + `GaussianProcessRegression` ran their **grid-search optimizers inside useMemo and wrote the results to state whose variables sat in the same memo's dep array** — every input change ran `optimizeBSTS`/`optimizeHyperparams` twice (write → dep change → recompute), and termination relied on `Object.is` float equality of the optimizer output; (b) `IndicatorFormulaParser` wrote `setError` inside the memo — plus a latent crash: the `{ values: [] }` early return never set `error`, so the result grid rendered `result.last.toFixed` on `undefined`; (c) while re-testing BSTS, the new SVG-finiteness check caught a **real numerical defect**: the Kalman covariance update was `P[i][j] = PPred[i][j] - K[i]·Z[j]·PPred[i][j]` — not the Kalman update; P lost symmetry/positive-definiteness → state exploded → `Math.exp(NaN)` forecasts → NaN SVG paths in production.
 - **Fix:** optimizers moved to `useEffect` keyed on their inputs (run once per change; memo is a pure derivation; `autoOptimize` dropped from memo deps); `IndicatorFormulaParser` error travels inside the memo result (`{error: msg}` on catch, `error` state deleted — the `{values:[]}` path now shows "No valid values" instead of crashing); Kalman P-update corrected to `P = PPred − K·(Z·PPred)` via the `s[j] = Σ_k Z[k]·PPred[k][j]` row.
@@ -1333,7 +1333,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R241 — mount-all-panels sweep — S367
 
-### S367 — registry panel coverage: 4 panels broken, all unmounted by every prior gate (High) ✅
+### S367 — registry panel coverage: 4 panels broken, all unmounted by every prior gate (High) ✅ · verified R243
 - **Context:** e2e mounts only the default dashboard; vitest covered ~60 of 271 registry panels. New `panelsMount.test.jsx` mounts EVERY panel in `panels/registry.js` through its real `props(ctx)` builder against a snapshot-faithful mock context, waits out `React.lazy`, and asserts: non-empty output + zero `NaN` in the DOM. First run: 267/271 clean, 4 real defects — every one a panel that could not render correctly in production.
 - **Bugs:**
   (a) `LiquidationMap` — `magnitude` was computed onto `allLevels` but the bars were mapped from the pre-enrichment `longLevels`/`shortLevels`, so every leverage `<rect>` got `y="NaN" height="NaN"`. Now bars map from `allLevels` filtered by `side`.
@@ -1345,7 +1345,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R242 — console-error assertion in mount sweep — S368
 
-### S368 — `BotStatus` activity feed duplicate React keys (Low) ✅
+### S368 — `BotStatus` activity feed duplicate React keys (Low) ✅ · verified R243
 - **Context:** the first mount-sweep run logged a React warning the test didn't assert on: `Encountered two children with the same key 'BTCUSDT-1789503656.586'`. The sweep now captures `console.error`/`console.warn` per mount and fails on any real React dev warning (act-harness noise filtered), turning the whole S365/S366 warning class into a hard gate across all 271 panels.
 - **Bug:** activity-feed rows were keyed `${symbol}-${time || i}` — a signal and a fill (or two signals) for the same symbol on the same tick produced identical keys → non-unique keys → mis-reconciliation on updates.
 - **Fix:** key is now `${type}-${symbol}-${time}-${i}` — type separates signal/fill collisions, index guarantees uniqueness within the slice.

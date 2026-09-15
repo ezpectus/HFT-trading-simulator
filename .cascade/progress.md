@@ -3091,3 +3091,9 @@ Board: 0 open.
 - Immediately caught: S368 — BotStatus activity-feed keys `${symbol}-${time}` collided for signal+fill same-symbol/same-tick → React duplicate-key warning. Key now `${type}-${symbol}-${time}-${i}`.
 - Sweep 271/271 clean, botStatus 27/27, eslint clean.
 - Board: 0 open.
+
+## R243 — slop-verify батч (каденс: 5 записей с R237)
+
+- Re-opened every claimed line for S365 (6), S366+ext (4), S367 (4), S368 (2) — 18/18 sites hold against live code.
+- Spot-checks: BSTS Kalman now `P[i][j] = PPred − K[i]·s[j]` with `s[j]=ΣZ[k]·PPred[k][j]` (correct); BSTS/GPR optimizers in useEffect; IndicatorFormulaParser error inside memo result; LiquidationMap bars from allLevels; RNN `4*hiddenSize` rows + `lstm.inputSize`; OFA `.quantity`; BL K=0 returns sharpes/posteriorCov; BotStatus key has type+i; panelsMount captures console.error/warn with act-noise filter.
+- 0 wrong / 0 rotted. Remaining verify-debt: hft ctest (MSVC env) only.
