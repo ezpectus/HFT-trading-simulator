@@ -2740,3 +2740,11 @@ Lens: non-finite floats reaching `json.dumps` on WS boundaries — Python emits 
 - **S362 — `portfolio_requests` validators accept non-finite floats (Info).** `1e999` is valid JSON → `inf`. 8 unguarded float-parse sites let inf/nan reach optimizers/`implied_vol` → NaN outputs → bare `NaN` in the response frame → the whole frame unparseable client-side. (`iv`/`beta` were already safe via bounded ranges; `analysis_requests` validates finiteness correctly — this file was the deviant.)
 
 **Fixed in R230 (same pass):** `np.isfinite` at all 8 parse sites, error-string idiom preserved; 6 new `1e999` rejection params in test_error_paths. Rest of sweep clean: strategies sanitize `isnan` at read, `analysis_requests` input+output, sim values are engine-generated positive floats.
+
+## R231 — slop-audit — datetime/growth/injection triple sweep — 0 findings
+
+Three lenses, all clean:
+
+- **Datetime hygiene:** all wall-time calls are `datetime.now(UTC)`-aware (tracker, validator, data_export, health) — no naive `now()`, no naive↔aware mixing, no `fromtimestamp` without tz. One cosmetic `datetime.utcnow()` in `scripts/ci/report.py:51` (deprecated API in a CI label — works, not a defect).
+- **Unbounded growth:** every append structure is bounded — `signal_publisher._compute_windows` (sliding 60s + rate cap), `ws_client._candle_history` (`maxlen=200`/symbol), `_order_dedup_keys` (FIFO eviction at `_ORDER_DEDUP_MAX`), `audit_logger._logs`/`alert_history`/`returns_history`/`_returns` all `maxlen`, `_pending_orders`/`_request_order` popped on resolve. Zero `deque()` without maxlen that lacks an eviction path.
+- **Injection/precision:** zero f-string SQL — every `execute*` parameterized; float `==` hits are all `== 0` division guards, not value-equality.

@@ -2955,3 +2955,10 @@ Board: 0 open.
 - **S362** — portfolio_requests validators принимали non-finite floats (1e999→inf, валидный JSON): 8 непроверенных float-parse сайтов → NaN в optimizer outputs → json.dumps emits bare NaN → unparseable frame дропается клиентом. isfinite-чеки на всех 8, error-string idiom, +6 тест-параметров.
 - Остальной sweep чистый (analysis_requests валидирует, стратегии isnan-guard, sim — engine values).
 - Board: 0 open.
+
+## R231 — datetime/growth/injection triple sweep — ЧИСТО — BOARD EMPTY
+
+- Datetime: всё now(UTC)-aware; 1 косметический utcnow() в ci/report.py (deprecation, не дефект).
+- Growth: все append-структуры bounded (maxlen/FIFO-eviction/rate-cap) — 0 утечек.
+- Injection: 0 f-string SQL; float == hits — все == 0 guards.
+- Board: 0 open.
