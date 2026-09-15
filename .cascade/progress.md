@@ -2986,3 +2986,9 @@ Board: 0 open.
 - office-board СВОДКА: честная бухгалтерия (348 записано / ~330 реальных дефектов / 9 N/A / ~9 dup / 14 мёртвых ID / 0 open). Старый "248" был протухшим счётчиком.
 - AUDIT_FINDINGS: добавлена секция "Final status — audit converged" + verify-debt (hft ctest на MSVC-тачке).
 - Проверены "потерянные" ID S200/S271/S308/S310/S312/S315 — все закрыты (folded в batch-записи или фиксы R170/R151). Ничего не висит.
+
+## R233c — WATCH MODE активирован
+
+- Новый workflow `.windsurf/workflows/watch-mode.md` (local, .windsurf gitignored): триггеры вместо таймера — diff-scoped audit на новый код, verify каждые ~5 done-записей, docs-refresh на milestone, reopened-находка → немедленный slop-fix.
+- Exit-условие: Medium+ yield в sweep'е → обратно на регулярные audit-loop раунды по той зоне.
+- Board header помечен WATCH MODE.
