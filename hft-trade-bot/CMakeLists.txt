@@ -369,6 +369,23 @@ foreach(v2test v2_infra v2_indicators v2_engine v2_pressure_adaptive)
     )
     add_test(NAME ${v2test}_tests COMMAND test_${v2test})
 endforeach()
+
+# ─── Hot-path microbenchmark (dev tool — intentionally NOT a ctest target:
+#     timings are meaningless under CI load; run ./hft_bench manually) ───
+add_executable(hft_bench tests/bench_hot_path.cpp src/strategies/signal_engine_v2.cpp)
+target_include_directories(hft_bench PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/tests
+)
+target_link_libraries(hft_bench PRIVATE
+    fmt::fmt
+    Threads::Threads
+)
+set_target_properties(hft_bench PROPERTIES
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    INTERPROCEDURAL_OPTIMIZATION FALSE
+)
 endif() # fmt::fmt
 
 # ─── V3 Production Tests ───
