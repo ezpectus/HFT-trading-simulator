@@ -133,6 +133,10 @@ const lstmTrain = (lstm, sequences, targets, lr = 0.01, epochs = 50) => {
         loss += diff * diff
         dy[i] = 2 * diff / outputSize
       }
+      // A non-finite loss means the step diverged — y overflowed while
+      // weights are still finite. Stop training and keep the honest
+      // pre-divergence loss history instead of pushing bogus losses.
+      if (!Number.isFinite(loss)) return losses.length ? losses : [0]
       totalLoss += loss / outputSize
 
       // Gradient for output layer
@@ -367,7 +371,7 @@ function RecurrentNeuralNetwork({ candles, symbol, exchange }) {
         </label>
         <label className="flex items-center gap-1">
           <span className="text-gray-400">Learning rate:</span>
-          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, +e.target.value))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
+          <input type="number" step="0.001" value={lr} onChange={e => setLr(Math.max(0.0001, Math.min(0.1, +e.target.value)))} className="w-16 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
       </div>
 

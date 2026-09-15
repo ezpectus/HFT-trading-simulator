@@ -98,6 +98,42 @@ const ctx = {
   },
 }
 
+// Second-tick context: in production every store slice re-identities each
+// message and panels feed chart libs (setData/update) on the UPDATE path —
+// exactly where unsorted/duplicate-time defects live. Append one candle to
+// every series plus a fresh fill and signal so every memo/effect re-runs.
+const lastBySeries = new Map()
+for (const c of snapshot.candles) {
+  const k = `${c.exchange}|${c.symbol}`
+  const prev = lastBySeries.get(k)
+  if (!prev || c.timestamp > prev.timestamp) lastBySeries.set(k, c)
+}
+const nextCandles = [...snapshot.candles]
+for (const last of lastBySeries.values()) {
+  const close = last.close * 1.0005
+  nextCandles.push({
+    exchange: last.exchange, symbol: last.symbol,
+    timestamp: last.timestamp + 60,
+    open: last.close, high: close * 1.001, low: last.close * 0.999,
+    close, volume: last.volume,
+  })
+}
+const ctxTick = {
+  ...ctx,
+  chartCandles: nextCandles
+    .filter(c => c.exchange === EX && c.symbol === SYM)
+    .map(c => ({ time: c.timestamp, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume })),
+  exchange: {
+    ...ctx.exchange,
+    candles: nextCandles,
+    fills: [generateFill(SYM, EX, 65000), ...fills],
+  },
+  signals: {
+    ...ctx.signals,
+    signals: [generateSignal(SYM, EX, 65000), ...signals],
+  },
+}
+
 describe('panel mount sweep — every registry panel renders clean', () => {
   for (const panel of PANELS) {
     it(`[${panel.id}] mounts without crash, NaN, or React warnings`, async () => {
@@ -108,7 +144,7 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         const Component = panel.component
         const props = panel.props(ctx)
 
-        const { container } = render(
+        const { container, rerender } = render(
           <Suspense fallback={null}>
             <Component {...props} />
           </Suspense>
@@ -120,20 +156,43 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         // No NaN may leak into the DOM — attributes or text.
         expect(container.innerHTML).not.toContain('NaN')
 
-        // React dev warnings (duplicate keys, setState-in-render, unknown
-        // props, invalid attributes) surface via console.error/console.warn.
-        // Act() warnings are test-harness noise (timers ticking during the
-        // test), not product defects — filtered.
         // Interaction pass: mount-time coverage misses handlers that only run
-        // on click/change. Fire every button and input, then re-check.
-        for (const btn of container.querySelectorAll('button')) {
-          fireEvent.click(btn)
+        // on click/change. Fire every control type, then re-check. Two passes:
+        // the first interaction may reveal new controls (conditional render),
+        // and re-clicking toggles state both ways.
+        const interact = () => {
+          for (const btn of container.querySelectorAll('button')) {
+            fireEvent.click(btn)
+          }
+          for (const el of container.querySelectorAll('input[type="number"], input[type="text"], input:not([type]), textarea')) {
+            fireEvent.change(el, { target: { value: '1' } })
+          }
+          for (const el of container.querySelectorAll('input[type="checkbox"], input[type="radio"]')) {
+            fireEvent.click(el)
+          }
+          for (const el of container.querySelectorAll('input[type="range"]')) {
+            fireEvent.change(el, { target: { value: el.max || '1' } })
+          }
+          for (const sel of container.querySelectorAll('select')) {
+            const opts = sel.querySelectorAll('option')
+            if (opts.length > 1) fireEvent.change(sel, { target: { value: opts[1].value } })
+          }
         }
-        for (const input of container.querySelectorAll('input[type="number"], input[type="text"], input:not([type])')) {
-          fireEvent.change(input, { target: { value: '1' } })
-        }
+        interact()
+        interact()
         // Let effects/memos triggered by the interactions settle.
         await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
+
+        // Update path: a second tick of context (new array identities) drives
+        // chart setData/update calls and memo/effect re-runs — the path where
+        // unsorted/duplicate-time defects live.
+        rerender(
+          <Suspense fallback={null}>
+            <Component {...panel.props(ctxTick)} />
+          </Suspense>
+        )
+        await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
+        expect(container.innerHTML).not.toContain('NaN')
 
         // React dev warnings (duplicate keys, setState-in-render, unknown
         // props, invalid attributes) surface via console.error/console.warn.

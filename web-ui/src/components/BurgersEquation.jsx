@@ -15,8 +15,10 @@ import { selectCandles } from '../utils/candles'
 //   Hopf-Cole transformation: u = -2ν·(∂/∂x) log φ
 //   → transforms Burgers to heat equation ∂φ/∂t = ν·∂²φ/∂x²
 //
-//   Numerical: Lax-Friedrichs scheme (inviscid)
-//   u_i^{n+1} = (1/2)(u_{i+1}^n + u_{i-1}^n) - (Δt/2Δx)·u_i^n·(u_{i+1}^n - u_{i-1}^n)
+//   Numerical: conservative Lax-Friedrichs, flux f(u) = u²/2
+//   u_i^{n+1} = (1/2)(u_{i+1}^n + u_{i-1}^n) - (Δt/2Δx)·(f(u_{i+1}^n) - f(u_{i-1}^n))
+//   TVD under CFL max|u|·Δt/Δx ≤ 1 — the quasilinear form u_i·(u_{i+1}−u_{i-1})
+//   is NOT conservative and blows up quadratically on rough initial data.
 //
 //   Applications: order flow shock detection, price jump prediction,
 //   nonlinear wave propagation in microstructure
@@ -38,28 +40,43 @@ const solveBurgers = (u0, xGrid, dt, nSteps, nu) => {
   const shockPoints = []
 
   for (let step = 0; step < nSteps; step++) {
-    const newU = new Array(n).fill(0)
-    for (let i = 1; i < n - 1; i++) {
-      // Advection: -u·∂u/∂x (upwind)
-      const du = (u[i + 1] - u[i - 1]) / (2 * dx)
-      const advection = -u[i] * du
-      // Diffusion: ν·∂²u/∂x²
-      const diffusion = nu * (u[i + 1] - 2 * u[i] + u[i - 1]) / (dx * dx)
-      newU[i] = u[i] + dt * (advection + diffusion)
+    // CFL stability: advective dt·|u|/dx ≤ ~1 and diffusive ν·dt/dx² ≤ ½.
+    // Substep instead of clamping so the requested total time is honored.
+    const umax = Math.max(1e-9, ...u.map(v => Math.abs(v)))
+    let dtMax = 0.9 * dx / umax
+    if (nu > 0) dtMax = Math.min(dtMax, 0.45 * dx * dx / nu)
+    const sub = Math.min(500, Math.max(1, Math.ceil(dt / dtMax)))
+    const dts = dt / sub
+
+    for (let s = 0; s < sub; s++) {
+      // Operator splitting — LF's Nyquist-marginal average makes an explicit
+      // Laplacian in the SAME update unconditionally unstable (|G(π)| = 1+4d).
+      // Sub-step 1: conservative LF advection, flux f(u)=u²/2
+      const adv = new Array(n).fill(0)
+      for (let i = 1; i < n - 1; i++) {
+        adv[i] = 0.5 * (u[i + 1] + u[i - 1]) - dts * (u[i + 1] * u[i + 1] - u[i - 1] * u[i - 1]) / (4 * dx)
+      }
+      // Boundary: periodic
+      adv[0] = adv[n - 2]
+      adv[n - 1] = adv[1]
+      // Sub-step 2: explicit centered diffusion under ν·dts/dx² ≤ ½
+      const newU = adv.slice()
+      for (let i = 1; i < n - 1; i++) {
+        newU[i] = adv[i] + dts * nu * (adv[i + 1] - 2 * adv[i] + adv[i - 1]) / (dx * dx)
+      }
+      newU[0] = newU[n - 2]
+      newU[n - 1] = newU[1]
+      u = newU
     }
-    // Boundary: periodic
-    newU[0] = newU[n - 2]
-    newU[n - 1] = newU[1]
 
     // Detect shocks: large negative gradient
     for (let i = 1; i < n - 1; i++) {
-      const grad = (newU[i + 1] - newU[i - 1]) / (2 * dx)
+      const grad = (u[i + 1] - u[i - 1]) / (2 * dx)
       if (grad < -shockThreshold(u)) {
         shockPoints.push({ step, xIdx: i, x: xGrid[i], gradient: grad })
       }
     }
 
-    u = newU
     if (step % Math.max(1, Math.floor(nSteps / 20)) === 0) {
       history.push(u.slice())
     }
@@ -195,7 +212,7 @@ function BurgersEquation({ candles, symbol, exchange }) {
         </label>
         <label className="flex items-center gap-1">
           <span className="text-gray-400">Δt:</span>
-          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, +e.target.value))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
+          <input type="number" step="0.005" value={dt} onChange={e => setDt(Math.max(0.001, Math.min(0.5, +e.target.value)))} className="w-12 px-1 bg-bg-700 border border-bg-500  text-gray-200" />
         </label>
         <label className="flex items-center gap-1">
           <span className="text-gray-400">Lookback:</span>
