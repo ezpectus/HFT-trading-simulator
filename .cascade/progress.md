@@ -2919,3 +2919,10 @@ Board: 0 open.
 - Все остальные 3rd-party импорты: pinned или guarded (try/func-level).
 
 Board: 0 open.
+
+## R225 — CLI surface + hft scripts — 0 находок — BOARD EMPTY
+
+- Все invoked flags резолвятся в argparse; фантомные --strategy/--period/--benchmark только в gitignored theory-docs (S080 — не repo weight); --paper уже S225-закрыт; --lite-version = имя GHCR-образа.
+- hft scripts/{monitor,run}.py чистые — heartbeat layout байт-в-байт с shm_heartbeat.h (контракт задокументирован с обеих сторон).
+
+Board: 0 open.
