@@ -65,7 +65,7 @@ class OrderExecutor {
                                            "{\"type\":\"auth\",\"token\":\"%s\"}", tok);
                     if (m > 0 && m < static_cast<int>(sizeof(auth_buf))) {
                         websocketpp::lib::error_code auth_ec;
-                        client_snapshot()->send(conn_snapshot(), std::string(auth_buf, m),
+                        client_snapshot()->send(conn_snapshot(), auth_buf, static_cast<size_t>(m),
                                                 websocketpp::frame::opcode::text, auth_ec);
                         if (auth_ec) {
                             spdlog::error("Failed to send auth frame: {}", auth_ec.message());
@@ -176,7 +176,7 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_snapshot()->send(conn_snapshot(), std::string(buf, static_cast<size_t>(n)),
+        client_snapshot()->send(conn_snapshot(), buf, static_cast<size_t>(n),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
@@ -234,7 +234,7 @@ class OrderExecutor {
         buf[n]   = '\0';
 
         websocketpp::lib::error_code ec;
-        client_snapshot()->send(conn_snapshot(), std::string(buf, static_cast<size_t>(n)),
+        client_snapshot()->send(conn_snapshot(), buf, static_cast<size_t>(n),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send order: {}", ec.message());
@@ -265,7 +265,7 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_snapshot()->send(conn_snapshot(), std::string(buf, static_cast<size_t>(n)),
+        client_snapshot()->send(conn_snapshot(), buf, static_cast<size_t>(n),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send close request for {}: {}", symbol, ec.message());
@@ -294,7 +294,7 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_snapshot()->send(conn_snapshot(), std::string(buf, static_cast<size_t>(n)),
+        client_snapshot()->send(conn_snapshot(), buf, static_cast<size_t>(n),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Failed to send cancel-all: {}", ec.message());
@@ -341,7 +341,7 @@ class OrderExecutor {
         }
 
         websocketpp::lib::error_code ec;
-        client_snapshot()->send(conn_snapshot(), std::string(buy_buf, static_cast<size_t>(bn)),
+        client_snapshot()->send(conn_snapshot(), buy_buf, static_cast<size_t>(bn),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             spdlog::error("Arb buy order failed: {}", ec.message());
@@ -360,8 +360,7 @@ class OrderExecutor {
                                                             buy_exchange.c_str(), symbol.c_str(), quantity);
             websocketpp::lib::error_code uec;
             if (un > 0 && un < static_cast<int>(sizeof(unwind_buf))) {
-                client_snapshot()->send(conn_snapshot(),
-                                        std::string(unwind_buf, static_cast<size_t>(un)),
+                client_snapshot()->send(conn_snapshot(), unwind_buf, static_cast<size_t>(un),
                                         websocketpp::frame::opcode::text, uec);
             }
             if (un <= 0 || uec) {
@@ -376,7 +375,7 @@ class OrderExecutor {
             return false;
         }
 
-        client_snapshot()->send(conn_snapshot(), std::string(sell_buf, static_cast<size_t>(sn)),
+        client_snapshot()->send(conn_snapshot(), sell_buf, static_cast<size_t>(sn),
                                 websocketpp::frame::opcode::text, ec);
         if (ec) [[unlikely]] {
             unwind_buy_leg(ec.message().c_str());

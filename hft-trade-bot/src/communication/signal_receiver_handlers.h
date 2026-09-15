@@ -96,20 +96,21 @@ void handle_message_json(const json& data) {
 }
 
 void handle_market_data(const json& data) {
-    if (data.contains("trading_active")) {
-        trading_active_.store(data["trading_active"].get<bool>(), std::memory_order_relaxed);
+    // find() once per key — contains()+operator[] walked the object map twice.
+    if (auto it = data.find("trading_active"); it != data.end()) {
+        trading_active_.store(it->get<bool>(), std::memory_order_relaxed);
     }
     has_new_data_.store(true, std::memory_order_release);
     cv_.notify_one();
 
-    if (data.contains("prices")) update_prices(data["prices"], data);
+    if (auto it = data.find("prices"); it != data.end()) update_prices(*it, data);
     // Account snapshot (balance/equity/positions) rides every broadcast — the
     // exchange is the source of truth for account state (S180).
-    if (data.contains("accounts") && account_cb_) account_cb_(data["accounts"]);
-    if (data.contains("orderbooks")) update_orderbooks(data, data.value("timestamp", 0));
-    if (data.contains("orderbook_deltas"))
+    if (auto it = data.find("accounts"); it != data.end() && account_cb_) account_cb_(*it);
+    if (data.find("orderbooks") != data.end()) update_orderbooks(data, data.value("timestamp", 0));
+    if (data.find("orderbook_deltas") != data.end())
         update_orderbook_deltas(data, data.value("timestamp", 0));
-    if (data.contains("candles")) update_candles(data["candles"]);
+    if (auto it = data.find("candles"); it != data.end()) update_candles(*it);
 }
 
 void update_prices(const json& prices_data, const json& /*full_data*/) {
