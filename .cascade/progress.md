@@ -3015,3 +3015,10 @@ Board: 0 open.
 - 7x OrderExecutor send(): std::string(buf,n) heap alloc per order → raw buf,len to websocketpp send() overload. Order submission now zero-alloc end to end.
 - handle_market_data: contains()+operator[] = 2 map walks x5 keys per msg → single find().
 - SHM seqlock writer already clean (POD memcpy + release/acquire). Board: 0 open.
+
+## R235d — S364 tick-tail extension
+
+- process_ai_signals: get_order_book() by-value deep copy per signal → shared ctx.ob_buf (connected-check first, miss→clear).
+- update_risk_state: gmtime+system_clock per tick for once-a-day rollover → recheck ≤1/min (boundary ≤60s late = limit stays longer, safe).
+- handle_market_data: has_new_data_+notify BEFORE updates → after commit (matches inject_snapshot_impl). No stale-read wakeups.
+- Board: 0 open.
