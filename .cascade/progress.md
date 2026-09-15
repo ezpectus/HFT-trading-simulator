@@ -2864,3 +2864,9 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 **Чисто:** terraform весь (pinned provider, encrypted+locked backends, EKS KMS/private/audit-logs, private subnets, textbook VPC, encrypted versioned S3); alerts.yml — все 17 metric-refs → живые эмиттеры (`_CountingOrderHistory` делает orders-counters реальными — R140-нота про dead queries устарела); alertmanager честный receiver-less; prometheus jobs ↔ targets; grafana provisioning; ebpf real eBPF; test_alerts структурный-честный; scripts/ci/* реальные + wired (Makefile:85); pre-commit-check gate честный (all_ok→exit, staged-narrowing, loud SKIP); hooks реально дёргают gate (+WindowsApps-stub guard); walk_forward/test_config_consistency/report реальные; helm prom-target `ai-signal-bot:9091` КОРРЕКТЕН (hft=sidecar в поде, Service:9091); vendored helm/files byte-identical monitoring/; Makefile targets резолвятся.
 
 Board: 1 open (S353).
+
+## R218 — slop-fix — S353 закрыта — BOARD EMPTY
+
+- **S353** — оба stale docstring'а исправлены под реальность: `ebpf_monitor._report` → "no metrics export — standalone tool" (Gauge-код был удалён — и правильно, без /metrics endpoint'а он ничего не экспонировал); `benchmark_suite` хедер → "synthetic proxy micro-benchmarks (NOT the real pipeline)" + указатель на PERFORMANCE.md. `py_compile` clean.
+
+Board: 0 open.
