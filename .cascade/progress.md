@@ -3170,3 +3170,9 @@ Board: 0 open.
 - First real static-analysis pass (clang-tidy 22 + driver-derived sysroot): `bugprone-exception-escape` caught noexcept `analyze_incremental` reaching `unordered_map::emplace` → bad_alloc → std::terminate on the trading thread. Same lie found in v3's analyze pair (analyzer missed it).
 - Fixed via noexcept try_get_cache/try_get_hmm_state → graceful degrade (neutral sig / v2 base without regime layer). Dead now_ms param dropped; test_fixtures static→inline; vacuous cooldown doctest rewritten on the real analyze_incremental gate.
 - ctest 23/23 green. Wire-layout enum-size warnings deliberately untouched (SHM ABI contract).
+
+## R254 — clang-tidy header-TU sweep → S377
+
+- Header wrappers exposed: `SPSCQueue::push(const T&)` noexcept lie — Signal's std::string copy-assign can throw bad_alloc → terminate. if-constexpr fast path + try→false degrade (caller already handles false as queue-full). bot_setup.cpp missing `fmt/ranges.h` for `fmt::join` (latent compile break). health_server.h missing direct spdlog include + string-concat cleanup.
+- Deliberately untouched: SHM enum sizes (ABI), math-helper param names, logger init-time static, third-party.
+- ctest 23/23 green. Board: 0 open.

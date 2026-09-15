@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R254 — clang-tidy header-TU sweep)
+
+### Fixed
+- **`SPSCQueue::push(const T&)` `noexcept` lie on `Signal` (S377):** `SPSCQueue<Signal,16>` (the AI-signal handoff queue) ran `Signal`'s copy-assign — its `std::string` members can allocate → `bad_alloc` → `std::terminate`. Now `if constexpr (std::is_nothrow_copy_assignable_v<T>)` keeps the fast path, with a try→`false` degrade matching existing queue-full semantics; move-push/`pop` are unaffected (move-assign is `noexcept`). Also fixed two missing direct includes found by the header-TU pass: `bot_setup.cpp` → `fmt/ranges.h` for `fmt::join` (latent compile break), `health_server.h` → `spdlog/spdlog.h` (it called `spdlog::*` via consumer include order) plus a response-string-concat cleanup. Deliberately untouched: SHM wire enum sizes (cross-process ABI), math-helper parameter names, logger init-time statics, third-party headers. **ctest: 23/23 green.**
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R253 — clang-tidy hot-path sweep)
 
 ### Fixed
