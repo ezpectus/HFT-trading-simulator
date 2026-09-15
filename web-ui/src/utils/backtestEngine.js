@@ -212,8 +212,10 @@ export function runBacktest(candles, rules, options = {}) {
   for (let i = 0; i < candles.length; i++) {
     const candle = candles[i]
 
-    // Evaluate rules
-    const triggered = evaluateConditions(candles, i, indicators, rules)
+    // Evaluate rules on the previous CLOSED bar (i-1); fills execute at
+    // bar i's close. Evaluating on i and filling at i is lookahead bias —
+    // live, you can't decide on a close and fill at that same close.
+    const triggered = i > 0 ? evaluateConditions(candles, i - 1, indicators, rules) : []
 
     for (const rule of triggered) {
       switch (rule.action) {

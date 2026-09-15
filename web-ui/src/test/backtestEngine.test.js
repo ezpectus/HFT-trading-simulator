@@ -83,6 +83,20 @@ describe('backtestEngine', () => {
     expect(result.trades[0].side).toBe('SHORT')
   })
 
+  it('fills on the bar AFTER the signal bar (no same-bar lookahead)', () => {
+    // S332: all closes = 100 except bar 10 closes at 200. A price_above-150
+    // rule fires on signal-bar 10; the fill must land on bar 11's close.
+    const candles = makeCandles(40)
+    for (const c of candles) { c.open = 100; c.close = 100; c.high = 100; c.low = 100 }
+    candles[10].close = 200
+    candles[10].high = 200
+    const rules = [{ id: 1, condition: 'price_above', value: 150, action: 'buy', qty: 0.1 }]
+    const result = runBacktest(candles, rules, { initialBalance: 10000 })
+    expect(result.trades.length).toBeGreaterThan(0)
+    expect(result.trades[0].entryTime).toBe(candles[11].time)
+    expect(result.trades[0].entryPrice).toBeCloseTo(candles[11].close * 1.0005, 6)
+  })
+
   it('closes open position at end', () => {
     const candles = makeCandles(100)
     const rules = [
