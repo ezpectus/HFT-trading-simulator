@@ -123,8 +123,13 @@ class OnlineHMM {
         // Emission variances
         emit_var_[static_cast<int>(RegimeState::TRENDING_UP)]   = {0.0003, 0.00001};
         emit_var_[static_cast<int>(RegimeState::TRENDING_DOWN)] = {0.0003, 0.00001};
-        emit_var_[static_cast<int>(RegimeState::RANGING)]       = {0.00005, 0.000001};
-        emit_var_[static_cast<int>(RegimeState::VOLATILE)]      = {0.001, 0.0001};
+        // RANGING return variance must be much tighter than typical trend
+        // drifts (σ≈0.03%) — the Gaussian −½·ln(var) bonus lets the tightest
+        // state absorb anything within a few σ, so at 5e-5 (σ≈0.7%) even a
+        // monotonic 0.2%/step ramp classified as RANGING and TRENDING_*
+        // could never win.
+        emit_var_[static_cast<int>(RegimeState::RANGING)]  = {0.0000001, 0.000001};
+        emit_var_[static_cast<int>(RegimeState::VOLATILE)] = {0.001, 0.0001};
 
         // Initial state distribution — uniform
         for (int i = 0; i < N_STATES; ++i) {
@@ -153,9 +158,12 @@ class OnlineHMM {
             return RegimeState::RANGING;
         }
 
-        double log_ret   = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
-        vol_ewma_        = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
-        double vol_proxy = std::sqrt(vol_ewma_ * 252.0);
+        double log_ret = (prev_price_ > 0 && price > 0) ? std::log(price / prev_price_) : 0.0;
+        vol_ewma_      = VOL_LAMBDA * vol_ewma_ + (1.0 - VOL_LAMBDA) * log_ret * log_ret;
+        // Per-observation vol — the emission means are calibrated per
+        // observation, so annualizing (×252) mis-scales the channel by ~16×
+        // and VOLATILE wins every comparison.
+        double vol_proxy = std::sqrt(vol_ewma_);
 
         prev_price_ = price;
         update_count_++;

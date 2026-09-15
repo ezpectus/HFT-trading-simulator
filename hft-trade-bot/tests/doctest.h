@@ -145,6 +145,61 @@ class Approx {
 #define REQUIRE_FALSE(cond) CHECK_FALSE(cond)
 #define REQUIRE_EQ(a, b) CHECK_EQ(a, b)
 
+// ─── Exception assertions ─────────────────────────────────────────────────
+// CHECK_THROWS_AS evaluates the expression inside a lambda so the comma-
+// separated type argument never collides with macro parameter parsing.
+#define CHECK_THROWS_AS(expr, ex_type)                                                             \
+    do {                                                                                           \
+        bool dt_threw_ = false;                                                                    \
+        bool dt_right_ = false;                                                                    \
+        try {                                                                                      \
+            (void)(expr);                                                                          \
+        } catch (const ex_type&) {                                                                 \
+            dt_threw_ = true;                                                                      \
+            dt_right_ = true;                                                                      \
+        } catch (...) {                                                                            \
+            dt_threw_ = true;                                                                      \
+        }                                                                                          \
+        if (!dt_threw_)                                                                            \
+            throw doctest::assertion_error("CHECK_THROWS_AS failed: no exception from " #expr      \
+                                           " at " __FILE__ ":" DOCTEST_TOSTRING(__LINE__));        \
+        if (!dt_right_)                                                                            \
+            throw doctest::assertion_error(                                                        \
+                "CHECK_THROWS_AS failed: wrong exception type in " #expr " at " __FILE__           \
+                ":" DOCTEST_TOSTRING(__LINE__));                                                   \
+    } while (0)
+
+#define CHECK_THROWS(expr)                                                                         \
+    do {                                                                                           \
+        bool dt_threw_ = false;                                                                    \
+        try {                                                                                      \
+            (void)(expr);                                                                          \
+        } catch (...) {                                                                            \
+            dt_threw_ = true;                                                                      \
+        }                                                                                          \
+        if (!dt_threw_)                                                                            \
+            throw doctest::assertion_error("CHECK_THROWS failed: no exception from " #expr         \
+                                           " at " __FILE__ ":" DOCTEST_TOSTRING(__LINE__));        \
+    } while (0)
+
+#define CHECK_NOTHROW(expr)                                                                        \
+    do {                                                                                           \
+        try {                                                                                      \
+            (void)(expr);                                                                          \
+        } catch (const std::exception& dt_e_) {                                                    \
+            throw doctest::assertion_error(std::string("CHECK_NOTHROW failed: threw '") +          \
+                                           dt_e_.what() +                                          \
+                                           "' at " __FILE__ ":" DOCTEST_TOSTRING(__LINE__));       \
+        } catch (...) {                                                                            \
+            throw doctest::assertion_error("CHECK_NOTHROW failed: threw at " __FILE__              \
+                                           ":" DOCTEST_TOSTRING(__LINE__));                        \
+        }                                                                                          \
+    } while (0)
+
+#define REQUIRE_THROWS_AS(expr, ex_type) CHECK_THROWS_AS(expr, ex_type)
+#define REQUIRE_THROWS(expr) CHECK_THROWS(expr)
+#define REQUIRE_NOTHROW(expr) CHECK_NOTHROW(expr)
+
 #define SUBCASE(name)                                                                              \
     static void DOCTEST_SUBCASE_FUNC();                                                            \
     DOCTEST_SUBCASE_FUNC();                                                                        \

@@ -8,11 +8,12 @@
 using namespace hft;
 
 // ─── Helper: create a simple order book ───────────────────────────────────
-static OrderBook make_order_book(double mid = 50000.0, int levels = 10) {
+static OrderBook make_order_book(double mid = 50000.0, int levels = 10,
+                                 double half_spread_frac = 0.0001) {
     OrderBook ob;
     ob.symbol          = "BTC/USDT";
     ob.exchange        = "binance";
-    double half_spread = mid * 0.0001;
+    double half_spread = mid * half_spread_frac;
     for (int i = 0; i < levels; ++i) {
         ob.bids.push_back({mid - half_spread * (1 + i), 1.0 + i * 0.1});
         ob.asks.push_back({mid + half_spread * (1 + i), 0.8 + i * 0.1});
@@ -95,11 +96,16 @@ TEST_CASE("Microprice deviation is computed") {
 }
 
 TEST_CASE("Spread regime classification") {
-    auto          ob = make_order_book(50000, 5);
+    // half_spread_frac 2e-5 → full spread = 4e-5 · mid → 0.4 bps → TIGHT
+    // (production threshold: spread_bps < 1.0, shared with
+    // adaptive_order_selector_v2's tight_spread_bps).
+    auto          ob = make_order_book(50000, 5, 2e-5);
     PressureModel pm;
     auto          result = pm.analyze(ob);
-    // With 1bps spread, should be TIGHT
     CHECK(result.spread_regime == PressureResult::SpreadRegime::TIGHT);
+    // The default fixture (1e-4 half → 2 bps full) classifies NORMAL.
+    auto ob_normal = make_order_book(50000, 5);
+    CHECK(pm.analyze(ob_normal).spread_regime == PressureResult::SpreadRegime::NORMAL);
 }
 
 TEST_CASE("Queue position estimation") {

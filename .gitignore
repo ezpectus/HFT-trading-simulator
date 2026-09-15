@@ -39,7 +39,7 @@ ENV/
 *.ipynb
 
 # ─── C++ ───
-hft-trade-bot/build/
+hft-trade-bot/build*/
 *.o
 *.obj
 *.exe

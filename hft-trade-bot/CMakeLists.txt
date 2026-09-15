@@ -49,6 +49,12 @@ else()
     option(USE_PCH "Enable precompiled headers" ON)
 endif()
 
+# ─── Tests-only mode ───
+# Build just the dependency-free unit tests (host without vcpkg/apt deps).
+# Dependencies become QUIET; each dep-requiring target is gated on its
+# imported target existing, so partial toolchains build whatever they can.
+option(HFT_TESTS_ONLY "Skip main bot + dep-requiring targets; build dep-free tests" OFF)
+
 # ─── Compiler flags ───
 # GCC/Clang: -O3 + LTO for maximum performance
 # MSVC: /O2 + /GL (whole-program optimization) + /utf-8
@@ -128,6 +134,16 @@ if(USE_PGO AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID ST
 endif()
 
 # Find dependencies
+if(HFT_TESTS_ONLY)
+    find_package(Threads REQUIRED)
+    find_package(Boost QUIET COMPONENTS system random)
+    find_package(OpenSSL QUIET)
+    find_package(spdlog QUIET)
+    find_package(fmt QUIET)
+    find_package(nlohmann_json QUIET)
+    find_package(yaml-cpp QUIET)
+    find_package(simdjson QUIET)
+else()
 # Boost: on Linux use system install (apt), on Windows use vcpkg
 if(UNIX AND NOT APPLE)
     # Linux: Boost installed via apt (libboost-system-dev, libboost-random-dev)
@@ -194,14 +210,22 @@ endif()
 # simdjson (optional — for fast JSON parsing in hot path)
 find_package(simdjson QUIET)
 
+endif() # HFT_TESTS_ONLY
+
 # websocketpp (header-only) — check vcpkg first, then project root
 find_path(WEBSOCKETPP_INCLUDE_DIR websocketpp/client.hpp
     PATHS "${CMAKE_SOURCE_DIR}/../websocketpp" "${_VCPKG_INCLUDE_DIR}"
 )
 if(NOT WEBSOCKETPP_INCLUDE_DIR)
-    message(WARNING "websocketpp not found. Install with: vcpkg install websocketpp — targets using it will fail to compile")
-    set(WEBSOCKETPP_INCLUDE_DIR "")
+    if(HFT_TESTS_ONLY)
+        set(WEBSOCKETPP_INCLUDE_DIR "")
+    else()
+        message(WARNING "websocketpp not found. Install with: vcpkg install websocketpp — targets using it will fail to compile")
+        set(WEBSOCKETPP_INCLUDE_DIR "")
+    endif()
 endif()
+
+if(NOT HFT_TESTS_ONLY)
 
 # Sources
 set(SOURCES
@@ -262,9 +286,12 @@ set_target_properties(hft_trade_bot PROPERTIES
 install(TARGETS hft_trade_bot DESTINATION bin)
 install(DIRECTORY config/ DESTINATION config)
 
+endif() # NOT HFT_TESTS_ONLY — main bot
+
 # ─── Unit Tests ───
 enable_testing()
 
+if(TARGET fmt::fmt)
 add_executable(test_signal_engine tests/test_signal_engine.cpp)
 target_include_directories(test_signal_engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
@@ -300,6 +327,7 @@ foreach(v2test v2_infra v2_indicators v2_engine v2_pressure_adaptive)
     )
     add_test(NAME ${v2test}_tests COMMAND test_${v2test})
 endforeach()
+endif() # fmt::fmt
 
 # ─── V3 Production Tests ───
 
@@ -381,6 +409,7 @@ add_doctest_test(test_doctest_signal_engine tests/test_doctest_signal_engine.cpp
 add_doctest_test(test_doctest_position_manager_v1 tests/test_doctest_position_manager_v1.cpp)
 
 # Kill switch doctest tests (activate/deactivate, reason+timestamp recording regression, callbacks, idempotency)
+if(TARGET fmt::fmt AND TARGET spdlog::spdlog)
 add_doctest_test(test_doctest_kill_switch tests/test_doctest_kill_switch.cpp)
 target_link_libraries(test_doctest_kill_switch PRIVATE fmt::fmt spdlog::spdlog)
 if(FMT_LIBRARY)
@@ -389,6 +418,7 @@ endif()
 if(SPDLOG_LIBRARY)
     target_link_libraries(test_doctest_kill_switch PRIVATE ${SPDLOG_LIBRARY})
 endif()
+endif() # fmt+spdlog
 
 # SHM market data doctest tests (write/read round-trip, num_slots header, multiple symbols, bounds, writer/reader)
 add_doctest_test(test_doctest_shm_market_data tests/test_doctest_shm_market_data.cpp)
@@ -411,21 +441,27 @@ add_doctest_test(test_doctest_signal_engine_v3 tests/test_doctest_signal_engine_
 add_doctest_test(test_doctest_cpp_optimizations tests/test_doctest_cpp_optimizations.cpp)
 
 # HFT config doctest tests (signal_interval_ms, v2_cooldown_ms YAML parsing)
+if(TARGET yaml-cpp::yaml-cpp AND TARGET fmt::fmt AND TARGET spdlog::spdlog)
 add_doctest_test(test_doctest_hft_config tests/test_doctest_hft_config.cpp)
 target_sources(test_doctest_hft_config PRIVATE src/core/config.cpp)
 target_link_libraries(test_doctest_hft_config PRIVATE yaml-cpp::yaml-cpp fmt::fmt spdlog::spdlog)
 
+endif() # yaml+fmt+spdlog (hft_config)
+
 # SignalReceiver data-store doctest tests (multi-exchange keying, S252)
+if(TARGET nlohmann_json::nlohmann_json AND TARGET spdlog::spdlog)
 add_doctest_test(test_doctest_signal_receiver tests/test_doctest_signal_receiver.cpp)
 target_link_libraries(test_doctest_signal_receiver PRIVATE nlohmann_json::nlohmann_json spdlog::spdlog)
 if(FMT_LIBRARY)
-    target_link_libraries(test_doctest_hft_config PRIVATE ${FMT_LIBRARY})
+    target_link_libraries(test_doctest_signal_receiver PRIVATE ${FMT_LIBRARY})
 endif()
 if(SPDLOG_LIBRARY)
-    target_link_libraries(test_doctest_hft_config PRIVATE ${SPDLOG_LIBRARY})
+    target_link_libraries(test_doctest_signal_receiver PRIVATE ${SPDLOG_LIBRARY})
 endif()
+endif() # json+spdlog (signal_receiver)
 
 # ─── Integration tests (doctest-based) ───
+if(TARGET yaml-cpp::yaml-cpp AND TARGET fmt::fmt AND TARGET spdlog::spdlog)
 add_doctest_test(test_integration_config tests/test_integration_config.cpp)
 target_sources(test_integration_config PRIVATE src/core/config.cpp)
 target_link_libraries(test_integration_config PRIVATE yaml-cpp::yaml-cpp fmt::fmt spdlog::spdlog)
@@ -435,7 +471,9 @@ endif()
 if(SPDLOG_LIBRARY)
     target_link_libraries(test_integration_config PRIVATE ${SPDLOG_LIBRARY})
 endif()
+endif() # yaml+fmt+spdlog (integration_config)
 
+if(TARGET fmt::fmt AND TARGET spdlog::spdlog)
 add_doctest_test(test_integration_kill_switch_monitor tests/test_integration_kill_switch_monitor.cpp)
 target_link_libraries(test_integration_kill_switch_monitor PRIVATE fmt::fmt spdlog::spdlog)
 if(FMT_LIBRARY)
@@ -444,6 +482,7 @@ endif()
 if(SPDLOG_LIBRARY)
     target_link_libraries(test_integration_kill_switch_monitor PRIVATE ${SPDLOG_LIBRARY})
 endif()
+endif() # fmt+spdlog (kill_switch_monitor)
 
 if(NOT WIN32)
     add_doctest_test(test_integration_shm tests/test_integration_shm.cpp)

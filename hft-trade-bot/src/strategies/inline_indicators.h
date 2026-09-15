@@ -103,9 +103,17 @@ class InlineRSI {
         prev_close_ = close;
 
         if (count_ < period_) return 50.0;
-        double rs  = avg_loss_ > 1e-12 ? avg_gain_ / avg_loss_ : 1e12;
-        double rsi = 100.0 - 100.0 / (1.0 + rs);
-        rsi_       = rsi;
+        // Flat series (avg_gain_ == avg_loss_ == 0) has no directional
+        // movement — RSI is 50, not 100. The "no losses" branch only means
+        // 100 when there actually were gains.
+        double rsi;
+        if (avg_loss_ > 1e-12)
+            rsi = 100.0 - 100.0 / (1.0 + avg_gain_ / avg_loss_);
+        else if (avg_gain_ > 1e-12)
+            rsi = 100.0;
+        else
+            rsi = 50.0;
+        rsi_ = rsi;
         return rsi;
     }
 
