@@ -110,21 +110,20 @@ class VAE {
 
   // Numerical gradient (simplified training)
   trainStep(x, lr, beta) {
-    const { mu, logvar, z, xHat } = this.forward(x)
+    const { mu, logvar, h2, xHat } = this.forward(x)
     const loss = this.loss(x, xHat, mu, logvar, beta)
 
     // Perturb weights and compute numerical gradient (simplified)
     // Simplified: use reconstruction error gradient
     const dxHat = xHat.map((v, i) => 2 * (v - x[i]) / x.length)
 
-    // Backprop through decoder
-    const dh2 = new Array(this.hiddenDim).fill(0)
-    for (let i = 0; i < this.hiddenDim; i++) {
-      for (let j = 0; j < this.inputDim; j++) {
-        dh2[i] += this.Wout[i][j] * dxHat[j]
-        this.Wout[i][j] -= lr * dh2[i] * (z[j] || 0) // simplified
+    // Backprop through decoder output layer: xHat = Wout·h2 + bout,
+    // Wout is [inputDim][hiddenDim] so dWout[j][i] = dxHat[j]·h2[i].
+    for (let j = 0; j < this.inputDim; j++) {
+      this.bout[j] -= lr * dxHat[j]
+      for (let i = 0; i < this.hiddenDim; i++) {
+        this.Wout[j][i] -= lr * dxHat[j] * h2[i]
       }
-      this.bout[i] -= lr * dxHat[i]
     }
 
     // KL gradient (simplified)

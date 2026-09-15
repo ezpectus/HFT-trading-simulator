@@ -65,7 +65,7 @@ const PortfolioOptLab = memo(function PortfolioOptLab({ sendSignalMessage, portf
   const toggleAsset = (sym) => {
     const next = new Set(chosen)
     if (next.has(sym)) next.delete(sym); else if (next.size < MAX_ASSETS) next.add(sym)
-    setSelected(next)
+    setSelected([...next])
   }
 
   const runOptimize = () => {

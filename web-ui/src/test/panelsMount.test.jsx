@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { Suspense } from 'react'
-import { render, waitFor } from '@testing-library/react'
+import { render, waitFor, fireEvent } from '@testing-library/react'
 import { PANELS } from '../panels/registry'
 import {
   generateInitialSnapshot, generateFill, generateSignal,
@@ -119,6 +119,21 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         await waitFor(() => expect(container.innerHTML.length).toBeGreaterThan(0), { timeout: 10000 })
         // No NaN may leak into the DOM — attributes or text.
         expect(container.innerHTML).not.toContain('NaN')
+
+        // React dev warnings (duplicate keys, setState-in-render, unknown
+        // props, invalid attributes) surface via console.error/console.warn.
+        // Act() warnings are test-harness noise (timers ticking during the
+        // test), not product defects — filtered.
+        // Interaction pass: mount-time coverage misses handlers that only run
+        // on click/change. Fire every button and input, then re-check.
+        for (const btn of container.querySelectorAll('button')) {
+          fireEvent.click(btn)
+        }
+        for (const input of container.querySelectorAll('input[type="number"], input[type="text"], input:not([type])')) {
+          fireEvent.change(input, { target: { value: '1' } })
+        }
+        // Let effects/memos triggered by the interactions settle.
+        await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
 
         // React dev warnings (duplicate keys, setState-in-render, unknown
         // props, invalid attributes) surface via console.error/console.warn.

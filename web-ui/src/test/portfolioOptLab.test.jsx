@@ -81,4 +81,13 @@ describe('PortfolioOptLab', () => {
     render(<PortfolioOptLab {...baseProps} connected={false} />)
     expect(screen.getByText(/Optimize \(/).disabled).toBe(true)
   })
+
+  it('toggles asset chips without crashing — selected stays an array', () => {
+    render(<PortfolioOptLab {...baseProps} />)
+    expect(screen.getByText('Optimize (4 assets)')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('BTC'))
+    expect(screen.getByText('Optimize (3 assets)')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('BTC'))
+    expect(screen.getByText('Optimize (4 assets)')).toBeInTheDocument()
+  })
 })
