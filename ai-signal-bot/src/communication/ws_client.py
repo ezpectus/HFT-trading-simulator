@@ -255,9 +255,15 @@ class ExchangeClient:
             return
         self._last_resync_req = now
         try:
-            asyncio.get_running_loop().create_task(self._send_resync(self._last_msg_ts))
+            task = asyncio.get_running_loop().create_task(self._send_resync(self._last_msg_ts))
+            task.add_done_callback(self._on_resync_done)
         except RuntimeError:
             pass  # no running loop — next gap hit inside the recv loop will retry
+
+    @staticmethod
+    def _on_resync_done(task: asyncio.Task) -> None:
+        if not task.cancelled() and task.exception() is not None:
+            logger.warning("Resync request failed: %s", task.exception())
 
     async def _send_resync(self, last_ts: int) -> None:
         # last_ts is captured at gap-detection time — the pre-gap cursor, so the

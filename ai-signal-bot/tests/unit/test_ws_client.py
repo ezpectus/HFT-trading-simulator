@@ -238,3 +238,17 @@ class TestSeqGapDetection:
         client._last_seq = 99
         client._process_message({"type": "welcome", "protocol_version": 2})
         assert client._last_seq == 0
+
+    @pytest.mark.asyncio
+    async def test_resync_send_failure_logged(self, client):
+        """A failing resync send must surface via the done callback, not vanish
+        into the GC 'exception never retrieved' handler (S359)."""
+        client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
+        client._ws.send.side_effect = websockets.ConnectionClosed(None, None)
+        client._connected = True
+        with patch("src.communication.ws_client.logger") as mock_log:
+            client._process_message({"type": "candles", "seq": 1, "candles": []})
+            client._process_message({"type": "candles", "seq": 5, "candles": []})
+            await asyncio.sleep(0.05)
+        msgs = [c.args[0] for c in mock_log.warning.call_args_list]
+        assert any("Resync request failed" in m for m in msgs), msgs
