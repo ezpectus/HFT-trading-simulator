@@ -109,6 +109,14 @@ class TestOptimizePortfolio:
         ({"method": "black_litterman", "assets": _assets(2)}, "views"),
         ({"method": "max_sharpe", "assets": _assets(2),
           "current_weights": [1.0]}, "current_weights length"),
+        # 1e999 is valid JSON → parses to inf → must not reach the optimizer
+        # (NaN/inf outputs serialize as bare NaN → unparseable frame, S362)
+        ({"method": "max_sharpe", "assets": _assets(2),
+          "current_weights": [1e999, 0.0]}, "must be finite"),
+        ({"method": "max_sharpe", "assets": _assets(2),
+          "risk_free_rate": -1e999}, "must be finite"),
+        ({"method": "max_sharpe", "assets": _assets(2),
+          "portfolio_value": 1e999}, "must be finite"),
     ])
     async def test_error_paths(self, params, needle):
         result = await optimize_portfolio_request(params)
@@ -186,6 +194,12 @@ class TestVolSurface:
           "points": [{"strike": 60000, "maturity_days": 30, "iv": 0.5}] * 4}, "forward"),
         ({"model": "svi", "forward": 64000,
           "points": [{"strike": -5, "maturity_days": 30, "iv": 0.5}] * 4}, "out of range"),
+        ({"model": "svi", "forward": 1e999,
+          "points": [{"strike": 60000, "maturity_days": 30, "iv": 0.5}] * 4}, "finite"),
+        ({"model": "svi", "forward": 64000,
+          "points": [{"strike": 1e999, "maturity_days": 30, "iv": 0.5}] * 4}, "finite"),
+        ({"model": "svi", "forward": 64000, "eval_strikes": [1e999],
+          "points": [{"strike": 60000, "maturity_days": 30, "iv": 0.5}] * 4}, "finite"),
     ])
     async def test_error_paths(self, params, needle):
         result = await vol_surface_request(params)

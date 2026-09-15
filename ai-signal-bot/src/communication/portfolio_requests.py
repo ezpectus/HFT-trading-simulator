@@ -45,7 +45,7 @@ def _returns_from_candles(candles: list) -> "np.ndarray | None":
         return None
     arr = np.asarray(closes)
     prev = arr[:-1]
-    if np.any(prev <= 0):
+    if not np.all(np.isfinite(arr)) or np.any(prev <= 0):
         return None
     return arr[1:] / prev - 1.0
 
@@ -87,6 +87,10 @@ def parse_views(params: dict, symbols: list[str]) -> "list | str":
         try:
             asset_names = [str(a)[:32] for a in v["assets"]]
             assets = [index[a] for a in asset_names]
+            view_floats = [float(w) for w in v["weights"]] + [
+                float(v["expected_return"]), float(v["confidence"])]
+            if not all(np.isfinite(x) for x in view_floats):
+                return "view values must be finite"
             views.append(View(
                 assets=assets,
                 weights=[float(w) for w in v["weights"]],
@@ -189,6 +193,8 @@ def parse_portfolio_params(params: dict) -> "dict | str":
             current_weights = [float(w) for w in current_weights]
         except (TypeError, ValueError):
             return "current_weights must be numbers"
+        if not all(np.isfinite(w) for w in current_weights):
+            return "current_weights must be finite"
         if len(current_weights) != len(symbols):
             return "current_weights length must match assets"
     portfolio_value = params.get("portfolio_value")
@@ -197,6 +203,8 @@ def parse_portfolio_params(params: dict) -> "dict | str":
             portfolio_value = max(0.0, float(portfolio_value))
         except (TypeError, ValueError):
             return "portfolio_value must be a number"
+        if not np.isfinite(portfolio_value):
+            return "portfolio_value must be finite"
 
     views = None
     if method == "black_litterman":
@@ -209,6 +217,8 @@ def parse_portfolio_params(params: dict) -> "dict | str":
             market_weights = np.asarray([float(w) for w in market_weights])
         except (TypeError, ValueError):
             return "market_weights must be numbers"
+        if not np.all(np.isfinite(market_weights)):
+            return "market_weights must be finite"
         if market_weights.shape[0] != len(symbols):
             return "market_weights length must match assets"
 
@@ -216,6 +226,8 @@ def parse_portfolio_params(params: dict) -> "dict | str":
         rf = float(params.get("risk_free_rate", 0.0))
     except (TypeError, ValueError):
         rf = 0.0
+    if not np.isfinite(rf):
+        return "risk_free_rate must be finite"
     return {
         "method": method, "symbols": symbols, "returns": returns,
         "current_weights": current_weights, "portfolio_value": portfolio_value,
@@ -247,6 +259,8 @@ def parse_surface_points(params: dict) -> "tuple[np.ndarray, np.ndarray, np.ndar
             k, t, iv = float(p["strike"]), float(p["maturity_days"]), float(p["iv"])
         except (TypeError, ValueError, KeyError):
             return "each point needs strike + maturity_days + iv"
+        if not (np.isfinite(k) and np.isfinite(t) and np.isfinite(iv)):
+            return "point values must be finite"
         if k <= 0 or t <= 0 or not (0 < iv < 5):
             return "point out of range (strike>0, maturity_days>0, 0<iv<5)"
         strikes.append(k)
@@ -313,8 +327,8 @@ async def vol_surface_request(params: dict) -> dict:
         forward = float(params.get("forward", 0))
     except (TypeError, ValueError):
         forward = 0.0
-    if forward <= 0:
-        return {"type": "vol_surface_result", "error": "forward must be > 0"}
+    if not np.isfinite(forward) or forward <= 0:
+        return {"type": "vol_surface_result", "error": "forward must be a finite number > 0"}
     try:
         beta = float(params.get("beta", 0.5))
     except (TypeError, ValueError):
@@ -327,6 +341,8 @@ async def vol_surface_request(params: dict) -> dict:
             eval_strikes = [float(k) for k in eval_strikes[:100]]
         except (TypeError, ValueError):
             return {"type": "vol_surface_result", "error": "eval_strikes must be numbers"}
+        if not all(np.isfinite(k) for k in eval_strikes):
+            return {"type": "vol_surface_result", "error": "eval_strikes must be finite"}
 
     parsed = {"model": model, "strikes": strikes, "maturities": mats, "ivs": ivs,
               "forward": forward, "beta": beta, "eval_strikes": eval_strikes}
