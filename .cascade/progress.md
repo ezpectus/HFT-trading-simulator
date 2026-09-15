@@ -2943,3 +2943,9 @@ Board: 0 open.
 
 - **S360** — exchange_simulator: 2 duration-сайта на wall clock против monotonic-конвенции (rate-limit window → NTP-backward = бесконечный throttle; bandwidth elapsed → negative Mbps gauge в Prometheus). Оба → monotonic, guard <= 0, тест-сиды обновлены. Все остальные time.time() — честные timestamps.
 - Board: 0 open.
+
+## R229 — React lifecycle sweep — S361 найден+закрыт — BOARD EMPTY
+
+- **S361** — useWebSocket unmount-cleanup не ставил manualCloseRef → async onclose дёргал scheduleRetry → ghost-reconnect на мёртвом компоненте (attempts reset on open → S231-cap недостижим). 1 строка + регресс-тест (fails pre-fix: ghost socket создан).
+- Остальной hook-sweep чистый (0 async-useEffect, таймеры все с cleanup).
+- Board: 0 open.

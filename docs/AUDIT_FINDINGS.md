@@ -2724,3 +2724,11 @@ Cross-checked every `time.time()` vs `time.monotonic()` use in `ai-signal-bot/sr
 - **S360 — `exchange_simulator` durations on wall clock (Info).** Two sites against the codebase's `monotonic()` convention: `_check_rate_limit` window (NTP backward → negative delta → client throttled indefinitely; forward → early reset) and `ws_metrics._start_time`→`get_bandwidth_mbps` (negative `elapsed` → negative Mbps gauge to Prometheus — `== 0` guard missed it). All other uses correct: record timestamps (`models.py`, `audit_logger`, `arbitrage`), serialized `"timestamp"` fields, wall-to-wall comparisons (`expire_ts`, `created_ts`), tools' deadline loops.
 
 **Fixed in R228 (same pass):** both sites → `time.monotonic()`; guard `== 0` → `<= 0`; test seed updated. 51 WS-server tests green.
+
+## R229 — slop-audit — React lifecycle sweep — 1 finding
+
+Hook-hygiene pass over `web-ui/src`: `useEffect(async …)` (0 hits), `setInterval`/`setTimeout`/subscriptions without cleanup returns (1 candidate), plus manual lifecycle trace of the WS hook.
+
+- **S361 — `useWebSocket` unmount → ghost reconnect loop (Medium).** The unmount cleanup cleared timers and closed the socket but didn't set `manualCloseRef` — the async `onclose` then called `scheduleRetry()`, spawning a reconnect timer nobody clears → fresh WebSocket on a dead component → infinite ghost loop (attempts reset on open → S231 cap unreachable). `disconnect()` was correct; only unmount missed the flag.
+
+**Fixed in R229 (same pass):** `manualCloseRef.current = true` in cleanup; regression test proves pre-fix ghost socket creation and post-fix suppression. Rest of sweep clean.

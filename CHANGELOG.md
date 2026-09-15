@@ -9,9 +9,10 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
-## [Unreleased] — 2026-09-15 (Slop-fix R221–R228 — load-harness latency + doc truth)
+## [Unreleased] — 2026-09-15 (Slop-fix R221–R229 — load-harness latency + doc truth)
 
 ### Fixed
+- **Ghost WebSockets after unmount (S361):** unmounting a component using `useWebSocket` closed the socket but let the async `onclose` schedule a reconnect — a zombie socket reconnecting forever past the retry cap. The cleanup now marks the close as intentional.
 - **Simulator clock-source hardening (S360):** the WS rate limiter and `bandwidth_mbps` gauge measured durations on wall clock — an NTP step could throttle a client forever or export a negative Mbps. Both now use a monotonic clock.
 - **Lost resync requests now logged (S359):** the exchange WS client's resync task ran un-referenced — a send failure vanished into the GC exception handler with no log. Failures now surface via a done-callback warning.
 - **`stress_load.py` crashed on clean dev installs (S358):** it imports `psutil` unconditionally but no requirements file declared it — now pinned in `requirements-dev.txt`.

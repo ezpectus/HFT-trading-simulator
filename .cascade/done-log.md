@@ -1270,3 +1270,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Fix:** both sites → `time.monotonic()`; `elapsed == 0` guard → `<= 0`. All other `time.time()` uses audited and correct — wall-clock record timestamps (`models.py` factories, `audit_logger`, `arbitrage` `closed_at`, serialized `"timestamp"` fields) and wall-to-wall comparisons (GTD `expire_ts`, signal `created_ts`). Dev tools' deadline loops left on wall clock deliberately (human wall-time semantics).
 - **Files:** `exchange_simulator/ws_message_handler.py:50,75`; `exchange_simulator/ws_metrics.py:51,100-101`; `exchange_simulator/tests/test_websocket_server.py:519`.
 - **Verified:** 51 tests green in test_websocket_server.py (incl. rate-limit + bandwidth tests); ruff clean.
+
+## R229 — React lifecycle sweep — S361
+
+### S361 — `useWebSocket` unmount spawns a ghost reconnect loop (Medium) ✅
+- **Bug:** the mount-effect cleanup (`useWebSocket.ts:254`) cleared all three timers and called `ws.close()` — but never set `manualCloseRef`. `close()` fires `onclose` asynchronously, which calls `scheduleRetry()` whenever `manualCloseRef` is false — creating a NEW `reconnectTimer` after the cleanup ran. That timer survives unmount (nothing clears it), fires `connect()`, and builds a fresh WebSocket on a dead component — a ghost socket that reconnects forever (`reconnectAttempts` resets on open, so even the S231 maxReconnects cap never fires). `disconnect()` set the flag correctly; only the unmount path missed it — every component unmounting while connected (tab/route switches, conditional panels) leaked a zombie WS.
+- **Fix:** `manualCloseRef.current = true` in the unmount cleanup before `ws.close()` — one line, same semantics as `disconnect()`.
+- **Files:** `web-ui/src/hooks/useWebSocket.ts:254-261`; `web-ui/src/test/useWebSocket.test.jsx` (new `unmount does not spawn a ghost reconnect (S361)`).
+- **Verified:** test FAILS pre-fix (mockInstances=2 — ghost socket created) and passes post-fix (14 tests green). Proven regression, not a smoke check.
