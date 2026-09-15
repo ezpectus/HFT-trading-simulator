@@ -100,21 +100,38 @@ const ctx = {
 
 describe('panel mount sweep — every registry panel renders clean', () => {
   for (const panel of PANELS) {
-    it(`[${panel.id}] mounts without crash or NaN output`, async () => {
-      const Component = panel.component
-      const props = panel.props(ctx)
+    it(`[${panel.id}] mounts without crash, NaN, or React warnings`, async () => {
+      const consoleCalls = []
+      const errSpy = vi.spyOn(console, 'error').mockImplementation((...a) => consoleCalls.push(a))
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation((...a) => consoleCalls.push(a))
+      try {
+        const Component = panel.component
+        const props = panel.props(ctx)
 
-      const { container } = render(
-        <Suspense fallback={null}>
-          <Component {...props} />
-        </Suspense>
-      )
+        const { container } = render(
+          <Suspense fallback={null}>
+            <Component {...props} />
+          </Suspense>
+        )
 
-      // Panel must have mounted something (an empty container means the lazy
-      // import never resolved or the component rendered nothing at all).
-      await waitFor(() => expect(container.innerHTML.length).toBeGreaterThan(0), { timeout: 10000 })
-      // No NaN may leak into the DOM — attributes or text.
-      expect(container.innerHTML).not.toContain('NaN')
+        // Panel must have mounted something (an empty container means the lazy
+        // import never resolved or the component rendered nothing at all).
+        await waitFor(() => expect(container.innerHTML.length).toBeGreaterThan(0), { timeout: 10000 })
+        // No NaN may leak into the DOM — attributes or text.
+        expect(container.innerHTML).not.toContain('NaN')
+
+        // React dev warnings (duplicate keys, setState-in-render, unknown
+        // props, invalid attributes) surface via console.error/console.warn.
+        // Act() warnings are test-harness noise (timers ticking during the
+        // test), not product defects — filtered.
+        const real = consoleCalls
+          .map(a => a.map(String).join(' '))
+          .filter(msg => !msg.includes('wrapped in act'))
+        expect(real.join('\n---\n')).toBe('')
+      } finally {
+        errSpy.mockRestore()
+        warnSpy.mockRestore()
+      }
     }, 30000)
   }
 })
