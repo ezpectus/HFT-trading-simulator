@@ -2870,3 +2870,15 @@ Board: 1 open (S353).
 - **S353** — оба stale docstring'а исправлены под реальность: `ebpf_monitor._report` → "no metrics export — standalone tool" (Gauge-код был удалён — и правильно, без /metrics endpoint'а он ничего не экспонировал); `benchmark_suite` хедер → "synthetic proxy micro-benchmarks (NOT the real pipeline)" + указатель на PERFORMANCE.md. `py_compile` clean.
 
 Board: 0 open.
+
+## R219 — slop-audit — docs-vs-reality sweep — 2 находки (S354/S355)
+
+**Scope:** 6 docs claim-level (TESTING/ADV_ORDER_TYPES/RISK_MGMT/QUICK_START/TRADING_GUIDE/ARCHITECTURE ~2.4k) + root scripts (no-docker.{sh,bat}, install-deps, build-all, .pre-commit-config).
+
+**Находки:**
+- **S354 (Medium)** — TESTING.md: ~13 false claims. Все counts неверны (Py 120 не 118/126; C++ 23 не 25/26; JS 159; total 302 не 303/304/307), phantom test files (test_trading_flow.py, ADV:349 test_order_types.py), false coverage-клеймы (test_alerts НЕ сверяет metric names; test_integration НЕ покрывает :8080/:9090 — они в unit/test_health_server.py).
+- **S355 (Medium)** — RISK_MANAGEMENT.md: phantom-API tour. `var_stress_test.py`/`RiskAnalyzer` не существуют; 4 wrong method names (calculate_historical_cvar/size_by_volatility/run_covid_crash/update_stop_loss); wrong kwarg entry→entry_price; phantom test_risk_modules.py.
+
+**Чисто:** QUICK_START (всё верифицировано), TRADING_GUIDE (hotkeys точны), ARCHITECTURE (все пути + counts 278/271 точны, честные аннотации), ADV_ORDER_TYPES (классы/поля/семантика совпадают — гнил только test filename), root scripts честные, .pre-commit-config корректен.
+
+Board: 2 open (S354, S355).
