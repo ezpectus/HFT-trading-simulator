@@ -7,7 +7,9 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "ws2_32.lib")
+#endif
 #endif
 
 #include "core/bot_context.h"
@@ -26,7 +28,7 @@ int main(int argc, char* argv[]) {
     std::signal(SIGINT, [](int) { hft::set_running(false); });
     std::signal(SIGTERM, [](int) { hft::set_running(false); });
 
-    BotContext ctx{Config{}};
+    BotContext ctx;
     if (!init_config_and_logger(ctx, argc, argv)) return 1;
 
     try {
@@ -50,7 +52,7 @@ int main(int argc, char* argv[]) {
 
             update_risk_state(ctx, current_balance);
             update_health_status(ctx);
-            process_sl_tp(ctx, current_balance);
+            process_sl_tp(ctx);
             process_arbitrage(ctx, can_trade);
             process_ai_signals(ctx, current_balance, can_trade);
 

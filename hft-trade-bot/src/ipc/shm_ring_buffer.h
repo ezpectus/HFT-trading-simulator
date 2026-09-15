@@ -309,7 +309,7 @@ template <typename T> class ShmRingBuffer {
     }
 
   private:
-    void cleanup_mapped(uint64_t total_size) {
+    void cleanup_mapped([[maybe_unused]] uint64_t total_size) {
 #ifdef _WIN32
         if (header_) {
             UnmapViewOfFile(header_);

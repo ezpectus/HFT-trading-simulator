@@ -24,7 +24,11 @@
 #include <vector>
 
 // Third-party
+#ifndef ASIO_STANDALONE
+// Only the boost-asio websocketpp path needs this; nothing in src/ uses
+// boost:: directly.
 #include <boost/system/error_code.hpp>
+#endif
 #include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>

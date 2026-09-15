@@ -42,7 +42,7 @@ double process_memory_mb() {
 }
 } // namespace
 
-void process_sl_tp(BotContext& ctx, double current_balance) {
+void process_sl_tp(BotContext& ctx) {
     {
         SpinlockGuard guard(ctx.prices_cache_lock);
         ctx.receiver->get_all_prices_into(ctx.prices_cache);
@@ -265,15 +265,22 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
     // One clock read per tick — all signals in the sweep share the timestamp.
     const int64_t now_ns = FastSignal::now_ns();
     for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
-        ScopedLatency signal_timer(ctx.signal_latency_hist);
-        auto          candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
+        auto candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
         if (candles_count < 30) continue;
         prepare_order_book(ctx, sym_id, symbol);
         if (ctx.ob_buf.bids.empty() || ctx.ob_buf.asks.empty()) continue;
         // pressure computed once in generate_signal, reused by order selection
         PressureResult pressure{};
-        auto           fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
-                                                  ctx.candles_buf.size(), ctx.ob_buf, now_ns, pressure);
+        // signal_timer must wrap ONLY the engine call: previously it covered
+        // the whole iteration, so "signal latency" actually reported
+        // candles-fetch + book-prep + risk + exec, and early-continue skips
+        // (candles<30) recorded bogus samples into the histogram.
+        FastSignal fast_sig;
+        {
+            ScopedLatency signal_timer(ctx.signal_latency_hist);
+            fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
+                                       ctx.candles_buf.size(), ctx.ob_buf, now_ns, pressure);
+        }
         if (!fast_sig.is_actionable() || fast_sig.confidence < ctx.config.v2_min_confidence)
             continue;
         auto          sig = convert_fast_signal(ctx, fast_sig);

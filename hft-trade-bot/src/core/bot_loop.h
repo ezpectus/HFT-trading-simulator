@@ -6,7 +6,7 @@ namespace hft {
 
 void update_risk_state(BotContext& ctx, double current_balance);
 void update_health_status(BotContext& ctx);
-void process_sl_tp(BotContext& ctx, double current_balance);
+void process_sl_tp(BotContext& ctx);
 void process_arbitrage(BotContext& ctx, bool can_trade);
 void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade);
 void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade);

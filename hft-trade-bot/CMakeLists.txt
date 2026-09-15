@@ -144,42 +144,13 @@ if(HFT_TESTS_ONLY)
     find_package(yaml-cpp QUIET)
     find_package(simdjson QUIET)
 
-    # Vendored deps fallback (hft-trade-bot/deps/, gitignored — fetched manually
-    # or by scripts; used only when real packages are absent). Creates the same
-    # canonical target names the test gates below check for.
-    set(_HFT_DEPS ${CMAKE_SOURCE_DIR}/deps)
-    if(NOT TARGET nlohmann_json::nlohmann_json AND EXISTS ${_HFT_DEPS}/nlohmann/json.hpp)
-        add_library(nlohmann_json_vendored INTERFACE)
-        target_include_directories(nlohmann_json_vendored INTERFACE ${_HFT_DEPS})
-        add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json_vendored)
-        message(STATUS "deps: vendored nlohmann_json")
-    endif()
-    if(NOT TARGET fmt::fmt AND EXISTS ${_HFT_DEPS}/fmt/fmt/format.h)
-        add_library(fmt_vendored INTERFACE)
-        target_include_directories(fmt_vendored INTERFACE ${_HFT_DEPS}/fmt)
-        target_compile_definitions(fmt_vendored INTERFACE FMT_HEADER_ONLY=1)
-        add_library(fmt::fmt ALIAS fmt_vendored)
-        message(STATUS "deps: vendored fmt (header-only)")
-    endif()
-    if(NOT TARGET spdlog::spdlog AND EXISTS ${_HFT_DEPS}/spdlog/spdlog/spdlog.h)
-        add_library(spdlog_vendored INTERFACE)
-        target_include_directories(spdlog_vendored INTERFACE ${_HFT_DEPS}/spdlog)
-        add_library(spdlog::spdlog ALIAS spdlog_vendored)
-        message(STATUS "deps: vendored spdlog (header-only, bundled fmt)")
-    endif()
-    if(NOT TARGET yaml-cpp::yaml-cpp AND EXISTS ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a)
-        add_library(yaml-cpp STATIC IMPORTED GLOBAL)
-        set_target_properties(yaml-cpp PROPERTIES
-            IMPORTED_LOCATION ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a
-            INTERFACE_INCLUDE_DIRECTORIES ${_HFT_DEPS}/_yaml_src/include
-            INTERFACE_COMPILE_DEFINITIONS YAML_CPP_STATIC_DEFINE
-        )
-        add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
-        message(STATUS "deps: vendored yaml-cpp (prebuilt static)")
-    endif()
 else()
-# Boost: on Linux use system install (apt), on Windows use vcpkg
-if(UNIX AND NOT APPLE)
+# Boost: on Linux use system install (apt), on Windows use vcpkg.
+# Only needed for websocketpp's boost-asio path — vendored standalone asio
+# (deps/asio) replaces it entirely; nothing in src/ uses boost:: directly.
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp)
+    find_package(Boost QUIET COMPONENTS system random)
+elseif(UNIX AND NOT APPLE)
     # Linux: Boost installed via apt (libboost-system-dev, libboost-random-dev)
     find_package(Boost REQUIRED COMPONENTS system random)
     if(NOT TARGET Boost::headers)
@@ -212,17 +183,17 @@ else()
         message(STATUS "Boost headers found at ${BOOST_INCLUDE_DIR}")
     endif()
 endif()
-find_package(OpenSSL REQUIRED)
+find_package(OpenSSL QUIET)
 find_package(Threads REQUIRED)
 
 # spdlog
-find_package(spdlog REQUIRED)
+find_package(spdlog QUIET)
 # fmt
-find_package(fmt REQUIRED)
+find_package(fmt QUIET)
 # nlohmann_json
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json QUIET)
 # yaml-cpp — robust target resolution for Debian/Ubuntu packages
-find_package(yaml-cpp REQUIRED)
+find_package(yaml-cpp QUIET)
 if(NOT TARGET yaml-cpp::yaml-cpp)
     if(TARGET yaml-cpp)
         add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
@@ -235,8 +206,6 @@ if(NOT TARGET yaml-cpp::yaml-cpp)
                 IMPORTED_LOCATION "${YAML_CPP_LIB_RELEASE}"
                 INTERFACE_INCLUDE_DIRECTORIES "${YAML_CPP_INCLUDE_DIR}"
             )
-        else()
-            message(FATAL_ERROR "yaml-cpp library not found — install libyaml-cpp-dev")
         endif()
     endif()
 endif()
@@ -245,6 +214,77 @@ endif()
 find_package(simdjson QUIET)
 
 endif() # HFT_TESTS_ONLY
+
+# ─── Vendored deps fallback (hft-trade-bot/deps/, gitignored — fetched by
+#     fetch-test-deps.sh; used only when real packages are absent). Creates the
+#     same canonical target names both build modes check for. ───
+set(_HFT_DEPS ${CMAKE_SOURCE_DIR}/deps)
+if(NOT TARGET nlohmann_json::nlohmann_json AND EXISTS ${_HFT_DEPS}/nlohmann/json.hpp)
+    add_library(nlohmann_json_vendored INTERFACE)
+    target_include_directories(nlohmann_json_vendored INTERFACE ${_HFT_DEPS})
+    add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json_vendored)
+    message(STATUS "deps: vendored nlohmann_json")
+endif()
+if(NOT TARGET fmt::fmt AND EXISTS ${_HFT_DEPS}/fmt/fmt/format.h)
+    add_library(fmt_vendored INTERFACE)
+    target_include_directories(fmt_vendored INTERFACE ${_HFT_DEPS}/fmt)
+    target_compile_definitions(fmt_vendored INTERFACE FMT_HEADER_ONLY=1)
+    add_library(fmt::fmt ALIAS fmt_vendored)
+    message(STATUS "deps: vendored fmt (header-only)")
+endif()
+if(NOT TARGET spdlog::spdlog AND EXISTS ${_HFT_DEPS}/spdlog/spdlog/spdlog.h)
+    add_library(spdlog_vendored INTERFACE)
+    target_include_directories(spdlog_vendored INTERFACE ${_HFT_DEPS}/spdlog)
+    add_library(spdlog::spdlog ALIAS spdlog_vendored)
+    message(STATUS "deps: vendored spdlog (header-only, bundled fmt)")
+endif()
+if(NOT TARGET yaml-cpp::yaml-cpp AND EXISTS ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a)
+    add_library(yaml-cpp STATIC IMPORTED GLOBAL)
+    set_target_properties(yaml-cpp PROPERTIES
+        IMPORTED_LOCATION ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a
+        INTERFACE_INCLUDE_DIRECTORIES ${_HFT_DEPS}/_yaml_src/include
+        INTERFACE_COMPILE_DEFINITIONS YAML_CPP_STATIC_DEFINE
+    )
+    add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+    message(STATUS "deps: vendored yaml-cpp (prebuilt static)")
+endif()
+# Vendored OpenSSL (msys2 ucrt64 layout: deps/openssl/openssl/*.h + static .a)
+if(NOT TARGET OpenSSL::SSL AND EXISTS ${_HFT_DEPS}/openssl/openssl/ssl.h)
+    add_library(hft_vendored_crypto STATIC IMPORTED GLOBAL)
+    set_target_properties(hft_vendored_crypto PROPERTIES
+        IMPORTED_LOCATION ${_HFT_DEPS}/openssl/libcrypto.a
+        INTERFACE_INCLUDE_DIRECTORIES ${_HFT_DEPS}/openssl
+    )
+    if(WIN32)
+        set_target_properties(hft_vendored_crypto PROPERTIES
+            INTERFACE_LINK_LIBRARIES "ws2_32;gdi32;crypt32")
+    endif()
+    add_library(hft_vendored_ssl STATIC IMPORTED GLOBAL)
+    set_target_properties(hft_vendored_ssl PROPERTIES
+        IMPORTED_LOCATION ${_HFT_DEPS}/openssl/libssl.a
+        INTERFACE_INCLUDE_DIRECTORIES ${_HFT_DEPS}/openssl
+        INTERFACE_LINK_LIBRARIES hft_vendored_crypto
+    )
+    add_library(OpenSSL::SSL ALIAS hft_vendored_ssl)
+    add_library(OpenSSL::Crypto ALIAS hft_vendored_crypto)
+    message(STATUS "deps: vendored OpenSSL (msys2 ucrt64 static)")
+endif()
+
+# Full build: enforce what used to be find_package(REQUIRED) — real packages
+# OR the vendored equivalents above must exist.
+if(NOT HFT_TESTS_ONLY)
+    foreach(_req OpenSSL::SSL OpenSSL::Crypto spdlog::spdlog fmt::fmt
+                 nlohmann_json::nlohmann_json yaml-cpp::yaml-cpp)
+        if(NOT TARGET ${_req})
+            message(FATAL_ERROR "${_req} not found — install system packages (vcpkg/apt) or run fetch-test-deps.sh")
+        endif()
+    endforeach()
+    if(NOT TARGET Boost::headers)
+        # Reachable only on the vendored standalone-asio path (otherwise the
+        # Boost lookup above is fatal): no src/ file includes boost there.
+        add_library(Boost::headers INTERFACE IMPORTED)
+    endif()
+endif()
 
 # websocketpp (header-only) — check vcpkg first, then project root
 find_path(WEBSOCKETPP_INCLUDE_DIR websocketpp/client.hpp
@@ -281,6 +321,16 @@ target_include_directories(hft_trade_bot PRIVATE
 # websocketpp random: use C++11 std::random_device instead of boost/random
 # (boost-random is not always installed via vcpkg; websocketpp doesn't auto-detect on MSVC)
 target_compile_definitions(hft_trade_bot PRIVATE _WEBSOCKETPP_CPP11_RANDOM_DEVICE_)
+
+# Vendored standalone asio — replaces the boost-asio websocketpp path when
+# present (no Boost needed at all on this path).
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp)
+    target_include_directories(hft_trade_bot PRIVATE ${CMAKE_SOURCE_DIR}/deps/asio)
+    target_compile_definitions(hft_trade_bot PRIVATE ASIO_STANDALONE _WEBSOCKETPP_CPP11_THREAD_)
+    if(WIN32)
+        target_link_libraries(hft_trade_bot PRIVATE ws2_32 mswsock)
+    endif()
+endif()
 
 # ─── Precompiled headers ───
 if(USE_PCH)

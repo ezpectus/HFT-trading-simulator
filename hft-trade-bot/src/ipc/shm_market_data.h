@@ -166,7 +166,9 @@ class ShmMarketData {
   private:
     std::string shm_name_;
     uint8_t     max_symbols_;
-    bool        owns_;
+    // POSIX-only read (shm_unlink in ~); Windows cleanup is UnmapViewOfFile +
+    // CloseHandle — the field exists on both for a uniform ctor contract.
+    [[maybe_unused]] bool owns_;
 #ifdef _WIN32
     HANDLE handle_{nullptr};
 #else
