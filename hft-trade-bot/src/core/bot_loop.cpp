@@ -405,10 +405,17 @@ void update_risk_state(BotContext& ctx, double current_balance) {
 void update_health_status(BotContext& ctx) {
     if (!ctx.health_server) return;
 
+    // The endpoint doesn't need per-tick freshness — throttle the struct
+    // build + mutex to 1s (the 5s memory cache inside stays the slowest
+    // field).
+    static auto next_refresh = std::chrono::steady_clock::time_point::min();
+    const auto  now_steady   = std::chrono::steady_clock::now();
+    if (now_steady < next_refresh) return;
+    next_refresh = now_steady + std::chrono::seconds(1);
+
     static int64_t err_baseline = 0;
     static auto    err_window   = std::chrono::steady_clock::now();
     const int64_t  err_total    = ctx.sys_monitor.get(SystemMonitor::Metric::ERRORS);
-    const auto     now_steady   = std::chrono::steady_clock::now();
     if (now_steady - err_window >= std::chrono::minutes(5)) {
         err_window   = now_steady;
         err_baseline = err_total;
