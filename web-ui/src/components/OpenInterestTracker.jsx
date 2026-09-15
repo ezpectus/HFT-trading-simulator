@@ -9,10 +9,7 @@ function OpenInterestTracker({ candles, fills, symbol, exchange }) {
       .slice(-50)
     if (symCandles.length < 10) return null
 
-    // Estimate open interest from fill flow
-    // OI increases when new positions open, decreases when they close
-      .filter(f => f.symbol === symbol && f.exchange === exchange && f.status === 'FILLED')
-      .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    // OI is estimated from candle volume below — fills aren't needed here.
 
     // Simulate OI from candle volume (proxy: cumulative volume * retention factor)
     let oi = 0

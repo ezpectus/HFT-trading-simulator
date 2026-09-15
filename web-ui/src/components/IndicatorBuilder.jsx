@@ -1,4 +1,4 @@
-import { memo, useState, useMemo } from 'react'
+import { memo, useState, useMemo, useEffect } from 'react'
 import { Plus, X, LineChart} from 'lucide-react'
 import { calcSMA, calcEMA, calcRSI, calcBollingerBands } from '../utils/indicators'
 
@@ -56,7 +56,9 @@ function IndicatorBuilder({ candles, onIndicatorsChange }) {
     return results
   }, [candles, indicators])
 
-  useMemo(() => {
+  // Side-effect, not a derivation — useMemo ran the parent setState during
+  // render (React "Cannot update while rendering" warning).
+  useEffect(() => {
     onIndicatorsChange?.(computed)
   }, [computed, onIndicatorsChange])
 

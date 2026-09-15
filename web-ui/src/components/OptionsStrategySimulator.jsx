@@ -116,7 +116,10 @@ function OptionsStrategySimulator({ currentPrice }) {
     const range = spot * 0.2
     const steps = 41
     for (let i = 0; i < steps; i++) {
-      const priceAtExpiry = spot * (1 - range / spot) + (2 * range / (steps - 1)) * i
+      // spot<=0 → range=0 → 0/0 in the formula below; emit a flat 0..1 domain
+      const priceAtExpiry = spot > 0 && range > 0
+        ? spot * (1 - range / spot) + (2 * range / (steps - 1)) * i
+        : i / (steps - 1)
       let pnl = -netCost
       for (const leg of legResults) {
         const intrinsic = leg.type === 'call'
@@ -263,16 +266,26 @@ function OptionsStrategySimulator({ currentPrice }) {
         <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 120">
           {/* Zero line */}
           {(() => {
-            const zeroY = 120 - ((0 - maxLoss) / (maxProfit - maxLoss)) * 120
+            const pnlRange = maxProfit - maxLoss
+            const zeroY = pnlRange > 0
+              ? 120 - ((0 - maxLoss) / pnlRange) * 120
+              : 60
             return <line x1="0" y1={zeroY} x2="400" y2={zeroY} stroke="#444" strokeWidth="0.5" strokeDasharray="2,2" />
           })()}
-          {/* P&L curve */}
+          {/* P&L curve — flat profile (spot=0 or no legs) collapses both
+              ranges to 0 → 0/0 NaN coordinates; clamp to flat midline. */}
           {(() => {
             const minPrice = pnlProfile[0]?.price || 0
             const maxPrice = pnlProfile[pnlProfile.length - 1]?.price || 1
-            const points = pnlProfile.map(p => {
-              const x = ((p.price - minPrice) / (maxPrice - minPrice)) * 400
-              const y = 120 - ((p.pnl - maxLoss) / (maxProfit - maxLoss)) * 120
+            const xSpan = maxPrice - minPrice
+            const pnlRange = maxProfit - maxLoss
+            const points = pnlProfile.map((p, i) => {
+              const x = xSpan > 0 && Number.isFinite(p.price)
+                ? ((p.price - minPrice) / xSpan) * 400
+                : (i / (pnlProfile.length - 1)) * 400
+              const y = pnlRange > 0 && Number.isFinite(p.pnl)
+                ? 120 - ((p.pnl - maxLoss) / pnlRange) * 120
+                : 60
               return `${x},${y}`
             }).join(' ')
             const fillColor = netCost < 0 ? 'rgba(168,85,247,0.1)' : 'rgba(34,197,94,0.1)'

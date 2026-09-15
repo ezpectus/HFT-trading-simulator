@@ -87,8 +87,10 @@ test.describe('Trading System UI — Trading Flows', () => {
     await gotoWithRetry(page, '/')
     await closeOverlays(page)
     // Playwright always serves the app via `npm run dev:mock`, so the
-    // MockModeBanner (role="alert", "DEMO MODE") must be rendered.
-    const banner = page.getByRole('alert')
+    // MockModeBanner (role="alert", "DEMO MODE") must be rendered. Toast
+    // notifications also use role="alert" — filter to the banner text or
+    // strict-mode resolution fails on any live toast.
+    const banner = page.getByRole('alert').filter({ hasText: 'DEMO MODE' })
     await expect(banner).toBeVisible()
     await expect(banner).toContainText('DEMO MODE')
   })

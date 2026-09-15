@@ -61,7 +61,16 @@ function PerfAreaChart({ data, mapPoint, lineColor, topColor, bottomColor, heigh
 
   useEffect(() => {
     if (seriesRef.current && data.length > 0) {
-      seriesRef.current.setData(data.map(mapPoint))
+      // lightweight-charts throws on non-finite values and on duplicate or
+      // out-of-order times — sanitize before setData or the component crashes
+      // into the error boundary on every data push.
+      const seen = new Map()
+      for (const p of data) {
+        const pt = mapPoint(p)
+        if (pt && Number.isFinite(pt.value) && pt.time != null) seen.set(pt.time, pt)
+      }
+      const pts = [...seen.values()].sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0))
+      if (pts.length > 0) seriesRef.current.setData(pts)
     }
   }, [data, mapPoint])
 

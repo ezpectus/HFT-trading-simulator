@@ -2,12 +2,15 @@ import { memo } from 'react'
 import { CheckCircle, XCircle, AlertTriangle, Info, X, Trash2 } from 'lucide-react'
 
 export const ToastContainer = memo(function ToastContainer({ toasts, onRemove, onClearAll }) {
+  // pointer-events-none on the overlay, -auto on interactive children —
+  // the region used to swallow clicks aimed at whatever sat beneath it
+  // (blocked tab navigation in e2e).
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm" role="region" aria-label="Notifications">
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none" role="region" aria-label="Notifications">
       {toasts.length >= 2 && onClearAll && (
         <button
           onClick={onClearAll}
-          className="self-end text-[10px] text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors mb-0.5"
+          className="self-end text-[10px] text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors mb-0.5 pointer-events-auto"
           aria-label="Clear all notifications"
         >
           <Trash2 size={11} /> Clear all
@@ -20,6 +23,9 @@ export const ToastContainer = memo(function ToastContainer({ toasts, onRemove, o
   )
 })
 
+// Toast body is click-through (pointer-events-none) — it visually overlays the
+// tab strip and would otherwise block clicks beneath; the dismiss button
+// stays interactive.
 function Toast({ toast, onRemove }) {
   const config = {
     success: { icon: CheckCircle, color: 'text-accent-green', border: 'border-accent-green/30', bg: 'bg-accent-green/10', bar: 'bg-accent-green' },
@@ -32,14 +38,14 @@ function Toast({ toast, onRemove }) {
 
   return (
     <div
-      className={`relative overflow-hidden flex items-start gap-2 px-3 py-2  bg-bg-800 border ${border} ${bg} shadow-lg animate-slide-in`}
+      className={`relative overflow-hidden flex items-start gap-2 px-3 py-2  bg-bg-800 border ${border} ${bg} shadow-lg animate-slide-in pointer-events-none`}
       role="alert"
     >
       <Icon size={16} className={`${color} shrink-0 mt-0.5`} aria-hidden="true" />
       <span className="text-xs text-gray-200 flex-1">{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}
-        className="text-gray-500 hover:text-gray-300 shrink-0 transition-colors"
+        className="text-gray-500 hover:text-gray-300 shrink-0 transition-colors pointer-events-auto"
         aria-label="Dismiss notification"
       >
         <X size={14} />
