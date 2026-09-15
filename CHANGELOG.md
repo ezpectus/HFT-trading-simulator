@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R248 — hft ctest unblocked)
+
+### Fixed
+- **Vendored `doctest.h` stub left a registered ctest target uncompilable; first real run surfaced 3 defects (S372):** the 156-line hand-rolled stub lacked `CHECK_THROWS*`/`WARN`/`INFO` and had broken `SUBCASE`/`REQUIRE` semantics — `test_doctest_order_type_selector` used `CHECK_THROWS_AS` and never compiled anywhere. The stub gained the THROWS/NOTHROW family; a new `HFT_TESTS_ONLY` CMake mode (deps QUIET, main exe skipped, dep-requiring tests gated on `TARGET`) lets the dep-free suite build on hosts without vcpkg. Executing the suite caught: `InlineRSI` returning ~100 on perfectly flat prices (now 50); `OnlineHMM` annualizing its per-observation volatility proxy (×252, ~16x mis-scale — VOLATILE always won, so trend/range detection was dead) plus an over-wide RANGING return variance (5e-5→1e-7); and a `test_doctest_pressure_model` fixture that claimed 1bps but built 2bps while expecting TIGHT. **ctest: 13/13 binaries, 221 cases — all green** (first local run ever).
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R240–R247 — panel coverage sweep)
 
 ### Fixed

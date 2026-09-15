@@ -3125,3 +3125,11 @@ Board: 0 open.
 - onboarding initially failed the remount non-empty check — investigated: by-design (dismissal persists via localStorage; the interaction pass had clicked Close). Clearing storage before remount verifies the harder path (must render for a new user) — passed, which also proves its cleanup is sound.
 - Result: **271/271 clean across all 7 phases — 0 findings.** Mount→interact→tick→select→empty→minimal→remount is now the permanent panel gate.
 - Board: 0 open.
+
+## R248 — hft ctest unblocked (clang-MinGW) → S372 found+fixed
+
+- tests/doctest.h was a 156-line stub — no CHECK_THROWS*/WARN/INFO, broken SUBCASE semantics, REQUIRE==CHECK. test_doctest_order_type_selector used missing CHECK_THROWS_AS → never compiled anywhere: a dead registered ctest target.
+- Added HFT_TESTS_ONLY cmake mode (deps QUIET, main exe skipped, dep-requiring tests gated on TARGET existence) + stub gained the THROWS family. Fixed latent mislink: signal_receiver's FMT/SPDLOG fallbacks linked hft_config.
+- First real run caught 3 defects: InlineRSI flat→RSI≈100 (now 50); OnlineHMM vol_proxy annualized per-obs EWMA ×252 (~16× mis-scale → VOLATILE always won → trend detection dead) + RANGING ret-var 5e-5→1e-7; pressure-test fixture claimed 1bps but produced 2bps with a TIGHT expectation.
+- `ctest` via clang-MinGW: **13/13 binaries, 221 cases — all green.** Verify-debt downgraded from env-blocked to dep-blocked (fmt/spdlog/yaml/json tests, POSIX-only targets).
+- Board: 0 open.
