@@ -3191,3 +3191,12 @@ Board: 0 open.
 - **Full-build unlock:** vendored deps/ now serve the production exe too — find_package QUIET + shared vendored minting + post-check enforcing old REQUIRED semantics. Boost eliminated on standalone-asio path (zero boost:: in src/; pch include guarded). **hft_trade_bot.exe builds+runs on this host for the first time.**
 - Full-build warnings zeroed on production code: dead current_balance param, _MSC_VER pragma guards, [[maybe_unused]] platform-gated fields, redundant aggregate init.
 - ctest 23/23 green. Board: 0 open.
+
+## R258 — coverage-map + unseen-files sweep → S379, S380, S381
+
+- Coverage map on the board: per-dir %, honest file-vs-pipeline-vs-execution levels. True unseen prod set audited.
+- S379: backtest Sharpe/Sortino used per-trade returns × bars/year — inflated by sqrt(bars/trades). Moved to per-bar equity basis (standard convention). Dead interval param dropped.
+- S380: SHM consumer callback could throw → terminate on thread. Guarded + callback_errors counter.
+- S381: security.sh pip-audit covered only ai-signal-bot; now scans exchange_simulator too.
+- Clean: fft_cycle/trend_following strategies, obi_utils, params, helm helpers, scan-images, web-ui hooks, ui-helpers, LLM templates.
+- pytest 34/34 metrics+results+comparison; ctest 23/23; exe rebuild clean. Board: 0 open.

@@ -1492,3 +1492,24 @@ The nominal trading path computes a full signal in **sub-microsecond** time. Fut
 - Vendored OpenSSL minted as `OpenSSL::SSL`/`Crypto` STATIC IMPORTED (+ws2_32/gdi32/crypt32 on Win32). Main exe gets `ASIO_STANDALONE`/`_WEBSOCKETPP_CPP11_THREAD_`/`ws2_32`/`mswsock` when `deps/asio` exists.
 - **Warnings the full build surfaced (all fixed):** `process_sl_tp` dead `current_balance` param (dropped from decl/def/call — same class as S376's `now_ms`); `#pragma comment(lib)` MSVC-isms in `main.cpp`+`health_server.h` (now `_MSC_VER`-gated); `shm_market_data.h` `owns_` and `shm_ring_buffer.h` `total_size` platform-gated members/params (`[[maybe_unused]]` — POSIX reads them, Windows doesn't); `BotContext ctx{Config{}}` redundant aggregate init → `ctx`. Remaining warnings: only vendored `websocketpp/md5.hpp` (third-party).
 - **Verified:** `hft_trade_bot.exe` builds from clean, **runs** (banner + config validation + SIMULATOR mode + init path — killed after 8s smoke); `build-full/`+`logs/` gitignored; rebuild+**ctest 23/23 green**.
+
+
+## R258 — coverage-map audit: sweep of never-audited production files — S379, S380, S381
+
+**Method:** intersected `git ls-files` (985 tracked) against done-log/progress/AUDIT_FINDINGS → coverage map added to office-board (per-dir % + honest distinction: file-level vs pipeline-level vs execution-covered). 411 unreferenced files, but most are test files (executed by vitest/pytest/ctest — green runs are the check) and web-ui panels (covered by registry-level sweeps, not file-by-file). The true unseen production set: 2 strategies, 2 backtest modules, 3 hft headers, helm _helpers, 2 CI scripts, 7 web-ui hooks + ui-helpers + tailwind config, 3 LLM prompt templates, 3 issue templates.
+
+### S379 — backtest Sharpe/Sortino annualized per-trade returns by bars-per-year (Medium) ✅
+- **Context:** `backtest_metrics.py::calculate_trade_metrics` computed `sharpe = mean(trade_pnl_pct)/std × sqrt(bars_per_year)` — wrong basis: trades are sparse, so the ratio inflated by sqrt(bars/trades) (e.g. 5m bars → ×324). Reported Sharpe was order-of-magnitude fiction.
+- **Fix:** Sharpe/Sortino moved to `calculate_drawdown_metrics` over **per-bar equity returns** × sqrt(bars/year) — the standard convention (equity exists every bar). Dead `candle_interval_minutes` param dropped from `calculate_trade_metrics` (callers+tests updated). Tests: `sharpe>0` assert now exercises the equity-curve path; added flat-equity→0 and trade-metrics-doesn't-set-sharpe assertions.
+- **Files:** `src/backtesting/backtest_metrics.py`, `src/backtesting/backtester.py`, `tests/unit/test_backtest_metrics.py`. **Verified:** pytest 34/34 green.
+
+### S380 — SHM signal-consumer callback could terminate the process (Medium) ✅
+- **Context:** `ShmSignalConsumer::run` invoked `callback_(msg)` unguarded on the consumer thread; the setup callback builds `Signal` with `std::string` assignments → `bad_alloc` → escape → `std::terminate` (same class as S376/S377, this time a thread boundary).
+- **Fix:** try/catch inside the pop loop — drop the signal, count in new `callback_errors_` atomic (+getter for observability). Consumer survives malformed/alloc-failing callbacks.
+- **Files:** `src/ipc/shm_signal_consumer.h`. **Verified:** compiled in the real exe build (bot_setup.cpp TU).
+
+### S381 — CI security gate never audited exchange_simulator deps (Low) ✅
+- `scripts/ci/security.sh` ran `pip-audit` only on `ai-signal-bot/requirements.txt`; `exchange_simulator/requirements.txt` exists and was never scanned → loop over both requirement files.
+- **Files:** `scripts/ci/security.sh`.
+
+**Clean in the sweep:** `fft_cycle.py`/`trend_following.py` (indicators return `list[float]` — no ndarray-truthiness hazard; bounded cache, sane ATR stops); `obi_utils.h` (fused single-pass OBI, noexcept, div-guards); `signal_engine_v2_params.h` (data struct + validate); `shm_signal_consumer.h` rest (50µs poll on a dedicated thread — fine); `_helpers.tpl` (live, used by all templates); `scan-images.sh` (sound); web-ui hooks ×7 + `ui-helpers.tsx` (idiomatic, proper cleanups; `NoDataFeed` is the honest empty-state); LLM prompt templates live-wired in engine.py; issue templates trivial.

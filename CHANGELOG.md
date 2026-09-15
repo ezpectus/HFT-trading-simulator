@@ -9,6 +9,14 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-16 (Slop-fix R258 — never-audited-files sweep)
+
+### Fixed
+- **Backtest Sharpe/Sortino were inflated by `sqrt(bars/trades)` (S379):** per-trade `pnl_pct` returns were annualized by *bars*-per-year — e.g. ~×324 on 5m bars. Now computed on per-bar equity returns (the standard basis) in `calculate_drawdown_metrics`; the dead `candle_interval_minutes` param was dropped from `calculate_trade_metrics`.
+- **SHM signal-consumer callback could `std::terminate` (S380):** `ShmSignalConsumer::run` called the signal-conversion callback (which allocates `std::string`s) unguarded on the consumer thread — `bad_alloc` would kill the process. Now caught per-message; drops counted in a new `callback_errors` metric.
+- **CI security gate missed exchange_simulator (S381):** `security.sh` pip-audit scanned only `ai-signal-bot/requirements.txt`; now loops both requirement files.
+- Also audited-clean this sweep: `fft_cycle`/`trend_following` strategies, `obi_utils.h`, engine params, helm `_helpers.tpl`, `scan-images.sh`, all 7 unaudited web-ui hooks + `ui-helpers.tsx`, LLM prompt templates. Coverage map added to `.cascade/office-board.md`. **pytest 34/34, ctest 23/23 green.**
+
 ## [Unreleased] — 2026-09-16 (Slop-fix R257 — production exe builds on dep-less hosts)
 
 ### Fixed
