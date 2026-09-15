@@ -266,8 +266,12 @@ TEST(test_signal_engine_v2_no_dynamic_leverage) {
 
 TEST(test_signal_engine_v2_toxicity_penalty) {
     SignalEngineV2::Params params;
-    params.cooldown_ms   = 0;
-    params.toxic_penalty = 0.8; // High penalty
+    params.cooldown_ms = 0;
+    // Full penalty: raw pressure ≈0.96 saturates to +1 clean; at penalty 0.8
+    // the residual (×0.28) still exceeds pressure_threshold=0.2 and saturates
+    // too, so no reduction is visible. At 1.0 the residual is ×0.10 ≈ 0.096 —
+    // below threshold, so normalization exposes the reduction.
+    params.toxic_penalty = 1.0;
     SignalEngineV2 engine(params);
 
     auto candles = make_trending_candles(70, 100.0, 0.5);

@@ -350,6 +350,15 @@ function(add_hft_test name source)
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
 
+# ─── V2 engine tests (own main, dep-free — assert-based) ───
+add_hft_test(test_v2_engine tests/test_v2_engine.cpp)
+add_hft_test(test_v2_indicators tests/test_v2_indicators.cpp)
+add_hft_test(test_v2_infra tests/test_v2_infra.cpp)
+add_hft_test(test_v2_pressure_adaptive tests/test_v2_pressure_adaptive.cpp)
+foreach(t test_v2_engine test_v2_indicators test_v2_infra test_v2_pressure_adaptive)
+    target_sources(${t} PRIVATE src/strategies/signal_engine_v2.cpp)
+endforeach()
+
 # ─── doctest-based unit tests (header-only, no external deps) ───
 function(add_doctest_test name source)
     add_executable(${name} ${source})
