@@ -198,19 +198,28 @@ class StrategyOptimizer:
         symbol: str = "BTC/USDT",
         train_size: int = 200,
         test_size: int = 50,
-        warmup: int = 50,
     ) -> list[OptimizationResult]:
-        """Walk-forward optimization: train on window, test on next window."""
+        """Rolling out-of-sample evaluation of fixed params.
+
+        Each window hands the backtester `train_size` strictly-past
+        context candles (indicator warmup — no trades, no metrics)
+        followed by `test_size` evaluated candles, then steps by
+        `test_size`. Params are NOT re-fitted per window; fitting happens
+        upstream (grid_search). The caller must keep the fitting segment
+        disjoint from these candles — validating on data the grid saw
+        makes the "out-of-sample" result in-sample.
+        """
         results = []
         total_len = len(candles)
-        start = warmup
+        start = 0
 
         while start + train_size + test_size <= total_len:
-            test_candles = candles[start + train_size:start + train_size + test_size]
+            window = candles[start:start + train_size + test_size]
 
             try:
                 strategy = strategy_class(**params)
-                result = self.backtester.run(test_candles, strategy, symbol, warmup=min(20, len(test_candles) // 3))
+                result = self.backtester.run(
+                    window, strategy, symbol, warmup=train_size)
                 fitness = self.fitness_fn(result)
                 results.append(OptimizationResult(params, result, fitness))
             except (RuntimeError, ValueError, KeyError, OSError) as e:

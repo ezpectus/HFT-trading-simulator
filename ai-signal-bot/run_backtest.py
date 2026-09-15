@@ -61,6 +61,18 @@ def generate_synthetic_candles(
     return candles
 
 
+def split_fit_validation(candles: list[dict], fit_fraction: float = 0.6
+                         ) -> tuple[list[dict], list[dict]]:
+    """Chronological fit/validation split for optimization.
+
+    Grid search may only see the head (fit) segment; walk-forward
+    validates on the untouched tail. Searching the full set and then
+    "validating" inside it reports in-sample results as out-of-sample.
+    """
+    split = int(len(candles) * fit_fraction)
+    return candles[:split], candles[split:]
+
+
 def main():
     parser = argparse.ArgumentParser(description="Backtest Runner")
     parser.add_argument("--db", default=None, help="SQLite database path")
@@ -124,6 +136,12 @@ def main():
 
         optimizer = StrategyOptimizer(bt)
 
+        # Fit/validation split — grid search sees only the fit segment,
+        # walk-forward evaluates on candles it never touched (S346).
+        fit_candles, oos_candles = split_fit_validation(candles)
+        print(f"  Fit segment: {len(fit_candles)} candles, "
+              f"OOS segment: {len(oos_candles)} candles")
+
         # Optimize Trend Following
         print("\nOptimizing Trend Following strategy...")
         tf_results = optimizer.grid_search(
@@ -133,7 +151,7 @@ def main():
                 "ema_slow": [21, 26, 30],
                 "adx_threshold": [0, 20, 25],
             },
-            candles=candles,
+            candles=fit_candles,
             symbol=args.symbol,
             warmup=50,
         )
@@ -149,23 +167,24 @@ def main():
                 "bb_period": [15, 20, 25],
                 "bb_std": [1.5, 2.0, 2.5],
             },
-            candles=candles,
+            candles=fit_candles,
             symbol=args.symbol,
             warmup=50,
         )
         optimizer.print_results(mr_results, top_n=5)
 
-        # Walk-forward validation for best Trend Following params
+        # Walk-forward validation for best Trend Following params —
+        # runs on the OOS tail the grid never saw.
         if tf_results:
             best_tf = optimizer.best_params(tf_results)
-            print(f"\nWalk-forward validation for best TF params: {best_tf}")
+            print(f"\nOut-of-sample walk-forward for best TF params: {best_tf}")
             wf_results = optimizer.walk_forward(
                 strategy_class=TrendFollowingStrategy,
                 params=best_tf,
-                candles=candles,
+                candles=oos_candles,
                 symbol=args.symbol,
-                train_size=200,
-                test_size=50,
+                train_size=60,
+                test_size=30,
             )
             if wf_results:
                 avg_fitness = sum(r.fitness for r in wf_results) / len(wf_results)

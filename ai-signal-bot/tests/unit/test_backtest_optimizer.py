@@ -236,6 +236,5 @@ class TestStrategyOptimizer:
             candles=sample_candles,
             train_size=20,
             test_size=10,
-            warmup=5,
         )
-        assert len(results) == 7  # 100 candles, warmup 5, train 20 + test 10 → 7 windows
+        assert len(results) == 8  # 100 candles, 20 ctx + 10 test, step 10 → 8 windows

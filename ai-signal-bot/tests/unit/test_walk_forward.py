@@ -1,4 +1,8 @@
-"""Tests for StrategyOptimizer.walk_forward — the live walk-forward path.
+"""Tests for StrategyOptimizer.walk_forward — rolling OOS eval (S346).
+
+Each run() call gets `train_size` strictly-past context candles (warmup —
+no trades/metrics) plus `test_size` evaluated candles. Params are fixed;
+fitting happens upstream on a disjoint segment.
 
 (Replaces the dead `walk_forward.py`/`WalkForwardAnalyzer` suite — that module
 was a 201-line duplicate with zero production callers; S259.)
@@ -34,12 +38,14 @@ class FakeStrategy:
 
 
 class RecordingBacktester:
-    """Records each run() call's candle window."""
+    """Records each run() call's candle window and warmup."""
     def __init__(self):
         self.calls = []
+        self.warmups = []
 
     def run(self, candles, strategy, symbol, warmup=50):
         self.calls.append(list(candles))
+        self.warmups.append(warmup)
         return _result()
 
 
@@ -62,19 +68,31 @@ class TestWalkForwardLive:
         candles = [{"close": i} for i in range(120)]
         results = opt.walk_forward(
             FakeStrategy, {"x": 1}, candles,
-            train_size=30, test_size=10, warmup=10,
+            train_size=30, test_size=10,
         )
-        # windows at start=10,20,...,80 → test slices [40:50],[50:60],...
-        assert len(results) == len(bt.calls) > 0
-        # each run sees only the test window
-        for call in bt.calls:
-            assert len(call) == 10
+        # windows at start=0,10,...,80 → 9 windows of 30 context + 10 test
+        assert len(results) == len(bt.calls) == 9
+        for call, wu in zip(bt.calls, bt.warmups, strict=True):
+            assert len(call) == 40
+            assert wu == 30  # metrics start at the test segment
+
+    def test_context_is_strictly_past_of_test_segment(self):
+        """S346 regression: the evaluated segment is the window's tail —
+        context candles precede it and only feed indicator warmup."""
+        bt = RecordingBacktester()
+        opt = StrategyOptimizer(bt)
+        candles = [{"close": i} for i in range(120)]
+        opt.walk_forward(
+            FakeStrategy, {}, candles, train_size=30, test_size=10)
+        first = bt.calls[0]
+        assert first[:30] == candles[0:30]   # context = strictly past
+        assert first[30:] == candles[30:40]  # evaluated segment
 
     def test_insufficient_data_returns_empty(self):
         opt = StrategyOptimizer(RecordingBacktester())
         results = opt.walk_forward(
             FakeStrategy, {}, [{"close": i} for i in range(20)],
-            train_size=30, test_size=10, warmup=10,
+            train_size=30, test_size=10,
         )
         assert results == []
 
@@ -84,7 +102,7 @@ class TestWalkForwardLive:
         candles = [{"close": i} for i in range(120)]
         results = opt.walk_forward(
             FakeStrategy, {}, candles,
-            train_size=30, test_size=10, warmup=10,
+            train_size=30, test_size=10,
         )
         # roughly half the windows raised — the loop kept going
         assert 0 < len(results) < bt.calls
@@ -101,7 +119,7 @@ class TestWalkForwardLive:
         opt.walk_forward(
             ParamSpy, {"ema_fast": 9, "x": 42},
             [{"close": i} for i in range(120)],
-            train_size=30, test_size=10, warmup=10,
+            train_size=30, test_size=10,
         )
         assert seen == {"ema_fast": 9, "x": 42}
 
@@ -109,6 +127,6 @@ class TestWalkForwardLive:
         opt = StrategyOptimizer(RecordingBacktester())
         results = opt.walk_forward(
             FakeStrategy, {}, [{"close": i} for i in range(120)],
-            train_size=30, test_size=10, warmup=10,
+            train_size=30, test_size=10,
         )
         assert results and all(r.fitness is not None for r in results)

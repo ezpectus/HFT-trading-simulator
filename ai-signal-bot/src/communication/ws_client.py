@@ -55,6 +55,7 @@ class ExchangeClient:
         self._funding_rates: dict[str, float] = {}  # {exchange: rate}
         self._candles_to_funding: int = 0
         self._accounts: dict[str, dict] = {}
+        self._news_event: dict | None = None
         self._last_seq: int = 0            # broadcast seq — gap → request sync_state
         self._last_msg_ts: int = 0         # last seen server timestamp (resync cursor)
         self._last_resync_req: float = 0.0
@@ -90,6 +91,12 @@ class ExchangeClient:
     @property
     def accounts(self) -> dict[str, dict]:
         return self._accounts
+
+    @property
+    def news_event(self) -> dict | None:
+        """Active simulator news event ({symbol, intensity, direction,
+        remaining}) — persists for its `remaining` window, None otherwise."""
+        return self._news_event
 
     def set_message_handler(self, handler: Callable) -> None:
         self._on_message = handler
@@ -227,6 +234,8 @@ class ExchangeClient:
                 self._candles_to_funding = data["candles_to_funding"]
             if "trading_active" in data:
                 self._trading_active = data["trading_active"]
+            if "news_event" in data:
+                self._news_event = data["news_event"]
         elif msg_type == "trading_state":
             self._trading_active = data.get("trading_active", True)
             state = "ACTIVE" if self._trading_active else "STOPPED"

@@ -123,6 +123,81 @@ class TestSharedFeedLoop:
         mock_log.error.assert_called_once()
         assert "okx" in mock_log.error.call_args[0][-1]
 
+class TestBinanceTickerMerge:
+    """S345: bookTicker and aggTrade merge into full bid/ask/last tickers.
+
+    Previously aggTrade was subscribed but never parsed, so `last` stayed
+    0.0 forever — and a naive aggTrade ticker would clobber bid/ask.
+    """
+
+    async def _collect(self, feed):
+        seen = []
+
+        async def cb(t):
+            seen.append(t)
+
+        feed.on_ticker = cb
+        return seen
+
+    @pytest.mark.asyncio
+    async def test_aggtrade_fills_last_price(self):
+        feed = RealMarketDataFeed(exchanges=["binance"])
+        seen = await self._collect(feed)
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@aggTrade",
+            "data": {"s": "BTCUSDT", "p": "50123.45", "q": "0.1", "T": 1700},
+        })
+        assert seen[-1].last == pytest.approx(50123.45)
+        assert seen[-1].bid == 0.0  # no bookTicker seen yet
+
+    @pytest.mark.asyncio
+    async def test_bookticker_keeps_last_from_aggtrade(self):
+        feed = RealMarketDataFeed(exchanges=["binance"])
+        seen = await self._collect(feed)
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@aggTrade",
+            "data": {"s": "BTCUSDT", "p": "50100.0", "T": 1700},
+        })
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@bookTicker",
+            "data": {"s": "BTCUSDT", "b": "50099.0", "a": "50101.0", "T": 1701},
+        })
+        t = seen[-1]
+        assert t.bid == pytest.approx(50099.0)
+        assert t.ask == pytest.approx(50101.0)
+        assert t.last == pytest.approx(50100.0)  # survives — not reset to 0
+
+    @pytest.mark.asyncio
+    async def test_aggtrade_preserves_book(self):
+        feed = RealMarketDataFeed(exchanges=["binance"])
+        seen = await self._collect(feed)
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@bookTicker",
+            "data": {"s": "BTCUSDT", "b": "50099.0", "a": "50101.0", "T": 1700},
+        })
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@aggTrade",
+            "data": {"s": "BTCUSDT", "p": "50100.5", "T": 1701},
+        })
+        t = seen[-1]
+        assert t.last == pytest.approx(50100.5)
+        assert t.bid == pytest.approx(50099.0)  # not clobbered to 0
+        assert t.ask == pytest.approx(50101.0)
+
+    @pytest.mark.asyncio
+    async def test_state_is_per_symbol(self):
+        feed = RealMarketDataFeed(exchanges=["binance"])
+        seen = await self._collect(feed)
+        await feed._handle_binance_msg({
+            "stream": "ethusdt@aggTrade",
+            "data": {"s": "ETHUSDT", "p": "3000.0", "T": 1700},
+        })
+        await feed._handle_binance_msg({
+            "stream": "btcusdt@bookTicker",
+            "data": {"s": "BTCUSDT", "b": "1.0", "a": "2.0", "T": 1701},
+        })
+        assert seen[-1].last == 0.0  # BTC last unaffected by ETH trade
+
     @pytest.mark.asyncio
     async def test_messages_reach_queue_with_venue_tag(self):
         from unittest.mock import patch

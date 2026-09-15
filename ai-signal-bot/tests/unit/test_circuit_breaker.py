@@ -73,6 +73,44 @@ class TestCircuitBreakerTripping:
         assert cb.total_blocks == 2
 
 
+class TestOnTripCallback:
+    """S344: on_trip hook feeds the trips metric — zero callers meant the
+    Prometheus counter was pinned at 0."""
+
+    @pytest.mark.asyncio
+    async def test_fires_on_trip(self):
+        trips = []
+        cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=2),
+                            on_trip=lambda: trips.append(1))
+        await cb.record_failure()
+        assert trips == []
+        await cb.record_failure()
+        assert trips == [1]
+        assert cb.is_open
+
+    @pytest.mark.asyncio
+    async def test_fires_again_on_half_open_retrip(self):
+        trips = []
+        cb = CircuitBreaker(CircuitBreakerConfig(
+            failure_threshold=1, cooldown_seconds=0.01),
+            on_trip=lambda: trips.append(1))
+        await cb.record_failure()           # trip 1
+        await asyncio.sleep(0.02)           # cooldown → HALF_OPEN
+        await cb.record_failure()           # probe fails → trip 2
+        assert trips == [1, 1]
+
+    @pytest.mark.asyncio
+    async def test_callback_exception_does_not_block_trip(self):
+        def boom():
+            raise RuntimeError("metrics exploded")
+
+        cb = CircuitBreaker(CircuitBreakerConfig(failure_threshold=1),
+                            on_trip=boom)
+        await cb.record_failure()  # must still trip, not propagate
+        assert cb.is_open
+        assert cb.total_trips == 1
+
+
 class TestCircuitBreakerRecovery:
     @pytest.mark.asyncio
     async def test_transitions_to_half_open_after_cooldown(self):

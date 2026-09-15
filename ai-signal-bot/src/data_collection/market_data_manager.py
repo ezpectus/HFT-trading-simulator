@@ -55,11 +55,14 @@ class RealMarketDataManager:
 
     async def initialize(self) -> None:
         """Start WebSocket feed in background."""
-        self._running = True
-        self._feed_task = asyncio.create_task(
-            self._feed.start(symbols=self._symbols, intervals=["1m", "5m", "15m"])
-        )
+        await self.start_feed(self._symbols)
         logger.info("[RealMarketData] Feed started for %s symbols=%s", self.exchange_name, self._symbols)
+
+    async def _ensure_started(self) -> None:
+        """Lazy-start the feed on first read — adapters that only place
+        orders never pay for sockets whose caches nobody reads."""
+        if not self._running:
+            await self.initialize()
 
     async def close(self) -> None:
         """Stop WebSocket feed."""
@@ -73,6 +76,7 @@ class RealMarketDataManager:
                 pass
 
     async def get_ticker(self, symbol: str) -> dict:
+        await self._ensure_started()
         t = self._tickers.get(symbol)
         if t:
             return {"symbol": t.symbol, "bid": t.bid, "ask": t.ask,
@@ -80,6 +84,7 @@ class RealMarketDataManager:
         return {}
 
     async def get_orderbook(self, symbol: str, depth: int = 10) -> dict:
+        await self._ensure_started()
         ob = self._orderbooks.get(symbol)
         if ob:
             return {"symbol": ob.symbol,
@@ -89,6 +94,7 @@ class RealMarketDataManager:
 
     async def get_candles(self, symbol: str, timeframe: str = "1m",
                           limit: int = 100) -> list[dict]:
+        await self._ensure_started()
         key = f"{symbol}:{timeframe}"
         clist = self._candles.get(key, [])
         return [{"timestamp": c.time, "open": c.open, "high": c.high,

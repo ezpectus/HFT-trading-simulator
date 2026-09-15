@@ -16,6 +16,7 @@ States:
 """
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -44,8 +45,10 @@ class CircuitBreaker:
     Thread-safe for async usage via asyncio.Lock on all state-mutating operations.
     """
 
-    def __init__(self, config: CircuitBreakerConfig | None = None):
+    def __init__(self, config: CircuitBreakerConfig | None = None,
+                 on_trip: Callable[[], None] | None = None):
         self.config = config or CircuitBreakerConfig()
+        self._on_trip = on_trip  # reporting hook (e.g. metrics) — sync, best-effort
         self._state = BreakerState.CLOSED
         self._consecutive_failures = 0
         self._consecutive_successes = 0
@@ -130,6 +133,11 @@ class CircuitBreaker:
             f"Circuit breaker tripped: {failure_count} consecutive failures, "
             f"cooldown={self.config.cooldown_seconds}s (total trips: {self._total_trips})"
         )
+        if self._on_trip:
+            try:
+                self._on_trip()
+            except Exception as e:  # reporting must never break the breaker
+                logger.warning("on_trip callback failed: %s", e)
 
     async def reset(self) -> None:
         """Force reset to CLOSED state."""

@@ -73,7 +73,7 @@ class SignalPublisher:
         # Optional live-data source (ExchangeClient) for handlers that can
         # fall back to server-side state, e.g. funding_arb_scan.
         self.data_source = None
-        self.circuit_breaker = CircuitBreaker()
+        self.circuit_breaker = CircuitBreaker(on_trip=self._on_cb_trip)
         self.metrics = MetricsCollector()
         # Per-client sliding window for expensive compute endpoints — without
         # it one client can CPU-DoS the whole bot by spamming run_backtest
@@ -82,6 +82,11 @@ class SignalPublisher:
         self._compute_windows: dict = {}
         self._cb_broadcast_task: asyncio.Task | None = None
         self._state_lock = asyncio.Lock()
+
+    def _on_cb_trip(self) -> None:
+        """Breaker trip → metrics. Resolves self.metrics lazily so the
+        MetricsExporter swap (run.py) is picked up."""
+        self.metrics.record_circuit_breaker_trip()
 
     @property
     def client_count(self) -> int:
@@ -383,12 +388,14 @@ class SignalPublisher:
         state_map = {"CLOSED": 0, "OPEN": 1, "HALF_OPEN": 2}
         while self._running:
             await asyncio.sleep(5)
-            if not self._clients:
-                continue
-
+            # The Prometheus gauge must track the breaker even with zero
+            # clients — it goes stale exactly when a trip empties the room.
             status = self.circuit_breaker.get_status()
             state_val = state_map.get(status["state"], 0)
             self.metrics.set_circuit_breaker_state(state_val)
+
+            if not self._clients:
+                continue
 
             if _HAS_ORJSON:
                 msg = orjson.dumps({

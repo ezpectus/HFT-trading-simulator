@@ -98,10 +98,13 @@ class SentimentStrategy:
         if event.magnitude < self.config.min_magnitude:
             return
 
-        # Compute sentiment
+        # Compute sentiment — typed events take the map's prior; when the
+        # map has no opinion (UNKNOWN, scheduled-until-outcome types) the
+        # provided score survives, so pre-scored feeds like the sim's
+        # direction+intensity news_event aren't flattened to zero.
         base_sentiment = EVENT_SENTIMENT_MAP.get(event.event_type, 0.0)
-        # Adjust by magnitude
-        event.sentiment = base_sentiment * event.magnitude
+        if base_sentiment != 0.0:
+            event.sentiment = base_sentiment * event.magnitude
         # Add noise for unexpected events
         if not event.expected:
             rng = np.random.default_rng(seed=int(event.timestamp * 1000) % (2**32))

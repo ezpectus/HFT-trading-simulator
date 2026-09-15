@@ -46,9 +46,12 @@ from src.observability.tracing import setup_tracing, shutdown_tracing  # noqa: E
 from src.signal_validation import SignalValidator  # noqa: E402
 from src.strategies import (  # noqa: E402
     EnsembleVoter,
+    MarketMakingStrategy,
+    SentimentStrategy,
     Signal,
     SignalDirection,
 )
+from src.strategies.sentiment import EventType, NewsEvent  # noqa: E402
 from src.utils.bot_helpers import (  # noqa: E402
     build_stat_arb,
     build_strategies,
@@ -128,6 +131,13 @@ class AISignalBot:
         self._alert_system = None
         self._day_start_balance: float | None = None
         self._dd_last_equity: float | None = None
+        # Closed-trade ingestion: per-exchange cursor on account.total_trades
+        # (the sim's monotonic close counter in the accounts broadcast).
+        self._closed_cursor: dict[str, int] = {}
+        # Strategy feed cursors: last-routed sim news event signature, and
+        # the signed-position map the MM inventory feed diffs against.
+        self._news_sig: tuple | None = None
+        self._mm_positions: dict[str, float] = {}
         # Live-order adapter — created lazily once, reused across signals
         # (a fresh ExchangeFactory per order pays load_markets per signal).
         self._live_factory = None
@@ -257,6 +267,9 @@ class AISignalBot:
                 await self._generate_signals()
 
                 self._snapshot_equity()
+                self._ingest_closed_trades()
+                self._route_news_event()
+                self._sync_mm_inventory()
 
                 if show_dashboard:
                     self._print_dashboard()
@@ -382,6 +395,119 @@ class AISignalBot:
                 metrics.record_fill(self.config.default_exchange, symbol, side_str)
         if metrics is not None and self._shm_fills is not None:
             metrics.update_shm_buffer("fills", self._shm_fills.pending())
+
+    def _ingest_closed_trades(self) -> None:
+        """Record newly closed trades from the accounts broadcast.
+
+        The exchange is the system of record for position lifecycle — its
+        `trade_history` carries authoritative close records (entry/exit/
+        pnl/fee). `total_trades` is a monotonic per-account counter; we
+        ingest the delta into db + tracker + CSV so dashboard and
+        Prometheus stats reflect real closes instead of staying zero.
+        C++ hft fills close positions on the same sim account, so their
+        closes arrive through this path too.
+        """
+        for ex_id, account in (self.exchange.accounts or {}).items():
+            total = account.get("total_trades")
+            if not isinstance(total, int):
+                continue
+            prev = self._closed_cursor.get(ex_id)
+            if prev is None:
+                self._closed_cursor[ex_id] = total
+                continue
+            new_count = total - prev
+            if new_count <= 0:
+                continue
+            self._closed_cursor[ex_id] = total
+            history = account.get("trade_history") or []
+            for t in history[-new_count:]:
+                pnl = float(t.get("pnl", 0.0))
+                fee = float(t.get("fee", 0.0))
+                trade = {
+                    "timestamp": t.get("closed_at", int(time.time())),
+                    "symbol": t.get("symbol", "?"),
+                    "exchange": ex_id,
+                    "side": t.get("side", "?"),
+                    "quantity": t.get("quantity", 0.0),
+                    "entry_price": t.get("entry_price", 0.0),
+                    "exit_price": t.get("exit_price", 0.0),
+                    "pnl": pnl,
+                    "fee": fee,
+                    "status": "CLOSED",
+                    "signal_id": None,
+                }
+                try:
+                    self.db.save_trade(trade)
+                    self.trade_logger.log(trade)
+                except (OSError, ValueError, RuntimeError) as e:
+                    self.logger.warning("closed trade persist failed: %s", e)
+                self.tracker.record_trade(pnl, fee, winning=pnl > 0)
+
+    def _route_news_event(self) -> None:
+        """Feed simulator news events to the sentiment strategy.
+
+        The sim rebroadcasts the active event for its whole `remaining`
+        window — dedupe on (symbol, intensity, direction) so
+        on_news_event fires once per event, not once per candle. Intensity
+        (3-8) maps to magnitude/sentiment strength; direction to sign.
+        """
+        raw = self.exchange.news_event
+        if not raw:
+            self._news_sig = None
+            return
+        sig = (raw.get("symbol"), raw.get("intensity"), raw.get("direction"))
+        if sig == self._news_sig:
+            return
+        self._news_sig = sig
+        magnitude = min(1.0, float(raw.get("intensity", 5)) / 8.0)
+        event = NewsEvent(
+            event_type=EventType.UNKNOWN,
+            symbol=raw.get("symbol", "?"),
+            timestamp=time.time(),
+            magnitude=magnitude,
+            sentiment=magnitude if raw.get("direction") == "up" else -magnitude,
+            details=f"sim news (intensity={raw.get('intensity')}, "
+                    f"remaining={raw.get('remaining')})",
+        )
+        for s in self.strategies:
+            if isinstance(s, SentimentStrategy):
+                s.on_news_event(event)
+
+    def _sync_mm_inventory(self) -> None:
+        """Feed account position deltas to market-making's inventory.
+
+        Sim positions only change on fills, so the signed-quantity delta
+        between broadcasts is the implied fill — what on_fill needs to
+        track inventory and avg-cost PnL. Covers opens, closes (incl.
+        liquidation) and direction flips. Toxicity stays unwired: no
+        order-flow source exists to score it.
+        """
+        mm = next((s for s in self.strategies
+                   if isinstance(s, MarketMakingStrategy)), None)
+        if mm is None:
+            return
+        current: dict[str, float] = {}
+        prices: dict[str, float] = {}
+        for ex_id, account in (self.exchange.accounts or {}).items():
+            prices.update(self.exchange.latest_prices.get(ex_id, {}))
+            for pos in account.get("positions", []):
+                qty = float(pos.get("quantity", 0.0))
+                signed = qty if pos.get("side") == "BUY" else -qty
+                sym = pos["symbol"]
+                current[sym] = current.get(sym, 0.0) + signed
+        for symbol in set(current) | set(self._mm_positions):
+            new_qty = current.get(symbol, 0.0)
+            delta = new_qty - self._mm_positions.get(symbol, 0.0)
+            if abs(delta) < 1e-12:
+                continue
+            price = prices.get(symbol)
+            if not price:
+                continue  # keep old cursor — retry when the price lands
+            mm.on_fill("BUY" if delta > 0 else "SELL", abs(delta), price)
+            self._mm_positions[symbol] = new_qty
+        self._mm_positions = {
+            s: q for s, q in self._mm_positions.items() if abs(q) > 1e-12
+        }
 
     def _on_kill_switch(self, ts_ns: int, reason: int) -> None:
         """C++ kill-switch activated — latch, metric, alert (CRITICAL rule)."""

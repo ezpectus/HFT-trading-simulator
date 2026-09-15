@@ -329,7 +329,8 @@ class RealExchangeAdapter:
             api_secret=self._api_secret, testnet=self._testnet,
             rest_timeout=self._rest_timeout,
         )
-        await self._market_data.initialize()
+        # Market-data feed is NOT started here — the manager lazily opens
+        # sockets on the first read, so an order-only adapter pays none.
         await self._account.initialize()
         logger.info("[RealExchangeAdapter] Connected to %s", self.exchange_name)
 

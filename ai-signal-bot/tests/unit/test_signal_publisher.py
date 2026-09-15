@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import websockets
 
-from src.communication.circuit_breaker import CircuitBreaker
+from src.communication.circuit_breaker import BreakerState, CircuitBreaker
 from src.communication.signal_publisher import SignalPublisher
 
 
@@ -131,6 +131,32 @@ class TestBroadcastSignal:
         await publisher.broadcast_signal({"symbol": "BTC/USDT", "direction": "LONG"})
         rendered = publisher.metrics.render()
         assert "ai_signal_bot_signals_sent_total 1" in rendered
+
+    @pytest.mark.asyncio
+    async def test_breaker_trip_reaches_metrics(self, publisher):
+        """S344: CLOSED→OPEN transition increments the trips counter."""
+        for _ in range(5):  # default failure_threshold
+            await publisher.circuit_breaker.record_failure()
+        assert publisher.circuit_breaker.state == BreakerState.OPEN
+        rendered = publisher.metrics.render()
+        assert "ai_signal_bot_circuit_breaker_trips_total 1" in rendered
+
+    @pytest.mark.asyncio
+    async def test_state_gauge_updates_with_zero_clients(self, publisher):
+        """S344: the gauge must track the breaker even when no client is
+        connected — previously it stayed stale past the clients gate."""
+        publisher._running = True
+        for _ in range(5):  # trip for real so _opened_at is fresh
+            await publisher.circuit_breaker.record_failure()
+
+        async def stop_after_first_tick(_):
+            publisher._running = False
+
+        with patch("asyncio.sleep", side_effect=stop_after_first_tick):
+            await publisher._broadcast_circuit_breaker_status()
+
+        rendered = publisher.metrics.render()
+        assert "ai_signal_bot_circuit_breaker_state 1" in rendered
 
 
 class TestBroadcastMarketRegime:

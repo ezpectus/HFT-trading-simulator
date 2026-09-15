@@ -176,7 +176,11 @@ class Database:
         total_trades = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED'").fetchone()[0]
         winning = conn.execute("SELECT COUNT(*) FROM trades WHERE status='CLOSED' AND pnl > 0").fetchone()[0]
         total_pnl = conn.execute("SELECT COALESCE(SUM(pnl), 0) FROM trades WHERE status='CLOSED'").fetchone()[0]
-        total_fees = conn.execute("SELECT COALESCE(SUM(fee), 0) FROM trades").fetchone()[0]
+        # Fees count once per closed position — FILLED/OPEN rows are
+        # execution/intent records whose fees would double-count close fees.
+        total_fees = conn.execute(
+            "SELECT COALESCE(SUM(fee), 0) FROM trades WHERE status='CLOSED'"
+        ).fetchone()[0]
 
         return {
             "total_signals": total_signals,

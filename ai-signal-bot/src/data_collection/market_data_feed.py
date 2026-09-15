@@ -44,6 +44,9 @@ class RealMarketDataFeed:
         self.on_orderbook: Callable[[NormalizedOrderBook], Awaitable[None]] | None = None
         self.on_reconnect: Callable[[str, list[str]], Awaitable[None]] | None = None
         self._last_msg_times: dict[str, float] = {}
+        # bookTicker has no last-trade price and aggTrade has no book —
+        # merge per-symbol so emitted tickers always carry all three.
+        self._ticker_state: dict[str, dict] = {}  # "ex:symbol" → bid/ask/last
 
     async def start(self, symbols: list[str], intervals: list[str] | None = None):
         """Start WebSocket subscriptions for all configured exchanges."""
@@ -173,12 +176,31 @@ class RealMarketDataFeed:
 
         if "@bookTicker" in stream:
             symbol = data.get("s", "")
+            state = self._ticker_state.setdefault(f"binance:{symbol}", {})
+            state["bid"] = float(data.get("b", 0))
+            state["ask"] = float(data.get("a", 0))
             ticker = NormalizedTicker(
                 exchange="binance",
                 symbol=symbol,
-                bid=float(data.get("b", 0)),
-                ask=float(data.get("a", 0)),
-                last=0.0,  # bookTicker has no last traded price; updated by aggTrade
+                bid=state["bid"],
+                ask=state["ask"],
+                last=state.get("last", 0.0),
+                volume=0.0,
+                timestamp=int(data.get("T", time.time() * 1000)),
+            )
+            if self.on_ticker:
+                await self.on_ticker(ticker)
+
+        elif "@aggTrade" in stream:
+            symbol = data.get("s", "")
+            state = self._ticker_state.setdefault(f"binance:{symbol}", {})
+            state["last"] = float(data.get("p", 0))
+            ticker = NormalizedTicker(
+                exchange="binance",
+                symbol=symbol,
+                bid=state.get("bid", 0.0),
+                ask=state.get("ask", 0.0),
+                last=state["last"],
                 volume=0.0,
                 timestamp=int(data.get("T", time.time() * 1000)),
             )

@@ -63,6 +63,36 @@ class TestSentimentStrategy:
         strategy.on_news_event(ev)
         assert strategy.event_count == 0
 
+    def test_on_news_event_preserves_prescored_sentiment(self, strategy):
+        """S343: untyped events keep their provided sentiment — the map has
+        no opinion for UNKNOWN, so a pre-scored feed (sim direction+
+        intensity) must not be flattened to zero."""
+        from src.strategies.sentiment import EventType, NewsEvent
+        ev = NewsEvent(
+            event_type=EventType.UNKNOWN,
+            symbol="BTC/USDT",
+            timestamp=1700000000.0,
+            magnitude=0.9,
+            sentiment=-0.9,
+        )
+        strategy.on_news_event(ev)
+        assert strategy.event_count == 1
+        assert strategy.current_sentiment == -0.9
+        assert strategy.sentiment_by_symbol["BTC/USDT"] == -0.9
+
+    def test_on_news_event_typed_event_overrides_sentiment(self, strategy):
+        """Typed events still take the map's prior over any provided score."""
+        from src.strategies.sentiment import EventType, NewsEvent
+        ev = NewsEvent(
+            event_type=EventType.HACK,
+            symbol="BTC/USDT",
+            timestamp=1700000000.0,
+            magnitude=0.5,
+            sentiment=0.9,  # pre-score says up — HACK map says down
+        )
+        strategy.on_news_event(ev)
+        assert strategy.current_sentiment < 0
+
     def test_on_news_event_hack_negative_sentiment(self, strategy):
         from src.strategies.sentiment import EventType, NewsEvent
         ev = NewsEvent(

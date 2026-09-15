@@ -102,9 +102,8 @@ class TestStrategyOptimizer:
             candles=candles,
             train_size=150,
             test_size=50,
-            warmup=50,
         )
-        assert len(results) == 4  # 400 candles, warmup 50, train 150 + test 50 → 4 windows
+        assert len(results) == 5  # 400 candles, 150 ctx + 50 test, step 50 → 5 windows
 
     def test_sharpe_fitness(self):
         from src.backtesting.backtester import BacktestResult
