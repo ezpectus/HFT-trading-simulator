@@ -20,6 +20,27 @@ except ImportError:  # Windows — process metrics unavailable
 
 logger = get_logger(__name__)
 
+# Unlabelled alert/process metrics — (attr, kind, prometheus name, description).
+# Drives both _init_alert_metrics and the no-prometheus None-init so the two
+# attribute sets can't drift apart (S326).
+_ALERT_METRIC_SPECS = [
+    ("signals_sent_total", "counter", "ai_signal_bot_signals_sent_total", "Total signals broadcast"),
+    ("signals_blocked_total", "counter", "ai_signal_bot_signals_blocked_total", "Signals blocked by circuit breaker"),
+    ("circuit_breaker_state", "gauge", "ai_signal_bot_circuit_breaker_state", "Circuit breaker state (0=closed, 1=open, 2=half_open)"),
+    ("circuit_breaker_trips_total", "counter", "ai_signal_bot_circuit_breaker_trips_total", "Total circuit breaker trips"),
+    ("ws_clients_connected", "gauge", "ai_signal_bot_ws_clients_connected", "Connected WebSocket clients"),
+    ("errors_total", "counter", "ai_signal_bot_errors_total", "Total errors"),
+    ("bot_drawdown", "gauge", "ai_signal_bot_drawdown", "Current drawdown fraction"),
+    ("bot_win_rate", "gauge", "ai_signal_bot_win_rate", "Win rate (0-1)"),
+    ("bot_pnl_total", "gauge", "ai_signal_bot_pnl_total", "Cumulative PnL"),
+    ("bot_uptime_seconds", "gauge", "ai_signal_bot_uptime_seconds", "Uptime in seconds"),
+    ("backtests_run_total", "counter", "ai_signal_bot_backtests_run_total", "Total backtests executed"),
+    ("ws_reconnects_total", "counter", "trading_ws_reconnects_total", "Total WebSocket reconnections"),
+    ("bot_cpu_usage_percent", "gauge", "ai_signal_bot_cpu_usage_percent", "Process CPU usage (percent)"),
+    ("bot_memory_usage_bytes", "gauge", "ai_signal_bot_memory_usage_bytes", "Process resident memory (bytes)"),
+    ("bot_sharpe_ratio", "gauge", "ai_signal_bot_sharpe_ratio", "Per-interval Sharpe ratio of equity returns"),
+]
+
 try:
     from prometheus_client import (
         CONTENT_TYPE_LATEST,
@@ -65,17 +86,8 @@ class MetricsExporter:
             self.shm_buffer_size = None
             self.signal_latency = None
             self.order_latency = None
-            self.signals_sent_total = None
-            self.signals_blocked_total = None
-            self.circuit_breaker_state = None
-            self.circuit_breaker_trips_total = None
-            self.ws_clients_connected = None
-            self.errors_total = None
-            self.bot_drawdown = None
-            self.bot_win_rate = None
-            self.bot_pnl_total = None
-            self.bot_uptime_seconds = None
-            self.ws_reconnects_total = None
+            for attr, *_ in _ALERT_METRIC_SPECS:
+                setattr(self, attr, None)
             return
 
         self._last_cpu_sample: tuple[float, float] | None = None
@@ -154,66 +166,9 @@ class MetricsExporter:
 
     def _init_alert_metrics(self):
         """Initialize ai_signal_bot_* metrics used by Prometheus alert rules."""
-        self.signals_sent_total = Counter(
-            "ai_signal_bot_signals_sent_total", "Total signals broadcast",
-            registry=self.registry,
-        )
-        self.signals_blocked_total = Counter(
-            "ai_signal_bot_signals_blocked_total", "Signals blocked by circuit breaker",
-            registry=self.registry,
-        )
-        self.circuit_breaker_state = Gauge(
-            "ai_signal_bot_circuit_breaker_state", "Circuit breaker state (0=closed, 1=open, 2=half_open)",
-            registry=self.registry,
-        )
-        self.circuit_breaker_trips_total = Counter(
-            "ai_signal_bot_circuit_breaker_trips_total", "Total circuit breaker trips",
-            registry=self.registry,
-        )
-        self.ws_clients_connected = Gauge(
-            "ai_signal_bot_ws_clients_connected", "Connected WebSocket clients",
-            registry=self.registry,
-        )
-        self.errors_total = Counter(
-            "ai_signal_bot_errors_total", "Total errors",
-            registry=self.registry,
-        )
-        self.bot_drawdown = Gauge(
-            "ai_signal_bot_drawdown", "Current drawdown fraction",
-            registry=self.registry,
-        )
-        self.bot_win_rate = Gauge(
-            "ai_signal_bot_win_rate", "Win rate (0-1)",
-            registry=self.registry,
-        )
-        self.bot_pnl_total = Gauge(
-            "ai_signal_bot_pnl_total", "Cumulative PnL",
-            registry=self.registry,
-        )
-        self.bot_uptime_seconds = Gauge(
-            "ai_signal_bot_uptime_seconds", "Uptime in seconds",
-            registry=self.registry,
-        )
-        self.backtests_run_total = Counter(
-            "ai_signal_bot_backtests_run_total", "Total backtests executed",
-            registry=self.registry,
-        )
-        self.ws_reconnects_total = Counter(
-            "trading_ws_reconnects_total", "Total WebSocket reconnections",
-            registry=self.registry,
-        )
-        self.bot_cpu_usage_percent = Gauge(
-            "ai_signal_bot_cpu_usage_percent", "Process CPU usage (percent)",
-            registry=self.registry,
-        )
-        self.bot_memory_usage_bytes = Gauge(
-            "ai_signal_bot_memory_usage_bytes", "Process resident memory (bytes)",
-            registry=self.registry,
-        )
-        self.bot_sharpe_ratio = Gauge(
-            "ai_signal_bot_sharpe_ratio", "Per-interval Sharpe ratio of equity returns",
-            registry=self.registry,
-        )
+        kinds = {"counter": Counter, "gauge": Gauge}
+        for attr, kind, name, desc in _ALERT_METRIC_SPECS:
+            setattr(self, attr, kinds[kind](name, desc, registry=self.registry))
 
     # ── Update methods ──
 

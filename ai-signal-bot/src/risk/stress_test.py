@@ -27,67 +27,51 @@ class StressTestScenario:
     def __init__(self, initial_portfolio_value: float = 100000):
         self.initial_portfolio_value = initial_portfolio_value
 
-    def crisis_2008_scenario(self, current_prices: np.ndarray,
-                             positions: np.ndarray) -> StressTestResult:
-        """Simulate 2008 financial crisis scenario."""
-        shock_multiplier = 0.5
-
-        shocked_prices = current_prices * shock_multiplier
-
-        # Calculate portfolio value after shock
+    def _evaluate(self, scenario_name: str, current_prices: np.ndarray,
+                  positions: np.ndarray, shocked_prices: np.ndarray,
+                  margin_factor: float, liquidity_impact: float,
+                  pass_threshold: float) -> StressTestResult:
+        """Shared evaluation tail: value the book pre/post shock and build the result."""
         portfolio_value_before = np.sum(current_prices * positions)
         portfolio_value_after = np.sum(shocked_prices * positions)
 
         pnl = portfolio_value_after - portfolio_value_before
         pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
 
-        # Margin requirement increases during crisis
-        margin_requirement = abs(pnl) * 0.5  # 50% of loss as margin
-
-        # Liquidity impact (spread widening)
-        liquidity_impact = 0.02  # 2% liquidity cost
-
-        result = StressTestResult(
-            scenario_name='2008 Financial Crisis',
+        return StressTestResult(
+            scenario_name=scenario_name,
             portfolio_value_before=portfolio_value_before,
             portfolio_value_after=portfolio_value_after,
             pnl=pnl,
             pnl_percentage=pnl_percentage,
-            margin_requirement=margin_requirement,
+            margin_requirement=abs(pnl) * margin_factor,
             liquidity_impact=liquidity_impact,
-            passed=abs(pnl_percentage) < 0.3  # Pass if loss < 30%
+            passed=abs(pnl_percentage) < pass_threshold,
         )
 
-        return result
+    def crisis_2008_scenario(self, current_prices: np.ndarray,
+                             positions: np.ndarray) -> StressTestResult:
+        """Simulate 2008 financial crisis scenario."""
+        shocked_prices = current_prices * 0.5
+
+        return self._evaluate(
+            '2008 Financial Crisis', current_prices, positions, shocked_prices,
+            margin_factor=0.5,       # 50% of loss as margin
+            liquidity_impact=0.02,   # 2% liquidity cost (spread widening)
+            pass_threshold=0.3,      # Pass if loss < 30%
+        )
 
     def covid_crash_scenario(self, current_prices: np.ndarray,
                              positions: np.ndarray) -> StressTestResult:
         """Simulate COVID-19 crash scenario (March 2020)."""
-        shock_multiplier = 0.7
+        shocked_prices = current_prices * 0.7
 
-        shocked_prices = current_prices * shock_multiplier
-
-        portfolio_value_before = np.sum(current_prices * positions)
-        portfolio_value_after = np.sum(shocked_prices * positions)
-
-        pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
-
-        margin_requirement = abs(pnl) * 0.4
-        liquidity_impact = 0.03  # 3% liquidity cost
-
-        result = StressTestResult(
-            scenario_name='COVID-19 Crash',
-            portfolio_value_before=portfolio_value_before,
-            portfolio_value_after=portfolio_value_after,
-            pnl=pnl,
-            pnl_percentage=pnl_percentage,
-            margin_requirement=margin_requirement,
-            liquidity_impact=liquidity_impact,
-            passed=abs(pnl_percentage) < 0.25
+        return self._evaluate(
+            'COVID-19 Crash', current_prices, positions, shocked_prices,
+            margin_factor=0.4,
+            liquidity_impact=0.03,   # 3% liquidity cost
+            pass_threshold=0.25,
         )
-
-        return result
 
     def ftx_collapse_scenario(self, current_prices: np.ndarray,
                              positions: np.ndarray,
@@ -103,27 +87,12 @@ class StressTestScenario:
         shocked_prices[:n_crypto] *= crypto_shock
         shocked_prices[n_crypto:] *= traditional_shock
 
-        portfolio_value_before = np.sum(current_prices * positions)
-        portfolio_value_after = np.sum(shocked_prices * positions)
-
-        pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
-
-        margin_requirement = abs(pnl) * 0.6  # Higher margin for crypto
-        liquidity_impact = 0.10  # 10% liquidity cost (crypto illiquidity)
-
-        result = StressTestResult(
-            scenario_name='FTX Collapse',
-            portfolio_value_before=portfolio_value_before,
-            portfolio_value_after=portfolio_value_after,
-            pnl=pnl,
-            pnl_percentage=pnl_percentage,
-            margin_requirement=margin_requirement,
-            liquidity_impact=liquidity_impact,
-            passed=abs(pnl_percentage) < 0.4
+        return self._evaluate(
+            'FTX Collapse', current_prices, positions, shocked_prices,
+            margin_factor=0.6,       # Higher margin for crypto
+            liquidity_impact=0.10,   # 10% liquidity cost (crypto illiquidity)
+            pass_threshold=0.4,
         )
-
-        return result
 
     def custom_scenario(self, current_prices: np.ndarray,
                        positions: np.ndarray,
@@ -132,27 +101,12 @@ class StressTestScenario:
         """Simulate custom stress scenario."""
         shocked_prices = current_prices * price_shocks
 
-        portfolio_value_before = np.sum(current_prices * positions)
-        portfolio_value_after = np.sum(shocked_prices * positions)
-
-        pnl = portfolio_value_after - portfolio_value_before
-        pnl_percentage = pnl / portfolio_value_before if portfolio_value_before != 0 else 0.0
-
-        margin_requirement = abs(pnl) * 0.5
-        liquidity_impact = np.std(price_shocks) * 0.05  # Liquidity based on volatility
-
-        result = StressTestResult(
-            scenario_name=scenario_name,
-            portfolio_value_before=portfolio_value_before,
-            portfolio_value_after=portfolio_value_after,
-            pnl=pnl,
-            pnl_percentage=pnl_percentage,
-            margin_requirement=margin_requirement,
-            liquidity_impact=liquidity_impact,
-            passed=abs(pnl_percentage) < 0.3
+        return self._evaluate(
+            scenario_name, current_prices, positions, shocked_prices,
+            margin_factor=0.5,
+            liquidity_impact=np.std(price_shocks) * 0.05,  # Liquidity based on volatility
+            pass_threshold=0.3,
         )
-
-        return result
 
     def run_all_scenarios(self, current_prices: np.ndarray,
                           positions: np.ndarray) -> list[StressTestResult]:
