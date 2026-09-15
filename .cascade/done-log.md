@@ -956,3 +956,39 @@ harnesses are un-unit-testable by design).
 - **Fix:** all command-position `docker-compose ` -> `docker compose `; compose file names preserved.
 - **Verified:** grep for command-position `docker-compose ` across tracked docs + CONTRIBUTING = 0 remaining.
 - **Files:** docs/guides/DEVELOPMENT_GUIDE.md, docs/MONITORING_GUIDE.md, docs/WEB_UI.md, CONTRIBUTING.md (+ untracked docs/theory/useful_info_en.md)
+
+## R199 — dependabot / supply-chain — all 9 open alerts closed (+2 found by npm audit)
+
+All entries are `web-ui/package-lock.json` advisories — **devDependencies-only chains** (build/lint/test tooling); nothing ships in the prod bundle. Fixes applied in `web-ui/package.json` + `web-ui/package-lock.json` via `npm install` + `npm audit fix`. Verified: `npm audit` → **0 vulnerabilities**; `tsc --noEmit` clean; `vitest run` smoke green on 4.1.11.
+
+### GH#87 — browserslist `normalizeStats` crash / prototype write ✅
+- **Bug:** `browserslist@4.28.4` (range `<=4.28.6`) — untrusted `browserslist-stats.json` custom stats cause an uncaught crash + prototype-property write in `normalizeStats`. Same version covered by a second advisory: unbounded distinct-query cache growth → eventual OOM.
+- **Fix:** 4.28.4 → **4.28.9**. All parents (`@babel/helper-compilation-targets` via workbox-build/vite-plugin-pwa, `autoprefixer`, `update-browserslist-db`) want `^4.24.0` — in-range update, no override needed.
+- **Chain:** `vite-plugin-pwa → workbox-build → @babel/preset-env → @babel/core → @babel/helper-compilation-targets → browserslist`; also `autoprefixer → browserslist`.
+
+### GH#91 — js-yaml `maxTotalMergeKeys` CPU DoS ✅
+- **Bug:** `js-yaml@4.3.1` (range `<4.3.2`) — the merge-key cap doesn't limit CPU for empty merge sources; hostile YAML → DoS in any tool parsing it.
+- **Fix:** override `>=4.3.1` → **`>=4.3.2 <5`** → resolves **4.3.2** (nested under `@eslint/eslintrc`). The `<5` cap matters: `>=4.3.2` alone let npm pick major 5.4.2 over a `^4.1.1` requirement — semver-unsafe.
+- **Chain:** `eslint → @eslint/eslintrc → js-yaml` (^4.1.1). Dev/lint path only.
+
+### GH#82–#85 — fast-uri URI-normalization cluster (4× High) ✅
+- **Bug:** `fast-uri@4.1.2` (all range `<4.1.3`) — four normalization defects: host confusion via skipped IDN canonicalization on scheme-relative refs (#85); host confusion via percent-encoded scheme normalization (#82); SSRF via malformed IPv6 normalization (#84); SSRF via repeated hostname percent-decoding (#83).
+- **Fix:** override `>=4.1.2` → **`>=4.1.3`** → resolves **4.1.4**. Parent `ajv@8.20.0` requires `^3.0.1` — override is the only mechanism (was already in place from a previous round).
+- **Chain:** `vite-plugin-pwa → workbox-build → ajv → fast-uri`. Blast radius honest note: ajv only validates workbox config at build time — the SSRF/host-confusion surface is not network-exposed in this repo; severity is formal, real exploitability ~nil.
+
+### GH#90 — baseline-browser-mapping process-termination DoS ✅
+- **Bug:** `baseline-browser-mapping@2.10.40` (range `>=2.0.0 <2.11.0`) — calls `process.exit` on invalid input → kills any tooling passing external data.
+- **Fix:** → **2.11.23**, pulled automatically by `browserslist@4.28.9` (dep range `^2.10.38` admits it).
+- **Chain:** `browserslist → baseline-browser-mapping`.
+
+### GH#88/#89 — vitest / @vitest/mocker path traversal ✅
+- **Bug:** `vitest@4.1.10` + `@vitest/mocker@4.1.10` (range `>=2.1.0 <4.1.11`) — Redirect Mock allows path traversal / arbitrary file read outside project root. Direct devDep.
+- **Fix:** `vitest` + `@vitest/coverage-v8` `^4.1.10` → `^4.1.11` → all three resolve **4.1.11** (mocker follows vitest; coverage-v8 peer-pins `vitest@4.1.x`). Vitest 5.0.0 exists but the fix shipped on the 4.x line — no major bump needed.
+- **Honest note:** exploit needs a malicious test/mock config — dev-machine surface, not prod.
+
+### npm-audit extras (not in the Dependabot list)
+- **brace-expansion (High)** — DoS via unbounded expansion length (OOM) + CVE-2026-14257-mitigation bypass via unbounded intermediate arrays. Three copies in tree, all in vulnerable ranges: `1.1.16<1.1.18` (eslint→minimatch@3), `2.1.2<2.1.4` (filelist→minimatch@5), `5.0.7<5.0.9` (glob→minimatch@10) → **1.1.21 / 2.1.7 / 5.0.12**, all in-range via `npm audit fix`.
+- **nanoid (High)** — custom non-secure generator loops forever at `size=0`. `3.3.17<3.3.18` → **3.3.19** via `postcss@^8.5.23` (in-range).
+
+- **Files:** `web-ui/package.json` (vitest/@vitest/coverage-v8 `^4.1.11`; overrides `fast-uri >=4.1.3`, `js-yaml >=4.3.2 <5`), `web-ui/package-lock.json`
+- **Board note:** Dependabot PRs #83, #86–#89, #92 superseded — fixes applied directly.

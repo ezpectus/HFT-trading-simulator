@@ -2507,3 +2507,14 @@ Leaf-read of the last unaudited ai-signal-bot surface — `llm_engine`, `signal_
 **S339 (Medium) — Open.** `signal_validation/validator.py:64-68,103-105` — `_check_drawdown` reads `self._daily_pnl`, but `update_pnl` has zero prod callers (tests only; `run.py:725` is `metrics.update_pnl`, a different object). `_daily_pnl` stays 0.0 forever → the advertised "max daily drawdown" limit can never fire. A disconnected risk limit reads as protected — worse than absent. Fix: call `validator.update_pnl` on realized trade results, or remove the check honestly.
 
 **Checked, clean (not findings):** `llm_engine` — real HTTP clients for OpenAI/Anthropic/Ollama, `SecretStr` keys, honest `provider="none"` fallback with `rule_based.py`; `data_collection` — ccxt-backed `RealExchangeAdapter`/`RealAccountManager`/`RealMarketDataManager` form a real live-trading path via lazy `ExchangeFactory` (run.py:644-655), `paper_trading=False` requires ccxt (run.py:835); `technical_analysis/hawkes_*` — both files live via the `hawkes_fit` WS endpoint; `database/db.py` — real WAL-mode sqlite with init script and busy timeout; `SignalValidator`'s other four checks (confidence/RR/max-positions/duplicate-cooldown) are live, locked, and called at `run.py:553-554`.
+
+---
+
+## R199 — supply-chain: Dependabot alerts on `web-ui/package-lock.json` (all closed)
+
+Dependency-advisory round, not a code finding. 9 open Dependabot alerts + 2 unflagged advisories from `npm audit`, all in devDependencies chains (build/lint/test tooling — prod bundle untouched). All fixed:
+
+- **High:** `browserslist` ≤4.28.6 → 4.28.9 (GH#87 stats-file crash/prototype-write + OOM); `fast-uri` <4.1.3 → 4.1.4 via npm override (GH#82–#85 URI normalization: IDN/percent-scheme host confusion, IPv6 + double-decode SSRF — build-time only via workbox ajv); `js-yaml` <4.3.2 → 4.3.2 via override `>=4.3.2 <5` (GH#91 merge-key CPU DoS); `brace-expansion` → 1.1.21/2.1.7/5.0.12 (expansion DoS, 3 copies); `nanoid` <3.3.18 → 3.3.19 (zero-size generator loop).
+- **Moderate:** `vitest`/`@vitest/mocker`/`@vitest/coverage-v8` <4.1.11 → 4.1.11 (GH#88/#89 redirect-mock path traversal — direct devDeps, stayed on 4.x); `baseline-browser-mapping` <2.11.0 → 2.11.23 (GH#90 process-exit DoS).
+
+`npm audit` → 0. Detail + chains: `.cascade/done-log.md` R199.

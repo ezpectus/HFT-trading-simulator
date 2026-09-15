@@ -2661,3 +2661,11 @@ Board unchanged: 20 open.
 - **Second pass:** GitHub-style anchor audit = 0 broken (theory-file hits were false positives — my slugifier collapsed whitespace, GitHub doesn't); TOCs added to WEBSOCKET_PROTOCOL/ARCHITECTURE/TRADING_STRATEGIES/WEB_UI; DEVELOPMENT_GUIDE dep table fixed (PyTorch never imported; sim doesn't use numpy; scipy is optional try/except; pytest-xdist flagged as undeclared for -n auto).
 - **S341 closed:** 0 remaining command-position docker-compose v1 sites in tracked docs.
 - Board: 19 open.
+
+## R199 — dependabot-fix — all open web-ui advisories closed (11 total, npm audit = 0)
+
+- **Scope:** 9 open Dependabot alerts on `web-ui/package-lock.json` + 2 advisories `npm audit` surfaced that Dependabot hadn't flagged yet (brace-expansion, nanoid). All devDependencies chains (build/lint/test) — zero prod-bundle impact.
+- **Fixed versions:** browserslist 4.28.4→4.28.9 (GH#87 normalizeStats crash/prototype-write + OOM advisory, both `<=4.28.6`) · js-yaml 4.3.1→4.3.2 via override `>=4.3.2 <5` (GH#91 merge-key CPU DoS; `<5` cap needed — uncapped `>=` resolved to major 5.4.2 over `^4.1.1`) · fast-uri 4.1.2→4.1.4 via override `>=4.1.3` (GH#82–#85 URI-normalization cluster: IDN skip, percent-encoded scheme, IPv6 SSRF, double-decode SSRF; ajv wants `^3.0.1` so override is the only lever) · baseline-browser-mapping 2.10.40→2.11.23 (GH#90 process-exit DoS, rides with browserslist bump) · vitest+@vitest/coverage-v8+@vitest/mocker 4.1.10→4.1.11 (GH#88/#89 redirect-mock path traversal; stayed on 4.x — fix shipped there, no major bump) · brace-expansion → 1.1.21/2.1.7/5.0.12 (3 copies, all in-range) · nanoid 3.3.17→3.3.19 (postcss in-range).
+- **Files:** `web-ui/package.json`, `web-ui/package-lock.json`. Mechanism: direct-dep bump where direct, `overrides` only where parent ranges exclude the fix (fast-uri, js-yaml), `npm audit fix` for everything in-range.
+- **Verified:** `npm audit` → 0 vulnerabilities; `tsc --noEmit` clean; vitest 4.1.11 smoke run green. Dependabot PRs #83, #86–#89, #92 superseded — closable.
+- Board: 19 open (unchanged — supply-chain items lived in the DEPENDABOT section, now archived to done-log R199).

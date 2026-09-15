@@ -2,6 +2,7 @@
 
 > Аудит: 11 сен 2026 → текущий раунд R198+. Метод: статический grep-анализ по `.windsurf/workflows/ai_slop_audit.md`.
 > **Закрытые находки перенесены в `.cascade/done-log.md`** (226 шт на R198) — доска держит только Open/Partial. Проверка закрытых — `slop-verify`.
+> **R199:** все 9 Dependabot-алертов web-ui (+2 найденных `npm audit` сверх списка) закрыты → done-log R199. `npm audit` = 0.
 > История работ: `.cascade/progress.md`, баги: `.cascade/bug_log.md`.
 
 ---
@@ -65,6 +66,12 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 
 
+
+---
+
+## DEPENDABOT / SUPPLY-CHAIN — R199 ✅ CLOSED → done-log
+
+Все 9 open-алертов Dependabot web-ui (#82–#85 fast-uri, #87 browserslist, #88/#89 vitest+mocker, #90 baseline-browser-mapping, #91 js-yaml) **+ 2 extras из `npm audit`** (brace-expansion ×3 копии, nanoid) — закрыты. Все цепочки devDependencies-only, prod-бандл не затронут. `npm audit` = 0. Детали/цепочки/версии: `.cascade/done-log.md` → **R199**. Dependabot-PR #83, #86–#89, #92 superseded.
 
 ---
 
