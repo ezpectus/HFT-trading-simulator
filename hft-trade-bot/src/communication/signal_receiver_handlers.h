@@ -117,8 +117,12 @@ void update_prices(const json& prices_data, const json& /*full_data*/) {
     for (auto& [exchange, symbols] : prices_data.items()) {
         for (auto& [symbol, price] : symbols.items()) {
             // Key by venue+symbol — bare-symbol keys collapsed all three
-            // exchanges into one last-writer-wins slot (S252).
-            prices_[book_key(exchange, symbol)] = price.get<double>();
+            // exchanges into one last-writer-wins slot (S252). Scratch key —
+            // no alloc per price update inside the lock.
+            key_scratch_ = exchange;
+            key_scratch_ += '|';
+            key_scratch_ += symbol;
+            prices_[key_scratch_] = price.get<double>();
             if (!primary_exchange(exchange)) continue;
             auto id_it = symbol_to_id_.find(symbol);
             if (id_it != symbol_to_id_.end()) {
@@ -135,10 +139,13 @@ void update_orderbooks(const json& data, int64_t timestamp) {
         // snapshots instead of reallocating from empty every message.
         std::string symbol   = ob_data.value("symbol", "");
         std::string exchange = ob_data.value("exchange", "");
-        OrderBook&  ob       = order_books_[book_key(exchange, symbol)];
-        ob.symbol            = std::move(symbol);
-        ob.exchange          = std::move(exchange);
-        ob.timestamp         = timestamp;
+        key_scratch_         = exchange;
+        key_scratch_ += '|';
+        key_scratch_ += symbol;
+        OrderBook& ob = order_books_[key_scratch_];
+        ob.symbol     = std::move(symbol);
+        ob.exchange   = std::move(exchange);
+        ob.timestamp  = timestamp;
         ob.bids.clear();
         ob.asks.clear();
         if (ob_data.contains("bids")) {
@@ -164,8 +171,12 @@ void update_orderbook_deltas(const json& data, int64_t timestamp) {
         std::string symbol   = delta_data.value("symbol", "");
         std::string exchange = delta_data.value("exchange", "");
         // Deltas must hit their own venue's book — a symbol-only lookup let a
-        // bybit delta mutate the binance book (S252).
-        auto it = order_books_.find(book_key(exchange, symbol));
+        // bybit delta mutate the binance book (S252). Scratch key — no alloc
+        // per delta inside the lock.
+        key_scratch_ = exchange;
+        key_scratch_ += '|';
+        key_scratch_ += symbol;
+        auto it = order_books_.find(key_scratch_);
         if (it == order_books_.end()) continue;
         OrderBook& ob = it->second;
         ob.timestamp  = timestamp;
@@ -217,10 +228,16 @@ void update_candles(const json& candles_data) {
             candle.symbol    = c.value("symbol", "");
             candle.exchange  = c.value("exchange", "");
             // Per-venue history — interleaved multi-exchange candles corrupt
-            // every EMA/RSI/OBI consumer (S252).
-            auto& hist = candle_history_[book_key(candle.exchange, candle.symbol)];
+            // every EMA/RSI/OBI consumer (S252). Scratch key — no alloc per
+            // candle inside the lock.
+            key_scratch_ = candle.exchange;
+            key_scratch_ += '|';
+            key_scratch_ += candle.symbol;
+            auto& hist = candle_history_[key_scratch_];
             hist.push_back(candle);
-            if (hist.size() > 200u) hist.erase(hist.begin(), hist.end() - 200);
+            // Amortized trim — erase-front every candle was an O(n) memmove
+            // per message; batch it (cap drifts 200→256 between trims).
+            if (hist.size() > 256u) hist.erase(hist.begin(), hist.end() - 200);
             if (!primary_exchange(candle.exchange)) {
                 new_candles.push_back(candle);
                 continue;
@@ -229,7 +246,7 @@ void update_candles(const json& candles_data) {
             if (id_it != symbol_to_id_.end()) {
                 auto& arr_hist = candles_by_id_[id_it->second];
                 arr_hist.push_back(candle);
-                if (arr_hist.size() > 200u) arr_hist.erase(arr_hist.begin(), arr_hist.end() - 200);
+                if (arr_hist.size() > 256u) arr_hist.erase(arr_hist.begin(), arr_hist.end() - 200);
             }
             new_candles.push_back(candle);
         }

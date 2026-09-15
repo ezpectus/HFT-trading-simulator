@@ -113,16 +113,18 @@ class SignalReceiverData {
         double      mid = (bid + ask) / 2.0;
         {
             std::lock_guard<Spinlock> lock(data_lock_);
-            prices_[book_key("shm", sym)] = mid;
-            prices_by_id_[symbol_id]      = mid;
-            OrderBook& ob                 = obs_by_id_[symbol_id];
-            ob.symbol                     = sym;
-            ob.exchange                   = "shm";
+            key_scratch_ = "shm|";
+            key_scratch_ += sym;
+            prices_[key_scratch_]    = mid;
+            prices_by_id_[symbol_id] = mid;
+            OrderBook& ob            = obs_by_id_[symbol_id];
+            ob.symbol                = sym;
+            ob.exchange              = "shm";
             if (ob.bids.empty()) ob.bids.resize(1);
             if (ob.asks.empty()) ob.asks.resize(1);
-            ob.bids[0]                         = {bid, volume * 0.1};
-            ob.asks[0]                         = {ask, volume * 0.1};
-            order_books_[book_key("shm", sym)] = ob;
+            ob.bids[0]                 = {bid, volume * 0.1};
+            ob.asks[0]                 = {ask, volume * 0.1};
+            order_books_[key_scratch_] = ob;
         }
         has_new_data_.store(true, std::memory_order_release);
     }
