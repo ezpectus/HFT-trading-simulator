@@ -22,5 +22,6 @@ TEST_CASE("test_watchdog_idle") {
     Watchdog wd(1000);
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     uint64_t idle = wd.idle_ms();
-    REQUIRE(idle >= 40 && idle <= 100);
+    REQUIRE(idle >= 40);
+    REQUIRE(idle <= 100);
 }

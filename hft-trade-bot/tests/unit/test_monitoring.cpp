@@ -22,7 +22,8 @@ TEST_CASE("test_fill_rate") {
     mon.increment(SystemMonitor::Metric::ORDERS_SENT, 100);
     mon.increment(SystemMonitor::Metric::ORDERS_FILLED, 75);
     double fr = mon.fill_rate();
-    REQUIRE(fr > 0.74 && fr < 0.76);
+    REQUIRE(fr > 0.74);
+    REQUIRE(fr < 0.76);
 }
 
 TEST_CASE("test_rejection_rate") {
@@ -30,7 +31,8 @@ TEST_CASE("test_rejection_rate") {
     mon.increment(SystemMonitor::Metric::ORDERS_SENT, 100);
     mon.increment(SystemMonitor::Metric::ORDERS_REJECTED, 10);
     double rr = mon.rejection_rate();
-    REQUIRE(rr > 0.09 && rr < 0.11);
+    REQUIRE(rr > 0.09);
+    REQUIRE(rr < 0.11);
 }
 
 TEST_CASE("test_snapshot") {
@@ -42,7 +44,8 @@ TEST_CASE("test_snapshot") {
     REQUIRE(s.orders_sent == 50);
     REQUIRE(s.orders_filled == 40);
     REQUIRE(s.errors == 3);
-    REQUIRE(s.fill_rate > 0.79 && s.fill_rate < 0.81);
+    REQUIRE(s.fill_rate > 0.79);
+    REQUIRE(s.fill_rate < 0.81);
 }
 
 TEST_CASE("test_reset") {

@@ -359,6 +359,10 @@ def check_clang_format(files: list[str] | None = None) -> CheckResult:
     """Run clang-format dry-run on C++ files."""
     import shutil
 
+    # Vendored third-party headers must stay byte-identical to upstream —
+    # never require them to satisfy the repo style.
+    VENDORED = {"tests/doctest.h"}
+
     cwd = PROJECT_ROOT / "hft-trade-bot"
     if not cwd.exists():
         return CheckResult("clang-format: hft-trade-bot", True, 0.0, "hft-trade-bot not found")
@@ -374,6 +378,7 @@ def check_clang_format(files: list[str] | None = None) -> CheckResult:
             return CheckResult("clang-format: hft-trade-bot (staged)", True, 0.0)
         rel_files = [str(Path(f).relative_to("hft-trade-bot")) for f in cpp_files
                      if f.startswith("hft-trade-bot")]
+        rel_files = [f for f in rel_files if f.replace("\\", "/") not in VENDORED]
         if not rel_files:
             return CheckResult("clang-format: hft-trade-bot (staged)", True, 0.0)
         cmd = [clang_fmt, "--dry-run", "--Werror"] + rel_files
@@ -389,7 +394,8 @@ def check_clang_format(files: list[str] | None = None) -> CheckResult:
                     cpp_paths.append(p)
         if not cpp_paths:
             return CheckResult("clang-format: hft-trade-bot", True, 0.0, "no C++ files found")
-        rel_files = [str(p.relative_to(cwd)) for p in cpp_paths]
+        rel_files = [str(p.relative_to(cwd)).replace("\\", "/") for p in cpp_paths]
+        rel_files = [f for f in rel_files if f not in VENDORED]
         cmd = [clang_fmt, "--dry-run", "--Werror"] + rel_files
 
     success, stdout, stderr, duration = run_command(cmd, cwd=cwd, timeout=60)

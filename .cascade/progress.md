@@ -3133,3 +3133,4 @@ Board: 0 open.
 - First real run caught 3 defects: InlineRSI flat→RSI≈100 (now 50); OnlineHMM vol_proxy annualized per-obs EWMA ×252 (~16× mis-scale → VOLATILE always won → trend detection dead) + RANGING ret-var 5e-5→1e-7; pressure-test fixture claimed 1bps but produced 2bps with a TIGHT expectation.
 - `ctest` via clang-MinGW: **13/13 binaries, 221 cases — all green.** Verify-debt downgraded from env-blocked to dep-blocked (fmt/spdlog/yaml/json tests, POSIX-only targets).
 - Board: 0 open.
+- R248-cont: stub swapped for genuine doctest 2.4.11 vendored header. Exposed + fixed: 4 test files had no main under any framework (now DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN via CMake); 4 `a && b` asserts split for real doctest. ctest 13/13 still green.
