@@ -3084,3 +3084,10 @@ Board: 0 open.
 - First run 267/271 — 4 real prod defects: LiquidationMap NaN rect attrs (magnitude lived on allLevels, bars mapped pre-enrichment levels); RecurrentNeuralNetwork dead panel — Wf matrix 4 rows vs 4·hiddenSize indexing → TypeError on first forward, plus `this.inputSize` in module-scope arrow (dead BPTT loop); OrderFlowAbsorption destructured {price,quantity} book levels as [p,q] tuples → not-iterable crash on any real book; BlackLitterman K=0 early return missing sharpes/posteriorCov → undefined.toFixed.
 - Fixed all 4 at root + 10 focused regression tests. Sweep now 271/271; full vitest 171 files / 1437 tests green; eslint clean.
 - Board: 0 open.
+
+## R242 — console-error assertion → S368 found+fixed
+
+- Mount sweep now captures console.error/console.warn per panel mount and fails on real React dev warnings (act noise filtered) — converts the S365/S366 warning class into a hard gate across all 271 panels.
+- Immediately caught: S368 — BotStatus activity-feed keys `${symbol}-${time}` collided for signal+fill same-symbol/same-tick → React duplicate-key warning. Key now `${type}-${symbol}-${time}-${i}`.
+- Sweep 271/271 clean, botStatus 27/27, eslint clean.
+- Board: 0 open.

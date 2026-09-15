@@ -1342,3 +1342,12 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
   (d) `BlackLitterman` — the `K === 0` (no valid views) early return omitted `sharpes`/`posteriorCov`/`validViews`, while the render unconditionally calls `data.sharpes[si].toFixed(3)` → TypeError. Always triggered: default views have 3 assets and S > 3 whenever ≥4 symbols have data. K=0 branch now returns the full field set (sharpes computed from π, posteriorCov = cov).
 - **Files:** `web-ui/src/components/LiquidationMap.jsx:70-78`; `web-ui/src/components/RecurrentNeuralNetwork.jsx:47-49,201-203`; `web-ui/src/components/OrderFlowAbsorption.jsx:88-89`; `web-ui/src/components/BlackLitterman.jsx:144-150`; new `web-ui/src/test/panelsMount.test.jsx` (271 per-panel mount tests — the permanent coverage net for this class); new `src/test/{LiquidationMap,RecurrentNeuralNetwork,OrderFlowAbsorption,BlackLitterman}.test.jsx` (10 regression tests).
 - **Verified:** sweep 267/271 → **271/271**; full vitest **171 files / 1437 tests — all green**; eslint clean on all touched files. Each defect reproduced pre-fix via direct render (TypeError stack / NaN attributes), fixed at the root — no error-suppression, no weakened assertions.
+
+## R242 — console-error assertion in mount sweep — S368
+
+### S368 — `BotStatus` activity feed duplicate React keys (Low) ✅
+- **Context:** the first mount-sweep run logged a React warning the test didn't assert on: `Encountered two children with the same key 'BTCUSDT-1789503656.586'`. The sweep now captures `console.error`/`console.warn` per mount and fails on any real React dev warning (act-harness noise filtered), turning the whole S365/S366 warning class into a hard gate across all 271 panels.
+- **Bug:** activity-feed rows were keyed `${symbol}-${time || i}` — a signal and a fill (or two signals) for the same symbol on the same tick produced identical keys → non-unique keys → mis-reconciliation on updates.
+- **Fix:** key is now `${type}-${symbol}-${time}-${i}` — type separates signal/fill collisions, index guarantees uniqueness within the slice.
+- **Files:** `web-ui/src/components/BotStatus.jsx:238`; `web-ui/src/test/panelsMount.test.jsx` (per-mount console capture + zero-warning assertion).
+- **Verified:** warning present pre-fix in sweep stderr, absent post-fix; sweep 271/271; `botStatus.test.jsx` 27/27 green; eslint clean.
