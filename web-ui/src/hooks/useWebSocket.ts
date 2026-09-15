@@ -252,6 +252,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   useEffect(() => {
     if (autoConnect) connect()
     return () => {
+      manualCloseRef.current = true  // unmount close must not scheduleRetry (S361)
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       if (pingTimer.current) clearInterval(pingTimer.current)
       if (countdownTimer.current) clearInterval(countdownTimer.current)

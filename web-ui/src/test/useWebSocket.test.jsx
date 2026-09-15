@@ -176,4 +176,18 @@ describe('useWebSocket', () => {
       vi.useRealTimers()
     }
   })
+
+  it('unmount does not spawn a ghost reconnect (S361)', async () => {
+    vi.useFakeTimers()
+    try {
+      const { result, unmount } = renderHook(() => useWebSocket('ws://localhost:8765'))
+      await act(async () => { await vi.advanceTimersByTimeAsync(10) })
+      expect(result.current.connected).toBe(true)
+      unmount() // cleanup closes ws → onclose fires → must not scheduleRetry
+      await act(async () => { await vi.advanceTimersByTimeAsync(60000) })
+      expect(mockInstances.length).toBe(1) // no ghost socket created post-unmount
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })
