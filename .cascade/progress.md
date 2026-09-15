@@ -3053,3 +3053,10 @@ Board: 0 open.
 
 - (e) single pressure analyze: bot_loop.cpp:168 one call site ✓; (f) in-place ob fill: handlers:140-162 ✓; (g) 5 scratch-key sites + find_for_symbol scratch (order default→shm→bare matches book_key) ✓; (h) amortized trim >256→200 both histories ✓; (i) zero std::string(buf) in order_executor ✓; (j) find() once per key ✓; (k) ob_buf reuse w/ is_connected-first ✓; (l) gmtime ≤1/min ✓; (m) notify after commit ✓; (o) inject_snapshots_scoped single lock ✓; (p) keyed book in-place ✓; (q) encode_cache (enc,frozenset(subs)) ✓; (r) pack_into/unpack_from on mmap ✓.
 - Verified: all claims hold in code; sim 446/446, ruff clean. Board: 0 open.
+
+## R238 — S364 residual micro-sites
+
+- run_v2_signal_loop: now_ns() per symbol → hoisted (tick shares timestamp; client_order_id uniqueness via <sym> preserved).
+- update_health_status: full struct + mutex per tick for polled endpoint → 1s throttle.
+- Engines verified clean without edits: analyze_incremental = O(1) per new candle (full pass only on init/warmup), pressure_model stack-only noexcept.
+- Board: 0 open.
