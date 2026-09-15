@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R240–R241 — panel coverage sweep)
+
+### Fixed
+- **Four production-broken panels found by a new mount-all-panels test (S367):** the e2e suite only mounts the default dashboard, so a new `panelsMount.test.jsx` now mounts every one of the 271 registry panels through its real props-builder and asserts non-empty, NaN-free output. It caught: `LiquidationMap` rendering `NaN` rect geometry (bar heights read a `magnitude` field that only existed on a different array); `RecurrentNeuralNetwork` crashing on its first LSTM forward pass (gate weight matrix allocated 4 rows but indexed up to `4·hiddenSize`; plus `this.inputSize` in a module-scope arrow — dead BPTT code); `OrderFlowAbsorption` crashing on any populated order book (tuple-destructured `{price, quantity}` levels); `BlackLitterman` crashing whenever no investor view matched the asset count (early return omitted the `sharpes` the render reads unconditionally). All four fixed at the root; 10 regression tests added; sweep is now a permanent 271-test safety net.
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R231–R239 — e2e truth + HFT hot path)
 
 ### Fixed

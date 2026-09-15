@@ -3076,3 +3076,11 @@ Board: 0 open.
 - Board: 0 open.
 
 - S366-ext: MultiLegOptions unguarded xSpan (spot=0/NaN input → NaN payoff path) — safeSpot + scale clamps. All sibling range-division sites audited clean. Full vitest 166f/1156t green. Commit 875f586.
+
+## R241 — mount-all-panels sweep → S367 found+fixed
+
+- Structural coverage gap: e2e mounts only the default dashboard; ~210 of 271 registry panels were never mounted in ANY test — exactly where S365/S366-class defects hide.
+- New `panelsMount.test.jsx`: iterates `PANELS` from registry, builds props via the real `props(ctx)` builders against snapshot-faithful mock ctx, resolves `React.lazy` via waitFor, asserts non-empty output + zero `NaN` in DOM. Per-panel `it` → crash attributed by panel id.
+- First run 267/271 — 4 real prod defects: LiquidationMap NaN rect attrs (magnitude lived on allLevels, bars mapped pre-enrichment levels); RecurrentNeuralNetwork dead panel — Wf matrix 4 rows vs 4·hiddenSize indexing → TypeError on first forward, plus `this.inputSize` in module-scope arrow (dead BPTT loop); OrderFlowAbsorption destructured {price,quantity} book levels as [p,q] tuples → not-iterable crash on any real book; BlackLitterman K=0 early return missing sharpes/posteriorCov → undefined.toFixed.
+- Fixed all 4 at root + 10 focused regression tests. Sweep now 271/271; full vitest 171 files / 1437 tests green; eslint clean.
+- Board: 0 open.

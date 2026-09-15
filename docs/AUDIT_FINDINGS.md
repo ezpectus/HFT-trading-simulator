@@ -2776,7 +2776,7 @@ The remaining un-tried lenses, all verified clean:
 
 Every recorded finding is closed and documented in `.cascade/done-log.md` with changed files + line ranges. Recent batches carry `verified R<N>` marks from adversarial re-checks against live code (S356–S362: 7/7 verified R233).
 
-**Remaining verify-debt:** `hft-trade-bot` ctest suite is env-blocked on this host (ASan-debug binaries, no MSVC debug CRT) — run once on a machine with Visual Studio. Everything runnable is green: exchange_simulator 446 tests, ai-signal-bot 1341, web-ui vitest 1133.
+**Remaining verify-debt:** `hft-trade-bot` ctest suite is env-blocked on this host (ASan-debug binaries, no MSVC debug CRT) — run once on a machine with Visual Studio. Everything runnable is green: exchange_simulator 446 tests, ai-signal-bot 1341, web-ui vitest 1437.
 
 **Post-convergence mode:** watch mode per `.windsurf/workflows/audit-loop.md` — `slop-verify` after every ~5 new done-log entries, `docs-refresh` per milestone, new sweeps only on new code. No audit rounds on a timer.
 
@@ -2799,3 +2799,7 @@ The e2e suite was recorded as env-blocked — actually `playwright.config` `webS
 ## R240 — S365-class sweep — 1 finding fixed (S366)
 
 Scripted sweep of every `useMemo` body for render-phase `set*`/`on*` calls — the defect class S365(b) exposed. **S366 (Medium)** — three live sites: `BayesianStructuralTimeSeries` and `GaussianProcessRegression` ran their grid-search optimizers inside `useMemo` while writing state that sat in the same dep array (optimizer ran twice per input change; loop termination relied on float equality); `IndicatorFormulaParser` wrote `setError` mid-render and its `{values: []}` path crashed on `result.last.toFixed`. Bonus defect caught by the new SVG-finiteness test: the BSTS Kalman covariance update was `P−K·Z·P` element-wise — wrong math, P lost positive-definiteness → NaN forecasts in production. Fixed to the standard `P−K(Z·P)` form. 10 new regression tests; e2e console-errors green.
+
+## R241 — mount-all-panels sweep — 1 finding fixed (S367)
+
+The structural gap behind S365/S366: e2e mounts only the default dashboard, so ~210 of 271 registry panels were never mounted in any test. New `web-ui/src/test/panelsMount.test.jsx` mounts every panel through its real registry `props(ctx)` builder against a snapshot-faithful context, waits out `React.lazy`, and asserts non-empty output + zero `NaN` in the DOM. First run: 267/271 clean — **S367 (High)**, four production-broken panels: `LiquidationMap` wrote `y="NaN" height="NaN"` on every leverage rect (magnitude was added to `allLevels` but bars were mapped from the pre-enrichment `longLevels`/`shortLevels`); `RecurrentNeuralNetwork` could never render — `LSTMCell.Wf` had 4 rows but was indexed up to `4·hiddenSize`, plus `this.inputSize` inside a module-scope arrow made the BPTT loop dead code; `OrderFlowAbsorption` destructured `{price, quantity}` book levels as `[p, q]` tuples → TypeError on any real book; `BlackLitterman`'s no-valid-views (`K=0`) branch omitted `sharpes`/`posteriorCov` while the render calls `data.sharpes[si].toFixed` unconditionally. All four fixed at the root; 10 focused regression tests added. Sweep **271/271**, full vitest **171 files / 1437 tests green**.
