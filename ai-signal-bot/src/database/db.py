@@ -6,6 +6,12 @@ import os
 import sqlite3
 import time
 
+_PURGE_QUERIES = {
+    "signals": "DELETE FROM signals WHERE timestamp < ?",
+    "trades": "DELETE FROM trades WHERE timestamp < ?",
+    "equity_curve": "DELETE FROM equity_curve WHERE timestamp < ?",
+}
+
 
 class Database:
     """SQLite database for trading data."""
@@ -224,10 +230,10 @@ class Database:
         conn = self._get_conn()
         cutoff = int(time.time()) - max_age_days * 86400
         deleted = {}
-        for table in ("signals", "trades", "equity_curve"):
-            cursor = conn.execute(
-                f"DELETE FROM {table} WHERE timestamp < ?", (cutoff,)
-            )
+        # Static query text per table — SQL identifiers can't be bound params,
+        # so keep the statements fully literal instead of interpolating names.
+        for table, query in _PURGE_QUERIES.items():
+            cursor = conn.execute(query, (cutoff,))
             deleted[table] = cursor.rowcount
         conn.execute("PRAGMA optimize")
         conn.commit()
