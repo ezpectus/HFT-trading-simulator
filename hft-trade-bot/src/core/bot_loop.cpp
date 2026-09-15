@@ -158,13 +158,14 @@ static void prepare_order_book(BotContext& ctx, uint16_t sym_id, const std::stri
 }
 
 static FastSignal generate_signal(BotContext& ctx, const char* sym_cstr, const Candle* candles,
-                                  size_t n, const OrderBook& ob, int64_t now_ns) {
+                                  size_t n, const OrderBook& ob, int64_t now_ns,
+                                  PressureResult& pressure_out) {
     ctx.last_engine_eval_ms.store(FastSignal::now_epoch_ns() / 1000000, std::memory_order_relaxed);
-    auto pressure = ctx.pressure_model->analyze(ob);
+    pressure_out = ctx.pressure_model->analyze(ob);
     if (ctx.engine_v3) {
-        return ctx.engine_v3->analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
+        return ctx.engine_v3->analyze_incremental(sym_cstr, candles, n, ob, pressure_out, now_ns);
     }
-    return ctx.engine_v2->analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
+    return ctx.engine_v2->analyze_incremental(sym_cstr, candles, n, ob, pressure_out, now_ns);
 }
 
 static Signal convert_fast_signal(BotContext& ctx, const FastSignal& fast_sig) {
@@ -200,10 +201,10 @@ struct OrderSelection {
 
 static OrderSelection select_order_kind(BotContext& ctx, const FastSignal& fast_sig,
                                         const OrderBook& ob, double qty, double mid,
-                                        double spread_bps, int64_t now_ns) {
+                                        double spread_bps, int64_t now_ns,
+                                        const PressureResult& pressure) {
     if (!ctx.config.adaptive_order_enabled)
         return {FastOrder::OrderKind::MARKET, 0.0, 0, "default"};
-    auto pressure = ctx.pressure_model->analyze(ob);
     // Depth on the side the order crosses: buys lift asks, sells hit bids.
     const auto& levels     = fast_sig.is_long() ? ob.asks : ob.bids;
     double      top5_depth = 0.0;
@@ -216,10 +217,11 @@ static OrderSelection select_order_kind(BotContext& ctx, const FastSignal& fast_
 }
 
 static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSignal& fast_sig,
-                             const OrderBook& ob, double qty, int64_t now_ns) {
+                             const OrderBook& ob, double qty, int64_t now_ns,
+                             const PressureResult& pressure) {
     double mid        = ob.mid_price();
     double spread_bps = mid > 0 ? ob.spread() / mid * 10000.0 : 999.0;
-    auto   os         = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns);
+    auto   os = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns, pressure);
     spdlog::info("HFT v2 Signal: {} {} conf={} entry={:.2f} kind={} spread={:.1f}bps ({})",
                  fast_sig.dir_str(), sig.symbol, static_cast<int>(fast_sig.confidence),
                  fast_sig.entry_price,
@@ -262,9 +264,11 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
         if (candles_count < 30) continue;
         prepare_order_book(ctx, sym_id, symbol);
         if (ctx.ob_buf.bids.empty() || ctx.ob_buf.asks.empty()) continue;
-        int64_t now_ns   = FastSignal::now_ns();
-        auto    fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
-                                           ctx.candles_buf.size(), ctx.ob_buf, now_ns);
+        int64_t now_ns = FastSignal::now_ns();
+        // pressure computed once in generate_signal, reused by order selection
+        PressureResult pressure{};
+        auto           fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
+                                                  ctx.candles_buf.size(), ctx.ob_buf, now_ns, pressure);
         if (!fast_sig.is_actionable() || fast_sig.confidence < ctx.config.v2_min_confidence)
             continue;
         auto          sig = convert_fast_signal(ctx, fast_sig);
@@ -275,7 +279,7 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
         double qty = ctx.risk_mgr->calculate_position_size(sig, current_balance);
         if (qty <= 0) continue;
         ScopedLatency exec_timer(ctx.order_exec_hist);
-        execute_v2_order(ctx, sig, fast_sig, ctx.ob_buf, qty, now_ns);
+        execute_v2_order(ctx, sig, fast_sig, ctx.ob_buf, qty, now_ns, pressure);
     }
 }
 
