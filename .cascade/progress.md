@@ -2679,3 +2679,11 @@ Board unchanged: 20 open.
 - **Doc-claim sync:** README known-gaps and ARCHITECTURE circuit-breaker line updated (S337/S329/S332 claims were stale after the fix).
 - **Verified:** ai-signal-bot 99 tests green; web-ui backtestEngine 8/8; `bash -n deploy.sh` clean; `audit.log*` glob verified.
 - Board: **15 open**, all Medium/Low/Info — zero High/Critical remaining.
+
+## R201 — slop-fix — safety gates S338 + S339 closed (board 13 open, no High left)
+
+- **S338 (Medium):** halt gates covered only the paper order path — `_execute_live_order` had none, and the C++ kill-switch latch (`_hft_kill_active`) gated only the SHM feed. Single gate now fronts both order paths: kill-switch OR trading-stopped halts paper+live with a named-source warning. Broadcast/SHM unchanged (info flow).
+- **S339 (Medium):** validator's daily-drawdown gate read `_daily_pnl` that nothing fed (zero prod callers of `update_pnl`; realized-PnL path doesn't exist — `db.close_trade` dead). Now `_validate_signal` accumulates equity deltas per signal — cumulative = today's equity change incl. unrealized; stricter+real vs the dead realized-only design. Baseline-on-first-call, date rollover via update_pnl.
+- **Doc sync:** 5 stale "unwired/decorative" claims fixed — README, ARCHITECTURE, RISK_MANAGEMENT, CONFIGURATION_GUIDE, TRADING_GUIDE.
+- **Verified:** 74 tests green (shm_alerting_wiring, signal_validation, signal_validator, validator); run.py parses.
+- Board: 13 open — Medium: S330/S331 fill-model, S334/S335 C++ position book, S322 venue-runners, S328 dead stack; Low/Info: S323–S327, S333, S336.

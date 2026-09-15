@@ -10,9 +10,9 @@ format and are validated at startup.
 **Risk parameters** (real keys in `ai-signal-bot/config/settings.yaml`):
 - `max_risk_per_trade_pct: 2.0` — Half-Kelly. Balance growth vs safety.
   Too high = risk of ruin. Too low = underutilization.
-- `max_daily_drawdown_pct: 8.0` — intended daily-loss stop. Config exists,
-  but the enforcing check is currently unwired (audit S339) — do not
-  rely on it as an active protection.
+- `max_daily_drawdown_pct: 8.0` — daily-loss stop, enforced (wired R201):
+  the validator accumulates equity deltas per validated signal and rejects
+  new signals once today's equity drop reaches the limit.
 - `min_confidence: 65` — Signal quality filter (0-100 scale).
   Below = noise, not actionable.
 - `min_rr_ratio: 1.5` — Risk:Reward. Expected value positive if

@@ -317,7 +317,7 @@ Risk parameters in `ai-signal-bot/config/settings.yaml`:
 ```yaml
 risk:
   max_risk_per_trade_pct: 2.0    # 2% per trade
-  max_daily_drawdown_pct: 8.0    # 8% daily drawdown — config exists; enforcing check unwired (audit S339)
+  max_daily_drawdown_pct: 8.0    # 8% daily drawdown — enforced: validator accumulates equity deltas at validate time (wired R201)
   min_confidence: 65             # 65% minimum signal confidence
   min_rr_ratio: 1.5              # 1.5 minimum risk:reward
   max_position_size_pct: 10.0    # 10% max position

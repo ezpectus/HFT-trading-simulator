@@ -1018,3 +1018,18 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Fix:** backup globs `logs/audit.log*` (file + rotations) into `audit_$TS/`; restore copies it back as a verbatim snapshot (post-backup live lines are replaced — that's what rollback means; comment corrected, no fake "merge" claim). Empty-source case logs a skip instead of creating phantom dirs. `.bat` mirrors with `audit.log` existence check.
 - **Files:** `scripts/deploy.sh:68-75` (backup), `:360-368` (restore); `scripts/deploy.bat:65-69` (backup), `:302-308` (restore)
 - **Verified:** `bash -n` clean; `cp audit.log*` glob verified against real file.
+
+## R201 — slop-fix — 2 findings closed (S338 halt gates, S339 dead drawdown feed)
+
+### S338 — halt gates now cover both order paths ✅
+- **Bug:** `is_trading_active` gated only `_execute_paper_order` (`run.py:579`); `_execute_live_order` had no halt check — live orders fired during a sim halt (real-money blast radius). `_hft_kill_active` (C++ kill-switch latch, `run.py:389`) paused only the SHM signal feed — neither order path consulted it.
+- **Fix:** single halt gate in `_finalize_and_execute` ahead of both paths — `halted_by = kill-switch | trading-stopped` blocks `_execute_paper_order` AND `_execute_live_order` with an explicit warning naming the halt source. Signal broadcast + SHM push unchanged (informational flow; kill-switch already gates SHM separately at :572). Halted skips are not execution failures — no breaker record (correct: halt ≠ downstream fault).
+- **Files:** `ai-signal-bot/run.py:593-604`
+- **Verified:** 74 tests green (shm_alerting_wiring + validator suites); test mocks exercise the halt branch via `is_trading_active=False`.
+
+### S339 — SignalValidator drawdown gate fed with real equity deltas ✅
+- **Bug:** `_check_drawdown` read `self._daily_pnl`, but `update_pnl` had zero prod callers — `_daily_pnl` stayed 0.0 forever, so the advertised max-daily-drawdown gate could never fire. A realized-PnL feed was impossible: `db.close_trade` has no callers, `trades.pnl` never written.
+- **Fix:** `_validate_signal` now feeds `validator.update_pnl(equity_delta)` per validated signal — delta of account equity since the previous signal. Cumulative deltas = today's equity change (realized+unrealized mark-to-market); `update_pnl`'s built-in date rollover resets daily. Stricter than the documented realized-only semantic (gates on underwater positions too) — honest docstring/comment notes the difference. First call sets baseline only.
+- **Files:** `ai-signal-bot/run.py:130` (`_dd_last_equity` init), `:556-565` (delta feed in `_validate_signal`)
+- **Verified:** 74 tests green; validator's own update_pnl/drawdown tests unchanged and passing.
+- **Doc sync:** README known-gaps, ARCHITECTURE:228, RISK_MANAGEMENT:320, CONFIGURATION_GUIDE:13-15, TRADING_GUIDE:38 — all S338/S339 "unwired/decorative" claims updated (were stale post-fix).

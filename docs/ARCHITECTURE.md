@@ -225,7 +225,7 @@ The system implements production-grade observability across all components:
 4. **Mean Reversion** — RSI extremes + Bollinger Band touches
 5. **FFT Cycle Strategy** — Spectral analysis, cycle detection, regime classification (TRENDING/RANGING/MIXED)
 6. **Ensemble Voter** — Majority or confidence-weighted voting (min 2 votes across the enabled strategies; 7 implemented — trend, mean-reversion, FFT, statistical-arbitrage, sentiment, market-making, ML-ensemble — 5 enabled by default, market-making and ML-ensemble off)
-7. **Signal Validation** — Confidence, R:R ratio, position limits (**audit S339:** the drawdown gate is configured but its `update_pnl` feed has no production caller — currently dead)
+7. **Signal Validation** — Confidence, R:R ratio, position limits, daily-drawdown gate fed by equity deltas at validate time (S339 wired in R201)
 8. **Order Execution** — Sends orders to exchange simulator
 
 **Additional features:**

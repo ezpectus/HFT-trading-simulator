@@ -2527,3 +2527,9 @@ Dependency-advisory round, not a code finding. 9 open Dependabot alerts + 2 unfl
 - **S329 + S332 — lookahead bias in both backtest engines.** Python `Backtester` and web-ui `backtestEngine` both evaluated the signal on bar `i` and filled at `candles[i].close` — impossible live, systematically flattering results. Both now decide on the previously closed bar and fill at bar `i`. Regression pins added in `test_backtester.py` and `backtestEngine.test.js`.
 - **S340 — deploy audit backup (S297 reopen).** Backed up nonexistent `exchange_simulator/logs/audit/` — audit is the single rotating file `logs/audit.log`; snapshot never created, restore branches dead. Both deploy scripts now back up `audit.log*` and restore as a verbatim snapshot.
 - Board: 15 open — zero High/Critical remaining; remaining items are Medium (halt-gate coverage S338, dead drawdown feed S339, sim fill-model S330/S331, C++ position book S334/S335, bloat S322/S328) and Low/Info.
+
+## R201 — safety gates wired (S338, S339 closed)
+
+- **S338 — halt coverage.** Trading-halt (`is_trading_active`) and the C++ kill-switch latch now gate BOTH order paths in `run.py` — previously live orders fired through a halt and the kill-switch only paused the SHM feed.
+- **S339 — dead drawdown feed.** `SignalValidator._check_drawdown` consumed `_daily_pnl` fed by nobody. `_validate_signal` now accumulates equity deltas per signal — a real daily-equity-change gate (mark-to-market, stricter than realized-only). Docs updated to say so honestly.
+- Board: 13 open — Medium/Low/Info only.
