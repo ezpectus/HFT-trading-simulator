@@ -2720,3 +2720,16 @@ Board unchanged: 20 open.
 - **S336 (Info):** `connection_` hdl теперь под `client_mtx_` (тот же mutex, что и client_) — `set_conn`/`conn_snapshot` в **обоих** WS-клиентах (order_executor.h + signal_receiver.h, sibling-дефект закрыт в том же батче). Mutex > release/acquire: reconnect перезаписывает hdl — только взаимоисключение гарантирует отсутствие torn read.
 - **Verified:** 435 sim тестов, ruff, clang-format clean; идиом publish/snapshot прогнана в TSan-харнесе. Full cmake — CI (vcpkg отсутствует локально).
 - **Доска пуста** — все 19 находок R199–R205 закрыты: 9 dependabot + 4 High + 4 Medium + 3 Low + 3 Info (суммарно; часть Info закрыта с расширением blast-radius: sibling в signal_receiver.h).
+
+## R206 — slop-verify — 8 done-log записей перепроверены против кода
+
+Batch: 4 High (S337/S329/S332/S340) + 4 Medium с real-money blast radius (S338/S339/S330/S331). Adversarial re-check — открыт каждый цитируемый файл/строки:
+
+- **S337 ✅** — `broadcast_signal→bool`, run.py:581-586 гейтит SHM+ордера; record_failure на всех 4 outcome-путях (:627,:643,:726,:732), success на :646,:716.
+- **S329 ✅** — `window=candles[start:i]` (без бара i), fill по `candles[i].close`. **S332 ✅** — `evaluateConditions(candles, i-1, …)`, филлы на баре i.
+- **S340 ✅** — deploy.sh:70-74 + deploy.bat:66-69 бэкапят `audit.log*` глобом; restore-ветки живые (:364-368 / :306-309).
+- **S338 ✅** — `halted_by` (kill-switch | trading-stopped) перед обоими путями ордеров, run.py:593-604.
+- **S339 ✅** — `_dd_last_equity` baseline + `update_pnl(equity−prev)` до `validate`, run.py:559-563.
+- **S330 ✅** — marketability-гейт adv_orders:179-181, `slice_size=` :184, `on_fill` :302. **S331 ✅** — partial liq → `submit_order(force_close=True)`, теневой `_handle_partial_liquidation` отсутствует (0 grep-хитов).
+- Узкие проверки: 38+18 sim тестов, 8 vitest, `bash -n deploy.sh` — всё зелёное.
+- **Вердикты: 8 VERIFIED / 0 WRONG / 0 ROTTED.** Остались unverified: R202 C++ (S334/S335 — doctest-верифицированы при фиксе), R203 (S322/S328), R204 (S323–S327), R205 (S333/S336), R199 dependabot.

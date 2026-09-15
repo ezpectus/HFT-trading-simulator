@@ -995,25 +995,25 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R200 — slop-fix — 4 findings closed (all remaining High: S337, S329, S332, S340)
 
-### S337 — CircuitBreaker wired: trips on execution failures, gates broadcast+SHM+orders ✅
+### S337 — CircuitBreaker wired: trips on execution failures, gates broadcast+SHM+orders ✅ · verified R206
 - **Bug:** `record_failure`/`record_success` had zero prod callers (breaker CLOSED forever), and `broadcast_signal`'s internal `allow_signal` gate only silenced the WS publish — `run.py` ignored the result and SHM push + order execution ran regardless. Documented win/loss semantic was unimplementable: `db.close_trade` has no prod callers, `trades.pnl` is never written — no realized-outcome feedback exists.
 - **Fix:** `broadcast_signal` → `bool` (False = breaker-blocked); `_finalize_and_execute` returns early on False — SHM push and both order paths now sit behind the gate. `record_failure` on: paper order send exception / WS disconnected; live `place_order` falsy result / exception (incl. adapter-create failure). `record_success` on accepted order (resets counter, closes HALF_OPEN probes). Breaker docstring rewritten to honest semantics (execution failures, not trade outcomes). Internal `allow_signal` check kept inside `broadcast_signal` — stat-arb path (`bot_helpers.py:103`) stays gated, HALF_OPEN single-probe semantics preserved.
 - **Files:** `ai-signal-bot/src/communication/signal_publisher.py:306-348` (bool return), `ai-signal-bot/run.py:571-577` (gate), `:610-628` (paper-path record_*), `:699-720` (live-path record_*), `ai-signal-bot/src/communication/circuit_breaker.py:1-14` (honest docstring). Tests: `test_shm_alerting_wiring.py` mocks updated to new `True` contract + new `test_finalize_blocked_by_breaker_skips_shm_and_order`.
 - **Verified:** 99 tests green (shm_alerting_wiring, comm_circuit_breaker, signal_publisher, backtester, bot_helpers).
 
-### S329 — Backtester lookahead removed ✅
+### S329 — Backtester lookahead removed ✅ · verified R206
 - **Bug:** `window = candles[start:i+1]` included bar `i`; `strategy.analyze` saw `candles[i].close` and `_open_position` filled at that same close — impossible live; every backtest surface systematically flattered.
 - **Fix:** `window = candles[start:i]` — signal computed on bars closed before `i`, fill still at `candles[i].close` (decide-on-prior-bar, fill-on-bar-i convention). Covers both `analyze` call sites (entry + reversal). SL/TP triggers unchanged — intra-bar exits on a pre-existing position are causal.
 - **Files:** `ai-signal-bot/src/backtesting/backtester.py:128-135`
 - **Verified:** new pin `test_no_lookahead_window_excludes_fill_bar` (spy asserts window ends at candles[i-1] for every call); test_backtester.py 19/19 green.
 
-### S332 — web-ui backtestEngine lookahead removed ✅
+### S332 — web-ui backtestEngine lookahead removed ✅ · verified R206
 - **Bug:** `evaluateConditions(candles, i, …)` read bar `i` (`price_above`/`rsi_*`/`ema_cross`/`volume_spike`/`price_change_5`) and fills executed at `candles[i].close` — same decide-and-fill-on-close defect as S329.
 - **Fix:** `evaluateConditions(candles, i - 1, …)` — rules evaluate the previously closed bar, fills stay at bar `i`. Loop kept over all bars (equityCurve stays index-aligned with candles — pinned by tests); `i=0` has no prior bar → no evaluation.
 - **Files:** `web-ui/src/utils/backtestEngine.js:212-219`
 - **Verified:** new pin `fills on the bar AFTER the signal bar` (close spikes only at bar 10 → entryTime === candles[11].time, entryPrice = candles[11].close×1.0005); backtestEngine.test.js 8/8 green.
 
-### S340 — audit backup targets the real file; restore is honest snapshot ✅
+### S340 — audit backup targets the real file; restore is honest snapshot ✅ · verified R206
 - **Bug:** `deploy.sh`/`deploy.bat` backed up `exchange_simulator/logs/audit/` — a dir that doesn't exist (audit is the single rotating FILE `logs/audit.log` per `config.yaml:184` / `audit_logger.py:41`, RotatingFileHandler). `cp -r … || true` swallowed the miss → `audit_$TS` never created → both restore branches were dead code; and "merge" semantics were wrong for an append-mode file anyway.
 - **Fix:** backup globs `logs/audit.log*` (file + rotations) into `audit_$TS/`; restore copies it back as a verbatim snapshot (post-backup live lines are replaced — that's what rollback means; comment corrected, no fake "merge" claim). Empty-source case logs a skip instead of creating phantom dirs. `.bat` mirrors with `audit.log` existence check.
 - **Files:** `scripts/deploy.sh:68-75` (backup), `:360-368` (restore); `scripts/deploy.bat:65-69` (backup), `:302-308` (restore)
@@ -1021,13 +1021,13 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R201 — slop-fix — 2 findings closed (S338 halt gates, S339 dead drawdown feed)
 
-### S338 — halt gates now cover both order paths ✅
+### S338 — halt gates now cover both order paths ✅ · verified R206
 - **Bug:** `is_trading_active` gated only `_execute_paper_order` (`run.py:579`); `_execute_live_order` had no halt check — live orders fired during a sim halt (real-money blast radius). `_hft_kill_active` (C++ kill-switch latch, `run.py:389`) paused only the SHM signal feed — neither order path consulted it.
 - **Fix:** single halt gate in `_finalize_and_execute` ahead of both paths — `halted_by = kill-switch | trading-stopped` blocks `_execute_paper_order` AND `_execute_live_order` with an explicit warning naming the halt source. Signal broadcast + SHM push unchanged (informational flow; kill-switch already gates SHM separately at :572). Halted skips are not execution failures — no breaker record (correct: halt ≠ downstream fault).
 - **Files:** `ai-signal-bot/run.py:593-604`
 - **Verified:** 74 tests green (shm_alerting_wiring + validator suites); test mocks exercise the halt branch via `is_trading_active=False`.
 
-### S339 — SignalValidator drawdown gate fed with real equity deltas ✅
+### S339 — SignalValidator drawdown gate fed with real equity deltas ✅ · verified R206
 - **Bug:** `_check_drawdown` read `self._daily_pnl`, but `update_pnl` had zero prod callers — `_daily_pnl` stayed 0.0 forever, so the advertised max-daily-drawdown gate could never fire. A realized-PnL feed was impossible: `db.close_trade` has no callers, `trades.pnl` never written.
 - **Fix:** `_validate_signal` now feeds `validator.update_pnl(equity_delta)` per validated signal — delta of account equity since the previous signal. Cumulative deltas = today's equity change (realized+unrealized mark-to-market); `update_pnl`'s built-in date rollover resets daily. Stricter than the documented realized-only semantic (gates on underwater positions too) — honest docstring/comment notes the difference. First call sets baseline only.
 - **Files:** `ai-signal-bot/run.py:130` (`_dd_last_equity` init), `:556-565` (delta feed in `_validate_signal`)
@@ -1036,13 +1036,13 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R202 — slop-fix — 4 findings closed (S330/S331 sim fill-model, S334/S335 C++ position book)
 
-### S330 — iceberg slices gated on marketability + live slice model ✅
+### S330 — iceberg slices gated on marketability + live slice model ✅ · verified R206
 - **Bug:** `_check_iceberg_orders` filled a slice every tick with no marketability gate — a priced iceberg filled at its stale limit regardless of market (sell-iceberg@51000 printing fills while market=50000). The slice bookkeeping (`slice_size`/`slices_remaining`/`current_slice_filled`/`on_fill`) was dead: `_create_order` never set `slice_size` → `to_dict` broadcast `slices_remaining:0` as a static fake field.
 - **Fix:** priced icebergs now rest like limits — slice fills only while marketable (buy `current<=price`, sell `current>=price`), at the limit price; unpriced icebergs keep one-slice-per-tick-at-mid (explicit TWAP semantic). `slice_size=visible_qty` wired at creation so `__post_init__` computes real `slices_remaining`; `_execute_iceberg_slice` calls `order.on_fill(slice_qty)` — `to_dict` now emits live values.
 - **Files:** `exchange_simulator/exchange_advanced_orders.py:178-185` (gate), `:301-303` (on_fill); `exchange_simulator/exchange_order_submission.py:179-184` (slice_size); tests `exchange_simulator/tests/test_exchange_advanced_orders.py` (TestCheckIcebergOrders, 5 cases)
 - **Verified:** 432 sim tests green — no-fill-above/below-limit, fill-at-limit, unpriced TWAP, bookkeeping tracking all pinned.
 
-### S331 — partial liquidation routed through submit_order ✅
+### S331 — partial liquidation routed through submit_order ✅ · verified R206
 - **Bug:** `_handle_partial_liquidation` was a shadow fill path: `fee=0.0`, no slippage, zero audit events, hand-built `ord-{N}` id — the model flattered exactly the levered losers it force-closed.
 - **Fix:** special-case deleted; `PARTIAL_LIQUIDATION` goes through `submit_order(force_close=True)` like LIQUIDATION/SL/TP — real fill price (slippage+impact), fee charged, ORDER_FILLED/FEE/POSITION_CLOSED/BALANCE audit events, `reason` stamped on the ClosedTrade. Hand-rolled body + dead `ClosedTrade` import removed; now-unused `current_price` local dropped.
 - **Files:** `exchange_simulator/exchange_liquidation.py:85-104` (close path), `:6-12` (imports); deleted `:113-150`; new `exchange_simulator/tests/test_exchange_liquidation.py` (4 cases)
