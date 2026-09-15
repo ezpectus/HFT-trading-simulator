@@ -141,7 +141,13 @@ function BlackLitterman({ candles, symbols, exchange }) {
     // Build views matrix
     const validViews = views.filter(v => v.assets.length === S)
     const K = validViews.length
-    if (K === 0) return { validSymbols, cov, pi, wMkt, posteriorReturns: pi, posteriorWeights: wMkt, hasViews: false }
+    if (K === 0) {
+      const sharpes = pi.map((r, i) => {
+        const vol = Math.sqrt(Math.abs(cov[i][i]))
+        return vol > 0 ? r / vol : 0
+      })
+      return { validSymbols, cov, pi, wMkt, posteriorReturns: pi, posteriorWeights: wMkt, posteriorCov: cov, sharpes, validViews, hasViews: false }
+    }
 
     const P = validViews.map(v => v.assets)
     const Q = validViews.map(v => v.return)

@@ -67,20 +67,15 @@ function LiquidationMap({ candles, accounts, symbol, exchange }) {
     const range = maxP - minP || 1
     const toY = (v) => 100 - ((v - minP) / range) * 90 - 5
 
-    const longBars = longLevels.map(l => ({
+    const toBar = (l) => ({
       y: toY(l.price),
       h: (l.magnitude / 100) * 15,
       leverage: l.leverage,
       price: l.price,
       distance: l.distance,
-    }))
-    const shortBars = shortLevels.map(l => ({
-      y: toY(l.price),
-      h: (l.magnitude / 100) * 15,
-      leverage: l.leverage,
-      price: l.price,
-      distance: l.distance,
-    }))
+    })
+    const longBars = allLevels.filter(l => l.side === 'long').map(toBar)
+    const shortBars = allLevels.filter(l => l.side === 'short').map(toBar)
 
     const priceY = toY(price)
 

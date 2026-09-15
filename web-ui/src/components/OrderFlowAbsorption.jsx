@@ -85,8 +85,8 @@ function OrderFlowAbsorption({ candles, fills, orderbooks, symbol, exchange }) {
     if (ob) {
       const bids = (ob.bids || []).slice(0, 10)
       const asks = (ob.asks || []).slice(0, 10)
-      const bidVol = bids.reduce((s, [_p, q]) => s + q, 0)
-      const askVol = asks.reduce((s, [_p, q]) => s + q, 0)
+      const bidVol = bids.reduce((s, l) => s + (l.quantity || 0), 0)
+      const askVol = asks.reduce((s, l) => s + (l.quantity || 0), 0)
       const total = bidVol + askVol
       obImbalance = {
         bidVol, askVol,

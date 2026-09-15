@@ -44,8 +44,9 @@ class LSTMCell {
     this.inputSize = inputSize
     this.hiddenSize = hiddenSize
     const concat = inputSize + hiddenSize
-    // Combined weights for all gates [W_f; W_i; W_g; W_o]
-    this.Wf = initMatrix(4, concat, concat, hiddenSize)
+    // Combined weights for all gates [W_f; W_i; W_g; W_o] — 4 * hiddenSize rows,
+    // indexed as Wf[gateIdx * hiddenSize + neuronIdx]
+    this.Wf = initMatrix(4 * hiddenSize, concat, concat, hiddenSize)
     this.bf = [initVector(hiddenSize), initVector(hiddenSize), initVector(hiddenSize), initVector(hiddenSize)]
   }
 
@@ -198,8 +199,8 @@ const lstmTrain = (lstm, sequences, targets, lr = 0.01, epochs = 50) => {
           for (let neuronIdx = 0; neuronIdx < hiddenSize; neuronIdx++) {
             const wIdx = gateIdx * hiddenSize + neuronIdx
             if (cell.Wf[wIdx]) {
-              for (let j = this.inputSize; j < concat.length; j++) {
-                newDh[j - this.inputSize] += grad[neuronIdx] * cell.Wf[wIdx][j]
+              for (let j = lstm.inputSize; j < concat.length; j++) {
+                newDh[j - lstm.inputSize] += grad[neuronIdx] * cell.Wf[wIdx][j]
               }
             }
           }
