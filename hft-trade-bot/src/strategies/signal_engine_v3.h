@@ -305,12 +305,15 @@ class SignalEngineV3 {
         FastSignal base = v2_engine_.analyze(symbol, candles, n, ob, pressure, timestamp_ns);
         if (n == 0) return base;
 
-        HMMState& state         = get_or_create_hmm_state(symbol);
-        double    current_price = candles[n - 1].close;
-        update_hmm_state(state, current_price);
+        // noexcept contract: the map emplace can throw bad_alloc — degrade to
+        // the V2 base signal (no regime layer) instead of std::terminate.
+        HMMState* state = try_get_hmm_state(symbol);
+        if (!state) return base;
+        double current_price = candles[n - 1].close;
+        update_hmm_state(*state, current_price);
 
-        RegimeState regime      = state.hmm.most_likely_state();
-        double      regime_conf = state.hmm.state_probability(regime);
+        RegimeState regime      = state->hmm.most_likely_state();
+        double      regime_conf = state->hmm.state_probability(regime);
         if (regime_conf < params_.min_regime_confidence) return base;
 
         apply_regime_gating(base, regime);
@@ -326,12 +329,13 @@ class SignalEngineV3 {
             v2_engine_.analyze_incremental(symbol, candles, n, ob, pressure, timestamp_ns);
         if (n == 0) return base;
 
-        HMMState& state         = get_or_create_hmm_state(symbol);
-        double    current_price = candles[n - 1].close;
-        update_hmm_state(state, current_price);
+        HMMState* state = try_get_hmm_state(symbol);
+        if (!state) return base;
+        double current_price = candles[n - 1].close;
+        update_hmm_state(*state, current_price);
 
-        RegimeState regime      = state.hmm.most_likely_state();
-        double      regime_conf = state.hmm.state_probability(regime);
+        RegimeState regime      = state->hmm.most_likely_state();
+        double      regime_conf = state->hmm.state_probability(regime);
         if (regime_conf < params_.min_regime_confidence) return base;
 
         apply_regime_gating(base, regime);
@@ -365,12 +369,16 @@ class SignalEngineV3 {
     void          set_params(const Params& p) noexcept { params_ = p; }
 
   private:
-    inline HMMState& get_or_create_hmm_state(const char* symbol) {
+    inline HMMState* try_get_hmm_state(const char* symbol) noexcept {
         auto it = hmm_states_.find(std::string_view(symbol));
         if (it == hmm_states_.end()) {
-            it = hmm_states_.emplace(std::string(symbol), HMMState{}).first;
+            try {
+                it = hmm_states_.try_emplace(std::string(symbol), HMMState{}).first;
+            } catch (...) {
+                return nullptr;
+            }
         }
-        return it->second;
+        return &it->second;
     }
 
     inline void update_hmm_state(HMMState& state, double current_price) noexcept {

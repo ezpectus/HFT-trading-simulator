@@ -30,6 +30,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <new>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -74,10 +75,14 @@ class SignalEngineV2 {
         }
     }
 
-    IndicatorCache& get_cache(const char* symbol) {
+    IndicatorCache* try_get_cache(const char* symbol) noexcept {
         auto it = cache_.find(std::string_view(symbol));
         if (it == cache_.end()) {
-            it                    = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
+            try {
+                it = cache_.emplace(std::string(symbol), IndicatorCache{}).first;
+            } catch (...) {
+                return nullptr;
+            }
             it->second.ema_fast   = InlineEMA(params_.ema_fast_period);
             it->second.ema_slow   = InlineEMA(params_.ema_slow_period);
             it->second.ema_signal = InlineEMA(params_.ema_signal_period);
@@ -85,7 +90,12 @@ class SignalEngineV2 {
             it->second.adx        = InlineADX(params_.adx_period);
             it->second.atr        = InlineATR(params_.atr_period);
         }
-        return it->second;
+        return &it->second;
+    }
+
+    IndicatorCache& get_cache(const char* symbol) {
+        if (auto* c = try_get_cache(symbol)) return *c;
+        throw std::bad_alloc{};
     }
 
     void reset_cache(const char* symbol) {
@@ -159,8 +169,18 @@ class SignalEngineV2 {
             sig.set_reason("No candles");
             return sig;
         }
-        IndicatorCache& ic     = get_cache(symbol);
+        // noexcept contract: the map emplace can throw bad_alloc — degrade to a
+        // neutral signal instead of std::terminate on the trading thread.
+        IndicatorCache* icp    = try_get_cache(symbol);
         const Candle&   latest = candles[n - 1];
+        if (!icp) {
+            FastSignal sig;
+            sig.set_symbol(symbol);
+            sig.timestamp = timestamp_ns;
+            sig.set_reason("Cache alloc failed");
+            return sig;
+        }
+        IndicatorCache& ic = *icp;
         update_indicator_cache(ic, candles, n, latest);
         int64_t now_ms;
         if (!check_cooldown(ic, timestamp_ns, now_ms)) {
@@ -525,7 +545,7 @@ class SignalEngineV2 {
                                 double tp_mult, double adx_val, int64_t now_ms,
                                 IndicatorCache* ic = nullptr) noexcept {
         if (sig.composite_score > params_.buy_threshold) {
-            detail::set_long_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_, now_ms);
+            detail::set_long_signal(sig, price, atr, sl_mult, tp_mult, adx_val, params_);
             sig.leverage = compute_leverage(sig.confidence, adx_val);
             if (ic) ic->last_signal_ms = now_ms;
         } else if (sig.composite_score < params_.sell_threshold) {

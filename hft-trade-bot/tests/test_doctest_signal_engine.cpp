@@ -4,6 +4,7 @@
 #include "doctest.h"
 
 #include "../src/strategies/signal_engine_v2.h"
+#include "test_fixtures.h"
 
 using namespace hft;
 
@@ -295,22 +296,27 @@ TEST_CASE("SignalEngineV2 cooldown blocks consecutive signals") {
     p.cooldown_ms = 5000;
     SignalEngineV2 engine(p);
 
-    // Generate enough candles for analysis
-    std::vector<Candle> candles(60);
-    for (int i = 0; i < 60; ++i) {
-        candles[i].close  = 100.0 + i * 0.5;
-        candles[i].high   = 101.0 + i * 0.5;
-        candles[i].low    = 99.0 + i * 0.5;
-        candles[i].volume = 1000;
-    }
-    OrderBook ob;
-    ob.bids = {{99, 1.0}};
-    ob.asks = {{101, 1.0}};
+    // Proven fixture (same as test_v2_engine's cooldown test): 70-candle trend,
+    // deep book at the last close, pressure inputs — produces a LONG signal.
+    auto           candles = make_trending_candles(70, 100.0, 0.5);
+    auto           ob      = make_order_book(130.0, 0.01, 20, 10.0);
     PressureResult pr{};
+    pr.obi_weighted    = 0.3;
+    pr.trade_imbalance = 0.2;
 
-    // First call — should produce a signal (or at least not be blocked by cooldown)
-    auto sig1 = engine.analyze("BTC/USDT", candles.data(), 60, ob, pr, 1'000'000'000);
-    // Second call within cooldown — should be blocked
-    auto sig2 = engine.analyze("BTC/USDT", candles.data(), 60, ob, pr, 2'000'000'000);
-    CHECK(sig2.direction == FastSignal::Direction::NEUTRAL);
+    // analyze() is the stateless path — cooldown lives in analyze_incremental
+    // only, so that's the path that can actually observe the gate. Timestamps
+    // must be real now_ns(): the gate compares against last_signal_ms (epoch),
+    // so tiny fake timestamps look "inside cooldown" from t=0.
+    const int64_t now = FastSignal::now_ns();
+    auto sig1 = engine.analyze_incremental("BTC/USDT", candles.data(), candles.size(), ob, pr, now);
+    REQUIRE(sig1.is_actionable());
+    // Second call within cooldown — must be blocked (NEUTRAL via the gate)
+    auto sig2 = engine.analyze_incremental("BTC/USDT", candles.data(), candles.size(), ob, pr,
+                                           now + 2'000'000'000);
+    CHECK_FALSE(sig2.is_actionable());
+    // After cooldown expiry — signal fires again
+    auto sig3 = engine.analyze_incremental("BTC/USDT", candles.data(), candles.size(), ob, pr,
+                                           now + 7'000'000'000);
+    CHECK(sig3.is_actionable());
 }

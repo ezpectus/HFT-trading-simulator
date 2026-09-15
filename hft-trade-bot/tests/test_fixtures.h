@@ -7,7 +7,7 @@
 
 using namespace hft;
 // ─── Generate test candle data ───
-static std::vector<Candle> make_trending_candles(int n, double start_price,
+inline std::vector<Candle> make_trending_candles(int n, double start_price,
                                                  double trend_per_candle) {
     std::vector<Candle> candles;
     double              price = start_price;
@@ -27,7 +27,7 @@ static std::vector<Candle> make_trending_candles(int n, double start_price,
     return candles;
 }
 
-static std::vector<Candle> make_ranging_candles(int n, double center_price, double amplitude) {
+inline std::vector<Candle> make_ranging_candles(int n, double center_price, double amplitude) {
     std::vector<Candle> candles;
     for (int i = 0; i < n; ++i) {
         Candle c;
@@ -45,7 +45,7 @@ static std::vector<Candle> make_ranging_candles(int n, double center_price, doub
     return candles;
 }
 
-static OrderBook make_order_book(double mid, double spread, int levels, double qty,
+inline OrderBook make_order_book(double mid, double spread, int levels, double qty,
                                  double ask_scale = 0.7) {
     OrderBook ob;
     ob.symbol   = "BTC/USDT";

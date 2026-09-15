@@ -15,8 +15,8 @@
 namespace hft::detail {
 
 inline void set_long_signal(FastSignal& sig, double price, double atr, double sl_mult,
-                            double tp_mult, double adx_val, const SignalEngineV2Params& p,
-                            int64_t now_ms) noexcept {
+                            double tp_mult, double adx_val,
+                            const SignalEngineV2Params& p) noexcept {
     sig.direction   = FastSignal::Direction::LONG;
     double denom    = 1.0 - p.buy_threshold;
     double t        = denom > 1e-12 ? (sig.composite_score - p.buy_threshold) / denom : 1.0;
