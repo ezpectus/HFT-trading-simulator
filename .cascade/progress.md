@@ -2834,3 +2834,11 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S352 (Info)** — `HealthStatus.signal_engine_active` вечный true (engines конструируются безусловно до цикла) + мёртвое поле `cpu_usage_pct`.
 
 Чисто: вся monitoring/risk/orchestration/IPC/engines математика и wiring — реальны. Board: 3 open.
+
+## R215 — slop-fix — 3 находки R214 закрыты (hft-trade-bot SHM + health) — BOARD EMPTY
+
+- **S350** — `test_integration_shm.cpp` переписан под реальный SHM API (ранее — фантомный API, не компилировался ни на одной платформе, красил POSIX CI): wire-size контракт 32/28/28/16, `ShmFillProducer`→ring consumer roundtrip с field-asserts, full-ring failure, `ShmRingBuffer<SignalMsg>`→`ShmSignalConsumer::start(cb)` thread-delivery, `KillSwitchMsg` roundtrip. Бонус-дефект: `shm_fill_producer.h` использовал `spdlog::error` без `#include <spdlog/spdlog.h>` — выживал только по include-order, добавлен собственный include.
+- **S351** — `SymbolId`/`AlignedOrderBookLevel`/`RoutingDecision` удалены (drift-hazard + 0 refs); `ExchangeId` переупорядочен под wire-doc (BINANCE=0/OKX=1/BYBIT=2/SIMULATOR=3) и заведён в producer, `ipc::Side` — в fill-literal, `ipc::Action` — в signal-decode bot_setup. Мёртвые декларации → живой контракт.
+- **S352** — `signal_engine_active` стал реальным liveness-битом: `BotContext::last_engine_eval_ms` стемпится в `generate_signal` (v2/v3 chokepoint) и перед `engine_v1->analyze`; gate = engine exists AND (warmup ИЛИ eval <60s). `cpu_usage_pct` удалён. Flag: post-first-eval бит может стать false → новый честный 503-путь.
+- Доки: `ARCHITECTURE.md:145` stale-клейм "update_health() has zero callers" исправлен (feed жив с S246), `:292` + `TRADING_STRATEGIES.md:469` — имена удалённых структур вычеркнуты.
+- Verified: clang-22 `-fsyntax-only` на всех touched self-contained файлах + wire-contract TU static_asserts (enum values == wire doc, sizes == Python layouts); test-файл компилируется. `bot_loop.cpp`/`bot_setup.cpp`/`signal_receiver_handlers.h` — review-only (нет vcpkg на хосте; CI скомпилирует). Runtime roundtrip POSIX-only → на CI.

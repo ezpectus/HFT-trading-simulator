@@ -142,7 +142,7 @@ The system implements production-grade observability across all components:
 **Health endpoints** — Each service exposes HTTP health endpoints for Docker/Kubernetes probes:
 - Exchange Simulator: `/health`, `/live`, `/ready`, `/metrics` on port 8775
 - AI Signal Bot: `/health` on port 8080 (HealthChecker), `/health` + `/metrics` on port 9090 (MetricsExporter)
-- HFT Trade Bot: `/health` on port 9091 — **audit S246:** `update_health()` has zero callers; the endpoint always reports the all-true `HealthStatus` defaults regardless of real state
+- HFT Trade Bot: `/health` on port 9091 — refreshed from live state every loop tick (S246); `signal_engine_active` is a real liveness bit fed by engine-eval timestamps (S352)
 - Web UI: `/health` on port 3000 (nginx)
 
 **Metrics** — Prometheus scrapes all services every 15s. Metrics use three namespaces:
@@ -289,7 +289,7 @@ The HFT bot was upgraded to v2.0.0 with a complete latency optimization overhaul
 | Pressure Model | Multi-level OBI, trade flow imbalance, toxicity detection, microprice, queue position, spread regime, price impact prediction — **audit S247:** trade-flow + toxicity legs are dead in prod (no `TradeTick` producers — every caller uses the no-trades overload → `toxic_score`/`trade_imbalance` permanently 0); under SHM market data the injected 1-level books zero the OBI legs too |
 | Adaptive Order Selector V2 | Dynamic IOC/FOK/GTD/PostOnly based on confidence, spread, OBI, toxicity. Exchange-specific mappings for Binance, OKX, Bybit — **audit S247/S250:** `toxic_score` input is always 0 and `top5_depth` is hardcoded `0.0` → toxic→IOC and GTD branches unreachable |
 | Latency Infrastructure | Spinlock, SPSCQueue (lock-free), ObjectPool (no heap alloc), LatencyHistogram (P50/P95/P99/P99.9), ScopedLatency (RAII), ThreadAffinity, CircuitBreaker, RetryPolicy — **audit S250:** ObjectPool/CircuitBreaker/RetryPolicy have zero production users (test-only); Spinlock/SPSCQueue/LatencyHistogram/ThreadAffinity are live |
-| Cache-Line Alignment | All hot-path structs `alignas(64)`: AlignedOrderBookLevel, FastSignal, FastOrder, PressureResult, RoutingDecision |
+| Cache-Line Alignment | All hot-path structs `alignas(64)`: FastSignal, FastOrder, PressureResult |
 | Dynamic Leverage | Confidence >= 85 + ADX > 30 -> 5x, >= 75 -> 3x, else 1x |
 | Graceful Shutdown | Cancel all open positions before exit, latency report logging |
 | V1 Fallback | Configurable via `signal_engine_v2_enabled` flag |

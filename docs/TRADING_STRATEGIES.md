@@ -466,7 +466,7 @@ Chooses between market and limit orders based on:
 | CircuitBreaker | 5 errors -> 30s cooldown -> half-open probe recovery |
 | RetryPolicy | Exponential backoff (3 attempts, 500ms x 2^n, 0-30% jitter) |
 
-**Cache-line alignment:** All hot-path structs use `alignas(64)` to prevent false sharing: `AlignedOrderBookLevel`, `FastSignal`, `FastOrder`, `PressureResult`, `RoutingDecision`.
+**Cache-line alignment:** All hot-path structs use `alignas(64)` to prevent false sharing: `FastSignal`, `FastOrder`, `PressureResult`.
 
 **Compiler flags:** `-O3`, `-flto` (LTO), `-msse4.2`, `-ffast-math`, `-finline-functions`
 
