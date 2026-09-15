@@ -9,7 +9,7 @@ from src.backtesting.backtest_comparison import (
     ComparisonResult,
     ComparisonRow,
 )
-from src.backtesting.backtest_engine import BacktestResult, BacktestTrade
+from src.backtesting.results import BacktestResult
 
 
 def make_result(name="test", return_pct=10.0, sharpe=1.5, sortino=2.0,
@@ -19,11 +19,9 @@ def make_result(name="test", return_pct=10.0, sharpe=1.5, sortino=2.0,
         equity_curve = list(np.linspace(10000, final_equity, 50).tolist())
     return BacktestResult(
         total_return_pct=return_pct,
-        total_return=1000.0,
         sharpe_ratio=sharpe,
         sortino_ratio=sortino,
         calmar_ratio=calmar,
-        max_drawdown=max_dd,
         max_drawdown_pct=max_dd,
         win_rate=win_rate,
         profit_factor=pf,
@@ -32,11 +30,8 @@ def make_result(name="test", return_pct=10.0, sharpe=1.5, sortino=2.0,
         losing_trades=8,
         avg_win=100.0,
         avg_loss=-50.0,
-        avg_hold_time=3600.0,
         equity_curve=equity_curve,
-        underwater_curve=[],
-        trades=[],
-        final_equity=final_equity,
+        final_balance=final_equity,
     )
 
 

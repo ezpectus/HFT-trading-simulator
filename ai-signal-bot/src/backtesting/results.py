@@ -52,7 +52,7 @@ class BacktestResult:
 
     @property
     def final_equity(self) -> float:
-        """Alias for final_balance — compatibility with backtest_engine.BacktestResult."""
+        """Alias for final_balance — comparison/report consumers read final_equity."""
         return self.final_balance
 
     def to_dict(self) -> dict:

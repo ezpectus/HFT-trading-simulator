@@ -167,7 +167,7 @@ def build_strategies(strategy_name: str) -> dict:
 def compare_backtests_request(data: dict) -> dict:
     """Compare multiple saved backtests side-by-side."""
     from src.backtesting.backtest_comparison import BacktestComparison
-    from src.backtesting.backtest_engine import BacktestResult
+    from src.backtesting.results import BacktestResult
 
     backtests = data.get("backtests", [])
     if len(backtests) < 2:
@@ -191,7 +191,7 @@ def compare_backtests_request(data: dict) -> dict:
             win_rate=r.get("win_rate", 0),
             profit_factor=r.get("profit_factor", 0),
             total_trades=r.get("total_trades", 0),
-            final_equity=r.get("final_balance", 0),
+            final_balance=r.get("final_balance", 0),
             equity_curve=r.get("equity_curve", []),
         )
         comparison.add(name, bt_result)
