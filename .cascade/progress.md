@@ -2896,3 +2896,12 @@ Board: 0 open.
 - Чисто: load_50_symbols (ping/pong правильно), stress_load (client_order_id RTT — правильный паттерн), chaos_reconnect/chaos_enhanced (real process lifecycle, Windows kill-chain), monitor.py (все ключи сигналов реальные).
 
 Board: 0 open.
+
+## R222 — execution-verify — все runnable suite'ы ЗЕЛЁНЫЕ — BOARD EMPTY
+
+- exchange_simulator: **446 passed / 7 skipped** (hypothesis не установлен — честный env-skip).
+- ai-signal-bot: **1341 passed / 2 skipped** (resource=Windows-only, SHM unavailable — env-gates).
+- web-ui vitest: **159 files / 1133 tests ALL PASS**.
+- hft-trade-bot ctest: env-blocked — build/Debug exes это ASan-инструментованные MSVC-debug билды с S:-drive, нужны MSVCP140D/VCRUNTIME140D/ucrtbased/clang_rt.asan_dynamic которых на хосте нет (тулчейн = llvm-mingw, VS debug CRT отсутствует). Не дефект репо — лимит окружения; C++ исходники syntax-verified в R216.
+
+Итог: 2920 тестов зелёные, 0 реальных падений. Verify-debt в done-log: 0 (4 незаштампованных header'а несут inline "Верифицировано R150").

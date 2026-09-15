@@ -1225,3 +1225,14 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Verified:** `py_compile` + `ruff` clean; live check against a stub WS server — 4 real RTT samples collected in 3s, ~55k msgs received, report prints real percentiles and `Target (1/sec): PASS` with a custom `--target`.
 
 Audit result for the rest of the sweep: `load_50_symbols.py` clean (ping/pong latency correct), `stress_load.py` clean (client-side `client_order_id` RTT correlation — the right way), `chaos_reconnect.py`/`chaos_enhanced.py` clean (real process lifecycle, Windows process-group kill chain, S220-correct `python -m exchange_simulator`), `ai-signal-bot/monitor.py` clean (all display keys — `entry_price`/`stop_loss`/`take_profit`/`rr_ratio`/`direction`/`confidence`/`reason` — verified against real signal payloads; honest reconnect backoff).
+
+## R222 — execution-verify — full test-suite sweep (no new findings)
+
+Ran every runnable suite end-to-end instead of read-verifying individual entries:
+
+- `exchange_simulator`: **446 passed / 7 skipped** — all skips are honest env gates (`hypothesis` not installed).
+- `ai-signal-bot`: **1341 passed / 2 skipped** — `resource` module (Windows), SHM unavailable in this environment.
+- `web-ui` vitest: **159 files / 1133 tests — all pass**.
+- `hft-trade-bot` ctest: **environment-blocked** — `build/Debug/*.exe` are ASan-instrumented MSVC-debug binaries produced under `S:/` (CTestTestfile paths don't resolve); they need `MSVCP140D`/`VCRUNTIME140D`/`ucrtbased`/`clang_rt.asan_dynamic` which are absent on this host (local toolchain is llvm-mingw; no VS debug CRT). Not a repo defect — the suite runs in CI; sources were clang-22 syntax-verified in R216.
+
+**Result: 2,920 tests green, 0 real failures.** Also audited verify-debt: the 4 done-log headers without a ✅ stamp (S207/S210/S230/S309) all carry inline `Верифицировано R150` or are the R182-closed S309 deferred note — zero actual unverified entries.
