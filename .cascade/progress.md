@@ -3074,3 +3074,5 @@ Board: 0 open.
 - Bonus real defect: BSTS Kalman covariance update was element-wise K·Z·P — wrong math → P explodes → NaN forecasts → NaN SVG. Fixed to standard P−K(Z·P).
 - Fixes: optimizers → useEffect (once per input change); error → inside memo result. 10 new regression tests. Commit 974522d.
 - Board: 0 open.
+
+- S366-ext: MultiLegOptions unguarded xSpan (spot=0/NaN input → NaN payoff path) — safeSpot + scale clamps. All sibling range-division sites audited clean. Full vitest 166f/1156t green. Commit 875f586.
