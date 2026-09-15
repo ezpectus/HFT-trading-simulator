@@ -2669,3 +2669,13 @@ Board unchanged: 20 open.
 - **Files:** `web-ui/package.json`, `web-ui/package-lock.json`. Mechanism: direct-dep bump where direct, `overrides` only where parent ranges exclude the fix (fast-uri, js-yaml), `npm audit fix` for everything in-range.
 - **Verified:** `npm audit` → 0 vulnerabilities; `tsc --noEmit` clean; vitest 4.1.11 smoke run green. Dependabot PRs #83, #86–#89, #92 superseded — closable.
 - Board: 19 open (unchanged — supply-chain items lived in the DEPENDABOT section, now archived to done-log R199).
+
+## R200 — slop-fix — all 4 open High findings closed (S337, S329, S332, S340)
+
+- **S337 (High):** CircuitBreaker was a working state machine that could never trip (`record_failure`/`record_success` had zero prod callers) and gated only the WS broadcast — SHM push and both order paths ran unconditionally. Now: `broadcast_signal` returns bool, `_finalize_and_execute` drops blocked signals before SHM+orders, and order outcomes feed `record_failure`/`record_success` (paper send errors/disconnect, live falsy-result/exception). Documented win/loss semantic replaced honestly — no realized-PnL feedback exists in prod (`db.close_trade` has no callers). Regression pin added.
+- **S329 (High):** `Backtester.run` window included the fill bar — `analyze` saw `candles[i].close`, `_open_position` filled at it. Now window is `candles[start:i]` (decide on prior bar, fill at bar i close). Spy-test pins window boundary per call.
+- **S332 (High):** `web-ui/backtestEngine` twin — `evaluateConditions` now runs on bar `i-1`, fills at bar `i`. Loop kept full-length (equityCurve index-alignment is test-pinned). Regression test pins entryTime to the bar after the signal bar.
+- **S340 (High, S297 reopen):** audit backup pointed at nonexistent `logs/audit/` dir (real: rotating FILE `logs/audit.log`) — snapshot never created, restore branches dead. Both deploy.sh and deploy.bat now back up `audit.log*` and restore as an honest snapshot (no fake "merge" claim).
+- **Doc-claim sync:** README known-gaps and ARCHITECTURE circuit-breaker line updated (S337/S329/S332 claims were stale after the fix).
+- **Verified:** ai-signal-bot 99 tests green; web-ui backtestEngine 8/8; `bash -n deploy.sh` clean; `audit.log*` glob verified.
+- Board: **15 open**, all Medium/Low/Info — zero High/Critical remaining.

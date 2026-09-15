@@ -2518,3 +2518,12 @@ Dependency-advisory round, not a code finding. 9 open Dependabot alerts + 2 unfl
 - **Moderate:** `vitest`/`@vitest/mocker`/`@vitest/coverage-v8` <4.1.11 → 4.1.11 (GH#88/#89 redirect-mock path traversal — direct devDeps, stayed on 4.x); `baseline-browser-mapping` <2.11.0 → 2.11.23 (GH#90 process-exit DoS).
 
 `npm audit` → 0. Detail + chains: `.cascade/done-log.md` R199.
+
+---
+
+## R200 — slop-fix: all remaining High findings closed (S337, S329, S332, S340)
+
+- **S337 — CircuitBreaker (ai-signal-bot).** Was decorative: `record_failure`/`record_success` had no production callers and the `allow_signal` gate only muted the WS broadcast while SHM push and order execution ran anyway. Now `broadcast_signal` returns bool and `run.py` drops blocked signals before SHM+orders; order outcomes (send errors, disconnect, falsy live result, exceptions) feed the breaker. Honest semantic: execution failures — the documented win/loss tracking was unimplementable (no realized-PnL write path exists).
+- **S329 + S332 — lookahead bias in both backtest engines.** Python `Backtester` and web-ui `backtestEngine` both evaluated the signal on bar `i` and filled at `candles[i].close` — impossible live, systematically flattering results. Both now decide on the previously closed bar and fill at bar `i`. Regression pins added in `test_backtester.py` and `backtestEngine.test.js`.
+- **S340 — deploy audit backup (S297 reopen).** Backed up nonexistent `exchange_simulator/logs/audit/` — audit is the single rotating file `logs/audit.log`; snapshot never created, restore branches dead. Both deploy scripts now back up `audit.log*` and restore as a verbatim snapshot.
+- Board: 15 open — zero High/Critical remaining; remaining items are Medium (halt-gate coverage S338, dead drawdown feed S339, sim fill-model S330/S331, C++ position book S334/S335, bloat S322/S328) and Low/Info.

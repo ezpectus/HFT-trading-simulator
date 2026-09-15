@@ -992,3 +992,29 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 - **Files:** `web-ui/package.json` (vitest/@vitest/coverage-v8 `^4.1.11`; overrides `fast-uri >=4.1.3`, `js-yaml >=4.3.2 <5`), `web-ui/package-lock.json`
 - **Board note:** Dependabot PRs #83, #86–#89, #92 superseded — fixes applied directly.
+
+## R200 — slop-fix — 4 findings closed (all remaining High: S337, S329, S332, S340)
+
+### S337 — CircuitBreaker wired: trips on execution failures, gates broadcast+SHM+orders ✅
+- **Bug:** `record_failure`/`record_success` had zero prod callers (breaker CLOSED forever), and `broadcast_signal`'s internal `allow_signal` gate only silenced the WS publish — `run.py` ignored the result and SHM push + order execution ran regardless. Documented win/loss semantic was unimplementable: `db.close_trade` has no prod callers, `trades.pnl` is never written — no realized-outcome feedback exists.
+- **Fix:** `broadcast_signal` → `bool` (False = breaker-blocked); `_finalize_and_execute` returns early on False — SHM push and both order paths now sit behind the gate. `record_failure` on: paper order send exception / WS disconnected; live `place_order` falsy result / exception (incl. adapter-create failure). `record_success` on accepted order (resets counter, closes HALF_OPEN probes). Breaker docstring rewritten to honest semantics (execution failures, not trade outcomes). Internal `allow_signal` check kept inside `broadcast_signal` — stat-arb path (`bot_helpers.py:103`) stays gated, HALF_OPEN single-probe semantics preserved.
+- **Files:** `ai-signal-bot/src/communication/signal_publisher.py:306-348` (bool return), `ai-signal-bot/run.py:571-577` (gate), `:610-628` (paper-path record_*), `:699-720` (live-path record_*), `ai-signal-bot/src/communication/circuit_breaker.py:1-14` (honest docstring). Tests: `test_shm_alerting_wiring.py` mocks updated to new `True` contract + new `test_finalize_blocked_by_breaker_skips_shm_and_order`.
+- **Verified:** 99 tests green (shm_alerting_wiring, comm_circuit_breaker, signal_publisher, backtester, bot_helpers).
+
+### S329 — Backtester lookahead removed ✅
+- **Bug:** `window = candles[start:i+1]` included bar `i`; `strategy.analyze` saw `candles[i].close` and `_open_position` filled at that same close — impossible live; every backtest surface systematically flattered.
+- **Fix:** `window = candles[start:i]` — signal computed on bars closed before `i`, fill still at `candles[i].close` (decide-on-prior-bar, fill-on-bar-i convention). Covers both `analyze` call sites (entry + reversal). SL/TP triggers unchanged — intra-bar exits on a pre-existing position are causal.
+- **Files:** `ai-signal-bot/src/backtesting/backtester.py:128-135`
+- **Verified:** new pin `test_no_lookahead_window_excludes_fill_bar` (spy asserts window ends at candles[i-1] for every call); test_backtester.py 19/19 green.
+
+### S332 — web-ui backtestEngine lookahead removed ✅
+- **Bug:** `evaluateConditions(candles, i, …)` read bar `i` (`price_above`/`rsi_*`/`ema_cross`/`volume_spike`/`price_change_5`) and fills executed at `candles[i].close` — same decide-and-fill-on-close defect as S329.
+- **Fix:** `evaluateConditions(candles, i - 1, …)` — rules evaluate the previously closed bar, fills stay at bar `i`. Loop kept over all bars (equityCurve stays index-aligned with candles — pinned by tests); `i=0` has no prior bar → no evaluation.
+- **Files:** `web-ui/src/utils/backtestEngine.js:212-219`
+- **Verified:** new pin `fills on the bar AFTER the signal bar` (close spikes only at bar 10 → entryTime === candles[11].time, entryPrice = candles[11].close×1.0005); backtestEngine.test.js 8/8 green.
+
+### S340 — audit backup targets the real file; restore is honest snapshot ✅
+- **Bug:** `deploy.sh`/`deploy.bat` backed up `exchange_simulator/logs/audit/` — a dir that doesn't exist (audit is the single rotating FILE `logs/audit.log` per `config.yaml:184` / `audit_logger.py:41`, RotatingFileHandler). `cp -r … || true` swallowed the miss → `audit_$TS` never created → both restore branches were dead code; and "merge" semantics were wrong for an append-mode file anyway.
+- **Fix:** backup globs `logs/audit.log*` (file + rotations) into `audit_$TS/`; restore copies it back as a verbatim snapshot (post-backup live lines are replaced — that's what rollback means; comment corrected, no fake "merge" claim). Empty-source case logs a skip instead of creating phantom dirs. `.bat` mirrors with `audit.log` existence check.
+- **Files:** `scripts/deploy.sh:68-75` (backup), `:360-368` (restore); `scripts/deploy.bat:65-69` (backup), `:302-308` (restore)
+- **Verified:** `bash -n` clean; `cp audit.log*` glob verified against real file.

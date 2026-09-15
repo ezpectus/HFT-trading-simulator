@@ -9,6 +9,14 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R199–R200 — supply-chain + safety-gate wiring)
+
+### Fixed
+- **Circuit breaker now actually trips (S337):** order-execution outcomes feed `record_failure`/`record_success` (paper send errors/disconnect, live falsy-result/exceptions); when OPEN it blocks broadcast + SHM push + order execution — previously it could never trip and gated only the WS publish.
+- **Lookahead bias removed from both backtest engines (S329/S332):** Python `Backtester` and web-ui `backtestEngine` evaluated the signal on bar `i` and filled at `candles[i].close`. Both now decide on the previously closed bar and fill at bar `i` — results stop being systematically flattered.
+- **Deploy audit backup fixed (S340):** `deploy.sh`/`deploy.bat` backed up nonexistent `logs/audit/` — audit is the single rotating file `logs/audit.log`. Backup now globs `audit.log*`; restore is an honest snapshot.
+- **web-ui dependencies (R199):** all 9 open Dependabot alerts closed + 2 unflagged advisories — `npm audit` = 0. vitest/@vitest/mocker → 4.1.11 (redirect-mock path traversal); fast-uri → 4.1.4, js-yaml → 4.3.2 via overrides; browserslist 4.28.9, baseline-browser-mapping 2.11.23, brace-expansion, nanoid via in-range updates. All devDependencies — prod bundle unchanged.
+
 ## [Unreleased] — 2026-09-13 (Slop-loop audit — contract drift, dead config, docs refresh)
 
 ### Added — R62

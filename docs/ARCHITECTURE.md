@@ -238,7 +238,7 @@ The system implements production-grade observability across all components:
 - CSV logging for signals and trades
 - Timestamped file logging via `run_logger.py` (local dev script — gitignored, optional)
 - CLI monitor script (`monitor.py`) for live signal feed
-- Circuit breaker: CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery (**audit S337:** trips and reports state but does not gate order execution — currently decorative)
+- Circuit breaker: CLOSED/OPEN/HALF_OPEN states, consecutive failure threshold, cooldown, probe recovery — wired to order-execution outcomes; when open it blocks broadcast + SHM push + order execution (S337 wired in R200)
 - Prometheus metrics server: counters (signals sent/blocked, backtests, circuit breaker trips) and gauges (WS clients, CB state, uptime) on `:9090/metrics`
 - Health server: `/health` detail + `/live` + `/ready` probe endpoints on `:8080`
 - SHM IPC: lock-free SPSC ring buffer for Python ↔ C++ communication (signal producer, fill consumer, market data writer)

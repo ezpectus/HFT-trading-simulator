@@ -134,7 +134,7 @@ What's real, what's a demo, what's dormant — verified against the code:
 | **Dormant** | Live-trading path: `paper_trading: false` + `EXCHANGE_API_KEY`/`EXCHANGE_API_SECRET` + `pip install ccxt` → real orders via `RealExchangeAdapter` (ccxt). Off by default, untested — not recommended |
 | **Removed** | Real price feeds, Rust FFI executor, PostgreSQL/Redis, Terraform, research/ML modules (see `docs/theory/` for the deletion rationale) |
 
-**Known gaps** (from the ongoing audit — see `docs/AUDIT_FINDINGS.md`): the signal-bot's circuit breaker and daily-drawdown gate are currently decorative (no production callers feed them), and halt signals gate the paper path but not the dormant live path. Both backtest engines decide and fill on the same bar close, so backtest results are systematically flattering — treat them as directional, not predictive.
+**Known gaps** (from the ongoing audit — see `docs/AUDIT_FINDINGS.md`): the signal-bot's daily-drawdown gate is currently decorative (no production caller feeds it), and halt signals gate the paper path but not the dormant live path. Backtests are causal (signal on bar i−1, fill at bar i close), but still treat them as directional, not predictive.
 
 ---
 
