@@ -961,32 +961,32 @@ harnesses are un-unit-testable by design).
 
 All entries are `web-ui/package-lock.json` advisories — **devDependencies-only chains** (build/lint/test tooling); nothing ships in the prod bundle. Fixes applied in `web-ui/package.json` + `web-ui/package-lock.json` via `npm install` + `npm audit fix`. Verified: `npm audit` → **0 vulnerabilities**; `tsc --noEmit` clean; `vitest run` smoke green on 4.1.11.
 
-### GH#87 — browserslist `normalizeStats` crash / prototype write ✅
+### GH#87 — browserslist `normalizeStats` crash / prototype write ✅ · verified R216
 - **Bug:** `browserslist@4.28.4` (range `<=4.28.6`) — untrusted `browserslist-stats.json` custom stats cause an uncaught crash + prototype-property write in `normalizeStats`. Same version covered by a second advisory: unbounded distinct-query cache growth → eventual OOM.
 - **Fix:** 4.28.4 → **4.28.9**. All parents (`@babel/helper-compilation-targets` via workbox-build/vite-plugin-pwa, `autoprefixer`, `update-browserslist-db`) want `^4.24.0` — in-range update, no override needed.
 - **Chain:** `vite-plugin-pwa → workbox-build → @babel/preset-env → @babel/core → @babel/helper-compilation-targets → browserslist`; also `autoprefixer → browserslist`.
 
-### GH#91 — js-yaml `maxTotalMergeKeys` CPU DoS ✅
+### GH#91 — js-yaml `maxTotalMergeKeys` CPU DoS ✅ · verified R216
 - **Bug:** `js-yaml@4.3.1` (range `<4.3.2`) — the merge-key cap doesn't limit CPU for empty merge sources; hostile YAML → DoS in any tool parsing it.
 - **Fix:** override `>=4.3.1` → **`>=4.3.2 <5`** → resolves **4.3.2** (nested under `@eslint/eslintrc`). The `<5` cap matters: `>=4.3.2` alone let npm pick major 5.4.2 over a `^4.1.1` requirement — semver-unsafe.
 - **Chain:** `eslint → @eslint/eslintrc → js-yaml` (^4.1.1). Dev/lint path only.
 
-### GH#82–#85 — fast-uri URI-normalization cluster (4× High) ✅
+### GH#82–#85 — fast-uri URI-normalization cluster (4× High) ✅ · verified R216
 - **Bug:** `fast-uri@4.1.2` (all range `<4.1.3`) — four normalization defects: host confusion via skipped IDN canonicalization on scheme-relative refs (#85); host confusion via percent-encoded scheme normalization (#82); SSRF via malformed IPv6 normalization (#84); SSRF via repeated hostname percent-decoding (#83).
 - **Fix:** override `>=4.1.2` → **`>=4.1.3`** → resolves **4.1.4**. Parent `ajv@8.20.0` requires `^3.0.1` — override is the only mechanism (was already in place from a previous round).
 - **Chain:** `vite-plugin-pwa → workbox-build → ajv → fast-uri`. Blast radius honest note: ajv only validates workbox config at build time — the SSRF/host-confusion surface is not network-exposed in this repo; severity is formal, real exploitability ~nil.
 
-### GH#90 — baseline-browser-mapping process-termination DoS ✅
+### GH#90 — baseline-browser-mapping process-termination DoS ✅ · verified R216
 - **Bug:** `baseline-browser-mapping@2.10.40` (range `>=2.0.0 <2.11.0`) — calls `process.exit` on invalid input → kills any tooling passing external data.
 - **Fix:** → **2.11.23**, pulled automatically by `browserslist@4.28.9` (dep range `^2.10.38` admits it).
 - **Chain:** `browserslist → baseline-browser-mapping`.
 
-### GH#88/#89 — vitest / @vitest/mocker path traversal ✅
+### GH#88/#89 — vitest / @vitest/mocker path traversal ✅ · verified R216
 - **Bug:** `vitest@4.1.10` + `@vitest/mocker@4.1.10` (range `>=2.1.0 <4.1.11`) — Redirect Mock allows path traversal / arbitrary file read outside project root. Direct devDep.
 - **Fix:** `vitest` + `@vitest/coverage-v8` `^4.1.10` → `^4.1.11` → all three resolve **4.1.11** (mocker follows vitest; coverage-v8 peer-pins `vitest@4.1.x`). Vitest 5.0.0 exists but the fix shipped on the 4.x line — no major bump needed.
 - **Honest note:** exploit needs a malicious test/mock config — dev-machine surface, not prod.
 
-### npm-audit extras (not in the Dependabot list)
+### npm-audit extras (not in the Dependabot list) ✅ · verified R216
 - **brace-expansion (High)** — DoS via unbounded expansion length (OOM) + CVE-2026-14257-mitigation bypass via unbounded intermediate arrays. Three copies in tree, all in vulnerable ranges: `1.1.16<1.1.18` (eslint→minimatch@3), `2.1.2<2.1.4` (filelist→minimatch@5), `5.0.7<5.0.9` (glob→minimatch@10) → **1.1.21 / 2.1.7 / 5.0.12**, all in-range via `npm audit fix`.
 - **nanoid (High)** — custom non-secure generator loops forever at `size=0`. `3.3.17<3.3.18` → **3.3.19** via `postcss@^8.5.23` (in-range).
 
@@ -1048,13 +1048,13 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Files:** `exchange_simulator/exchange_liquidation.py:85-104` (close path), `:6-12` (imports); deleted `:113-150`; new `exchange_simulator/tests/test_exchange_liquidation.py` (4 cases)
 - **Verified:** 432 sim tests green — fee charged, slippage applied, ORDER_FILLED audit written, remainder position kept, reason stamped.
 
-### S334 — partial-close fee no longer double-counted ✅
+### S334 — partial-close fee no longer double-counted ✅ · verified R216
 - **Bug:** REDUCED branch realized `slice_pnl - fee` AND added the fee to the surviving position's `fees_paid`; `update_pnl` nets `fees_paid` off the remainder → same fill fee subtracted again at final close. `realized_pnl_total_` understated by every partial-close fee.
 - **Fix:** dropped `it->fees_paid += fee` on REDUCED — the close fill's fee is realized fully in the slice pnl; the remainder carries only open-side fees. CLOSED branch unchanged (close fee enters `fees_paid` before final `update_pnl` → counted once).
 - **Files:** `hft-trade-bot/src/position/position_manager.h:105-118`
 - **Verified:** doctest — 1.0@50000, reduce 0.4@51000 fee 5 → realized 395; close 0.6@51000 fee 6 → total 989 = 1000 gross − 11 fees exactly once. 28/28 green.
 
-### S335 — sync_position ghosts age out of the book ✅
+### S335 — sync_position ghosts age out of the book ✅ · verified R216
 - **Bug:** `sync_position` adopted/refreshed but never removed — a missed close fill (disconnect gap, lost fills_batch) left a local ghost: `has_position()` blocked the symbol forever, `check_sl_tp` could fire close orders for a non-existent position.
 - **Fix:** new `reconcile_positions(broadcast_symbols, exchange)` called once per account broadcast — a position absent for `SYNC_MISS_LIMIT=3` consecutive broadcasts is dropped (counter resets on reappearance; per-exchange scoped; `closing_since_`/`active_symbols_`/`sync_misses_` cleaned). Age-out instead of instant removal so a fill landing between snapshot and broadcast can't flap the book. Caller logs each drop.
 - **Files:** `hft-trade-bot/src/position/position_manager.h:189-220` (reconcile), `:346-348` (state), `:160-164` (sync_position doc); `hft-trade-bot/src/core/bot_setup.cpp:365-385` (broadcast batch + warn); tests `tests/test_doctest_position_manager_v1.cpp:255-347` (6 cases)
@@ -1176,19 +1176,19 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R215 — slop-fix — S350/S351/S352 (hft-trade-bot SHM IPC + health)
 
-### S350 — `test_integration_shm.cpp` rewritten against the real SHM API
+### S350 — `test_integration_shm.cpp` rewritten against the real SHM API ✅ · verified R216
 - **Bug:** the file referenced a phantom API that never existed (`ExchangeId::Binance`/`SymbolId::BTCUSDT`/`Side::Buy`, `fill.quantity`/`order_id`, `init(name,cap)`, static `unlink`s, `push`/`has_pending`, size asserts 64/48/64 vs actual 32/28/28) — uncompilable on every platform, yet wired into all POSIX builds (`if(NOT WIN32)`) → Linux CI `make -j` was red; Windows skipped it silently. Latent extra defect found while fixing: `shm_fill_producer.h` used `spdlog::error` without including `<spdlog/spdlog.h>` — survived only via include-order luck, would break any TU that includes it first.
 - **Fix:** full rewrite against the real API — wire-size contract asserts (32/28/28/16), `ShmFillProducer`→`ShmRingBuffer<FillMsg>` consumer roundtrip with field asserts, full-ring failure (no silent overwrite), `ShmRingBuffer<SignalMsg>` producer→`ShmSignalConsumer::start(cb)` thread+callback delivery, `KillSwitchMsg` roundtrip. Coverage is real now: producer→consumer paths exercised end-to-end, not just struct sizes. `shm_fill_producer.h` gained its own `#include <spdlog/spdlog.h>` (self-contained header).
 - **Files:** `hft-trade-bot/tests/test_integration_shm.cpp:1-153` (rewrite); `hft-trade-bot/src/ipc/shm_fill_producer.h:7-11` (include)
 - **Verified:** clang-22 `-fsyntax-only` clean (doctest + real headers, Windows-stub ring impl — target itself is POSIX-only, runtime check rides CI); wire-contract TU static_asserts enum values + struct sizes.
 
-### S351 — dead/contradictory IPC declarations removed or wired live
+### S351 — dead/contradictory IPC declarations removed or wired live ✅ · verified R216
 - **Bug:** `AlignedOrderBookLevel`, `RoutingDecision`, `SymbolId` (49-entry static snapshot of a runtime-dynamic map), `Action`, `Side`, `ExchangeId` — all dead. `ExchangeId` also contradicted the wire: `SIMULATOR=0`/`BYBIT=3` vs field doc + producer `3=Simulator`.
 - **Fix:** deleted `SymbolId` (drift hazard — runtime `symbol_to_id_` is the real map), `AlignedOrderBookLevel`, `RoutingDecision`. `ExchangeId` reordered to the wire doc (`BINANCE=0,OKX=1,BYBIT=2,SIMULATOR=3`) and wired into the producer (`f.exchange_id = static_cast<uint8_t>(ipc::ExchangeId::SIMULATOR)`); `ipc::Side` wired into the fill side literal; `ipc::Action` wired into the signal decode at bot_setup — dead declarations became live, self-documenting protocol uses. **Flagged:** enum values changed (enum was dead — wire bytes unchanged, producer still emits 3); `test_shm.cpp:143` literal `1 // OKX` stays correct under the new order.
 - **Files:** `hft-trade-bot/src/ipc/shm_protocol.h:82-107` (SymbolId gone, ExchangeId fixed); `src/data/aligned_types.h` (AlignedOrderBookLevel/RoutingDecision deleted, was :17-24/:231-270); `src/communication/signal_receiver_handlers.h:53-59`; `src/core/bot_setup.cpp:272-274`; `tests/test_integration_shm.cpp:44-68,99,125` (enums used in asserts); docs `ARCHITECTURE.md:292`, `TRADING_STRATEGIES.md:469` (deleted struct names removed)
 - **Verified:** wire-contract static_asserts pass (enum values == wire doc, sizes == Python layouts); headers compile standalone.
 
-### S352 — `signal_engine_active` is a real liveness bit; `cpu_usage_pct` deleted
+### S352 — `signal_engine_active` is a real liveness bit; `cpu_usage_pct` deleted ✅ · verified R216
 - **Bug:** `is_healthy()` included a bit that could never be false (engines unconditionally constructed pre-loop) — decorative conjunct. `cpu_usage_pct` dead field (0 writers/0 readers, never serialized).
 - **Fix:** new `BotContext::last_engine_eval_ms` atomic stamped at both real eval sites — `generate_signal` (v2/v3 chokepoint) and `engine_v1->analyze` (v1 fallback). `signal_engine_active` = engine exists AND (never evaluated — warmup — OR evaluated <60s ago): once the first eval happens, a stalled engine loop trips `/health` 503. Semantics match `last_signal_age_ms` (stall → unhealthy is already the endpoint's shape). **Flagged:** post-first-eval, `signal_engine_active` can now be false — new reachable 503 path (honest: engine stall during a feed-alive window was previously invisible); `cpu_usage_pct` removed from `HealthStatus` (never in JSON — no wire change). Doc: stale "update_health() has zero callers" claim at `ARCHITECTURE.md:145` corrected — the feed has been live since S246.
 - **Files:** `hft-trade-bot/src/core/bot_context.h:90-92`; `src/core/bot_loop.cpp:160-169` (v2/v3 stamp), `:304-308` (v1 stamp), `:391-408` (gate); `src/monitoring/system_monitor.h:304`; `docs/ARCHITECTURE.md:145`

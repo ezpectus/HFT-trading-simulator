@@ -2842,3 +2842,14 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S352** — `signal_engine_active` стал реальным liveness-битом: `BotContext::last_engine_eval_ms` стемпится в `generate_signal` (v2/v3 chokepoint) и перед `engine_v1->analyze`; gate = engine exists AND (warmup ИЛИ eval <60s). `cpu_usage_pct` удалён. Flag: post-first-eval бит может стать false → новый честный 503-путь.
 - Доки: `ARCHITECTURE.md:145` stale-клейм "update_health() has zero callers" исправлен (feed жив с S246), `:292` + `TRADING_STRATEGIES.md:469` — имена удалённых структур вычеркнуты.
 - Verified: clang-22 `-fsyntax-only` на всех touched self-contained файлах + wire-contract TU static_asserts (enum values == wire doc, sizes == Python layouts); test-файл компилируется. `bot_loop.cpp`/`bot_setup.cpp`/`signal_receiver_handlers.h` — review-only (нет vcpkg на хосте; CI скомпилирует). Runtime roundtrip POSIX-only → на CI.
+
+## R216 — slop-verify — 11 entries verified / 0 wrong / 0 rotted
+
+- **S350** — тест живой: реальный API во всём файле (push_fill/pending/start(cb)/try_pop/unlink), asserts 32/28/28/16; `shm_fill_producer.h` self-contained spdlog include на месте
+- **S351** — `ExchangeId` = BINANCE:0/OKX:1/BYBIT:2/SIMULATOR:3 (== wire doc), заведён в producer (`signal_receiver_handlers.h:58`) + `ipc::Side` (:53-54) + `ipc::Action` (bot_setup.cpp:272-273); `SymbolId`/`AlignedOrderBookLevel`/`RoutingDecision` — 0 refs
+- **S352** — `last_engine_eval_ms` (bot_context.h:91) + оба стемпа (bot_loop.cpp:162,305) + gate (:404-408); `cpu_usage_pct` отсутствует
+- **S334** — REDUCED-ветка без `fees_paid += fee` (position_manager.h:105-120, коммент S334 на месте); CLOSED считает через update_pnl один раз
+- **S335** — `reconcile_positions` (:198, SYNC_MISS_LIMIT=3, streak-reset, per-exchange) + caller bot_setup.cpp:380; 6 тестов
+- **R199** (6 entries) — `npm audit` = 0 (dev+prod); lockfile версии подтверждены: vitest/@vitest/mocker 4.1.11, fast-uri 4.1.4, js-yaml 4.3.2, browserslist 4.28.9, baseline-browser-mapping 2.11.23, brace-expansion 1.1.21/2.1.7/5.0.12, nanoid 3.3.19
+- Бонус: clang-22 toolchain найден на хосте → `position_manager.h` + R215 headers теперь `-fsyntax-only`-проверены (ранее "no toolchain"); `clang-format --dry-run -Werror` clean
+- Не проверено: R203 S322/R204 — уже verified R213 (ошибка в моём R215-саммари); всё verified
