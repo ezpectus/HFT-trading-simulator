@@ -2992,3 +2992,9 @@ Board: 0 open.
 - Новый workflow `.windsurf/workflows/watch-mode.md` (local, .windsurf gitignored): триггеры вместо таймера — diff-scoped audit на новый код, verify каждые ~5 done-записей, docs-refresh на milestone, reopened-находка → немедленный slop-fix.
 - Exit-условие: Medium+ yield в sweep'е → обратно на регулярные audit-loop раунды по той зоне.
 - Board header помечен WATCH MODE.
+
+## R234 — full gate run + cleanup
+
+- pre-commit-check --all: 12 PASS / 3 FAIL. cmake+ctest = stale S:/-drive cache + no MSVC/vcpkg (env). playwright e2e = no running server (env). bandit = 1 real Medium: db.py f-string purge → **S363 fixed** (static _PURGE_QUERIES).
+- Cosmetic: scripts/ci/report.py utcnow() → now(UTC).
+- Board: 0 open. Watch mode stands.

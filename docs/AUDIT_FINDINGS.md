@@ -2779,3 +2779,7 @@ Every recorded finding is closed and documented in `.cascade/done-log.md` with c
 **Remaining verify-debt:** `hft-trade-bot` ctest suite is env-blocked on this host (ASan-debug binaries, no MSVC debug CRT) — run once on a machine with Visual Studio. Everything runnable is green: exchange_simulator 446 tests, ai-signal-bot 1341, web-ui vitest 1133.
 
 **Post-convergence mode:** watch mode per `.windsurf/workflows/audit-loop.md` — `slop-verify` after every ~5 new done-log entries, `docs-refresh` per milestone, new sweeps only on new code. No audit rounds on a timer.
+
+## R234 — full pre-commit gate run — 1 finding fixed
+
+`pre-commit-check.py --all`: 12 PASS / 3 FAIL. Two env-blocked (cmake+ctest — stale S:-drive cache, no MSVC/vcpkg on host; playwright e2e — needs a running server). One real: **S363** — `db.purge_old_records` interpolated a table name via f-string (`DELETE FROM {table}`); bandit B608 Medium. The tuple was a literal constant (no injection surface), but it was the last f-string SQL in the tree. Fixed with static `_PURGE_QUERIES` map — query text fully literal by construction.

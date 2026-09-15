@@ -1286,3 +1286,10 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Fix:** `np.isfinite` checks at all 8 parse sites, returning the file's existing error-string idiom ("must be finite") — input-side rejection matching `analysis_requests:55` ("returns must be finite"). `iv`/`beta` were already safe via bounded ranges.
 - **Files:** `ai-signal-bot/src/communication/portfolio_requests.py:46,192-194,201-203,214-216,225-227,90-96,250-252,326,338-340`; `tests/unit/test_portfolio_requests.py` (6 new error-path params).
 - **Verified:** 25 tests green incl. 6 new `1e999` rejection cases; ruff clean.
+
+## R234 — gate full-run cleanup — S363
+
+### S363 — `db.purge_old_records` f-string SQL flagged by bandit B608 (Info) ✅
+- **Bug:** `f"DELETE FROM {table} WHERE timestamp < ?"` — bandit's only Medium in the full `--all` gate run. The tuple was a hardcoded literal so no real injection surface, but it was the last f-string SQL in the tree (R231 recorded "0 f-string SQL" while this one existed — ledger overstated).
+- **Fix:** `_PURGE_QUERIES` module constant — fully static query text per table (identifiers can't be bound params anyway; literal statements remove the interpolation surface by construction).
+- **Files:** `ai-signal-bot/src/database/db.py:8-13,229-236`; db tests 24 green, bandit Medium 5→0.

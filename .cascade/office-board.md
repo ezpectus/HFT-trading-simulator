@@ -12,11 +12,11 @@
 | Метрика | Значение |
 |---------|----------|
 | Tracked файлов | 985 (ai-signal-bot 192, web-ui 533, hft-trade-bot 85, exchange_simulator 67, scripts 20, helm 20, monitoring 12, terraform 6, .github 10, docs 16, docker/compose 12, root 21, .cascade 3). Untracked на диске: `hft-skills/` (1132 ф., gitignored), `deploy/k8s/` (1 ф.) |
-| ID-пространство | S001–S362 (мёртвых номеров после ранней перенумерации: 14 — S042–S049, S052–S057) |
-| Записано находок | 348 (342 own-anchor + 6 folded в batch-записях) |
+| ID-пространство | S001–S363 (мёртвых номеров после ранней перенумерации: 14 — S042–S049, S052–S057) |
+| Записано находок | 349 (343 own-anchor + 6 folded в batch-записях) |
 | N/A-вердикты (не дефекты) | 9 |
 | Дубликаты/superseded | ~9 |
-| Реальных дефектов исправлено | ~330 — все |
+| Реальных дефектов исправлено | ~331 — все |
 | Открыто | **0** |
 
 **Режим: WATCH MODE** (с R233 — `.windsurf/workflows/watch-mode.md`): sweep только по новому коду, verify-батч после ~5 done-записей, docs-refresh на milestone. Таймер-раундов нет.
