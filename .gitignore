@@ -218,3 +218,5 @@ deploy/helm/charts/
 # ─── Internal refactoring plan (not for public repo) ───
 docs/REFACTORING_PLAN_10DAYS.md
 hft-trade-bot/deps/
+hft-trade-bot/test_config_*.yaml
+hft-trade-bot/test_kill_switch_trigger
