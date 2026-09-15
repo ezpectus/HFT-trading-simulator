@@ -187,7 +187,7 @@ class SignalReceiverData {
             }
             // compare() instead of substr — no allocation per key inside the lock.
             if (k.compare(0, pos, default_exchange_) == 0 || k.compare(0, pos, "shm") == 0)
-                out[k.substr(pos + 1)] = v;
+                out[k.c_str() + pos + 1] = v;
         }
         return out.size();
     }
