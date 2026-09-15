@@ -1121,3 +1121,35 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Files:** `hft-trade-bot/src/execution/order_executor.h:54-56` (publish), `:399-409` (accessors), `:466-471` (member comment), 9 call sites; `hft-trade-bot/src/communication/signal_receiver.h:102-104`, `:276-284` (accessors), `:179`, `:318`, `:347-351`
 - **Verified:** clang-format clean both files; standalone TSan/4-thread harness of the publish/snapshot idiom — 40k cycles, no torn reads, moved-from semantics correct. Full cmake build not runnable here (vcpkg deps absent — same env limit as R202); CI test-cpp covers it.
 - **Bug caught mid-fix:** receiver open-handler reuses `hdl` for the subscribe frame after publish — `set_conn(hdl)` takes a copy there (moving it first would send on an expired hdl).
+
+## R208 — slop-fix — 5 findings closed (R207 "dead producer feeds" family) — BOARD EMPTY
+
+### S342 — closed-trade accounting via authoritative sim `trade_history` ✅
+- **Bug:** `db.close_trade()` + `tracker.record_trade()` had zero prod callers — fills persisted as `OPEN`/`FILLED` forever, so dashboard `trades_closed`/`win_rate`/`total_pnl` and Prometheus `bot_win_rate`/`bot_pnl_total`/daily gauges were structural zeros. The sim already does authoritative close accounting (`Account.trade_history` + `total_trades` in every accounts broadcast) — the bot just ignored it.
+- **Fix:** `_ingest_closed_trades()` runs each tick: per-exchange cursor on `total_trades` (first sight arms the cursor — no replay), ingests the `trade_history` tail delta → `save_trade(status='CLOSED')` + `trade_logger.log` + `tracker.record_trade`. Covers paper, live-signal orders AND C++ SHM fills (same sim account). `get_stats.total_fees` scoped to `status='CLOSED'` — execution rows' fees would double-count. Real ccxt accounts have no `trade_history` — that gap stays honestly unwired.
+- **Files:** `ai-signal-bot/run.py:136` (cursor), `:270` (tick call), `:399-444` (ingest); `ai-signal-bot/src/database/db.py:180-184` (fee scope); tests `tests/unit/test_run_equity.py` TestIngestClosedTrades (6 cases)
+- **Verified:** pytest test_run_equity + test_db 30/30; full unit suite 1300 green; ruff clean.
+
+### S343 — strategy feeds wired: sim news → sentiment, position deltas → MM ✅
+- **Bug:** `SentimentStrategy.on_news_event` + `MarketMakingStrategy.on_fill`/`update_inventory`/`update_toxicity` had zero callers → both strategies could only return NEUTRAL; sentiment is `enabled: true` by default. Bonus defect: `on_news_event` overwrote `event.sentiment` with `map[type]*magnitude` unconditionally → pre-scored events would be flattened to 0 anyway.
+- **Fix:** `ws_client` captures `news_event` from broadcasts (property). `_route_news_event()` maps sim events (intensity 3-8→magnitude, direction→sign) into `NewsEvent` and dedupes on `(symbol,intensity,direction)` — the sim rebroadcasts the same event for its whole `remaining` window. `on_news_event` keeps provided sentiment when the type map has no opinion (UNKNOWN et al). `_sync_mm_inventory()` diffs signed account positions between ticks → `mm.on_fill` — real inventory + avg-cost PnL, covers opens/closes/flips; missing price → cursor kept, retries next tick. `update_toxicity` stays unwired — no order-flow source exists.
+- **Files:** `ai-signal-bot/src/communication/ws_client.py:58,96-100,237-238`; `ai-signal-bot/src/strategies/sentiment.py:101-107`; `ai-signal-bot/run.py:139-140` (cursors), `:271-272` (tick calls), `:446-511` (routers); tests `test_sentiment.py` +2, `test_run_equity.py` TestRouteNewsEvent+TestSyncMMInventory (11 cases)
+- **Verified:** pytest sentiment/market_making/ws_client/run_equity 78/78; ruff clean.
+
+### S344 — CB Prometheus reporting wired ✅
+- **Bug:** `record_circuit_breaker_trip()` had zero callers (counter pinned 0); `set_circuit_breaker_state()` sat below `if not self._clients: continue` — gauge stale exactly when the breaker trips with no UI attached.
+- **Fix:** `CircuitBreaker` accepts an optional `on_trip` hook, fired inside `_trip()` (best-effort, reporting can't break the breaker). Publisher wires `on_trip=self._on_cb_trip` → `self.metrics.record_circuit_breaker_trip()` — lazy attr resolution so the run.py `MetricsExporter` swap is picked up. Status loop now updates the gauge BEFORE the clients gate.
+- **Files:** `ai-signal-bot/src/communication/circuit_breaker.py:20` (import), `:49-51` (ctor), `:136-140` (fire); `ai-signal-bot/src/communication/signal_publisher.py:76,86-89` (wiring), `:388-398` (ungated gauge); tests `test_circuit_breaker.py` TestOnTripCallback (3), `test_signal_publisher.py` +2
+- **Verified:** pytest circuit_breaker + signal_publisher 50/50; ruff clean.
+
+### S345 — live-adapter read path: lazy feed + aggTrade merge ✅
+- **Bug:** `RealExchangeAdapter.initialize()` eagerly started real Binance/OKX/Bybit sockets filling caches nobody reads (all `get_*` = 0 prod callers; only `place_order` used). Latent proof: `@aggTrade` subscribed "for `last`" but never parsed → `last=0.0` forever.
+- **Fix:** adapter no longer starts the feed at connect; `RealMarketDataManager._ensure_started()` lazily starts it on the first `get_ticker`/`get_orderbook`/`get_candles` call (order-only adapters pay zero sockets). Feed keeps per-symbol `_ticker_state` — bookTicker updates bid/ask, aggTrade updates `last`, emitted tickers carry all three (a naive aggTrade ticker would have clobbered the book).
+- **Files:** `ai-signal-bot/src/data_collection/exchange_factory.py:333-335` (no eager start); `ai-signal-bot/src/data_collection/market_data_manager.py:56-65` (init→start_feed, `_ensure_started`), `:79,87,97` (getter calls); `ai-signal-bot/src/data_collection/market_data_feed.py:47-49` (state), `:179-211` (merge+aggTrade branch); tests `test_market_data_manager.py` (new, 7 cases), `test_market_data_feed.py` TestBinanceTickerMerge (4)
+- **Verified:** pytest market_data + exchange_factory 73/73; ruff clean.
+
+### S346 — fit/OOS split; walk-forward honest context windows ✅
+- **Bug:** `run_backtest.py` grid-searched params on the full candle set then "validated" on windows inside it — in-sample printed as OOS. `walk_forward` itself never trained: `params` fixed, `train_size` was a skip-offset while its docstring claimed "train on window".
+- **Fix:** `split_fit_validation()` chronological 60/40 split — `grid_search` ×2 only on the fit head, `walk_forward` on the untouched tail. `walk_forward` reworked: each window = `train_size` strictly-past context candles (indicator warmup, no trades/metrics) + `test_size` evaluated candles (`warmup=train_size`); redundant `warmup` param dropped; docstring now states fixed-params OOS eval + caller must keep segments disjoint.
+- **Files:** `ai-signal-bot/src/backtesting/optimizer.py:193-230`; `ai-signal-bot/run_backtest.py:64-75` (split), `:141-143` (wire), `:148,161` (fit segment), `:181-190` (OOS eval); tests `test_walk_forward.py` (rewritten, +disjoint-context regression), `test_run_backtest.py` (new, 5 cases), `test_optimizer.py`/`test_backtest_optimizer.py` updated
+- **Verified:** pytest walk_forward + optimizer + run_backtest 22/22; full suite green; ruff clean.

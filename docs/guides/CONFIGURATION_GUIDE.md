@@ -474,7 +474,7 @@ comments).
 - **Change symbols** — edit `shared_config.yaml` and component configs must match
 - **Reduce risk** — lower `max_risk_per_trade_pct` and `max_position_size_pct`
 - **Enable ML** — set `ml_ensemble.enabled: true` (requires scikit-learn)
-- **Enable market making** — set `market_making.enabled: true` (needs inventory management)
+- **Enable market making** — set `market_making.enabled: true` (inventory auto-syncs from account position deltas; order-flow toxicity scoring is not wired)
 - **Faster signals** — reduce `signal_interval_ms` (default: 1ms for HFT mode)
 - **Production** — use environment variables, not config files, for secrets
 

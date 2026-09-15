@@ -2749,3 +2749,15 @@ Batch: 4 High (S337/S329/S332/S340) + 4 Medium с real-money blast radius (S338/
 **Чисто:** вся стратегическая/risk/portfolio математика, indicators (оба пути), SHM-стек, request-хендлеры, observability, alerting/health/metrics, backtesting-стек, llm_engine, data_collection write-paths, database — реальные реализации, проверены построчно. Детали в ЧИСТО-строке доски.
 
 Board: 5 open (4 Medium, 1 Low). Source не тронут — audit-only раунд.
+
+## R208 — slop-fix — все 5 находок R207 закрыты — BOARD EMPTY
+
+Семья "живой код, мёртвый продюсер" разобрана по доске:
+
+- **S342 ✅** — `_ingest_closed_trades()` (run.py:399-444) потребляет авторитетный `trade_history` симулятора по курсору `total_trades` → CLOSED-строки в БД + `tracker.record_trade` + CSV. `get_stats.total_fees` сужен до CLOSED (дабл-каунт execution-строк убран). Dashboard/Prometheus stats больше не структурные нули. Live-ccxt без trade_history — честно не запитан.
+- **S343 ✅** — `ws_client` отдаёт `news_event`; `_route_news_event()` (run.py:446-474) маппит intensity→magnitude/direction→sign → `on_news_event` с дедупом по сигнатуре; `on_news_event` больше не затирает pre-scored sentiment (sentiment.py:101-107). `_sync_mm_inventory()` (run.py:476-511) — position-delta → `mm.on_fill`: inventory/avg-cost PnL живые. Toxicity осознанно unwired (нет order-flow источника).
+- **S344 ✅** — `CircuitBreaker(on_trip=)` → `record_circuit_breaker_trip` на реальном трипе (circuit_breaker.py:136-140, signal_publisher.py:76,86-89); state-gauge вынесен из-под `if not self._clients` (signal_publisher.py:388-398).
+- **S345 ✅** — feed стартует лениво по первому чтению (`market_data_manager._ensure_started` :61-65, getters :79/87/97); адаптер не поднимает сокеты при initialize (exchange_factory.py:333-335). `@aggTrade` парсится и мёржится с bookTicker в `_ticker_state` (market_data_feed.py:179-211) → `last` реальный.
+- **S346 ✅** — `split_fit_validation` (run_backtest.py:64-75) — chronological 60/40: grid_search на fit-сегменте, walk_forward на OOS-хвосте. `walk_forward` (optimizer.py:193-230): train_size = strictly-past context (warmup), test_size = evaluated tail; warmup-параметр убран; docstring честный про disjoint-сегменты.
+
+Верификация: targeted pytest по каждой находке + полный unit-suite ai-signal-bot **1300 passed**; ruff clean по всем тронутым файлам. Новые тесты: TestIngestClosedTrades (6), TestRouteNewsEvent+TestSyncMMInventory (11), TestOnTripCallback (3) + publisher wiring (2), test_market_data_manager (7), TestBinanceTickerMerge (4), test_run_backtest (5), test_walk_forward переписан. Doc-sync: CONFIGURATION_GUIDE market_making-claim обновлён.
