@@ -9,6 +9,12 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R231–R239 — e2e truth + HFT hot path)
+
+### Fixed
+- **UI console-error storm (S365):** the dashboard emitted ~9.5k console errors per load — `OptionsStrategySimulator` wrote `NaN` into SVG coordinates when spot was 0/flat, `IndicatorBuilder` set parent state during render, `OpenInterestTracker` crashed every render on an ASI-glued `null.filter(...)`, and `PerfAreaChart` fed `lightweight-charts` unsorted times. All four fixed at the root; toast overlay no longer blocks tab clicks (region is click-through, toasts stay interactive). Playwright e2e: 32/35 → **35/35**.
+- **HFT per-tick waste (S364):** the trading loop paid a syscall (memory sample), deep copies of candles/order books, and fresh map-key allocations on every tick and every message. All hot-path allocations/syscalls removed — shared scratch buffers, `_into` readers, amortized candle trim, zero-alloc WS sends, single-lock SHM snapshot sweep. Simulator broadcast encodes once per variant instead of per client (**8.3x** measured at 8 clients).
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R221–R230 — load-harness latency + doc truth)
 
 ### Fixed

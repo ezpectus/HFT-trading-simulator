@@ -3060,3 +3060,10 @@ Board: 0 open.
 - update_health_status: full struct + mutex per tick for polled endpoint → 1s throttle.
 - Engines verified clean without edits: analyze_incremental = O(1) per new candle (full pass only on init/warmup), pressure_model stack-only noexcept.
 - Board: 0 open.
+
+## R239 — playwright e2e unblocked → S365 found+fixed
+
+- e2e was mislabeled env-blocked: playwright.config webServer auto-spawns dev:mock. First run 32/35 — console-errors test surfaced ~9.5k errors/load.
+- S365: NaN SVG coords (OptionsStrategySimulator spot=0), setState-in-render (IndicatorBuilder useMemo→useEffect), ASI-glued null.filter crash (OpenInterestTracker), unsorted-times setData throw (PerfAreaChart), toast region overlaying tab bar, ambiguous alert selector.
+- Fixed all 6 sub-defects + 3 new regression test files (9 tests). e2e 35/35, vitest green, gate ALL GREEN. Commit 5185eb2.
+- Board: 0 open.
