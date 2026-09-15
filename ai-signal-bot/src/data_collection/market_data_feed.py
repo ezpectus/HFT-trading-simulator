@@ -98,15 +98,61 @@ class RealMarketDataFeed:
             except (KeyError, ValueError, TypeError) as e:
                 logger.debug("Queue processor error: %s", e)
 
-    async def _run_binance(self, symbols: list[str], intervals: list[str]):
-        """Binance Futures WebSocket feed."""
+    async def _run_feed(self, name: str, url: str, symbols: list[str],
+                        subscribe_payload: dict | None = None):
+        """Shared venue feed loop: connect → register → gap-fill → optional
+        subscribe frame → enqueue messages → exp-backoff reconnect."""
         try:
             import websockets
         except ImportError:
-            logger.error("websockets not installed")
+            logger.error("websockets not installed — %s feed disabled", name)
             return
 
-        # Build combined stream URL
+        while self._running:
+            try:
+                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
+                    async with self._state_lock:
+                        self._ws_connections[name] = ws
+                        self._reconnect_delays[name] = 1.0
+                    # Gap fill after reconnect
+                    if self._last_msg_times.get(name) and self.on_reconnect:
+                        try:
+                            await self.on_reconnect(name, symbols)
+                        except (OSError, RuntimeError, ValueError) as e:
+                            logger.warning("%s gap-fill failed: %s", name, e)
+                    self._last_msg_times[name] = time.monotonic()
+                    if subscribe_payload is not None:
+                        await ws.send(json.dumps(subscribe_payload))
+                    logger.info("%s WebSocket connected", name.upper())
+
+                    async for raw in ws:
+                        if not self._running:
+                            break
+                        try:
+                            msg = json.loads(raw)
+                        except json.JSONDecodeError as e:
+                            logger.warning("%s WS: dropping malformed message: %s", name, e)
+                            continue
+                        self._last_msg_times[name] = time.monotonic()
+                        try:
+                            self._msg_queue.put_nowait((name, msg))
+                        except asyncio.QueueFull:
+                            logger.warning("WS msg queue full — dropping oldest")
+                            try:
+                                self._msg_queue.get_nowait()
+                            except asyncio.QueueEmpty:
+                                pass
+                            self._msg_queue.put_nowait((name, msg))
+
+            except (ConnectionError, OSError) as e:
+                logger.error("%s WS error: %s", name, e)
+                if self._running:
+                    delay = self._reconnect_delays.get(name, 1.0)
+                    await asyncio.sleep(delay)
+                    self._reconnect_delays[name] = min(delay * 2, self._max_reconnect_delay)
+
+    async def _run_binance(self, symbols: list[str], intervals: list[str]):
+        """Binance Futures feed — subscriptions ride in the combined-stream URL."""
         streams = []
         for sym in symbols:
             sym_lower = sym.lower()
@@ -115,51 +161,10 @@ class RealMarketDataFeed:
             for iv in intervals:
                 streams.append(f"{sym_lower}@kline_{iv}")
 
-        if self.testnet:
-            url = "wss://stream.binancefuture.com/stream?streams=" + "/".join(streams)
-        else:
-            url = "wss://fstream.binance.com/stream?streams=" + "/".join(streams)
-
-        while self._running:
-            try:
-                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
-                    async with self._state_lock:
-                        self._ws_connections["binance"] = ws
-                        self._reconnect_delays["binance"] = 1.0
-                    # Gap fill after reconnect
-                    if self._last_msg_times.get("binance") and self.on_reconnect:
-                        try:
-                            await self.on_reconnect("binance", symbols)
-                        except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning("Binance gap-fill failed: %s", e)
-                    self._last_msg_times["binance"] = time.monotonic()
-                    logger.info("Binance WebSocket connected: %s streams", len(streams))
-
-                    async for raw in ws:
-                        if not self._running:
-                            break
-                        try:
-                            msg = json.loads(raw)
-                        except json.JSONDecodeError as e:
-                            logger.warning("Binance WS: dropping malformed message: %s", e)
-                            continue
-                        self._last_msg_times["binance"] = time.monotonic()
-                        try:
-                            self._msg_queue.put_nowait(("binance", msg))
-                        except asyncio.QueueFull:
-                            logger.warning("WS msg queue full — dropping oldest")
-                            try:
-                                self._msg_queue.get_nowait()
-                            except asyncio.QueueEmpty:
-                                pass
-                            self._msg_queue.put_nowait(("binance", msg))
-
-            except (ConnectionError, OSError) as e:
-                logger.error("Binance WS error: %s", e)
-                if self._running:
-                    delay = self._reconnect_delays.get("binance", 1.0)
-                    await asyncio.sleep(delay)
-                    self._reconnect_delays["binance"] = min(delay * 2, self._max_reconnect_delay)
+        base = ("wss://stream.binancefuture.com" if self.testnet
+                else "wss://fstream.binance.com")
+        await self._run_feed("binance", base + "/stream?streams=" + "/".join(streams),
+                             symbols)
 
     async def _handle_binance_msg(self, msg: dict):
         """Handle Binance combined stream message."""
@@ -199,65 +204,16 @@ class RealMarketDataFeed:
                 await self.on_candle(candle)
 
     async def _run_okx(self, symbols: list[str], intervals: list[str]):
-        """OKX Futures WebSocket feed."""
-        try:
-            import websockets
-        except ImportError:
-            return
+        """OKX Futures feed — subscribes via op-frame after connect."""
+        sub_args = []
+        for sym in symbols:
+            inst_id = self._to_okx_inst_id(sym)
+            sub_args.append({"channel": "tickers", "instId": inst_id})
+            for iv in intervals:
+                sub_args.append({"channel": f"candle{iv}", "instId": inst_id})
 
-        url = "wss://ws.okx.com:8443/ws/v5/public"
-
-        while self._running:
-            try:
-                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
-                    async with self._state_lock:
-                        self._ws_connections["okx"] = ws
-                        self._reconnect_delays["okx"] = 1.0
-
-                    # Gap fill after reconnect
-                    if self._last_msg_times.get("okx") and self.on_reconnect:
-                        try:
-                            await self.on_reconnect("okx", symbols)
-                        except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning("OKX gap-fill failed: %s", e)
-                    self._last_msg_times["okx"] = time.monotonic()
-
-                    # Subscribe to tickers and candles
-                    sub_args = []
-                    for sym in symbols:
-                        inst_id = self._to_okx_inst_id(sym)
-                        sub_args.append({"channel": "tickers", "instId": inst_id})
-                        for iv in intervals:
-                            sub_args.append({"channel": f"candle{iv}",
-                                           "instId": inst_id})
-
-                    await ws.send(json.dumps({"op": "subscribe", "args": sub_args}))
-                    logger.info("OKX WebSocket connected")
-
-                    async for raw in ws:
-                        if not self._running:
-                            break
-                        try:
-                            msg = json.loads(raw)
-                        except json.JSONDecodeError as e:
-                            logger.warning("OKX WS: dropping malformed message: %s", e)
-                            continue
-                        try:
-                            self._msg_queue.put_nowait(("okx", msg))
-                        except asyncio.QueueFull:
-                            logger.warning("WS msg queue full — dropping oldest")
-                            try:
-                                self._msg_queue.get_nowait()
-                            except asyncio.QueueEmpty:
-                                pass
-                            self._msg_queue.put_nowait(("okx", msg))
-
-            except (ConnectionError, OSError) as e:
-                logger.error("OKX WS error: %s", e)
-                if self._running:
-                    delay = self._reconnect_delays.get("okx", 1.0)
-                    await asyncio.sleep(delay)
-                    self._reconnect_delays["okx"] = min(delay * 2, self._max_reconnect_delay)
+        await self._run_feed("okx", "wss://ws.okx.com:8443/ws/v5/public", symbols,
+                             subscribe_payload={"op": "subscribe", "args": sub_args})
 
     async def _handle_okx_msg(self, msg: dict):
         """Handle OKX WebSocket message."""
@@ -299,64 +255,16 @@ class RealMarketDataFeed:
                 await self.on_candle(candle)
 
     async def _run_bybit(self, symbols: list[str], intervals: list[str]):
-        """Bybit Futures WebSocket feed."""
-        try:
-            import websockets
-        except ImportError:
-            return
+        """Bybit Futures feed — subscribes via op-frame after connect."""
+        sub_args = []
+        for sym in symbols:
+            sub_args.append(f"orderbook.50.{sym}")
+            sub_args.append(f"tickers.{sym}")
+            for iv in intervals:
+                sub_args.append(f"kline.{iv}.{sym}")
 
-        url = "wss://stream.bybit.com/v5/public/linear"
-
-        while self._running:
-            try:
-                async with websockets.connect(url, ping_interval=20, ping_timeout=10) as ws:
-                    async with self._state_lock:
-                        self._ws_connections["bybit"] = ws
-                        self._reconnect_delays["bybit"] = 1.0
-
-                    # Gap fill after reconnect
-                    if self._last_msg_times.get("bybit") and self.on_reconnect:
-                        try:
-                            await self.on_reconnect("bybit", symbols)
-                        except (OSError, RuntimeError, ValueError) as e:
-                            logger.warning("Bybit gap-fill failed: %s", e)
-                    self._last_msg_times["bybit"] = time.monotonic()
-
-                    # Subscribe
-                    sub_args = []
-                    for sym in symbols:
-                        sub_args.append(f"orderbook.50.{sym}")
-                        sub_args.append(f"tickers.{sym}")
-                        for iv in intervals:
-                            sub_args.append(f"kline.{iv}.{sym}")
-
-                    await ws.send(json.dumps({"op": "subscribe", "args": sub_args}))
-                    logger.info("Bybit WebSocket connected")
-
-                    async for raw in ws:
-                        if not self._running:
-                            break
-                        try:
-                            msg = json.loads(raw)
-                        except json.JSONDecodeError as e:
-                            logger.warning("Bybit WS: dropping malformed message: %s", e)
-                            continue
-                        try:
-                            self._msg_queue.put_nowait(("bybit", msg))
-                        except asyncio.QueueFull:
-                            logger.warning("WS msg queue full — dropping oldest")
-                            try:
-                                self._msg_queue.get_nowait()
-                            except asyncio.QueueEmpty:
-                                pass
-                            self._msg_queue.put_nowait(("bybit", msg))
-
-            except (ConnectionError, OSError) as e:
-                logger.error("Bybit WS error: %s", e)
-                if self._running:
-                    delay = self._reconnect_delays.get("bybit", 1.0)
-                    await asyncio.sleep(delay)
-                    self._reconnect_delays["bybit"] = min(delay * 2, self._max_reconnect_delay)
+        await self._run_feed("bybit", "wss://stream.bybit.com/v5/public/linear", symbols,
+                             subscribe_payload={"op": "subscribe", "args": sub_args})
 
     async def _handle_bybit_msg(self, msg: dict):
         """Handle Bybit WebSocket message."""
