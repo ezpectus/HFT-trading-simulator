@@ -1513,3 +1513,12 @@ The nominal trading path computes a full signal in **sub-microsecond** time. Fut
 - **Files:** `scripts/ci/security.sh`.
 
 **Clean in the sweep:** `fft_cycle.py`/`trend_following.py` (indicators return `list[float]` — no ndarray-truthiness hazard; bounded cache, sane ATR stops); `obi_utils.h` (fused single-pass OBI, noexcept, div-guards); `signal_engine_v2_params.h` (data struct + validate); `shm_signal_consumer.h` rest (50µs poll on a dedicated thread — fine); `_helpers.tpl` (live, used by all templates); `scan-images.sh` (sound); web-ui hooks ×7 + `ui-helpers.tsx` (idiomatic, proper cleanups; `NoDataFeed` is the honest empty-state); LLM prompt templates live-wired in engine.py; issue templates trivial.
+
+## R259 — remaining-work step-by-step on board + dead-code cleanup
+
+**Board:** «ОСТАТОК — пошагово» section — every remaining item with concrete steps: (1) POSIX test pair auto-registers on Linux via `if(NOT WIN32)` — needs a real WSL distro or Linux CI, zero code changes required; (2) web-ui ~200 panels — pipeline-covered, file-by-file sweep is optional chunked round with stated criteria; (3) perf candidates ranked by expected effect, gated on hft_bench before/after (ScopedLatency sampling, signal-path spdlog, wait_for_data granularity); (4) S309 docker-smoke runtime confirm when daemon available; (5) `--help` arg-parse cosmetic.
+
+**S382 — dead API + dead plumbing removed (Low)** ✅
+- `ShmSignalConsumer::try_pop_signal` — 0 callers; «polling mode» was fiction (consumer is always threaded). Removed.
+- simdjson plumbing — `find_package(simdjson)` ×2, `if(simdjson_FOUND)` link+define block, `HFT_HAS_SIMDJSON` guard in pch.h — existed but no src file ever called a simdjson API (nlohmann is the only JSON parser used). «Fast JSON in hot path» was decorative. Removed; CMake header comment updated.
+- **Files:** `src/ipc/shm_signal_consumer.h`, `CMakeLists.txt`, `src/pch.h`. **Verified:** test-config reconfigure + ctest 23/23 green; full exe rebuild clean (websocketpp third-party warning only).

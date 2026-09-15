@@ -43,12 +43,6 @@ class ShmSignalConsumer {
         buffer_.reset();
     }
 
-    // Try to pop a single signal without blocking (for polling mode)
-    bool try_pop_signal(SignalMsg& out) {
-        if (!buffer_) return false;
-        return buffer_->try_pop(out);
-    }
-
     // Number of pending signals
     uint64_t pending() const { return buffer_ ? buffer_->size() : 0; }
 

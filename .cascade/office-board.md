@@ -36,6 +36,39 @@
 
 ---
 
+## ОСТАТОК — пошагово (R259)
+
+Открытых дефектов нет. Ниже — всё, что реально осталось, с шагами. Ничего не блокирует работу бота; это хвост полноты/опций.
+
+### 1. POSIX-only тест-пара (единственный непокрытый тест-код)
+- **Что:** `hft-trade-bot/tests/test_shm.cpp`, `tests/integration/test_signal_flow.cpp` — `shm_open`/`ftruncate`/`mmap` POSIX API.
+- **Статус:** гейт `if(NOT WIN32)` (CMakeLists:486,499) — на Linux регистрируются автоматически, писать ничего не надо.
+- **Шаги:** (a) `wsl --install -d Ubuntu` (системное изменение — не делал без спроса) или Linux-CI; (b) внутри: `apt install build-essential cmake ninja-build` → `cmake -B build -G Ninja` → `ctest -R "shm|signal_flow"`.
+- **Риск если не делать:** SHM ring-buffer + end-to-end signal-flow проверены только статически; Windows-сторона shm_market_data покрыта doctest'ами.
+
+### 2. web-ui панели пофайлово (~200 jsx) — опционально
+- **Что покрыто:** pipeline-уровень — registry/props-builders (S327 setter-map), data-flow (useWebSocket→stores→ctx), mock-shape parity (S237), ~120 test-файлов в vitest.
+- **Что НЕ покрыто:** внутренняя математика/рендер каждой панели пофайлово.
+- **Шаги если делать:** chunked sweep по категориям (charts → orderflow → ML → risk → misc), критерии: dead-props, fabricated-data без NoDataFeed, утечки RAF/listener'ов, stale keys в локальном state. Оценка: большой раунд, ожидаемый yield — низкий-средний (pipeline уже честный).
+
+### 3. Perf-кандидаты — только через hft_bench (evidence-based)
+- **Baseline есть:** `analyze_incremental` med 900ns / p99 1.4µs (R256). `./hft_bench [iters]` из build-mingw.
+- **Кандидаты по убыванию ожидаемого эффекта:** (a) `ScopedLatency` — 3 таймера на символ/тик, ~40-80ns каждый → sampling 1-of-N в LatencyHistogram::record если bench покажет вклад; (b) `spdlog::info` на fired-сигнале (:229) — alloc в async-очередь, но только на срабатывании; (c) `wait_for_data` — проверить гранулярность ожидания. **Не делать без before/after замера** — compute уже sub-µs, дальше — I/O.
+- **Уже оптимально, не трогать:** prepopulated caches, shared ob/candles буферы, один spinlock на sweep, throttled health/monitor.
+
+### 4. Docker runtime-подтверждение (S309 закрыт статически)
+- docker-smoke починен в R182, но healthy-цепочка не прогонялась — daemon недоступен на хосте. Подтвердится следующим CI-прогоном или локальным `docker compose -f docker-compose.yml up` когда daemon жив.
+
+### 5. Мелочи (cosmetic, низкий приоритет)
+- `hft_trade_bot.exe --help` трактует argv[1] как путь к конфигу → "Config file not found: --help" + дефолты. Работает, но не CLI-идиоматично — если делать: минимальный `--help`/`--config` argparse в main.cpp.
+- `docker-desktop` WSL-distro есть, но без toolchain — см. п.1.
+
+### Закрыто этим раундом (R259)
+- **Dead API:** `ShmSignalConsumer::try_pop_signal` — 0 caller'ов («polling mode» был фикцией — consumer всегда threaded) → удалён.
+- **Dead plumbing:** simdjson — `find_package` + `HFT_HAS_SIMDJSON` + pch-include существовали, но ни один src-файл не парсил simdjson → вычищено (3 CMake-сайта + pch). «Fast JSON in hot path» был декорацией.
+
+---
+
 ## СВОДКА
 
 | Метрика | Значение |

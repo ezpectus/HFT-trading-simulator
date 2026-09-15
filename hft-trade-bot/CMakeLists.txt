@@ -1,6 +1,5 @@
 # HFT Trade Bot — CMake build configuration
 # Requires: C++20, Boost.Beast, websocketpp, nlohmann/json, spdlog, fmt, yaml-cpp
-#           simdjson (optional, for fast JSON parsing)
 cmake_minimum_required(VERSION 3.16)
 project(hft_trade_bot VERSION 2.0.0 LANGUAGES CXX)
 
@@ -142,7 +141,6 @@ if(HFT_TESTS_ONLY)
     find_package(fmt QUIET)
     find_package(nlohmann_json QUIET)
     find_package(yaml-cpp QUIET)
-    find_package(simdjson QUIET)
 
 else()
 # Boost: on Linux use system install (apt), on Windows use vcpkg.
@@ -209,9 +207,6 @@ if(NOT TARGET yaml-cpp::yaml-cpp)
         endif()
     endif()
 endif()
-
-# simdjson (optional — for fast JSON parsing in hot path)
-find_package(simdjson QUIET)
 
 endif() # HFT_TESTS_ONLY
 
@@ -354,12 +349,6 @@ target_link_libraries(hft_trade_bot PRIVATE
     yaml-cpp::yaml-cpp
 )
 
-# Link simdjson if found
-if(simdjson_FOUND)
-    target_link_libraries(hft_trade_bot PRIVATE simdjson::simdjson)
-    target_compile_definitions(hft_trade_bot PRIVATE HFT_HAS_SIMDJSON)
-    message(STATUS "simdjson found — enabling fast JSON parsing")
-endif()
 
 # Enable LTO for the target
 set_target_properties(hft_trade_bot PROPERTIES

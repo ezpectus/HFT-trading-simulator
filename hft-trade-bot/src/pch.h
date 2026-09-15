@@ -33,7 +33,3 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
-
-#ifdef HFT_HAS_SIMDJSON
-#include <simdjson.h>
-#endif

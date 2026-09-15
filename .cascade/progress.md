@@ -3200,3 +3200,9 @@ Board: 0 open.
 - S381: security.sh pip-audit covered only ai-signal-bot; now scans exchange_simulator too.
 - Clean: fft_cycle/trend_following strategies, obi_utils, params, helm helpers, scan-images, web-ui hooks, ui-helpers, LLM templates.
 - pytest 34/34 metrics+results+comparison; ctest 23/23; exe rebuild clean. Board: 0 open.
+
+## R259 — remaining-work step-by-step + dead-code cleanup
+
+- Board «ОСТАТОК — пошагово»: POSIX-pair steps (auto-register on Linux, needs WSL distro/CI), web-ui file-level option (pipeline-covered), perf candidates bench-gated, S309 docker-runtime confirm, --help cosmetic.
+- S382: removed `try_pop_signal` (0 callers) and simdjson plumbing (declared-but-never-used). ctest 23/23 + exe rebuild green.
+- Board: 0 open, verify-debt 0.
