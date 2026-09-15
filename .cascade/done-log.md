@@ -1262,3 +1262,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Fix:** keep the task reference + `add_done_callback(self._on_resync_done)` which logs `logger.warning("Resync request failed: %s", exc)` — matches the codebase's `_on_task_done` idiom.
 - **Files:** `ai-signal-bot/src/communication/ws_client.py:258-265`; `tests/unit/test_ws_client.py` (new `test_resync_send_failure_logged`).
 - **Verified:** new test drives a real seq-gap → `send` raising `ConnectionClosed` → asserts the warning fires (initial `caplog`/`assert_called_once` versions failed for honest reasons — structlog logger not caplog-visible, and the gap path itself warns — final version asserts the message in `call_args_list`). Full file: 27 tests green; compile+ruff clean.
+
+## R228 — time-source audit — S360
+
+### S360 — `exchange_simulator` duration measurements on wall clock (Info) ✅
+- **Bug:** two duration sites used `time.time()` where `time.monotonic()` is required — the codebase's own convention (`ai-signal-bot` uses `monotonic()` at `metrics_server.py:31`, `health_server.py:53`, `health_checks.py:61`, `ws_client` resync cooldown). (a) `ws_message_handler._check_rate_limit` (`now`/`window_start`) — an NTP backward step makes `now - window_start` negative → the window never expires → the client is throttled indefinitely; a forward step resets early → limiter leaks. (b) `ws_metrics._start_time`/`get_bandwidth_mbps` — `elapsed` could go negative → a *negative* `exchange_simulator_bandwidth_mbps` gauge exported to Prometheus (`ws_prometheus.py:119`); the `== 0` guard didn't cover it.
+- **Fix:** both sites → `time.monotonic()`; `elapsed == 0` guard → `<= 0`. All other `time.time()` uses audited and correct — wall-clock record timestamps (`models.py` factories, `audit_logger`, `arbitrage` `closed_at`, serialized `"timestamp"` fields) and wall-to-wall comparisons (GTD `expire_ts`, signal `created_ts`). Dev tools' deadline loops left on wall clock deliberately (human wall-time semantics).
+- **Files:** `exchange_simulator/ws_message_handler.py:50,75`; `exchange_simulator/ws_metrics.py:51,100-101`; `exchange_simulator/tests/test_websocket_server.py:519`.
+- **Verified:** 51 tests green in test_websocket_server.py (incl. rate-limit + bandwidth tests); ruff clean.

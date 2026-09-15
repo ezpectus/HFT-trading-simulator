@@ -2938,3 +2938,8 @@ Board: 0 open.
 
 - ~85 except/catch сайтов (Py 26 pass + ~60 return/continue/break, JS 0 empty, C++ 0 non-logging) — все идиомы: CancelledError, disconnect→finally, error-payload returns, documented fallbacks, best-effort cleanup, error-recording skips.
 - Board: 0 open.
+
+## R228 — time-source sweep — S360 найден+закрыт — BOARD EMPTY
+
+- **S360** — exchange_simulator: 2 duration-сайта на wall clock против monotonic-конвенции (rate-limit window → NTP-backward = бесконечный throttle; bandwidth elapsed → negative Mbps gauge в Prometheus). Оба → monotonic, guard <= 0, тест-сиды обновлены. Все остальные time.time() — честные timestamps.
+- Board: 0 open.

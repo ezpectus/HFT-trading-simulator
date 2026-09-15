@@ -2716,3 +2716,11 @@ AST-walked every `except` handler in `ai-signal-bot/src`, `run.py`, `exchange_si
 - Documented fallbacks (`_load_prompt` FileNotFound → builtin; `lstsq` LinAlgError → degenerate alpha=0/beta=1; `_depth_covers` missing book → slippage model; LLM explain → `signal.reason`).
 - Best-effort cleanup (WAL checkpoint on close, SHM unlink, proc kill).
 - Error-recording skips (`pre-commit-check` appends to `broken` before `continue`).
+
+## R228 — slop-audit — time-source sweep — 1 finding
+
+Cross-checked every `time.time()` vs `time.monotonic()` use in `ai-signal-bot/src` + `exchange_simulator` for direction-correctness: durations/deadlines must be monotonic (NTP-safe); serialized/record timestamps must be wall clock.
+
+- **S360 — `exchange_simulator` durations on wall clock (Info).** Two sites against the codebase's `monotonic()` convention: `_check_rate_limit` window (NTP backward → negative delta → client throttled indefinitely; forward → early reset) and `ws_metrics._start_time`→`get_bandwidth_mbps` (negative `elapsed` → negative Mbps gauge to Prometheus — `== 0` guard missed it). All other uses correct: record timestamps (`models.py`, `audit_logger`, `arbitrage`), serialized `"timestamp"` fields, wall-to-wall comparisons (`expire_ts`, `created_ts`), tools' deadline loops.
+
+**Fixed in R228 (same pass):** both sites → `time.monotonic()`; guard `== 0` → `<= 0`; test seed updated. 51 WS-server tests green.
