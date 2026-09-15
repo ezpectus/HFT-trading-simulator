@@ -2584,3 +2584,17 @@ Clean: all strategy/risk/portfolio math, indicators (both numpy and pure paths),
 - **S344 — CB Prometheus reporting (Low).** `CircuitBreaker` fires an `on_trip` hook on real trips → `record_circuit_breaker_trip` increments (resolves `self.metrics` lazily so the exporter swap applies); the state gauge updates every status tick regardless of WS client count.
 
 Verification: 1300 unit tests green, ruff clean; new regression suites cover dedup cursors, pre-scored sentiment, inventory splits, lazy feed start, ticker merge, and fit/OOS disjointness.
+
+## R210 — slop-audit — `web-ui/src` — CLEAN, 0 findings
+
+Largest single sweep yet: 348 files, ~70k lines. Full reads of all 22 hooks, 4 stores, PanelContainer, App.jsx, feature flags, and the Vite/PWA config; the 271-entry panel registry was verified entry-by-entry; systematic greps covered all 296 components.
+
+- **Data path is real end-to-end** — `useWebSocket` (retry cap, backoff, auth-before-subscribe, outgoing queue) → `useExchangeData` (seq-gap resync, orderbook deltas, ack correlation with honest 5s/queued semantics, authoritative `open_orders`) → `useSignalData` (S327 setter map) → `useTradingStoreSync` → `usePanelContext` (memoized ctx) → registry `props(ctx)` builders → panels.
+- **No render storms** — whole-store subscriptions exist only in the three central funnels (App, usePanelContext, useAppShortcuts); panels consume ctx props.
+- **`Math.random` audit** — all 20 occurrences are legitimate stochastic algorithms (Box-Muller, Xavier init, MH accept/reject, Ogata thinning, bootstrap, id generation); none fabricate live data.
+- **Mock path is honest** — `IS_MOCK` env-gated, parity-shaped returns, `MockModeBanner` disclosure.
+- **Lifecycle clean** — every interval has cleanup; zero `useEffect(async`; all `JSON.parse` guarded; PWA caches static assets/fonts only, never live data.
+- **Registry sound** — all lazy imports resolve; the 16 prop-less entries are honest `NoDataFeed` stubs or self-contained tools.
+- **No dead code** — all hooks/utils have importers; `ui-helpers.js` is an intentional TS-migration shim; the three perf modules have distinct roles.
+
+Verdict: this area was already remediated in earlier rounds (S015, S151, S230–S236, S327 fix-comments visible in code). No new findings — board stays at 0 open.

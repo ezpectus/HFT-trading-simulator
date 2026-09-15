@@ -2776,3 +2776,18 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S328 ✅** — `backtest_engine.py`/`pnl_calculator.py` отсутствуют; 0 prod-референсов; `backtest_requests.py:170` импортирует канонический `BacktestResult`.
 
 Узкие проверки: 212 ai-signal-bot + 28 sim тестов зелёные. **8 VERIFIED / 0 WRONG / 0 ROTTED.** Остались unverified: R199 dependabot, R202 C++ (S334/S335 — doctest-верифицированы при фиксе), R203 S322, R204 (S323–S327).
+
+## R210 — slop-audit — web-ui/src — ЧИСТО, 0 находок
+
+Самый большой swept-участок: 348 файлов, ~70k строк. Полные чтения: все 22 hooks, 4 stores, PanelContainer, App.jsx, featureFlags, vite/PWA config; registry (271 entry) проверен построчно по props-builders; системные grep'ы по всем 296 компонентам.
+
+- **Data-path реален end-to-end** — `useWebSocket` (S231-grade retry/backoff/auth/queue) → `useExchangeData` (seq-gap resync, orderbook deltas, ack-корреляция с честным 5s/queued semantics, authoritative open_orders) → `useSignalData` (S327 setter-map) → `useTradingStoreSync` → `usePanelContext` memo-ctx → registry props → панели.
+- **Render-storm проверка** — whole-store subscribes только в 3 центральных воронках; панели получают данные через ctx-props, не подписываются сами.
+- **Math.random audit** — 20 компонентов, все легитимные стохастические алгоритмы (Box-Muller/Xavier/MH/Ogata/bootstrap/id-gen), ноль фабрикации live-данных.
+- **Mock-path честный** — IS_MOCK env-gate, parity shapes, MockModeBanner disclosure.
+- **Lifecycle** — все 13 interval-файлов с cleanup; 0 `useEffect(async`; все `JSON.parse` guarded.
+- **Registry** — все 271 lazy-импорта резолвятся; 16 no-prop entries = честные NoDataFeed-стабы или self-contained tools.
+- **PWA** — кеширует только static/fonts, live-данные не трогает.
+- **Dead-code** — 0 мёртвых экспортов/hooks/utils (ui-helpers.js — intentional TS-shim).
+
+Вердикт: область уже вычищена предыдущими раундами (S015, S151, S230–S236, S327 видны в коде как fix-комментарии). Новых находок нет — доска остаётся пустой.
