@@ -2801,3 +2801,10 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S349 (Info)** — `close_reason` = `trade_history[-1].reason` для каждого ордера батча → мислейбл при >1 закрытии/тик; доходит до AlertWebhook-классификации + trade CSV `CLOSED_{reason}`.
 
 Чисто: ws_message_handler (per-message try, rate-limit, auth-gate, idempotent dedup, NaN/TIF-валидация), ws_broadcast (per-encoding variants, per-client subs, seq, delta-compute), wire-schema ↔ web-ui consumer, websocket_server (SHM seqlock, health-endpoints, graceful shutdown), ws_metrics histogram, market_simulator (GBM+corr+OU), options_simulator (Black-Scholes+parity), arbitrage, audit_logger, config_validator, data_export, models, exchange, __main__.
+
+## R212 — slop-fix — S347/S348/S349 — все закрыты, board 0 open
+
+- **S347 (Medium)** — `_send_tracked()` теперь обслуживает все broadcast-пути (market+arb payload, fills_batch, audit_events, _broadcast_to_clients): message size + per-client send latency (finally — backpressure считается). `record_delta_update` на per-key решении в `_build_orderbook_data`. `clients_connected` → `len(clients)` на scrape. Удалено немерируемое: `compressed_size` param + `compression_ratio` gauge (permessage-deflate живёт внутри websockets transport — приложение wire-размер не видит). Публичная поверхность: −1 gauge, `record_message` без параметра.
+- **S348 (Info)** — `_handle_set_speed`/`_handle_update_config` → `async def` + `await self._send_json(...)` ×4: ack'и доставляются (не floating tasks), идут с negotiated encoding (msgpack-клиенты раньше получали TEXT json) и в метрики попадают.
+- **S349 (Info)** — reason едет на ордере: `Order.close_reason` (to_dict его несёт), ставится в `_close_triggered_position`; `ClosedTrade.order_id` — stamp по id-джойну вместо `[-1]`; ws-чтение `order.close_reason`. Батч-закрытия и non-trade fills больше не наследуют чужой reason.
+- Проверка: 171 focused + 442 full sim suite green; ruff clean; 2 новых регрессионных теста на batch-attribution.
