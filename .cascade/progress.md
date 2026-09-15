@@ -3048,3 +3048,8 @@ Board: 0 open.
 - shm write slice+unpack+pack → pack_into/unpack_from: 0.31us → 0.24us per symbol = **1.3x**
 - candle trim per-msg erase(200) → amortized(256→200): 3.1ms → 1.9ms per 30k msgs = **1.6x**
 - C++ analogues (scratch keys, zero-alloc send, single-lock sweep) — same class of win, unmeasurable locally (no MSVC build).
+
+## R237 — slop-verify S364 (all 18 sub-sites)
+
+- (e) single pressure analyze: bot_loop.cpp:168 one call site ✓; (f) in-place ob fill: handlers:140-162 ✓; (g) 5 scratch-key sites + find_for_symbol scratch (order default→shm→bare matches book_key) ✓; (h) amortized trim >256→200 both histories ✓; (i) zero std::string(buf) in order_executor ✓; (j) find() once per key ✓; (k) ob_buf reuse w/ is_connected-first ✓; (l) gmtime ≤1/min ✓; (m) notify after commit ✓; (o) inject_snapshots_scoped single lock ✓; (p) keyed book in-place ✓; (q) encode_cache (enc,frozenset(subs)) ✓; (r) pack_into/unpack_from on mmap ✓.
+- Verified: all claims hold in code; sim 446/446, ruff clean. Board: 0 open.

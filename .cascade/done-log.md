@@ -1296,7 +1296,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R235 — HFT hot-path perf sweep — S364
 
-### S364 — per-tick allocations + syscall churn in hft hot loop (Info) ✅
+### S364 — per-tick allocations + syscall churn in hft hot loop (Info) ✅ ✅ verified R237
 - **Bug:** four per-iteration wastes on the main trading tick: (a) `update_health_status` called `process_memory_mb()` every tick — a syscall (GetProcessMemoryInfo / /proc parse) for a health endpoint; (b) `run_v1_fallback_loop` used by-value `get_candles()`/`get_order_book()` — deep copy of 100 candles + book per symbol per tick while `_into` variants + shared ctx buffers already existed (v2 uses them); (c) `find_for_symbol` built a fresh `ex|sym` string per lookup under `data_lock_` — ~1-3 allocs × 9 read-paths per tick; (d) `get_all_prices_into` did `substr` allocs per qualified key inside the lock; `check_sl_tp` re-read `steady_clock::now()` per position.
 - **Fix:** 5s-cached memory sample (reusing `now_steady`); v1 loop on `ctx.candles_buf`/`ctx.ob_buf` via `get_candles_into`/`get_order_book_into` (miss→synthetic path now clears stale book data first — `get_order_book_into` leaves `out` untouched on a miss); `find_for_symbol` scratch `key_scratch_` (mutable, safe — all 9 callers hold `data_lock_`); `compare()` instead of `substr` for venue projection; hoisted `now()` in `check_sl_tp`.
 - **Extended:** (e) `pressure_model->analyze(ob)` ran TWICE per signal (generate_signal + select_order_kind on the same book) — now computed once and threaded through; (f) `update_orderbooks` rebuilt each book into a temp then copied — now fills the stored entry in place so level vectors keep capacity across snapshots.
