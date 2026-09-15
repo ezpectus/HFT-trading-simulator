@@ -2657,3 +2657,15 @@ Clean: `QUICK_START.md` (49 symbols, 3 exchanges, `.env.mock`, `prod-up`, C++20,
 
 - **S354** — all counts rewritten to `find`-verified actuals (Py 120 / C++ **26** incl. `integration/`+`unit/` subdirs / JS 159 / total 305+5 e2e — the initial root-glob undercounted C++ and was corrected in-pass); integration 4→3 with real purposes; phantom names (`test_trading_flow`, `test_marketplace`, `test_cross_exchange_arb`, `test_portfolio_optimizer`, `test_integration_signal_engine`) → real files; coverage claims now describe what tests actually do (`test_alerts` = structure-only; health coverage → `test_health_server.py`/`test_metrics_server.py`/docker-smoke). Same-pattern: `ADVANCED_ORDER_TYPES.md:349` → real test filenames; `QUICK_START.md:176` self-contradictory comment removed.
 - **S355** — every example rewritten to real signatures (`calculate_cvar`, `calculate(..., entry_price, ...)`, `calculate_position_size(signal, price, volatility, ...)`, `covid_crash_scenario(current_prices, positions)`, `init_position`+`update` with real action keys); phantom `RiskAnalyzer`/`var_stress_test.py` section deleted; test table → real files. All names/fields verified against `src/risk/` source.
+
+## R221 — slop-audit — tools/ + monitor sweep — 1 finding
+
+Fresh sweep of the load/chaos harnesses (`exchange_simulator/tools/` ×5, ~1k lines) and `ai-signal-bot/monitor.py` (157).
+
+- **S356 — `load_10k` latency percentiles structurally dead + target-label lie (Low).** Two defects in one tool: (1) `record_message` computed latency as `wall_now − msg["timestamp"]`, but all broadcast timestamps carry the sim's *simulated* market clock (`ws_broadcast.py` emits `market.current_timestamp` — seeded at epoch-2024, advanced by candle interval, never wall-time; no broadcast field carries send wall-time) — so every sample was ~years off, the `0 < ms < 10000` filter dropped all of them, and the advertised p50/p95/p99 always printed "N/A". (2) The report's `Target (10k/sec): PASS` was hardcoded `avg >= 10000` while the exit code honored `--target` — label and gate could disagree.
+
+Clean: `load_50_symbols.py` (WS ping→pong latency done correctly), `stress_load.py` (round-trip latency via client-side `client_order_id` correlation — the correct pattern; honestly labels client-process memory), `chaos_reconnect.py` + `chaos_enhanced.py` (real process lifecycle — spawn/`python -m exchange_simulator`/kill/wait_ready, Windows process-group handling, graceful kill chain), `ai-signal-bot/monitor.py` (every display field — `entry_price`/`stop_loss`/`take_profit`/`rr_ratio`/`direction`/`confidence`/`reason` — verified present in real signal payloads; honest reconnect backoff, log/CSV tails).
+
+**Fixed in R221 (same pass):**
+
+- **S356** — dead timestamp-parse block removed; latency now sampled via 1 Hz WS ping→pong RTT (`_sample_latency` task, the `load_50_symbols` pattern — no protocol change); `report(target)` prints `Target ({target}/sec)` matching the exit gate. Verified live against a stub WS server: real RTT samples collected, ~18k msg/s throughput, custom `--target` label honored.

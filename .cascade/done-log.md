@@ -1204,14 +1204,24 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R220 — slop-fix — S354/S355 (docs-vs-reality rot)
 
-### S354 — TESTING.md numbers + coverage claims corrected to verified actuals
+### S354 — TESTING.md numbers + coverage claims corrected to verified actuals ✅ · verified R221
 - **Bug:** systematic rot — every count wrong and self-contradictory (Py 118/126 → real 120; C++ 25 → real 26 incl. integration/+unit/ subdirs; JS ~158/162 → 159; totals 303/304/307 → 305+5 e2e), phantom test names (`test_trading_flow.py`, `test_marketplace`, `test_cross_exchange_arb`, `test_portfolio_optimizer`, `test_integration_signal_engine`), false coverage claims (`test_alerts.py` does NOT cross-check metric names — structure only; `test_integration.py` has zero health asserts — health coverage lives in `tests/unit/test_health_server.py`/`test_metrics_server.py`; sim `:8775/health` covered by docker-smoke + compose healthcheck, no pytest). Same-pattern fix: `ADVANCED_ORDER_TYPES.md:349` `test_order_types.py` → real `test_advanced_order_types.py`+`test_exchange_advanced_orders.py`; `QUICK_START.md:176` self-contradictory comment removed.
 - **Fix:** rewrote all counts to ls-verified actuals (120 Py / 26 C++ / 159 JS / 305 total +5 e2e), corrected integration count 4→3 with real file purposes, replaced phantom names with real ones, rewrote coverage claims to describe what tests actually do, corrected health-endpoint coverage attributions. Initial recount missed `tests/{integration,unit}/` subdirs — corrected C++ 23→26 and total 302→305 in the same pass.
 - **Files:** `docs/TESTING.md:23,84-92,95,103-105,113-117,122,157,166,182,193-194,229,235-241`; `docs/ADVANCED_ORDER_TYPES.md:349`; `docs/guides/QUICK_START.md:174-177`
 - **Verified:** every count re-globbed recursively (`find ... -name 'test_*'`); every named test file `ls`-checked; coverage claims re-read in source.
 
-### S355 — RISK_MANAGEMENT.md examples rewritten against the real API
+### S355 — RISK_MANAGEMENT.md examples rewritten against the real API ✅ · verified R221
 - **Bug:** phantom-API tour — entire `### RiskAnalyzer` section documented `src/risk/var_stress_test.py`+`RiskAnalyzer` which never existed; wrong method names (`calculate_historical_cvar`→`calculate_cvar`, `size_by_volatility`→`calculate_position_size`, `run_covid_crash`→`covid_crash_scenario`, `update_stop_loss`→`init_position`+`update`); wrong kwarg (`entry=`→`entry_price=`); phantom `test_risk_modules.py` (×2).
 - **Fix:** every example rewritten to real signatures (`calculate_cvar`, `calculate(balance, entry_price, stop_loss)`, `calculate_position_size(signal, price, volatility, risk_per_trade, method)`, `covid_crash_scenario(current_prices, positions)`, `init_position`+`update` with real `actions` keys `new_stop_loss/close_position/close_reason/partial_close_pct`); phantom RiskAnalyzer section deleted; test table → real files (test_risk/test_cvar*/test_kelly*/test_position_sizing/test_risk_manager).
 - **Files:** `docs/RISK_MANAGEMENT.md:135-141,176,204-213,241-253,293-303,341-349`
 - **Verified:** all class names `grep`-confirmed in `src/risk/`; all method names + signatures + result fields + actions-keys read from source; all 5 test files `ls`-confirmed.
+
+## R221 — slop-audit+fix — S356 (tools/ + monitor sweep)
+
+### S356 — `load_10k` advertised latency percentiles structurally dead + PASS label ignored `--target` ✅
+- **Bug:** `record_message` measured latency as `wall_now − msg["timestamp"]`, but every broadcast timestamp is the simulator's *simulated* clock (`ws_broadcast.py` → `market.current_timestamp`, seeded at 1704067200 and advanced by candle interval) — the delta is ~years, so the `0 < ms < 10000` sanity filter rejected 100% of samples and p50/p95/p99 always printed N/A. Second defect: report printed `PASS if avg >= 10000` while `sys.exit` honored `--target` — the label and the exit code could disagree.
+- **Fix:** removed the dead timestamp-parse block; added `_sample_latency` — a 1 Hz WS ping→pong RTT sampler (the pattern `load_50_symbols.py` already uses) run as a task alongside the recv loop; `report()` now takes `target` and labels `Target ({target}/sec)` consistently with the exit gate.
+- **Files:** `exchange_simulator/tools/load_10k.py:50-52,61,89,103-106,113-120,142,169,187`
+- **Verified:** `py_compile` + `ruff` clean; live check against a stub WS server — 4 real RTT samples collected in 3s, ~55k msgs received, report prints real percentiles and `Target (1/sec): PASS` with a custom `--target`.
+
+Audit result for the rest of the sweep: `load_50_symbols.py` clean (ping/pong latency correct), `stress_load.py` clean (client-side `client_order_id` RTT correlation — the right way), `chaos_reconnect.py`/`chaos_enhanced.py` clean (real process lifecycle, Windows process-group kill chain, S220-correct `python -m exchange_simulator`), `ai-signal-bot/monitor.py` clean (all display keys — `entry_price`/`stop_loss`/`take_profit`/`rr_ratio`/`direction`/`confidence`/`reason` — verified against real signal payloads; honest reconnect backoff).

@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R221 — load-harness latency + doc truth)
+
+### Fixed
+- **`load_10k` latency percentiles were structurally dead (S356):** broadcast messages carry the simulator's *simulated* clock (2024-epoch), so `wall_now − ts` ≈ years and every sample failed the sanity filter — the advertised p50/p95/p99 always printed N/A. Latency is now measured via real WS ping→pong RTT (the `load_50_symbols` pattern); the PASS/FAIL line now honors `--target` instead of a hardcoded 10k.
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R199–R202 — supply-chain + safety gates + fill-model truth)
 
 ### Fixed

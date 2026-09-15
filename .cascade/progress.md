@@ -2889,3 +2889,10 @@ Board: 2 open (S354, S355).
 - **S355** — RISK_MANAGEMENT.md: все examples → real API signatures (calculate_cvar / entry_price / calculate_position_size / covid_crash_scenario / init_position+update с реальными action-keys), phantom RiskAnalyzer/var_stress_test.py секция удалена, test-table → реальные файлы.
 
 Board: 0 open.
+
+## R221 — tools/ + monitor sweep — S356 найден+закрыт — BOARD EMPTY
+
+- **S356** — load_10k: latency-блок был структурно мёртв (broadcast timestamp = sim-clock ≈ 2024-epoch, `wall_now − ts` ≈ годы → фильтр отбрасывал всё → p50/p95/p99 всегда N/A); PASS-лейбл игнорировал `--target`. Фикс: ping→pong RTT сэмплер (паттерн load_50_symbols), report(target) согласован с exit-кодом. Проверено live на stub-сервере — реальные RTT-сэмплы, ~18k msg/s.
+- Чисто: load_50_symbols (ping/pong правильно), stress_load (client_order_id RTT — правильный паттерн), chaos_reconnect/chaos_enhanced (real process lifecycle, Windows kill-chain), monitor.py (все ключи сигналов реальные).
+
+Board: 0 open.
