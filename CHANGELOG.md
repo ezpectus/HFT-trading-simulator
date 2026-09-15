@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R250 — ctest registration completeness)
+
+### Fixed
+- **Four v2 test suites existed on disk but were never registered in CMake (S373):** `test_v2_engine`/`test_v2_indicators`/`test_v2_infra`/`test_v2_pressure_adaptive` are dep-free assert-based binaries that simply had no `add_test`. Registered via `add_hft_test` (with `signal_engine_v2.cpp` for `SignalEngineV2Params::validate`). First execution caught `test_v2_engine`'s toxicity-penalty test asserting an impossible reduction — at `toxic_penalty=0.8` the residual pressure still saturates above the 0.2 threshold; now uses `1.0` so the penalty visibly crosses it. **ctest: 17/17 binaries green.**
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R248 — hft ctest unblocked)
 
 ### Fixed

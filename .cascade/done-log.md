@@ -1398,3 +1398,12 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - Rather than extend the stub's semantics, vendored the genuine single-header `doctest.h` v2.4.11 (MIT) — real SUBCASE prefix re-run, REQUIRE aborts the test case, expression decomposition, WARN/INFO/CAPTURE, Context/CLI.
 - Swap exposed two more latent defects: (a) 4 test files (`test_doctest_hft_config`, `test_doctest_signal_receiver`, `test_integration_config`, `test_integration_kill_switch_monitor`) had **no `DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN` and no `main`** — they could never have linked under any framework; targets now get `DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN` via CMake. (b) 4 assertion sites in `unit/test_network.cpp`/`unit/test_monitoring.cpp` used `a > lo && a < hi` which real doctest rejects ("Expression Too Complex") — split into paired bound asserts.
 - Re-verified: full rebuild clean, **ctest 13/13, all green** under real doctest 2.4.11 (banner + assertion counts confirmed).
+
+## R250 — ctest registration completeness — S373
+
+### S373 — 4 v2 test files on disk were never registered in CMake (Medium) ✅
+- **Context:** the earlier "dep-gated v2 quartet" note was wrong — `test_v2_engine/indicators/infra/pressure_adaptive` were **not registered at all** (no `add_test` for them existed). Cross-check: 26 test files on disk vs 22 registered. The quartet is dep-free (std + platform headers only, own `main`, assert-based) — registering them costs nothing.
+- **Fix:** registered via `add_hft_test` (its original purpose — non-doctest tests); all four needed `src/strategies/signal_engine_v2.cpp` (out-of-line `SignalEngineV2Params::validate`) via `target_sources`.
+- **First real execution caught 1 rotten test:** `test_signal_engine_v2_toxicity_penalty` set `toxic_penalty=0.8` and expected `sig_toxic.pressure_score < sig_clean.pressure_score` — impossible: raw ≈0.96 saturates to +1 clean, and ×0.28 residual (0.27) still exceeds `pressure_threshold=0.2` → saturates too → `1.0 < 1.0`. Production math is self-consistent (verified vs `signal_engine_v2.h:306-316`); the test now uses `toxic_penalty=1.0` (residual ×0.10 ≈ 0.096 < 0.2 → normalized ≈0.48 — reduction actually crosses the threshold).
+- **Files:** `hft-trade-bot/CMakeLists.txt` (+4 registrations, +foreach sources); `hft-trade-bot/tests/test_v2_engine.cpp` (penalty param + rationale comment).
+- **Verified:** `ctest` now runs **17/17 binaries — all green** (was 13; +4 v2 suites, ~50 more assertions). Test-file↔registration parity: 26/26 files registered.

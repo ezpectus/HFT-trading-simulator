@@ -3143,3 +3143,10 @@ Board: 0 open.
 - S372: RSI three-way (losses>0→formula, gains-only→100, flat→50); `vol_proxy=sqrt(vol_ewma_)` per-obs; RANGING ret-var 1e-7; `current_volatility()` keeps ×252 — all verified.
 - R248-cont: real doctest 2.4.11 — verified by build+run (banner, 14/14 assertions); 4 main-less targets now compile-def'd.
 - Board: 0 open.
+
+## R250 — ctest registration completeness → S373 found+fixed
+
+- Cross-checked test files vs CMake registrations: the v2 quartet (engine/indicators/infra/pressure_adaptive) was on disk but never registered — 4 dead suites, all dep-free. Registered via add_hft_test + signal_engine_v2.cpp sources.
+- First run caught a rotten test: toxicity_penalty expected a visible score reduction at penalty=0.8, but the residual (0.27) still saturates above the 0.2 threshold → impossible assert. Fixed to penalty=1.0 so the reduction actually crosses the threshold.
+- ctest: **17/17 binaries green** (was 13). Parity: 26/26 test files registered.
+- Board: 0 open.
