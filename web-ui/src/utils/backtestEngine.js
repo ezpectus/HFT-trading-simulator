@@ -209,6 +209,38 @@ export function runBacktest(candles, rules, options = {}) {
   // Returns per candle for Sharpe/Sortino
   const returns = []
 
+  // Shared close path for CLOSE_ALL rules and the end-of-data flush —
+  // one body, so fee/borrow/pnl math can't drift between copies (S323).
+  const closePosition = (candle, reason) => {
+    const exitPrice = position.side === 'LONG'
+      ? candle.close * (1 - slippagePct / 100)
+      : candle.close * (1 + slippagePct / 100)
+    const pnl = position.side === 'LONG'
+      ? (exitPrice - position.entryPrice) * position.qty
+      : (position.entryPrice - exitPrice) * position.qty
+    const fee = (position.qty * exitPrice * feePct) / 100
+    // Borrow fee for short positions: daily rate * position value * holding period in days
+    let borrowFee = 0
+    if (position.side === 'SHORT' && borrowFeePct > 0) {
+      const holdingDays = (candle.time - position.entryTime) / 86400
+      borrowFee = (position.entryPrice * position.qty * borrowFeePct / 100) * holdingDays
+    }
+    balance += pnl - fee - borrowFee
+    const entryNotional = position.entryPrice * position.qty
+    trades.push({
+      entryTime: position.entryTime,
+      exitTime: candle.time,
+      side: position.side,
+      entryPrice: position.entryPrice,
+      exitPrice,
+      qty: position.qty,
+      pnl: pnl - fee - borrowFee,
+      pnlPct: entryNotional !== 0 ? ((pnl - fee - borrowFee) / entryNotional) * 100 : 0,
+      exitReason: reason,
+    })
+    position = null
+  }
+
   for (let i = 0; i < candles.length; i++) {
     const candle = candles[i]
 
@@ -251,33 +283,7 @@ export function runBacktest(candles, rules, options = {}) {
         }
         case 'close_all': {
           if (position) {
-            const exitPrice = position.side === 'LONG'
-              ? candle.close * (1 - slippagePct / 100)
-              : candle.close * (1 + slippagePct / 100)
-            const pnl = position.side === 'LONG'
-              ? (exitPrice - position.entryPrice) * position.qty
-              : (position.entryPrice - exitPrice) * position.qty
-            const fee = (position.qty * exitPrice * feePct) / 100
-            // Borrow fee for short positions: daily rate * position value * holding period in days
-            let borrowFee = 0
-            if (position.side === 'SHORT' && borrowFeePct > 0) {
-              const holdingDays = (candle.time - position.entryTime) / 86400
-              borrowFee = (position.entryPrice * position.qty * borrowFeePct / 100) * holdingDays
-            }
-            balance += pnl - fee - borrowFee
-            const entryNotional1 = position.entryPrice * position.qty
-            trades.push({
-              entryTime: position.entryTime,
-              exitTime: candle.time,
-              side: position.side,
-              entryPrice: position.entryPrice,
-              exitPrice,
-              qty: position.qty,
-              pnl: pnl - fee - borrowFee,
-              pnlPct: entryNotional1 !== 0 ? ((pnl - fee - borrowFee) / entryNotional1) * 100 : 0,
-              exitReason: 'CLOSE_ALL',
-            })
-            position = null
+            closePosition(candle, 'CLOSE_ALL')
           }
           break
         }
@@ -324,33 +330,7 @@ export function runBacktest(candles, rules, options = {}) {
 
   // Close any remaining position at the last candle
   if (position) {
-    const lastCandle = candles[candles.length - 1]
-    const exitPrice = position.side === 'LONG'
-      ? lastCandle.close * (1 - slippagePct / 100)
-      : lastCandle.close * (1 + slippagePct / 100)
-    const pnl = position.side === 'LONG'
-      ? (exitPrice - position.entryPrice) * position.qty
-      : (position.entryPrice - exitPrice) * position.qty
-    const fee = (position.qty * exitPrice * feePct) / 100
-    let borrowFee = 0
-    if (position.side === 'SHORT' && borrowFeePct > 0) {
-      const holdingDays = (lastCandle.time - position.entryTime) / 86400
-      borrowFee = (position.entryPrice * position.qty * borrowFeePct / 100) * holdingDays
-    }
-    balance += pnl - fee - borrowFee
-    const entryNotional2 = position.entryPrice * position.qty
-    trades.push({
-      entryTime: position.entryTime,
-      exitTime: lastCandle.time,
-      side: position.side,
-      entryPrice: position.entryPrice,
-      exitPrice,
-      qty: position.qty,
-      pnl: pnl - fee - borrowFee,
-      pnlPct: entryNotional2 !== 0 ? ((pnl - fee - borrowFee) / entryNotional2) * 100 : 0,
-      exitReason: 'END',
-    })
-    position = null
+    closePosition(candles[candles.length - 1], 'END')
   }
 
   // Compute metrics

@@ -27,6 +27,21 @@ export function useSignalData(options = {}) {
   const [authState, setAuthState] = useState(SIGNAL_TOKEN ? 'pending' : 'disabled')
   const onBacktestResultRef = useRef(options.onBacktestResult)
 
+  // Pure store-and-forget result messages — setState functions are stable,
+  // so a ref'd map replaces the nine identical `case 'x_result': setX(data)`
+  // branches (S327). 'backtest_result' stays in the switch: it also fires
+  // the onBacktestResult callback.
+  const resultSetters = useRef({
+    comparison_result: setBacktestResult,
+    portfolio_result: setPortfolioResult,
+    vol_surface_result: setVolSurfaceResult,
+    cvar_result: setCvarResult,
+    stress_test_result: setStressTestResult,
+    position_size_result: setPositionSizeResult,
+    hawkes_result: setHawkesResult,
+    funding_arb_result: setFundingArbResult,
+  })
+
   useEffect(() => {
     onBacktestResultRef.current = options.onBacktestResult
   })
@@ -55,30 +70,6 @@ export function useSignalData(options = {}) {
         setBacktestResult(data)
         onBacktestResultRef.current?.(data)
         break
-      case 'comparison_result':
-        setBacktestResult(data)
-        break
-      case 'portfolio_result':
-        setPortfolioResult(data)
-        break
-      case 'vol_surface_result':
-        setVolSurfaceResult(data)
-        break
-      case 'cvar_result':
-        setCvarResult(data)
-        break
-      case 'stress_test_result':
-        setStressTestResult(data)
-        break
-      case 'position_size_result':
-        setPositionSizeResult(data)
-        break
-      case 'hawkes_result':
-        setHawkesResult(data)
-        break
-      case 'funding_arb_result':
-        setFundingArbResult(data)
-        break
       case 'auth_ok':
         setAuthState('ok')
         break
@@ -86,6 +77,7 @@ export function useSignalData(options = {}) {
         setAuthState('failed')
         break
       default:
+        resultSetters.current[data.type]?.(data)
         break
     }
   }, [])
