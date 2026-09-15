@@ -131,10 +131,16 @@ void update_prices(const json& prices_data, const json& /*full_data*/) {
 void update_orderbooks(const json& data, int64_t timestamp) {
     std::lock_guard<Spinlock> lock(data_lock_);
     for (auto& [key, ob_data] : data["orderbooks"].items()) {
-        OrderBook ob;
-        ob.symbol    = ob_data.value("symbol", "");
-        ob.exchange  = ob_data.value("exchange", "");
-        ob.timestamp = timestamp;
+        // Fill the stored book in place — bids/asks keep capacity across
+        // snapshots instead of reallocating from empty every message.
+        std::string symbol   = ob_data.value("symbol", "");
+        std::string exchange = ob_data.value("exchange", "");
+        OrderBook&  ob       = order_books_[book_key(exchange, symbol)];
+        ob.symbol            = std::move(symbol);
+        ob.exchange          = std::move(exchange);
+        ob.timestamp         = timestamp;
+        ob.bids.clear();
+        ob.asks.clear();
         if (ob_data.contains("bids")) {
             for (const auto& b : ob_data["bids"])
                 ob.bids.push_back({b.value("price", 0.0), b.value("quantity", 0.0)});
@@ -143,12 +149,10 @@ void update_orderbooks(const json& data, int64_t timestamp) {
             for (const auto& a : ob_data["asks"])
                 ob.asks.push_back({a.value("price", 0.0), a.value("quantity", 0.0)});
         }
-        const auto key    = book_key(ob.exchange, ob.symbol);
-        order_books_[key] = ob;
         if (primary_exchange(ob.exchange)) {
             auto id_it = symbol_to_id_.find(ob.symbol);
             if (id_it != symbol_to_id_.end()) {
-                obs_by_id_[id_it->second] = std::move(ob);
+                obs_by_id_[id_it->second] = ob;
             }
         }
     }
