@@ -1218,7 +1218,7 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R221 — slop-audit+fix — S356 (tools/ + monitor sweep)
 
-### S356 — `load_10k` advertised latency percentiles structurally dead + PASS label ignored `--target` ✅
+### S356 — `load_10k` advertised latency percentiles structurally dead + PASS label ignored `--target` ✅ · verified R233
 - **Bug:** `record_message` measured latency as `wall_now − msg["timestamp"]`, but every broadcast timestamp is the simulator's *simulated* clock (`ws_broadcast.py` → `market.current_timestamp`, seeded at 1704067200 and advanced by candle interval) — the delta is ~years, so the `0 < ms < 10000` sanity filter rejected 100% of samples and p50/p95/p99 always printed N/A. Second defect: report printed `PASS if avg >= 10000` while `sys.exit` honored `--target` — the label and the exit code could disagree.
 - **Fix:** removed the dead timestamp-parse block; added `_sample_latency` — a 1 Hz WS ping→pong RTT sampler (the pattern `load_50_symbols.py` already uses) run as a task alongside the recv loop; `report()` now takes `target` and labels `Target ({target}/sec)` consistently with the exit gate.
 - **Files:** `exchange_simulator/tools/load_10k.py:50-52,61,89,103-106,113-120,142,169,187`
@@ -1239,7 +1239,7 @@ Ran every runnable suite end-to-end instead of read-verifying individual entries
 
 ## R223 — env-var cross-check sweep — S357
 
-### S357 — `.env.prod.example` asymmetric: `OPENAI_API_KEY` listed, `ANTHROPIC_API_KEY` absent (Info) ✅
+### S357 — `.env.prod.example` asymmetric: `OPENAI_API_KEY` listed, `ANTHROPIC_API_KEY` absent (Info) ✅ · verified R233
 - **Bug:** `src/llm_engine/engine.py:60` reads `ANTHROPIC_API_KEY` when `llm.provider: anthropic` is configured; `docs/guides/CONFIGURATION_GUIDE.md:385` documents it — but the prod env template (the file operators copy to `.env.prod`, forwarded into containers via `env_file:`) listed only `OPENAI_API_KEY`. An anthropic deployer gets no hint of the var name.
 - **Fix:** added `ANTHROPIC_API_KEY=` with a provider-hint comment next to `OPENAI_API_KEY`.
 - **Files:** `.env.prod.example:59-61`
@@ -1249,7 +1249,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R224 — imports-vs-requirements cross-check — S358
 
-### S358 — `tools/stress_load.py` bare `import psutil` not in any requirements file (Info) ✅
+### S358 — `tools/stress_load.py` bare `import psutil` not in any requirements file (Info) ✅ · verified R233
 - **Bug:** `stress_load.py:21` imports `psutil` unconditionally, but neither `requirements.txt` nor `requirements-dev.txt` pins it — a clean dev checkout crashes at import. Sibling `load_10k.py` guards it (`HAS_PSUTIL`); `stress_load` doesn't. Docker images only install `requirements.txt`, so the bare import was only ever true in dev envs — which lacked the pin.
 - **Fix:** `psutil>=5.9.0` added to `exchange_simulator/requirements-dev.txt` (dev tools live under dev deps; `>=` convention matches the file). Chosen over guarding the import: the memory-growth scenario is a named feature of the tool — silently skipping it would weaken the harness.
 - **Files:** `exchange_simulator/requirements-dev.txt:8-9`
@@ -1257,7 +1257,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R226 — async-task lifecycle audit — S359
 
-### S359 — `ws_client._request_resync` fire-and-forget task swallowed send failures (Info) ✅
+### S359 — `ws_client._request_resync` fire-and-forget task swallowed send failures (Info) ✅ · verified R233
 - **Bug:** `ws_client.py:258` was the only `create_task` site in the codebase with no task reference and no done callback — every sibling site either stores the task for cancel+await on shutdown or registers `add_done_callback(self._on_task_done)` (the run.py idiom). If `_send_resync`'s `ws.send` raised (e.g. `ConnectionClosed` on the flaky socket that caused the gap in the first place), the exception died in the GC "exception never retrieved" handler and the resync was silently skipped — self-healing only on the next gap + 5s cooldown, with no log anywhere.
 - **Fix:** keep the task reference + `add_done_callback(self._on_resync_done)` which logs `logger.warning("Resync request failed: %s", exc)` — matches the codebase's `_on_task_done` idiom.
 - **Files:** `ai-signal-bot/src/communication/ws_client.py:258-265`; `tests/unit/test_ws_client.py` (new `test_resync_send_failure_logged`).
@@ -1265,7 +1265,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R228 — time-source audit — S360
 
-### S360 — `exchange_simulator` duration measurements on wall clock (Info) ✅
+### S360 — `exchange_simulator` duration measurements on wall clock (Info) ✅ · verified R233
 - **Bug:** two duration sites used `time.time()` where `time.monotonic()` is required — the codebase's own convention (`ai-signal-bot` uses `monotonic()` at `metrics_server.py:31`, `health_server.py:53`, `health_checks.py:61`, `ws_client` resync cooldown). (a) `ws_message_handler._check_rate_limit` (`now`/`window_start`) — an NTP backward step makes `now - window_start` negative → the window never expires → the client is throttled indefinitely; a forward step resets early → limiter leaks. (b) `ws_metrics._start_time`/`get_bandwidth_mbps` — `elapsed` could go negative → a *negative* `exchange_simulator_bandwidth_mbps` gauge exported to Prometheus (`ws_prometheus.py:119`); the `== 0` guard didn't cover it.
 - **Fix:** both sites → `time.monotonic()`; `elapsed == 0` guard → `<= 0`. All other `time.time()` uses audited and correct — wall-clock record timestamps (`models.py` factories, `audit_logger`, `arbitrage` `closed_at`, serialized `"timestamp"` fields) and wall-to-wall comparisons (GTD `expire_ts`, signal `created_ts`). Dev tools' deadline loops left on wall clock deliberately (human wall-time semantics).
 - **Files:** `exchange_simulator/ws_message_handler.py:50,75`; `exchange_simulator/ws_metrics.py:51,100-101`; `exchange_simulator/tests/test_websocket_server.py:519`.
@@ -1273,7 +1273,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R229 — React lifecycle sweep — S361
 
-### S361 — `useWebSocket` unmount spawns a ghost reconnect loop (Medium) ✅
+### S361 — `useWebSocket` unmount spawns a ghost reconnect loop (Medium) ✅ · verified R233
 - **Bug:** the mount-effect cleanup (`useWebSocket.ts:254`) cleared all three timers and called `ws.close()` — but never set `manualCloseRef`. `close()` fires `onclose` asynchronously, which calls `scheduleRetry()` whenever `manualCloseRef` is false — creating a NEW `reconnectTimer` after the cleanup ran. That timer survives unmount (nothing clears it), fires `connect()`, and builds a fresh WebSocket on a dead component — a ghost socket that reconnects forever (`reconnectAttempts` resets on open, so even the S231 maxReconnects cap never fires). `disconnect()` set the flag correctly; only the unmount path missed it — every component unmounting while connected (tab/route switches, conditional panels) leaked a zombie WS.
 - **Fix:** `manualCloseRef.current = true` in the unmount cleanup before `ws.close()` — one line, same semantics as `disconnect()`.
 - **Files:** `web-ui/src/hooks/useWebSocket.ts:254-261`; `web-ui/src/test/useWebSocket.test.jsx` (new `unmount does not spawn a ghost reconnect (S361)`).
@@ -1281,7 +1281,7 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 
 ## R230 — NaN/inf serialization sweep — S362
 
-### S362 — `portfolio_requests` validators accept non-finite floats → unparseable frames (Info) ✅
+### S362 — `portfolio_requests` validators accept non-finite floats → unparseable frames (Info) ✅ · verified R233
 - **Bug:** `1e999` is valid JSON — `json.loads` yields `inf`. Every float-parse in `portfolio_requests.py` accepted it: `_returns_from_candles` closes (`inf/inf` → NaN returns → NaN cov matrix), `current_weights`/`market_weights`/`portfolio_value`/`risk_free_rate` (rf=inf → sharpe `-inf`), view weights/expected_return/confidence, surface `strike`/`maturity_days` (`<=0` misses inf/nan), `forward`, `eval_strikes`. NaN/inf then flowed to `json.dumps`, which emits bare `NaN`/`Infinity` — invalid JSON → the client's `JSON.parse` throws → the entire response frame is dropped (useWebSocket's catch logs + discards). One malformed request → its response silently never arrives.
 - **Fix:** `np.isfinite` checks at all 8 parse sites, returning the file's existing error-string idiom ("must be finite") — input-side rejection matching `analysis_requests:55` ("returns must be finite"). `iv`/`beta` were already safe via bounded ranges.
 - **Files:** `ai-signal-bot/src/communication/portfolio_requests.py:46,192-194,201-203,214-216,225-227,90-96,250-252,326,338-340`; `tests/unit/test_portfolio_requests.py` (6 new error-path params).

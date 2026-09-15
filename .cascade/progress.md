@@ -2969,3 +2969,14 @@ Board: 0 open.
 - SHM: все 4 структуры byte-identical + field order + seqlock barriers.
 - Secrets-in-logs: 0. exhaustive-deps disables: все deliberate. Backtest/live parity: тот же analyze().
 - Board: 0 open.
+
+## R233 — slop-verify свежего батча S356–S362 — 7/7 VERIFIED
+
+- S356: load_10k real ws.ping/pong RTT (_sample_latency task) + tests/test_load_10k.py exists.
+- S357: ANTHROPIC_API_KEY= at .env.prod.example:61.
+- S358: psutil>=5.9.0 pinned exchange_simulator/requirements-dev.txt:9; import at tools/stress_load.py:21.
+- S359: resync task kept via add_done_callback(_on_resync_done) — exception logged on failure.
+- S360: time.monotonic() at rate-limit window + bandwidth elapsed; guard <=0.
+- S361: manualCloseRef.current=true first line of unmount cleanup; regression test fails pre-fix.
+- S362: 9 isfinite sites in portfolio_requests + 6 1e999 rejection params in tests.
+- WRONG/ROTTED: 0. Board: 0 open.
