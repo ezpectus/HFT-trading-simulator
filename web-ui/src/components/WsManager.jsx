@@ -97,8 +97,13 @@ const WsManager = memo(function WsManager({ exchange, signals, toasts, addToast 
     return (toasts || []).filter(t => t.type === 'error').slice(0, 5)
   }, [toasts])
 
-  const handleReconnect = (label) => {
-    addToast?.('info', `${label} reconnect initiated`)
+  const handleReconnect = (label, source) => {
+    if (source?.connect) {
+      source.connect()
+      addToast?.('info', `${label} reconnect initiated`)
+    } else {
+      addToast?.('warning', `${label} reconnect unavailable`)
+    }
   }
 
   const exConnected = exchange?.connected ?? false
@@ -124,7 +129,7 @@ const WsManager = memo(function WsManager({ exchange, signals, toasts, addToast 
         latency={exchange?.latency}
         reconnects={exchange?.reconnects}
         nextReconnectIn={exchange?.nextReconnectIn}
-        onReconnect={() => handleReconnect('Exchange')}
+        onReconnect={() => handleReconnect('Exchange', exchange)}
       />
 
       <ConnectionCard
@@ -134,7 +139,7 @@ const WsManager = memo(function WsManager({ exchange, signals, toasts, addToast 
         latency={signals?.latency}
         reconnects={signals?.reconnects}
         nextReconnectIn={signals?.nextReconnectIn}
-        onReconnect={() => handleReconnect('Signal Bot')}
+        onReconnect={() => handleReconnect('Signal Bot', signals)}
       />
 
       <div className="p-2 bg-bg-700 border border-bg-600">

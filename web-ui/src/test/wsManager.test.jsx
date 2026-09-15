@@ -47,6 +47,14 @@ describe('WsManager', () => {
     expect(screen.getByText('Retry')).toBeInTheDocument()
   })
 
+  it('Retry calls the source connect() — not just a toast (S324)', async () => {
+    const connect = vi.fn()
+    const disconnectedExchange = { ...mockExchange, connected: false, connect }
+    render(<WsManager exchange={disconnectedExchange} signals={mockSignals} toasts={[]} addToast={vi.fn()} />)
+    screen.getByText('Retry').click()
+    expect(connect).toHaveBeenCalledTimes(1)
+  })
+
   it('handles empty/null data gracefully', () => {
     render(<WsManager exchange={null} signals={null} toasts={[]} addToast={vi.fn()} />)
     expect(screen.getByText('WebSocket Manager')).toBeInTheDocument()
