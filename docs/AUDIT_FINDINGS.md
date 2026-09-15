@@ -543,7 +543,7 @@ Six `console.log` calls in the performance monitoring utility. These are intenti
 
 # ROUND 4 � WIRE-TO-LIVE (2026-09-12)
 
-Direction (user-approved): \ake features are worse than missing features\ � replace mock UI data with real WebSocket streams wherever the payload exists.
+Direction (user-approved): \fake features are worse than missing features\ � replace mock UI data with real WebSocket streams wherever the payload exists.
 
 ## Finding 027 � S035: ~70 math panels dead via nested candle access
 
@@ -559,7 +559,7 @@ Direction (user-approved): \ake features are worse than missing features\ � r
 **File:** \web-ui/src/utils/format.ts\
 **Severity:** High
 
-\colorForSide\, \gColorForSide\, \ormatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
+\colorForSide\, \bgColorForSide\, \formatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
 
 ## Finding 029 � S037: App.test.jsx never ran
 
@@ -574,11 +574,11 @@ Top mock offenders now consume real data with honest empty states:
 
 | Panel | Live source |
 |-------|-------------|
-| FillAnalytics, TCA, SlippageAnalytics | \ills\ (orders WS) |
+| FillAnalytics, TCA, SlippageAnalytics | \fills\ (orders WS) |
 | SignalTracker | \signals\ + \prices\ |
-| ArbScanner | \rbitrage_scan\ |
-| Inventory | \ccounts\ + \prices\ |
-| WalkForwardViewer | \acktest_result\ |
+| ArbScanner | \arbitrage_scan\ |
+| Inventory | \accounts\ + \prices\ |
+| WalkForwardViewer | \backtest_result\ |
 | Microstructure, OrderBook | \orderbooks\ |
 | CrossAssetMatrix | \candles\ (Pearson corr on last 60 closes) |
 | DataQuality | \candles\ (real gap/staleness/OHLC checks) |
@@ -589,7 +589,7 @@ Registry: ~20 panel entries changed from \props: () => ({})\ to real context pro
 
 ## Finding 031 � S038: pre-existing failing tests (not from this round)
 
-\ormat.test.js\ expects \ormatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ � contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \uditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \lertWebhook\ (1: label). Left open for a future round.
+\format.test.js\ expects \formatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ � contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \auditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \alertWebhook\ (1: label). Left open for a future round.
 
 ## Round 4 verification
 

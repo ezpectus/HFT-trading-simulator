@@ -819,7 +819,7 @@ harnesses are un-unit-testable by design).
 - **Files:** `docs/DEPLOYMENT.md` (Option 4), `terraform/README.md`
 - **Commit:** 8fe770d
 ### S222 — visualizer: Windows arrows + first-exchange, no binance hardcode ✅ · verified R177
-- **Bug:** `msvcrt.getch()` emits `à`/`x00` prefix for arrows but `_handle_key` routed only `` — `<- -> Switch tabs` dead on Windows; the Windows branch then read two bytes where one follows. `exchanges.get("binance")` hardcoded at :71/:218 — renaming the exchange silently emptied the UI; `__main__` catch-list missed AttributeError/KeyError.
+- **Bug:** `msvcrt.getch()` emits `à`/`x00` prefix for arrows but `_handle_key` routed only `x1b` — `<- -> Switch tabs` dead on Windows; the Windows branch then read two bytes where one follows. `exchanges.get("binance")` hardcoded at :71/:218 — renaming the exchange silently emptied the UI; `__main__` catch-list missed AttributeError/KeyError.
 - **Fix:** `à`/`x00` routed to the handler on Windows (single K/M suffix byte, POSIX branch untouched); symbols/exchange resolve via `next(iter(exchanges.values()))`; number keys generalized 1-9 matching the dynamic footer; catch extended. Verified: instantiate with `{'kraken': ...}` → symbols populate; numkey routing works.
 - **Files:** `exchange_simulator/visualizer.py:71,127,137-151,219,263-267`, `exchange_simulator/__main__.py:110`
 - **Commit:** 7a00aeb

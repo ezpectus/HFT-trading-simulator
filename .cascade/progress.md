@@ -2376,7 +2376,7 @@ Zero unverified entries remain. Next: board has 18 open → R174 slop-fix contin
 
 ## R174 — slop-fix — 5 findings closed (Info batch)
 
-- **S222** — visualizer: Windows arrow keys routed (à/  prefix, single K/M byte), first-configured-exchange replaces "binance" hardcode, dynamic footer+numkeys, AttributeError/KeyError caught.
+- **S222** — visualizer: Windows arrow keys routed (à/x00 prefix, single K/M byte), first-configured-exchange replaces "binance" hardcode, dynamic footer+numkeys, AttributeError/KeyError caught.
 - **S206** — e2e honesty: 3 vacuous specs now assert real elements (contentinfo / collapse-expand round-trip / DEMO MODE alert); overlay kill scoped to data-testid=onboarding-modal (was all .fixed.inset-0.z-50 + notifications region); console allowlist trimmed to transport noise; +4 modal vitest cases; stale 204/44+ copy corrected.
 - **S209** — run_logger/error_monitor/price_monitor marked local-only/gitignored at all 5 doc sites (code already disclosed it).
 - **S216** — live parts only: install-hooks.sh created (POSIX twin), phantom cargo claims stripped, coverage gate now skips .spec./e2e as test layer. ci-equivalence.py/health-check.py were already deleted in S262 — those sub-claims were stale.
