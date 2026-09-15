@@ -1033,3 +1033,29 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 - **Files:** `ai-signal-bot/run.py:130` (`_dd_last_equity` init), `:556-565` (delta feed in `_validate_signal`)
 - **Verified:** 74 tests green; validator's own update_pnl/drawdown tests unchanged and passing.
 - **Doc sync:** README known-gaps, ARCHITECTURE:228, RISK_MANAGEMENT:320, CONFIGURATION_GUIDE:13-15, TRADING_GUIDE:38 — all S338/S339 "unwired/decorative" claims updated (were stale post-fix).
+
+## R202 — slop-fix — 4 findings closed (S330/S331 sim fill-model, S334/S335 C++ position book)
+
+### S330 — iceberg slices gated on marketability + live slice model ✅
+- **Bug:** `_check_iceberg_orders` filled a slice every tick with no marketability gate — a priced iceberg filled at its stale limit regardless of market (sell-iceberg@51000 printing fills while market=50000). The slice bookkeeping (`slice_size`/`slices_remaining`/`current_slice_filled`/`on_fill`) was dead: `_create_order` never set `slice_size` → `to_dict` broadcast `slices_remaining:0` as a static fake field.
+- **Fix:** priced icebergs now rest like limits — slice fills only while marketable (buy `current<=price`, sell `current>=price`), at the limit price; unpriced icebergs keep one-slice-per-tick-at-mid (explicit TWAP semantic). `slice_size=visible_qty` wired at creation so `__post_init__` computes real `slices_remaining`; `_execute_iceberg_slice` calls `order.on_fill(slice_qty)` — `to_dict` now emits live values.
+- **Files:** `exchange_simulator/exchange_advanced_orders.py:178-185` (gate), `:301-303` (on_fill); `exchange_simulator/exchange_order_submission.py:179-184` (slice_size); tests `exchange_simulator/tests/test_exchange_advanced_orders.py` (TestCheckIcebergOrders, 5 cases)
+- **Verified:** 432 sim tests green — no-fill-above/below-limit, fill-at-limit, unpriced TWAP, bookkeeping tracking all pinned.
+
+### S331 — partial liquidation routed through submit_order ✅
+- **Bug:** `_handle_partial_liquidation` was a shadow fill path: `fee=0.0`, no slippage, zero audit events, hand-built `ord-{N}` id — the model flattered exactly the levered losers it force-closed.
+- **Fix:** special-case deleted; `PARTIAL_LIQUIDATION` goes through `submit_order(force_close=True)` like LIQUIDATION/SL/TP — real fill price (slippage+impact), fee charged, ORDER_FILLED/FEE/POSITION_CLOSED/BALANCE audit events, `reason` stamped on the ClosedTrade. Hand-rolled body + dead `ClosedTrade` import removed; now-unused `current_price` local dropped.
+- **Files:** `exchange_simulator/exchange_liquidation.py:85-104` (close path), `:6-12` (imports); deleted `:113-150`; new `exchange_simulator/tests/test_exchange_liquidation.py` (4 cases)
+- **Verified:** 432 sim tests green — fee charged, slippage applied, ORDER_FILLED audit written, remainder position kept, reason stamped.
+
+### S334 — partial-close fee no longer double-counted ✅
+- **Bug:** REDUCED branch realized `slice_pnl - fee` AND added the fee to the surviving position's `fees_paid`; `update_pnl` nets `fees_paid` off the remainder → same fill fee subtracted again at final close. `realized_pnl_total_` understated by every partial-close fee.
+- **Fix:** dropped `it->fees_paid += fee` on REDUCED — the close fill's fee is realized fully in the slice pnl; the remainder carries only open-side fees. CLOSED branch unchanged (close fee enters `fees_paid` before final `update_pnl` → counted once).
+- **Files:** `hft-trade-bot/src/position/position_manager.h:105-118`
+- **Verified:** doctest — 1.0@50000, reduce 0.4@51000 fee 5 → realized 395; close 0.6@51000 fee 6 → total 989 = 1000 gross − 11 fees exactly once. 28/28 green.
+
+### S335 — sync_position ghosts age out of the book ✅
+- **Bug:** `sync_position` adopted/refreshed but never removed — a missed close fill (disconnect gap, lost fills_batch) left a local ghost: `has_position()` blocked the symbol forever, `check_sl_tp` could fire close orders for a non-existent position.
+- **Fix:** new `reconcile_positions(broadcast_symbols, exchange)` called once per account broadcast — a position absent for `SYNC_MISS_LIMIT=3` consecutive broadcasts is dropped (counter resets on reappearance; per-exchange scoped; `closing_since_`/`active_symbols_`/`sync_misses_` cleaned). Age-out instead of instant removal so a fill landing between snapshot and broadcast can't flap the book. Caller logs each drop.
+- **Files:** `hft-trade-bot/src/position/position_manager.h:189-220` (reconcile), `:346-348` (state), `:160-164` (sync_position doc); `hft-trade-bot/src/core/bot_setup.cpp:365-385` (broadcast batch + warn); tests `tests/test_doctest_position_manager_v1.cpp:255-347` (6 cases)
+- **Verified:** doctest 28/28 green — ghost survives 2 misses, drops on 3rd, streak resets on reappearance, other-exchange positions untouched. g++ compile clean; clang-format clean. Full cmake build not run here (vcpkg toolchain absent on this machine) — header-only TU verified directly, bot_setup.cpp change is a 9-line caller block; CI test-cpp covers the full build.

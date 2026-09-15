@@ -2687,3 +2687,12 @@ Board unchanged: 20 open.
 - **Doc sync:** 5 stale "unwired/decorative" claims fixed — README, ARCHITECTURE, RISK_MANAGEMENT, CONFIGURATION_GUIDE, TRADING_GUIDE.
 - **Verified:** 74 tests green (shm_alerting_wiring, signal_validation, signal_validator, validator); run.py parses.
 - Board: 13 open — Medium: S330/S331 fill-model, S334/S335 C++ position book, S322 venue-runners, S328 dead stack; Low/Info: S323–S327, S333, S336.
+
+## R202 — slop-fix — sim fill-model + C++ position book (board 9 open)
+
+- **S330 (Medium):** priced iceberg slices filled unconditionally at a stale limit — now gated on marketability (buy `current<=price`, sell `current>=price`, fill at limit); `slice_size` wired at creation + `on_fill` driven per slice → `slices_remaining`/`current_slice_filled` are live in `to_dict` instead of static zeros.
+- **S331 (Medium):** partial liquidation was a shadow path (fee=0, no slippage, no audit, fake `ord-{N}` id) — deleted; routed through `submit_order(force_close=True)` like every other trigger.
+- **S334 (Medium):** partial-close fee counted twice (slice pnl − fee AND `fees_paid` → netted again at final close). Fix: fee stays in the slice only.
+- **S335 (Medium):** `sync_position` never removed → ghosts on missed fills. New `reconcile_positions` drops positions absent for 3 consecutive broadcasts (age-out prevents fill-vs-snapshot flap); caller logs drops.
+- **Verified:** 432/432 exchange_simulator tests, 28/28 doctest (6 new S334/S335 cases), clang-format clean. cmake+ctest deferred to CI (no vcpkg on this machine).
+- Board: 9 open — Medium: S322 venue-runners, S328 dead backtest stack; Low/Info: S323–S327, S333, S336.

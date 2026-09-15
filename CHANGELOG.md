@@ -9,9 +9,12 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
-## [Unreleased] — 2026-09-15 (Slop-fix R199–R200 — supply-chain + safety-gate wiring)
+## [Unreleased] — 2026-09-15 (Slop-fix R199–R202 — supply-chain + safety gates + fill-model truth)
 
 ### Fixed
+- **Simulated-exchange fill model honesty (S330/S331):** priced iceberg orders no longer fill slices while the market is away from the limit (previously printed fills at a stale limit — free money); partial liquidation now routes through `submit_order` like every other close — pays the fee, takes slippage, and writes audit events instead of a shadow mid-price fill.
+- **HFT bot position book (S334/S335):** partial-close fees were subtracted twice from `realized_pnl_total_` (slice PnL and again via `fees_paid` at final close); positions the exchange stopped reporting are now dropped after 3 consecutive absent broadcasts — a missed close fill no longer leaves a ghost that blocks the symbol forever.
+- **Halt gates cover the live order path (S338/S339):** trading-halt and the C++ kill-switch now block both paper AND live orders (previously live orders fired through a halt); the validator's max-daily-drawdown check is fed real equity deltas — it was previously dead code that could never fire.
 - **Circuit breaker now actually trips (S337):** order-execution outcomes feed `record_failure`/`record_success` (paper send errors/disconnect, live falsy-result/exceptions); when OPEN it blocks broadcast + SHM push + order execution — previously it could never trip and gated only the WS publish.
 - **Lookahead bias removed from both backtest engines (S329/S332):** Python `Backtester` and web-ui `backtestEngine` evaluated the signal on bar `i` and filled at `candles[i].close`. Both now decide on the previously closed bar and fill at bar `i` — results stop being systematically flattered.
 - **Deploy audit backup fixed (S340):** `deploy.sh`/`deploy.bat` backed up nonexistent `logs/audit/` — audit is the single rotating file `logs/audit.log`. Backup now globs `audit.log*`; restore is an honest snapshot.
