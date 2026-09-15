@@ -3041,3 +3041,10 @@ Board: 0 open.
 - _broadcast_market_data: rebuild+re-encode per client → encoded_cache by (enc, subs) — identical variants dump once.
 - _publish_shm_snapshot: buf-slice+unpack(bytes) per symbol → unpack_from/pack_into on mmap, zero copies.
 - Verified: exchange_simulator 446/446 green. Board: 0 open.
+
+## R236b — S364 measured (micro-bench, CPython 3.x, Windows)
+
+- encode-per-client→cache (8 clients, 48-sym payload): 0.184ms → 0.022ms per tick = **8.3x**
+- shm write slice+unpack+pack → pack_into/unpack_from: 0.31us → 0.24us per symbol = **1.3x**
+- candle trim per-msg erase(200) → amortized(256→200): 3.1ms → 1.9ms per 30k msgs = **1.6x**
+- C++ analogues (scratch keys, zero-alloc send, single-lock sweep) — same class of win, unmeasurable locally (no MSVC build).
