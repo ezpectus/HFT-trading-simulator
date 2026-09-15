@@ -3067,3 +3067,10 @@ Board: 0 open.
 - S365: NaN SVG coords (OptionsStrategySimulator spot=0), setState-in-render (IndicatorBuilder useMemo→useEffect), ASI-glued null.filter crash (OpenInterestTracker), unsorted-times setData throw (PerfAreaChart), toast region overlaying tab bar, ambiguous alert selector.
 - Fixed all 6 sub-defects + 3 new regression test files (9 tests). e2e 35/35, vitest green, gate ALL GREEN. Commit 5185eb2.
 - Board: 0 open.
+
+## R240 — S365-class sweep → S366 found+fixed
+
+- Scripted sweep: all useMemo bodies for render-phase setState → 3 sites (BSTS+GPR grid-search-in-memo with self-deps, IndicatorFormulaParser setError).
+- Bonus real defect: BSTS Kalman covariance update was element-wise K·Z·P — wrong math → P explodes → NaN forecasts → NaN SVG. Fixed to standard P−K(Z·P).
+- Fixes: optimizers → useEffect (once per input change); error → inside memo result. 10 new regression tests. Commit 974522d.
+- Board: 0 open.
