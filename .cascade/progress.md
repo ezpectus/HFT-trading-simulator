@@ -2824,3 +2824,13 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S327** — `resultSetters` (useSignalData.js:34-42, 使用:80)
 - ナローチェック: sim 107 + bot 52 + web-ui 24 テスト全緑
 - 未検証残: R199 dependabot (version bump系), R202 C++ (S334/S335 — ローカル toolchain なし)
+
+## R214 — slop-audit — hft-trade-bot remainder (~8.9k строк) — 3 находки
+
+Добор оставшегося C++-стека после R194 (там был fill-model core): monitoring/health/watchdog/kill_switch/risk_manager, весь core/ оркестратор, signal_receiver + handlers + data, весь IPC, pressure_model/indicators/obi, engines v1/v2/v3+HMM, selectors, position_manager, order_executor, config parser+validate, logger, low_latency.
+
+- **S350 (Medium)** — `tests/test_integration_shm.cpp` не компилируется нигде: ~15 ссылок на фантомный API (PascalCase enum members, `fill.quantity`/`order_id`, `init(name,cap)`, статики `unlink`, `push`/`has_pending`, sizeof-asserts 64/48/64 vs 32/28/28). Wired в каждый POSIX-билд через `if(NOT WIN32)` → `make -j` на gcc-14/clang-17 CI красный; на Windows молча скипается — протух с `5965b95`.
+- **S351 (Info)** — мёртвые IPC-декларации: `AlignedOrderBookLevel`, `RoutingDecision`, `SymbolId`/`Action`/`Side`/`ExchangeId` enum'ы — 0 ссылок. `ExchangeId` ещё и противоречит проводу (enum 0=Simulator, wire doc+producer 3=Simulator).
+- **S352 (Info)** — `HealthStatus.signal_engine_active` вечный true (engines конструируются безусловно до цикла) + мёртвое поле `cpu_usage_pct`.
+
+Чисто: вся monitoring/risk/orchestration/IPC/engines математика и wiring — реальны. Board: 3 open.
