@@ -171,9 +171,8 @@ REM Start all services
 no-docker.bat
 ```
 
-Or use the provided script:
+Or start all services without Docker via the provided script:
 ```bat
-REM Without docker (no docker.bat exists — use docker compose directly)
 no-docker.bat start
 ```
 

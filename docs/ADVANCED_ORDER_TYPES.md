@@ -346,7 +346,7 @@ Each order type includes comprehensive unit tests:
 
 ```bash
 # Run order type tests
-pytest exchange_simulator/tests/test_order_types.py -v
+pytest exchange_simulator/tests/test_advanced_order_types.py exchange_simulator/tests/test_exchange_advanced_orders.py -v
 ```
 
 ## References

@@ -20,7 +20,7 @@ Static (all)               — ruff, eslint, clang-format, rustfmt
 
 **Why a pyramid, not an inverted (ice cream cone)?**
 - **Unit tests:** Fast (ms), isolated, deterministic. Find bugs in
-  individual functions. 118 Python + 26 C++ + 159 JS ≈ 303 unit test files.
+  individual functions. 120 Python + 26 C++ + 159 JS ≈ 305 unit test files.
 - **Integration tests:** Slower (seconds), test component interaction.
   WebSocket connection, signal flow, backtest pipeline.
 - **E2E tests:** Slowest (minutes), test full user journey.
@@ -81,18 +81,18 @@ numerical precision (tolerance-based assertions).
 
 ## Overview
 
-The system has **~307 unit test files** across three languages:
+The system has **~305 unit test files** across three languages:
 
 | Language | Files | Framework | Location |
 |----------|-------|-----------|----------|
-| **Python** | 126 | pytest + Hypothesis | `ai-signal-bot/tests/`, `exchange_simulator/tests/`, `monitoring/tests/` |
-| **C++** | 25 | doctest | `hft-trade-bot/tests/` |
-| **JavaScript** | ~158 | Vitest + Playwright | `web-ui/src/test/` (~158), `web-ui/e2e/` (4 specs + 1 helper) |
-| **Total** | **304** (+ 5 e2e files) | | |
+| **Python** | 120 | pytest + Hypothesis | `ai-signal-bot/tests/` (88), `exchange_simulator/tests/` (31), `monitoring/tests/` (1) |
+| **C++** | 26 | doctest | `hft-trade-bot/tests/` (23 root + integration/ + unit/) |
+| **JavaScript** | ~159 | Vitest + Playwright | `web-ui/src/test/` (~159), `web-ui/e2e/` (4 specs + 1 helper) |
+| **Total** | **305** (+ 5 e2e files) | | |
 
 ---
 
-## Python Tests (118 files)
+## Python Tests (120 files)
 
 ### AI Signal Bot (88 files)
 
@@ -100,8 +100,8 @@ The system has **~307 unit test files** across three languages:
 
 | Module | Test Files | Coverage |
 |--------|-----------|----------|
-| Strategies | test_strategies, test_ensemble_voter, test_market_making, test_sentiment, test_cross_exchange_arb, test_marketplace | All 10+ strategies |
-| Risk | test_risk, test_risk_manager, test_cvar, test_kelly, test_position_sizing, test_portfolio_optimizer | VaR, CVaR, Kelly, stress tests |
+| Strategies | test_strategies, test_ensemble_voter, test_market_making, test_sentiment, test_statistical_arbitrage, test_fft_cycle | All 10+ strategies |
+| Risk | test_risk, test_risk_manager, test_cvar, test_kelly, test_position_sizing, test_risk_parity | VaR, CVaR, Kelly, stress tests |
 | Portfolio | test_markowitz, test_portfolio_modules | Markowitz, BL, risk parity, rebalancing |
 | Backtesting | test_backtester, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_backtest_report, test_backtest_metrics, test_backtest_requests | Full backtesting pipeline |
 | ML | test_ml_features, test_ml_ensemble_funding | Feature engineering, ML ensemble funding |
@@ -110,17 +110,16 @@ The system has **~307 unit test files** across three languages:
 | Data | test_exchange_factory, test_real_account, test_real_market_data | Data collection |
 | Other | test_db, test_fft_analysis, test_indicators, test_bot_helpers | Database, indicators |
 
-**Integration tests** (`ai-signal-bot/tests/integration/`): 4 files
+**Integration tests** (`ai-signal-bot/tests/integration/`): 3 files
 - `test_e2e_pipeline.py` — End-to-end signal generation → order execution
-- `test_trading_flow.py` — Full trading cycle simulation
 - `test_strategy_risk_backtest.py` — Strategy → risk → backtest chain
-- `test_integration.py` — HTTP endpoints and service wiring
+- `test_integration.py` — Exchange WS connection, signal pipeline, publisher
 
 All Python unit tests live under `tests/unit/` — the legacy flat `tests/` tree
 was consolidated in R176 (S268): six same-name pairs were merged (unique
 coverage ported into the unit files first) and the remaining 24 files moved.
 
-### Exchange Simulator (29 files + 1 standalone load script)
+### Exchange Simulator (31 files + tools/ live-server harnesses)
 
 **Unit tests** (`exchange_simulator/tests/`):
 
@@ -155,7 +154,7 @@ Uses Hypothesis for invariant testing:
 
 **Source:** `exchange_simulator/tests/test_security.py`
 
-15 security tests covering:
+17 security tests covering:
 - Log injection prevention
 - Order validation (negative quantities, overflow)
 - WebSocket message validation
@@ -164,7 +163,7 @@ Uses Hypothesis for invariant testing:
 
 ---
 
-## C++ Tests (25 files)
+## C++ Tests (26 files)
 
 **Framework:** doctest (header-only, fast compilation)
 
@@ -180,7 +179,7 @@ Uses Hypothesis for invariant testing:
 | SHM IPC | test_shm, test_doctest_shm_bulk, _heartbeat, _market_data, test_integration_shm | Shared memory, heartbeat, bulk |
 | Smart routing | test_doctest_smart_order_router, test_doctest_order_type_selector, test_doctest_adaptive_order_selector | Order routing logic |
 | FIX protocol | test_fix, test_doctest_fix_message | FIX 4.4 message parsing |
-| Integration | test_integration_config, test_integration_kill_switch_monitor, test_integration_signal_engine, test_signal_flow | Cross-component |
+| Integration | test_integration_config, test_integration_kill_switch_monitor, test_integration_shm, integration/test_signal_flow | Cross-component |
 | Other | test_doctest_candle_aggregator, _cpp_optimizations, _kill_switch, _latency_tracker, _pressure_model, _property_based, _system_monitor, _trade_handler | Candles, kill switch, latency, pressure |
 
 ### Property-Based (C++)
@@ -191,9 +190,9 @@ Randomized invariant testing for C++ components.
 
 ---
 
-## JavaScript Tests (162 files)
+## JavaScript Tests (164 files)
 
-### Unit Tests (~158 files)
+### Unit Tests (~159 files)
 
 **Framework:** Vitest
 **Location:** `web-ui/src/test/`
@@ -227,19 +226,19 @@ Randomized invariant testing for C++ components.
 
 | File | Coverage |
 |------|----------|
-| `test_alerts.py` | Alert rule validation — metric names match exports, severity routing |
+| `test_alerts.py` | Alert rule structure validation — groups present, required fields, severity labels (does NOT cross-check metric names against emitters) |
 
 ---
 
 ## Health Endpoint Tests
 
-Health endpoints are verified in integration tests:
+Health endpoints are verified as follows:
 
-| Service | Endpoint | Test |
+| Service | Endpoint | Coverage |
 |---------|----------|------|
-| Exchange Simulator | `GET :8775/health` | `exchange_simulator/tests/test_websocket_server.py` |
-| AI Signal Bot | `GET :8080/health` | `ai-signal-bot/tests/integration/test_integration.py` |
-| AI Signal Bot | `GET :9090/metrics` | `ai-signal-bot/tests/integration/test_integration.py` |
+| Exchange Simulator | `GET :8775/health` | `scripts/docker-smoke-test.{sh,bat}` live checks + compose healthcheck (no dedicated pytest) |
+| AI Signal Bot | `GET :8080/health` | `ai-signal-bot/tests/unit/test_health_server.py` (HealthServer unit tests) |
+| AI Signal Bot | `GET :9090/metrics` | `ai-signal-bot/tests/unit/test_metrics_server.py` |
 
 ---
 

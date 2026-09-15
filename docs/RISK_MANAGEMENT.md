@@ -136,7 +136,7 @@ CVaR_α = E[L | L > VaR_α] = -E[returns | returns < -VaR_α]
 from src.risk.cvar import CVaRCalculator
 
 cvar_calc = CVaRCalculator(confidence_level=0.95)
-result = cvar_calc.calculate_historical_cvar(returns)
+result = cvar_calc.calculate_cvar(returns)  # method='historical' default
 # result.cvar_value, result.var_value
 ```
 
@@ -173,7 +173,7 @@ sizer = KellyPositionSizer(
     kelly_fraction=0.5,  # Half-Kelly
     max_risk_pct=5.0,
 )
-size = sizer.calculate(balance=10000, entry=65000, stop_loss=63000)
+size = sizer.calculate(balance=10000, entry_price=65000, stop_loss=63000)
 ```
 
 ---
@@ -205,7 +205,11 @@ Multiple sizing strategies:
 from src.risk.position_sizing import DynamicPositionSizer
 
 sizer = DynamicPositionSizer(account_value=100000, max_position_size=0.2)
-result = sizer.size_by_volatility(entry=65000, atr=1500, risk_per_trade=0.02)
+result = sizer.calculate_position_size(
+    signal='BUY', price=65000, volatility=1500,
+    risk_per_trade=0.02, method='volatility',
+)
+# result.position_size, result.position_value, result.risk_amount
 ```
 
 ---
@@ -236,26 +240,16 @@ Each scenario simulates portfolio impact including margin requirements and liqui
 
 ```python
 from src.risk.stress_test import StressTestScenario
+import numpy as np
 
 scenario = StressTestScenario(initial_portfolio_value=100000)
-result = scenario.run_covid_crash(returns, weights)
+result = scenario.covid_crash_scenario(
+    current_prices=np.array([65000.0, 3500.0]),
+    positions=np.array([0.5, 2.0]),          # signed position quantities
+)
 # result.pnl, result.pnl_percentage, result.margin_requirement, result.passed
-```
-
-### RiskAnalyzer (Combined)
-
-**Source:** `ai-signal-bot/src/risk/var_stress_test.py`
-
-Unified interface for VaR, CVaR, and stress testing:
-
-```python
-from src.risk.var_stress_test import RiskAnalyzer
-
-analyzer = RiskAnalyzer(returns, portfolio_value=100000)
-var_95 = analyzer.historical_var(confidence=0.95)
-cvar_95 = analyzer.historical_cvar(confidence=0.95)
-mc_var = analyzer.monte_carlo_var(confidence=0.95, n_sims=10000)
-stress = analyzer.stress_test(scenario="covid_crash")
+# Other scenarios: crisis_2008_scenario, ftx_collapse_scenario,
+# luna via custom_scenario, run_all_scenarios for the full sweep
 ```
 
 ---
@@ -299,7 +293,13 @@ rm = RiskManager(RiskConfig(
     partial_tp_pct=50.0,
     partial_tp_trigger_pct=2.0,
 ))
-new_sl = rm.update_stop_loss(position, current_price, candle)
+state = rm.init_position(
+    entry_price=65000, side='BUY', stop_loss=63000,
+    take_profit=70000, quantity=0.1,
+)
+actions = rm.update(state, current_price=66200, candle=latest_candle)
+# possible keys: new_stop_loss, close_position, close_reason,
+# partial_close_pct — breakeven/trailing/partial-tp/max-hold decisions
 ```
 
 ### C++ Pre-Trade Risk
@@ -341,8 +341,10 @@ Access via the "Risk" tab.
 
 | Test File | Coverage |
 |-----------|----------|
-| `ai-signal-bot/tests/unit/test_risk_modules.py` | VaR (historical, parametric, MC), Kupiec test |
-| `ai-signal-bot/tests/unit/test_risk_modules.py` | CVaR, Kelly, position sizing, stress tests |
+| `ai-signal-bot/tests/unit/test_risk.py` | VaR (historical, parametric, MC), Kupiec test |
+| `ai-signal-bot/tests/unit/test_cvar.py`, `test_cvar_calculator.py` | CVaR / expected shortfall |
+| `ai-signal-bot/tests/unit/test_kelly.py`, `test_kelly_position_sizer.py` | Kelly criterion sizing |
+| `ai-signal-bot/tests/unit/test_position_sizing.py` | Volatility / risk-parity / fixed sizing |
 | `ai-signal-bot/tests/unit/test_risk_manager.py` | Trailing stop, breakeven, partial TP, max hold |
 
 Edge cases: empty returns, NaN, inf, single element, all-zero returns, extreme confidence levels.
