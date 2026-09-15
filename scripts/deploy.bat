@@ -62,8 +62,11 @@ REM Backup databases
 if exist "exchange_simulator\data" xcopy /E /I /Y exchange_simulator\data "%BACKUP_DIR%\database\data_%TIMESTAMP%" 2>nul
 if exist "ai-signal-bot\data" xcopy /E /I /Y ai-signal-bot\data "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" 2>nul
 
-REM Backup audit logs
-if exist "exchange_simulator\logs\audit" xcopy /E /I /Y exchange_simulator\logs\audit "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" 2>nul
+REM Backup audit log — single rotating file (logs\audit.log + .1/.2 rotations)
+if exist "exchange_simulator\logs\audit.log" (
+    if not exist "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" mkdir "%BACKUP_DIR%\audit\audit_%TIMESTAMP%"
+    copy /Y exchange_simulator\logs\audit.log* "%BACKUP_DIR%\audit\audit_%TIMESTAMP%\" >nul 2>nul
+)
 
 call :log_info "Backup completed: %TIMESTAMP%"
 goto :eof
@@ -299,11 +302,11 @@ if exist "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" (
     xcopy /E /I /Y "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" ai-signal-bot\data
 )
 
-REM Audit logs — merge semantics so post-backup entries survive.
-if exist "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" (
-    call :log_info "Restoring audit logs..."
-    if not exist "exchange_simulator\logs\audit" mkdir exchange_simulator\logs\audit
-    xcopy /E /I /Y "%BACKUP_DIR%\audit\audit_%TIMESTAMP%" exchange_simulator\logs\audit
+REM Audit log — snapshot restore (single rotating file, no dir merge).
+if exist "%BACKUP_DIR%\audit\audit_%TIMESTAMP%\audit.log" (
+    call :log_info "Restoring audit log..."
+    if not exist "exchange_simulator\logs" mkdir exchange_simulator\logs
+    copy /Y "%BACKUP_DIR%\audit\audit_%TIMESTAMP%\audit.log*" exchange_simulator\logs\ >nul 2>nul
 )
 
 if "%DEPLOYMENT_MODE%"=="docker" (

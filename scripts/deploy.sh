@@ -65,8 +65,14 @@ backup_deployment() {
     cp -r exchange_simulator/data "$BACKUP_DIR/database/data_$TIMESTAMP" 2>/dev/null || true
     cp -r ai-signal-bot/data "$BACKUP_DIR/database/ai_data_$TIMESTAMP" 2>/dev/null || true
     
-    # Backup audit logs
-    cp -r exchange_simulator/logs/audit "$BACKUP_DIR/audit/audit_$TIMESTAMP" 2>/dev/null || true
+    # Backup audit log — single rotating file (config.yaml audit.log_file_path
+    # = logs/audit.log, RotatingFileHandler may add .1/.2 rotations).
+    if ls exchange_simulator/logs/audit.log* >/dev/null 2>&1; then
+        mkdir -p "$BACKUP_DIR/audit/audit_$TIMESTAMP"
+        cp exchange_simulator/logs/audit.log* "$BACKUP_DIR/audit/audit_$TIMESTAMP/"
+    else
+        log_info "No audit log present — skipping audit backup"
+    fi
     
     log_info "Backup completed: $TIMESTAMP"
 
@@ -351,12 +357,14 @@ rollback() {
         fi
     fi
 
-    # Restore audit logs — merge semantics: the snapshot contents are copied
-    # over the live dir so audit entries written after the backup survive.
+    # Restore audit log — snapshot semantics: audit is a single rotating FILE
+    # (logs/audit.log + rotations), so restore copies it back verbatim. Lines
+    # appended to the live file after the backup are replaced — that is what
+    # "roll back to snapshot" means; there is no dir to merge into.
     if [ -d "$BACKUP_DIR/audit/audit_$TIMESTAMP" ]; then
-        log_info "Restoring audit logs..."
-        mkdir -p exchange_simulator/logs/audit
-        cp -r "$BACKUP_DIR/audit/audit_$TIMESTAMP/." exchange_simulator/logs/audit/
+        log_info "Restoring audit log..."
+        mkdir -p exchange_simulator/logs
+        cp "$BACKUP_DIR/audit/audit_$TIMESTAMP"/audit.log* exchange_simulator/logs/ 2>/dev/null || true
     fi
     
     if [ "$DEPLOYMENT_MODE" = "docker" ]; then
