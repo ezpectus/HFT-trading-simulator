@@ -364,20 +364,29 @@ class BroadcastMixin:
             except websockets.ConnectionClosed:
                 _disc.add(client)
 
+        # Encode cache: identical (encoding, subscription) variants share one
+        # built+encoded payload — the main message was rebuilt AND re-dumped
+        # per client (the big candles+books JSON × N clients per tick).
+        encoded_cache: dict[tuple, str] = {}
         tasks = []
         for client in self.clients:
             subs = self._client_subscriptions.get(client, all_symbols)
-            if subs == all_symbols or not subs:
-                msg = self._build_full_message(
-                    seq, candle_dicts, prices, accounts,
-                    funding_rates, orderbooks, orderbook_deltas,
-                )
-            else:
-                msg = self._build_filtered_message(
-                    seq, candle_dicts, prices, accounts,
-                    funding_rates, orderbooks, orderbook_deltas, subs,
-                )
-            data = self._encode(msg, self._client_encodings.get(client, "json"))
+            enc = self._client_encodings.get(client, "json")
+            full = subs == all_symbols or not subs
+            vkey = (enc, None) if full else (enc, frozenset(subs))
+            data = encoded_cache.get(vkey)
+            if data is None:
+                if full:
+                    msg = self._build_full_message(
+                        seq, candle_dicts, prices, accounts,
+                        funding_rates, orderbooks, orderbook_deltas,
+                    )
+                else:
+                    msg = self._build_filtered_message(
+                        seq, candle_dicts, prices, accounts,
+                        funding_rates, orderbooks, orderbook_deltas, subs,
+                    )
+                data = encoded_cache[vkey] = self._encode(msg, enc)
             tasks.append(_send_to_client(client, data))
 
         await asyncio.gather(*tasks, return_exceptions=True)

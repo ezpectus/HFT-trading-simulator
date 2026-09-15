@@ -162,14 +162,15 @@ class ExchangeWebSocketServer(
                 volume = 1000.0
                 snap = self._shm_struct.pack(timestamp_ns, sid, bid, ask, price, volume)
                 slot_offset = 8 + sid * self._shm_slot_size
-                # Increment seq (odd = write in progress)
+                # pack_into/unpack_from work directly on the mmap buffer —
+                # buf[a:b] slicing copied 8 bytes into a fresh bytes object
+                # per symbol per tick.
                 seq_offset = slot_offset
-                seq_bytes = self._shm_market.buf[seq_offset:seq_offset+8]
-                seq = struct.unpack('<Q', bytes(seq_bytes))[0]
-                self._shm_market.buf[seq_offset:seq_offset+8] = struct.pack('<Q', seq + 1)
+                seq = struct.unpack_from('<Q', self._shm_market.buf, seq_offset)[0]
+                struct.pack_into('<Q', self._shm_market.buf, seq_offset, seq + 1)
                 self._shm_market.buf[slot_offset + self._shm_data_offset:
                                     slot_offset + self._shm_data_offset + len(snap)] = snap
-                self._shm_market.buf[seq_offset:seq_offset+8] = struct.pack('<Q', seq + 2)
+                struct.pack_into('<Q', self._shm_market.buf, seq_offset, seq + 2)
         except (OSError, ValueError, TypeError, BufferError, struct.error):
             logger.warning("SHM snapshot write failed", exc_info=True)
 
