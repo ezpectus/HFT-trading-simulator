@@ -516,7 +516,7 @@ class TestWebSocketMetrics:
         for _ in range(1000):
             server.metrics.record_message(1000)  # 1KB per message
         # Force elapsed time to 1 second for test
-        server.metrics._start_time = time.time() - 1.0
+        server.metrics._start_time = time.monotonic() - 1.0
         bandwidth = server.metrics.get_bandwidth_mbps()
         # 1MB/s = 8Mbps
         assert bandwidth > 7.0 and bandwidth < 9.0

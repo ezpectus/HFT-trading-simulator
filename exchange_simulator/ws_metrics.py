@@ -48,7 +48,7 @@ class WebSocketMetrics:
         self.order_latency = LatencyHistogram()
         self.ws_latency = LatencyHistogram()
         self.feed_latency = LatencyHistogram()
-        self._start_time: float = time.time()
+        self._start_time: float = time.monotonic()
         self._sorted_sizes_cache: list[int] | None = None
         self._sorted_latencies_cache: list[float] | None = None
 
@@ -97,8 +97,8 @@ class WebSocketMetrics:
 
     def get_bandwidth_mbps(self) -> float:
         """Get bandwidth usage in Mbps."""
-        elapsed = time.time() - self._start_time
-        if elapsed == 0:
+        elapsed = time.monotonic() - self._start_time
+        if elapsed <= 0:
             return 0.0
         bytes_per_sec = self.bytes_sent / elapsed
         return (bytes_per_sec * 8) / 1_000_000

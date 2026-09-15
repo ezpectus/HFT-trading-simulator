@@ -47,7 +47,7 @@ class MessageHandlerMixin:
 
     def _check_rate_limit(self, websocket: WebSocketServerConnection) -> bool:
         """Check if client is within rate limits (Phase 1.5)."""
-        now = time.time()
+        now = time.monotonic()
         if websocket not in self._client_message_counts:
             self._client_message_counts[websocket] = {"count": 0, "window_start": now}
             return True
@@ -72,7 +72,7 @@ class MessageHandlerMixin:
         self.clients.add(websocket)
         self._total_connections += 1
         self._client_subscriptions[websocket] = set(self.market.symbols)
-        self._client_message_counts[websocket] = {"count": 0, "window_start": time.time()}
+        self._client_message_counts[websocket] = {"count": 0, "window_start": time.monotonic()}
         remote = websocket.remote_address
         logger.info("Client connected: %s", remote)
 
