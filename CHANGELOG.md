@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R253 — clang-tidy hot-path sweep)
+
+### Fixed
+- **`noexcept` signal-engine hot paths could `std::terminate` on `bad_alloc` (S376):** `SignalEngineV2::analyze_incremental` and both `SignalEngineV3::analyze*` reached `unordered_map::emplace` (string key allocation) inside `noexcept` — OOM would kill the trading thread. New `try_get_cache`/`try_get_hmm_state` degrade gracefully (neutral signal / V2 base without regime gating). Also dropped a dead `now_ms` param, made `test_fixtures.h` helpers `inline`, and rewrote a vacuous cooldown test that called the stateless `analyze()` path — it now exercises the real `analyze_incremental` gate (fires → blocked → fires after expiry). **ctest: 23/23 green.**
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R252 — last dep-gated test unblocked)
 
 ### Fixed

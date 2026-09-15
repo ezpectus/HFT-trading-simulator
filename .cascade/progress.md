@@ -3164,3 +3164,9 @@ Board: 0 open.
 - OpenSSL source headers are .in templates; vendored the prebuilt msys2 ucrt64 3.6.4 package instead (UCRT ABI-compatible with LLVM-MinGW): real headers + static libssl/libcrypto under deps/openssl/ (+gdi32/crypt32 link deps). Reproduced in fetch-test-deps.sh.
 - **ctest 23/23 green — 100% of Windows-compatible tests execute.** Remaining un-run: POSIX-only test_shm + integration_signal_flow (shm_open — by design).
 - Board: 0 open.
+
+## R253 — clang-tidy hot-path sweep → S376
+
+- First real static-analysis pass (clang-tidy 22 + driver-derived sysroot): `bugprone-exception-escape` caught noexcept `analyze_incremental` reaching `unordered_map::emplace` → bad_alloc → std::terminate on the trading thread. Same lie found in v3's analyze pair (analyzer missed it).
+- Fixed via noexcept try_get_cache/try_get_hmm_state → graceful degrade (neutral sig / v2 base without regime layer). Dead now_ms param dropped; test_fixtures static→inline; vacuous cooldown doctest rewritten on the real analyze_incremental gate.
+- ctest 23/23 green. Wire-layout enum-size warnings deliberately untouched (SHM ABI contract).
