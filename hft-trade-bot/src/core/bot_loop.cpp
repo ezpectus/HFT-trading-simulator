@@ -262,13 +262,14 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
     if ((!ctx.config.signal_engine_v2_enabled && !ctx.config.signal_engine_v3_enabled) ||
         !can_trade)
         return;
+    // One clock read per tick — all signals in the sweep share the timestamp.
+    const int64_t now_ns = FastSignal::now_ns();
     for (const auto& [symbol, sym_cstr, sym_id] : ctx.symbol_entries) {
         ScopedLatency signal_timer(ctx.signal_latency_hist);
         auto          candles_count = ctx.receiver->get_candles_by_id(sym_id, 100, ctx.candles_buf);
         if (candles_count < 30) continue;
         prepare_order_book(ctx, sym_id, symbol);
         if (ctx.ob_buf.bids.empty() || ctx.ob_buf.asks.empty()) continue;
-        int64_t now_ns = FastSignal::now_ns();
         // pressure computed once in generate_signal, reused by order selection
         PressureResult pressure{};
         auto           fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
