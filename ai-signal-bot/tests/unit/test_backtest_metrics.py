@@ -57,7 +57,7 @@ class TestCalculateTradeMetrics:
 
     def test_win_rate_and_averages(self):
         r = self._result([100, 200, -50])
-        calculate_trade_metrics(r, 60)
+        calculate_trade_metrics(r)
         assert r.total_trades == 3
         assert r.winning_trades == 2 and r.losing_trades == 1
         assert r.win_rate == pytest.approx(200 / 3)
@@ -66,24 +66,26 @@ class TestCalculateTradeMetrics:
 
     def test_all_wins_profit_factor_inf(self):
         r = self._result([100, 50])
-        calculate_trade_metrics(r, 60)
+        calculate_trade_metrics(r)
         assert r.profit_factor == float("inf")
 
-    def test_sharpe_sign_and_sortino(self):
+    def test_trade_metrics_do_not_set_sharpe(self):
+        # S379: Sharpe/Sortino moved to the per-bar equity basis — sparse
+        # per-trade returns annualized by bars/year inflated the ratio.
         r = self._result([100, -100, 150, -50, 80])
-        calculate_trade_metrics(r, 60)
-        assert r.sharpe_ratio > 0
-        assert r.sortino_ratio != 0
+        calculate_trade_metrics(r)
+        assert r.sharpe_ratio == 0
+        assert r.sortino_ratio == 0
 
     def test_empty_trades_noop(self):
         r = BacktestResult()
-        calculate_trade_metrics(r, 60)
+        calculate_trade_metrics(r)
         assert r.total_trades == 0
 
     def test_avg_duration(self):
         r = BacktestResult()
         r.trades = [_trade(10, 1, entry=0, exit=300), _trade(10, 1, entry=0, exit=600)]
-        calculate_trade_metrics(r, 60)
+        calculate_trade_metrics(r)
         assert r.avg_trade_duration == 450
 
 
@@ -106,3 +108,16 @@ class TestCalculateDrawdownMetrics:
         # max_dd_amount = 20% of peak 110 = 22; net = 30 → 1.36
         assert abs(r.recovery_factor - 30 / 22) < 0.01
         assert r.calmar_ratio > 0
+
+    def test_sharpe_sortino_from_equity_curve(self):
+        # Rising-with-dips curve → positive mean per-bar return, nonzero
+        # downside deviation → both ratios positive.
+        r = BacktestResult()
+        calculate_drawdown_metrics(r, [100, 101, 100, 103, 102, 106], 106, 100, 60)
+        assert r.sharpe_ratio > 0
+        assert r.sortino_ratio > 0
+
+    def test_sharpe_flat_equity_is_zero(self):
+        r = BacktestResult()
+        calculate_drawdown_metrics(r, [100, 100, 100, 100], 100, 100, 60)
+        assert r.sharpe_ratio == 0

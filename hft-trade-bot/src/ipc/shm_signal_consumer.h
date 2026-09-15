@@ -54,13 +54,24 @@ class ShmSignalConsumer {
 
     bool is_running() const { return running_.load(std::memory_order_relaxed); }
 
+    // Signals dropped because the callback threw (e.g. OOM in conversion).
+    uint64_t callback_errors() const { return callback_errors_.load(std::memory_order_relaxed); }
+
   private:
     void run() {
         SignalMsg msg;
         while (running_.load(std::memory_order_relaxed)) {
             // Batch pop for efficiency
             while (buffer_->try_pop(msg)) {
-                if (callback_) callback_(msg);
+                if (!callback_) continue;
+                // A throwing callback (e.g. string alloc in signal conversion)
+                // escaping a std::thread → std::terminate kills the process.
+                // Drop the signal and count it instead.
+                try {
+                    callback_(msg);
+                } catch (...) {
+                    callback_errors_.fetch_add(1, std::memory_order_relaxed);
+                }
             }
             // Brief sleep when empty to avoid 100% CPU
             std::this_thread::sleep_for(std::chrono::microseconds(50));
@@ -73,6 +84,7 @@ class ShmSignalConsumer {
     std::thread                               thread_;
     SignalCallback                            callback_;
     std::unique_ptr<ShmRingBuffer<SignalMsg>> buffer_;
+    std::atomic<uint64_t>                     callback_errors_{0};
 };
 
 } // namespace hft::ipc

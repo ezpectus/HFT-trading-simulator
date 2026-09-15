@@ -163,7 +163,7 @@ class Backtester:
         result.final_balance = balance
         result.equity_curve = equity_curve
         result.total_return_pct = (balance - self.initial_balance) / self.initial_balance * 100 if self.initial_balance > 0 else 0
-        calculate_trade_metrics(result, self.candle_interval_minutes)
+        calculate_trade_metrics(result)
         calculate_drawdown_metrics(
             result, equity_curve, balance,
             self.initial_balance, self.candle_interval_minutes,

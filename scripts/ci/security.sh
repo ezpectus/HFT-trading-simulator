@@ -31,13 +31,17 @@ fi
 echo ""
 echo "[Python] Running pip-audit..."
 if command -v pip-audit &>/dev/null; then
-  if pip-audit -r ai-signal-bot/requirements.txt 2>&1; then
-    echo "  ✅ pip-audit: No known vulnerabilities"
-    PASS=$((PASS + 1))
-  else
-    echo "  ❌ pip-audit: Vulnerabilities found"
-    FAIL=$((FAIL + 1))
-  fi
+  # Audit every component's requirements — exchange_simulator was missed.
+  for req in ai-signal-bot/requirements.txt exchange_simulator/requirements.txt; do
+    echo "  → $req"
+    if pip-audit -r "$req" 2>&1; then
+      echo "  ✅ $req: No known vulnerabilities"
+      PASS=$((PASS + 1))
+    else
+      echo "  ❌ $req: Vulnerabilities found"
+      FAIL=$((FAIL + 1))
+    fi
+  done
 else
   echo "  ⚠️  pip-audit not installed — run 'pip install pip-audit'"
 fi

@@ -26,7 +26,7 @@ def update_drawdown(equity: float, peak_equity: float, result: BacktestResult) -
     return peak_equity
 
 
-def calculate_trade_metrics(result: BacktestResult, candle_interval_minutes: int) -> None:
+def calculate_trade_metrics(result: BacktestResult) -> None:
     """Calculate trade-level performance metrics."""
     if not result.trades:
         return
@@ -44,16 +44,10 @@ def calculate_trade_metrics(result: BacktestResult, candle_interval_minutes: int
     gross_loss = abs(sum(t.pnl for t in losses))
     result.profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf') if gross_profit > 0 else 0
 
-    returns = [t.pnl_pct for t in result.trades]
-    if len(returns) > 1:
-        mean_ret = sum(returns) / len(returns)
-        std_ret = (sum((r - mean_ret) ** 2 for r in returns) / (len(returns) - 1)) ** 0.5
-        periods_per_year = 365 * 24 * 60 / candle_interval_minutes
-        result.sharpe_ratio = (mean_ret / std_ret * (periods_per_year ** 0.5)) if std_ret > 0 else 0
-        downside_returns = [r for r in returns if r < 0]
-        if len(downside_returns) > 0:
-            downside_std = (sum(r ** 2 for r in downside_returns) / len(returns)) ** 0.5
-            result.sortino_ratio = (mean_ret / downside_std * (periods_per_year ** 0.5)) if downside_std > 0 else 0
+    # Sharpe/Sortino intentionally NOT computed here: annualizing per-trade
+    # returns by bars-per-year inflates the ratio by sqrt(bars/trades) —
+    # trades are sparse. The honest per-bar convention lives in
+    # calculate_drawdown_metrics, which owns the equity curve.
 
     durations = [t.exit_time - t.entry_time for t in result.trades]
     result.avg_trade_duration = sum(durations) / len(durations) if durations else 0
@@ -97,3 +91,23 @@ def calculate_drawdown_metrics(
     if total_bars > 0 and result.max_drawdown_pct > 0:
         annualized_return = result.total_return_pct * (365 * 24 * 60 / candle_interval_minutes / total_bars)
         result.calmar_ratio = annualized_return / result.max_drawdown_pct
+
+    # Per-bar equity returns — the standard annualization basis. Equity exists
+    # for every bar, so scaling by bars-per-year is correct (unlike per-trade
+    # returns, which are sparse and inflated the ratio by sqrt(bars/trades)).
+    bar_returns = [
+        (equity_curve[i] - equity_curve[i - 1]) / equity_curve[i - 1]
+        for i in range(1, total_bars)
+        if equity_curve[i - 1] > 0
+    ]
+    if len(bar_returns) > 1:
+        periods_per_year = 365 * 24 * 60 / candle_interval_minutes
+        mean_ret = sum(bar_returns) / len(bar_returns)
+        std_ret = (sum((r - mean_ret) ** 2 for r in bar_returns) / (len(bar_returns) - 1)) ** 0.5
+        result.sharpe_ratio = (mean_ret / std_ret * (periods_per_year ** 0.5)) if std_ret > 0 else 0
+        downside_returns = [r for r in bar_returns if r < 0]
+        if downside_returns:
+            downside_std = (sum(r ** 2 for r in downside_returns) / len(bar_returns)) ** 0.5
+            result.sortino_ratio = (
+                (mean_ret / downside_std * (periods_per_year ** 0.5)) if downside_std > 0 else 0
+            )
