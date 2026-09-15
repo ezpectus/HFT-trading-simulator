@@ -89,6 +89,31 @@ class TestBacktesterRun:
         # Only 10 bars of signal generation
         assert result.signals_generated <= 10
 
+    def test_no_lookahead_window_excludes_fill_bar(self):
+        """S329: analyze() must see only bars closed BEFORE the fill bar.
+
+        Loop index i fills at candles[i].close — the strategy window must
+        end at candles[i-1], never include candles[i] itself.
+        """
+        candles = make_candles(80)
+        seen_last_ts = []
+
+        class SpyStrategy:
+            name = "spy"
+
+            def analyze(self, symbol, window):
+                seen_last_ts.append(window[-1]["timestamp"])
+                return Signal(
+                    symbol=symbol, direction=SignalDirection.NEUTRAL,
+                    confidence=0, strategy="spy", entry_price=0,
+                    stop_loss=0, take_profit=0)
+
+        result = Backtester().run(candles, SpyStrategy(), warmup=50)
+        # 30 loop iterations (i=50..79); call k must end its window on
+        # candles[49+k] — the bar before the one that could fill.
+        assert len(seen_last_ts) == result.signals_generated == 30
+        assert seen_last_ts == [c["timestamp"] for c in candles[49:79]]
+
 
 class TestBacktesterMetrics:
     def test_total_return_pct(self):

@@ -126,8 +126,10 @@ class Backtester:
         max_window = max(warmup * 2, 200)
 
         for i in range(warmup, len(candles)):
-            start = max(0, i - max_window + 1)
-            window = candles[start:i + 1]
+            start = max(0, i - max_window)
+            # Signal sees only bars CLOSED before bar i; the fill happens at
+            # bar i's close — decide-then-fill-on-same-bar would be lookahead.
+            window = candles[start:i]
             current_candle = candles[i]
             current_price = current_candle["close"]
 

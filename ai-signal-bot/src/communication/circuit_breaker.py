@@ -1,8 +1,13 @@
-"""Circuit breaker for signal broadcasting — stops sending signals after consecutive failures.
+"""Circuit breaker for signal actuation — stops signals after consecutive failures.
 
-Tracks signal outcomes (win/loss) from trade history. After N consecutive losing
-signals, the breaker opens and blocks new signals for a cooldown period. This
-prevents the bot from continuously sending bad signals during adverse conditions.
+Tracks order-execution outcomes (broadcast/SHM/order-path failures) fed by
+``record_failure``/``record_success`` from run.py's execution paths. After N
+consecutive failures the breaker opens and blocks new signals for a cooldown
+period. This prevents the bot from continuously firing signals into a failing
+pipeline (exchange WS down, live adapter erroring, etc.).
+
+Note: no realized-PnL feedback exists in prod (db.close_trade has no callers),
+so "losing trade" outcomes are not a breaker input — execution failures are.
 
 States:
   CLOSED  — normal operation, signals pass through
@@ -92,7 +97,7 @@ class CircuitBreaker:
             return False
 
     async def record_success(self) -> None:
-        """Record a successful signal outcome."""
+        """Record a successful order execution / signal actuation."""
         async with self._lock:
             if self._state == BreakerState.HALF_OPEN:
                 self._consecutive_successes += 1
@@ -105,7 +110,7 @@ class CircuitBreaker:
                 self._consecutive_failures = 0
 
     async def record_failure(self) -> None:
-        """Record a failed signal outcome (e.g., losing trade)."""
+        """Record a failed order execution / signal actuation."""
         async with self._lock:
             self._consecutive_successes = 0
             if self._state == BreakerState.HALF_OPEN:

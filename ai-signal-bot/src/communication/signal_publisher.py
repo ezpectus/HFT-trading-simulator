@@ -303,15 +303,19 @@ class SignalPublisher:
             async with self._state_lock:
                 self._clients -= disconnected
 
-    async def broadcast_signal(self, signal: dict) -> None:
-        """Broadcast a trading signal to all connected HFT clients."""
+    async def broadcast_signal(self, signal: dict) -> bool:
+        """Broadcast a trading signal to all connected HFT clients.
+
+        Returns False when the circuit breaker blocks the signal — callers
+        must then skip SHM push and order execution for it.
+        """
         if not await self.circuit_breaker.allow_signal():
             logger.warning(
                 f"Signal blocked by circuit breaker: {signal.get('direction', '?')} "
                 f"{signal.get('symbol', '?')} (state={self.circuit_breaker.state.value})"
             )
             self.metrics.record_signal_blocked()
-            return
+            return False
 
         created_ts = signal.get("timestamp")
         if isinstance(created_ts, int | float) and created_ts > 0:
@@ -332,7 +336,7 @@ class SignalPublisher:
         )
 
         if not self._clients:
-            return
+            return True
 
         if _HAS_ORJSON:
             msg = orjson.dumps({"type": "signal", **signal})
@@ -345,6 +349,7 @@ class SignalPublisher:
             f"conf={signal.get('confidence', 0):.0f} "
             f"→ {len(self._clients)} clients"
         )
+        return True
 
     async def broadcast_market_regime(self, symbol: str, regime: str,
                                        trend_score: float, cycle_strength: float) -> None:

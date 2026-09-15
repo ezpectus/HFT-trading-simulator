@@ -132,7 +132,7 @@ class TestShmChannel:
             exchange=SimpleNamespace(is_trading_active=False),
             trade_logger=MagicMock(), signal_logger=MagicMock(),
         )
-        bot.signal_publisher.broadcast_signal.return_value.set_result(None)
+        bot.signal_publisher.broadcast_signal.return_value.set_result(True)
         sig = SimpleNamespace()
         sig_dict = {"symbol": "BTC/USDT", "direction": "LONG", "entry_price": 64000,
                     "stop_loss": 63000, "take_profit": 66000, "confidence": 80,
@@ -143,6 +143,34 @@ class TestShmChannel:
         producer.push_signal_dict.assert_called_once()
         pushed = producer.push_signal_dict.call_args[0][0]
         assert pushed["symbol"] == "BTC/USDT"
+
+    @pytest.mark.asyncio
+    async def test_finalize_blocked_by_breaker_skips_shm_and_order(self):
+        """S337: breaker-blocked signal must not reach SHM push or order execution."""
+        producer = MagicMock()
+        bot = SimpleNamespace(
+            logger=logging.getLogger("t"),
+            db=SimpleNamespace(save_signal=MagicMock(return_value=7)),
+            signal_publisher=SimpleNamespace(
+                broadcast_signal=MagicMock(return_value=asyncio.Future())),
+            _shm_producer=producer, _symbol_map={"BTC/USDT": 0},
+            _hft_kill_active=False,
+            config=_cfg(paper_trading=True),
+            exchange=SimpleNamespace(is_trading_active=True),
+            tracker=SimpleNamespace(orders_sent=0),
+            trade_logger=MagicMock(), signal_logger=MagicMock(),
+        )
+        bot.signal_publisher.broadcast_signal.return_value.set_result(False)
+        sig_dict = {"symbol": "BTC/USDT", "direction": "LONG", "entry_price": 64000,
+                    "stop_loss": 63000, "take_profit": 66000, "confidence": 80,
+                    "timestamp": 1_700_000_000}
+        with patch("run.generate_llm_explanation", return_value=asyncio.Future()) as gl:
+            gl.return_value.set_result("expl")
+            await AISignalBot._finalize_and_execute(
+                bot, "BTC/USDT", SimpleNamespace(
+                    direction=SimpleNamespace(value="LONG")), sig_dict, [], 10000)
+        producer.push_signal_dict.assert_not_called()
+        assert bot.tracker.orders_sent == 0
 
     @pytest.mark.asyncio
     async def test_finalize_skips_shm_push_when_kill_active(self):
@@ -159,7 +187,7 @@ class TestShmChannel:
             exchange=SimpleNamespace(is_trading_active=False),
             trade_logger=MagicMock(), signal_logger=MagicMock(),
         )
-        bot.signal_publisher.broadcast_signal.return_value.set_result(None)
+        bot.signal_publisher.broadcast_signal.return_value.set_result(True)
         sig_dict = {"symbol": "BTC/USDT", "direction": "LONG", "entry_price": 64000,
                     "stop_loss": 63000, "take_profit": 66000, "confidence": 80,
                     "timestamp": 1_700_000_000}

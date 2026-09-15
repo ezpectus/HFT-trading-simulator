@@ -568,7 +568,12 @@ class AISignalBot:
         explanation = await generate_llm_explanation(self, symbol, signal, candles)
         sig_dict["explanation"] = explanation
         sig_dict["signal_id"] = signal_id
-        await self.signal_publisher.broadcast_signal(sig_dict)
+        sent = await self.signal_publisher.broadcast_signal(sig_dict)
+        if not sent:
+            self.logger.warning(
+                "  %s %s blocked by circuit breaker — skipped SHM push and order",
+                signal.direction.value, symbol)
+            return
         if self._shm_producer and not self._hft_kill_active:
             self._shm_producer.push_signal_dict(sig_dict, self._symbol_map)
             metrics = _metrics_of(self)
@@ -602,16 +607,28 @@ class AISignalBot:
         if quantity <= 0:
             return
 
+        cb = self.signal_publisher.circuit_breaker
+        if not getattr(self.exchange, "connected", True):
+            await cb.record_failure()
+            self.logger.error("  Paper order for %s skipped — exchange WS disconnected",
+                              signal.symbol)
+            return
         side = "BUY" if signal.direction == SignalDirection.LONG else "SELL"
-        await self.exchange.submit_order(
-            symbol=signal.symbol,
-            side=side,
-            quantity=round(quantity, 4),
-            exchange=self.config.default_exchange,
-            stop_loss=signal.stop_loss,
-            take_profit=signal.take_profit,
-            client_order_id=f"sig_{signal_id}",
-        )
+        try:
+            await self.exchange.submit_order(
+                symbol=signal.symbol,
+                side=side,
+                quantity=round(quantity, 4),
+                exchange=self.config.default_exchange,
+                stop_loss=signal.stop_loss,
+                take_profit=signal.take_profit,
+                client_order_id=f"sig_{signal_id}",
+            )
+        except (ConnectionError, OSError, RuntimeError) as e:
+            await cb.record_failure()
+            self.logger.error("  Paper order send failed for %s: %s", signal.symbol, e)
+            return
+        await cb.record_success()
         self.tracker.orders_sent += 1
         self.health_checker.record_order()
         metrics = _metrics_of(self)
@@ -679,7 +696,9 @@ class AISignalBot:
             if metrics is not None:
                 metrics.observe_order_latency(
                     self.config.default_exchange, time.monotonic() - t0)
+            cb = self.signal_publisher.circuit_breaker
             if result:
+                await cb.record_success()
                 if metrics is not None:
                     metrics.record_order_sent(
                         self.config.default_exchange, signal.symbol,
@@ -689,11 +708,13 @@ class AISignalBot:
                     f"@ {signal.entry_price:.2f} (id={result.get('order_id', '')})"
                 )
             else:
+                await cb.record_failure()
                 if metrics is not None:
                     metrics.record_order_rejected(
                         self.config.default_exchange, "place_order_failed")
                 self.logger.error("  Live order failed for %s", signal.symbol)
         except (ConnectionError, OSError, RuntimeError, ValueError) as e:
+            await self.signal_publisher.circuit_breaker.record_failure()
             if metrics is not None:
                 metrics.record_error()
             self.logger.error("  Live order error: %s", e)
