@@ -2853,3 +2853,14 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **R199** (6 entries) — `npm audit` = 0 (dev+prod); lockfile версии подтверждены: vitest/@vitest/mocker 4.1.11, fast-uri 4.1.4, js-yaml 4.3.2, browserslist 4.28.9, baseline-browser-mapping 2.11.23, brace-expansion 1.1.21/2.1.7/5.0.12, nanoid 3.3.19
 - Бонус: clang-22 toolchain найден на хосте → `position_manager.h` + R215 headers теперь `-fsyntax-only`-проверены (ранее "no toolchain"); `clang-format --dry-run -Werror` clean
 - Не проверено: R203 S322/R204 — уже verified R213 (ошибка в моём R215-саммари); всё verified
+
+## R217 — slop-audit — infra-слой re-sweep — 1 находка (S353 Info)
+
+**Scope:** `terraform/` (574, 6 файлов), `monitoring/` (~650), `scripts/` (~2.5k: ci/*, hooks, pre-commit-check gate, walk_forward_ci, benchmark_suite, test_config_consistency, report.py), `helm/templates` (~950), Makefile.
+
+**Находка:**
+- **S353 (Info)** — stale docstring-клеймы в 2 сайтах одного паттерна: `ebpf_monitor.py:153` `_report` обещает "update Prometheus metrics" (Gauge-код добавлен Пачкой HH, потом удалён — docstring пережил); `benchmark_suite.py:3` обещает "all HFT components/pipeline stages" (все 6 бенчей toy loops; PERFORMANCE.md:25-29 уже дисклеймит — но хедер скрипта врёт).
+
+**Чисто:** terraform весь (pinned provider, encrypted+locked backends, EKS KMS/private/audit-logs, private subnets, textbook VPC, encrypted versioned S3); alerts.yml — все 17 metric-refs → живые эмиттеры (`_CountingOrderHistory` делает orders-counters реальными — R140-нота про dead queries устарела); alertmanager честный receiver-less; prometheus jobs ↔ targets; grafana provisioning; ebpf real eBPF; test_alerts структурный-честный; scripts/ci/* реальные + wired (Makefile:85); pre-commit-check gate честный (all_ok→exit, staged-narrowing, loud SKIP); hooks реально дёргают gate (+WindowsApps-stub guard); walk_forward/test_config_consistency/report реальные; helm prom-target `ai-signal-bot:9091` КОРРЕКТЕН (hft=sidecar в поде, Service:9091); vendored helm/files byte-identical monitoring/; Makefile targets резолвятся.
+
+Board: 1 open (S353).
