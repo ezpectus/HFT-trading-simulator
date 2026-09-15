@@ -75,12 +75,13 @@ static std::vector<Candle> make_candles(int n, double start, double slope) {
     return candles;
 }
 
-static std::vector<Candle> make_oscillating_candles(int n, double center, double amplitude) {
+static std::vector<Candle> make_oscillating_candles(int n, double center, double amplitude,
+                                                    double freq = 0.3) {
     std::vector<Candle> candles;
     for (int i = 0; i < n; ++i) {
         Candle c;
         c.timestamp  = 1704067200 + i * 300;
-        double close = center + amplitude * std::sin(i * 0.3);
+        double close = center + amplitude * std::sin(i * freq);
         c.open       = close - 0.5;
         c.high       = close + 1.0;
         c.low        = close - 1.0;
@@ -138,7 +139,10 @@ TEST(test_spectral_trend_score_uptrend) {
 }
 
 TEST(test_spectral_trend_score_oscillating) {
-    auto                candles = make_oscillating_candles(128, 100.0, 10.0);
+    // spectral_trend_score's low/high split is at n_fft/8 (bin 16 at n=128):
+    // only cycles faster than ~8 candles land in the high band. freq=1.0 puts
+    // the peak at bin ~20 — a genuinely cycle-dominated signal.
+    auto                candles = make_oscillating_candles(128, 100.0, 10.0, 1.0);
     std::vector<double> closes;
     for (auto& c : candles)
         closes.push_back(c.close);

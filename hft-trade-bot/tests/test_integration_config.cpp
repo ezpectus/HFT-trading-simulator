@@ -14,8 +14,8 @@ TEST_SUITE("Config Integration") {
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT", "ETH/USDT"]
   max_open_positions: 10
@@ -46,7 +46,7 @@ system:
   version: "2.0.0"
   mode: "production"
 exchange:
-  default: binance
+  default_exchange: binance
 ipc:
   enabled: true
   signals_shm: "/hft_signals"

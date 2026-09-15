@@ -24,8 +24,8 @@ TEST_SUITE("Config HFT Parameters") {
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
   signal_interval_ms: 5
@@ -43,8 +43,8 @@ trading:
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
   signal_interval_seconds: 60
@@ -62,8 +62,8 @@ trading:
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
   signal_interval_ms: 2
@@ -84,8 +84,8 @@ trading:
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
   signal_interval_ms: 1
@@ -106,8 +106,8 @@ hft_v2:
             std::ofstream f(path);
             f << R"(
 exchange:
-  default: binance
-  ws_url: "ws://localhost:8765"
+  default_exchange: binance
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT", "ETH/USDT"]
   signal_interval_ms: 1
@@ -134,7 +134,7 @@ risk:
             std::ofstream f(path);
             f << R"(
 exchange:
-  ws_url: "ws://localhost:8765"
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
 risk:
@@ -162,7 +162,7 @@ risk:
             std::ofstream f(path);
             f << R"(
 exchange:
-  ws_url: "ws://localhost:8765"
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
 pressure_model:
@@ -185,7 +185,7 @@ pressure_model:
             std::ofstream f(path);
             f << R"(
 exchange:
-  ws_url: "ws://localhost:8765"
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
 risk:
@@ -203,7 +203,7 @@ risk:
             std::ofstream f(path);
             f << R"(
 exchange:
-  ws_url: "ws://localhost:8765"
+  websocket_url: "ws://localhost:8765"
 trading:
   symbols: ["BTC/USDT"]
 risk:

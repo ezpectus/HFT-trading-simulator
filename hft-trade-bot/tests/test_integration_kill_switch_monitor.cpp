@@ -11,11 +11,12 @@
 
 TEST_SUITE("Kill Switch + System Monitor Integration") {
 
-    TEST_CASE("KillSwitch: file trigger blocks trading") {
+    TEST_CASE("KillSwitch: file trigger blocks trading until manual reset") {
         const std::string trigger_file = "test_kill_switch_trigger";
         std::filesystem::remove(trigger_file);
 
-        hft::KillSwitch ks(trigger_file, 0.5); // 0.5s poll interval
+        hft::KillSwitch ks(trigger_file);
+        ks.start_monitoring(50); // 50ms poll for a fast test
 
         // Initially, trading should be allowed
         CHECK(ks.can_trade() == true);
@@ -26,50 +27,55 @@ TEST_SUITE("Kill Switch + System Monitor Integration") {
             f << "triggered";
         }
 
-        // Wait for poll thread to detect it
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        // Wait for the poll thread to detect it (generous window for CI)
+        bool blocked = false;
+        for (int i = 0; i < 40 && !blocked; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            blocked = !ks.can_trade();
+        }
+        CHECK(blocked);
+        CHECK(ks.last_reason() == hft::KillSwitch::Reason::FILE_TRIGGER);
+        // activate(FILE_TRIGGER) removes the trigger file itself
+        CHECK(!std::filesystem::exists(trigger_file));
 
-        // Now trading should be blocked
+        // Activation is sticky — removing the file must NOT auto-clear it
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
         CHECK(ks.can_trade() == false);
 
-        // Remove trigger file
-        std::filesystem::remove(trigger_file);
-
-        // Wait for poll thread to clear it
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
-
-        // Trading should be allowed again
+        // Only an explicit manual reset re-enables trading
+        ks.deactivate();
         CHECK(ks.can_trade() == true);
+
+        ks.stop_monitoring();
     }
 
     TEST_CASE("SystemMonitor: counters increment correctly") {
         hft::SystemMonitor monitor;
 
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::OrdersSent) == 0);
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::SignalsReceived) == 0);
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::Errors) == 0);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::ORDERS_SENT) == 0);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::SIGNALS_RECEIVED) == 0);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::ERRORS) == 0);
 
-        monitor.increment(hft::SystemMonitor::Counter::OrdersSent);
-        monitor.increment(hft::SystemMonitor::Counter::OrdersSent);
-        monitor.increment(hft::SystemMonitor::Counter::SignalsReceived);
-        monitor.increment(hft::SystemMonitor::Counter::Errors);
+        monitor.increment(hft::SystemMonitor::Metric::ORDERS_SENT);
+        monitor.increment(hft::SystemMonitor::Metric::ORDERS_SENT);
+        monitor.increment(hft::SystemMonitor::Metric::SIGNALS_RECEIVED);
+        monitor.increment(hft::SystemMonitor::Metric::ERRORS);
 
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::OrdersSent) == 2);
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::SignalsReceived) == 1);
-        CHECK(monitor.get_counter(hft::SystemMonitor::Counter::Errors) == 1);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::ORDERS_SENT) == 2);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::SIGNALS_RECEIVED) == 1);
+        CHECK(monitor.get(hft::SystemMonitor::Metric::ERRORS) == 1);
     }
 
-    TEST_CASE("SystemMonitor: snapshot contains all counters") {
+    TEST_CASE("SystemMonitor: snapshot reflects counters") {
         hft::SystemMonitor monitor;
 
-        monitor.increment(hft::SystemMonitor::Counter::OrdersSent, 5);
-        monitor.increment(hft::SystemMonitor::Counter::SignalsReceived, 3);
+        monitor.increment(hft::SystemMonitor::Metric::ORDERS_SENT, 5);
+        monitor.increment(hft::SystemMonitor::Metric::SIGNALS_RECEIVED, 3);
 
         auto snapshot = monitor.snapshot();
-        CHECK(snapshot.find("orders_sent") != snapshot.end());
-        CHECK(snapshot.find("signals_received") != snapshot.end());
-        CHECK(snapshot.at("orders_sent") == 5);
-        CHECK(snapshot.at("signals_received") == 3);
+        CHECK(snapshot.orders_sent == 5);
+        CHECK(snapshot.signals_received == 3);
+        CHECK(snapshot.errors == 0);
     }
 
 } // TEST_SUITE

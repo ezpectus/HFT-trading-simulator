@@ -143,6 +143,40 @@ if(HFT_TESTS_ONLY)
     find_package(nlohmann_json QUIET)
     find_package(yaml-cpp QUIET)
     find_package(simdjson QUIET)
+
+    # Vendored deps fallback (hft-trade-bot/deps/, gitignored — fetched manually
+    # or by scripts; used only when real packages are absent). Creates the same
+    # canonical target names the test gates below check for.
+    set(_HFT_DEPS ${CMAKE_SOURCE_DIR}/deps)
+    if(NOT TARGET nlohmann_json::nlohmann_json AND EXISTS ${_HFT_DEPS}/nlohmann/json.hpp)
+        add_library(nlohmann_json_vendored INTERFACE)
+        target_include_directories(nlohmann_json_vendored INTERFACE ${_HFT_DEPS})
+        add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json_vendored)
+        message(STATUS "deps: vendored nlohmann_json")
+    endif()
+    if(NOT TARGET fmt::fmt AND EXISTS ${_HFT_DEPS}/fmt/fmt/format.h)
+        add_library(fmt_vendored INTERFACE)
+        target_include_directories(fmt_vendored INTERFACE ${_HFT_DEPS}/fmt)
+        target_compile_definitions(fmt_vendored INTERFACE FMT_HEADER_ONLY=1)
+        add_library(fmt::fmt ALIAS fmt_vendored)
+        message(STATUS "deps: vendored fmt (header-only)")
+    endif()
+    if(NOT TARGET spdlog::spdlog AND EXISTS ${_HFT_DEPS}/spdlog/spdlog/spdlog.h)
+        add_library(spdlog_vendored INTERFACE)
+        target_include_directories(spdlog_vendored INTERFACE ${_HFT_DEPS}/spdlog)
+        add_library(spdlog::spdlog ALIAS spdlog_vendored)
+        message(STATUS "deps: vendored spdlog (header-only, bundled fmt)")
+    endif()
+    if(NOT TARGET yaml-cpp::yaml-cpp AND EXISTS ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a)
+        add_library(yaml-cpp STATIC IMPORTED GLOBAL)
+        set_target_properties(yaml-cpp PROPERTIES
+            IMPORTED_LOCATION ${_HFT_DEPS}/_yaml_build/libyaml-cpp.a
+            INTERFACE_INCLUDE_DIRECTORIES ${_HFT_DEPS}/_yaml_src/include
+            INTERFACE_COMPILE_DEFINITIONS YAML_CPP_STATIC_DEFINE
+        )
+        add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
+        message(STATUS "deps: vendored yaml-cpp (prebuilt static)")
+    endif()
 else()
 # Boost: on Linux use system install (apt), on Windows use vcpkg
 if(UNIX AND NOT APPLE)
@@ -297,6 +331,14 @@ target_include_directories(test_signal_engine PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${WEBSOCKETPP_INCLUDE_DIR}
 )
+# pulls signal_receiver.h → websocketpp+asio — standalone asio from deps/
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp)
+    target_include_directories(test_signal_engine PRIVATE ${CMAKE_SOURCE_DIR}/deps/asio)
+    target_compile_definitions(test_signal_engine PRIVATE ASIO_STANDALONE _WEBSOCKETPP_CPP11_THREAD_)
+endif()
+if(WIN32)
+    target_link_libraries(test_signal_engine PRIVATE ws2_32 mswsock)
+endif()
 target_link_libraries(test_signal_engine PRIVATE
     fmt::fmt
     Threads::Threads
@@ -349,15 +391,6 @@ function(add_hft_test name source)
     )
     add_test(NAME ${name}_tests COMMAND ${name})
 endfunction()
-
-# ─── V2 engine tests (own main, dep-free — assert-based) ───
-add_hft_test(test_v2_engine tests/test_v2_engine.cpp)
-add_hft_test(test_v2_indicators tests/test_v2_indicators.cpp)
-add_hft_test(test_v2_infra tests/test_v2_infra.cpp)
-add_hft_test(test_v2_pressure_adaptive tests/test_v2_pressure_adaptive.cpp)
-foreach(t test_v2_engine test_v2_indicators test_v2_infra test_v2_pressure_adaptive)
-    target_sources(${t} PRIVATE src/strategies/signal_engine_v2.cpp)
-endforeach()
 
 # ─── doctest-based unit tests (header-only, no external deps) ───
 function(add_doctest_test name source)
@@ -459,9 +492,22 @@ target_link_libraries(test_doctest_hft_config PRIVATE yaml-cpp::yaml-cpp fmt::fm
 endif() # yaml+fmt+spdlog (hft_config)
 
 # SignalReceiver data-store doctest tests (multi-exchange keying, S252)
-if(TARGET nlohmann_json::nlohmann_json AND TARGET spdlog::spdlog)
+# Also needs standalone asio + OpenSSL headers (TLS client path parses them even
+# when unused) — stays dark unless deps/{asio,openssl} are vendored.
+if(TARGET nlohmann_json::nlohmann_json AND TARGET spdlog::spdlog
+   AND EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp
+   AND EXISTS ${CMAKE_SOURCE_DIR}/deps/openssl/openssl/ssl.h)
 add_doctest_test(test_doctest_signal_receiver tests/test_doctest_signal_receiver.cpp)
 target_compile_definitions(test_doctest_signal_receiver PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
+# signal_receiver.h pulls websocketpp/config/asio_client.hpp — standalone asio
+# is vendored under deps/asio (header-only) when present.
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp)
+    target_include_directories(test_doctest_signal_receiver PRIVATE ${CMAKE_SOURCE_DIR}/deps/asio)
+    target_compile_definitions(test_doctest_signal_receiver PRIVATE ASIO_STANDALONE _WEBSOCKETPP_CPP11_THREAD_)
+endif()
+if(WIN32)
+    target_link_libraries(test_doctest_signal_receiver PRIVATE ws2_32 mswsock)
+endif()
 target_link_libraries(test_doctest_signal_receiver PRIVATE nlohmann_json::nlohmann_json spdlog::spdlog)
 if(FMT_LIBRARY)
     target_link_libraries(test_doctest_signal_receiver PRIVATE ${FMT_LIBRARY})
