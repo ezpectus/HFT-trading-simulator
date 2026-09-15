@@ -2748,3 +2748,13 @@ Three lenses, all clean:
 - **Datetime hygiene:** all wall-time calls are `datetime.now(UTC)`-aware (tracker, validator, data_export, health) — no naive `now()`, no naive↔aware mixing, no `fromtimestamp` without tz. One cosmetic `datetime.utcnow()` in `scripts/ci/report.py:51` (deprecated API in a CI label — works, not a defect).
 - **Unbounded growth:** every append structure is bounded — `signal_publisher._compute_windows` (sliding 60s + rate cap), `ws_client._candle_history` (`maxlen=200`/symbol), `_order_dedup_keys` (FIFO eviction at `_ORDER_DEDUP_MAX`), `audit_logger._logs`/`alert_history`/`returns_history`/`_returns` all `maxlen`, `_pending_orders`/`_request_order` popped on resolve. Zero `deque()` without maxlen that lacks an eviction path.
 - **Injection/precision:** zero f-string SQL — every `execute*` parameterized; float `==` hits are all `== 0` division guards, not value-equality.
+
+## R232 — slop-audit — cross-boundary contract mega-sweep — 0 findings
+
+The remaining un-tried lenses, all verified clean:
+
+- **WS-protocol schema (type+field level):** all ~20 sim emits (`welcome/candles/snapshot/sync_state/fill/fills_batch/order*_cancelled/error/arbitrage_scan/options_chain/replay_*/trading_state/audit_logs/auth_*/pong/speed_set/config_updated`) consumed — `useExchangeData` switch covers market/fill/replay/audit, `useSignalData` switch + `resultSetters` map covers all 9 `*_result` types, `Auth.jsx` covers `auth_*`, `useWebSocket` covers `pong`. Every consumed field exists in the producer payload (`seq/order_ids/logs/open_orders/orderbook_deltas/news_event/weekend_mode/candles_to_funding` all present in `ws_broadcast.py`/`ws_message_handler.py`; `consecutive_failures/total_trips/total_blocks` in `circuit_breaker.py`). C++ consumer is all `.value(field, default)` — missing fields degrade, never throw.
+- **SHM wire layout (all 4 structs):** `SignalMsg/FillMsg/MarketSnapshotMsg/KillSwitchMsg` — Python `struct.Struct` formats byte-identical to packed C++ (32/28/28/16), field order + seqlock odd/even write barriers correct on both sides. (Heartbeat layout verified R225.)
+- **Secrets-in-logs:** zero `logger.*` calls emitting tokens/keys/passwords.
+- **React stale-closures:** all 3 `exhaustive-deps` disables deliberate (refs-stable `scheduleRetry`, mount effect on stable `connect`, caller-supplied `deps` in `useKeyboardShortcuts`).
+- **Backtest/live parity:** both call `strategy.analyze(symbol, candles)` — same decision path; ensemble vote is live-only by design.

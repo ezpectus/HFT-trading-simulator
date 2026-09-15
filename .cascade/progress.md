@@ -2962,3 +2962,10 @@ Board: 0 open.
 - Growth: все append-структуры bounded (maxlen/FIFO-eviction/rate-cap) — 0 утечек.
 - Injection: 0 f-string SQL; float == hits — все == 0 guards.
 - Board: 0 open.
+
+## R232 — cross-boundary contract mega-sweep — ЧИСТО — BOARD EMPTY
+
+- WS schema: все ~20 типов продюсеров консьюмятся; field-level verified; C++ всё .value(default).
+- SHM: все 4 структуры byte-identical + field order + seqlock barriers.
+- Secrets-in-logs: 0. exhaustive-deps disables: все deliberate. Backtest/live parity: тот же analyze().
+- Board: 0 open.
