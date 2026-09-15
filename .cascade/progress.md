@@ -2998,3 +2998,8 @@ Board: 0 open.
 - pre-commit-check --all: 12 PASS / 3 FAIL. cmake+ctest = stale S:/-drive cache + no MSVC/vcpkg (env). playwright e2e = no running server (env). bandit = 1 real Medium: db.py f-string purge → **S363 fixed** (static _PURGE_QUERIES).
 - Cosmetic: scripts/ci/report.py utcnow() → now(UTC).
 - Board: 0 open. Watch mode stands.
+
+## R235 — HFT hot-path perf sweep — S364 fixed
+
+- 4 per-tick wastes: mem-syscall per tick → 5s cache; v1 by-value copies → shared bufs; find_for_symbol string alloc per lookup → scratch; substr in lock → compare(); now() per position → hoisted.
+- Verified: clang -fsyntax-only clean on headers; .cpp via review (no local deps). Board: 0 open.

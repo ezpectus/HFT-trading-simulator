@@ -1293,3 +1293,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Bug:** `f"DELETE FROM {table} WHERE timestamp < ?"` — bandit's only Medium in the full `--all` gate run. The tuple was a hardcoded literal so no real injection surface, but it was the last f-string SQL in the tree (R231 recorded "0 f-string SQL" while this one existed — ledger overstated).
 - **Fix:** `_PURGE_QUERIES` module constant — fully static query text per table (identifiers can't be bound params anyway; literal statements remove the interpolation surface by construction).
 - **Files:** `ai-signal-bot/src/database/db.py:8-13,229-236`; db tests 24 green, bandit Medium 5→0.
+
+## R235 — HFT hot-path perf sweep — S364
+
+### S364 — per-tick allocations + syscall churn in hft hot loop (Info) ✅
+- **Bug:** four per-iteration wastes on the main trading tick: (a) `update_health_status` called `process_memory_mb()` every tick — a syscall (GetProcessMemoryInfo / /proc parse) for a health endpoint; (b) `run_v1_fallback_loop` used by-value `get_candles()`/`get_order_book()` — deep copy of 100 candles + book per symbol per tick while `_into` variants + shared ctx buffers already existed (v2 uses them); (c) `find_for_symbol` built a fresh `ex|sym` string per lookup under `data_lock_` — ~1-3 allocs × 9 read-paths per tick; (d) `get_all_prices_into` did `substr` allocs per qualified key inside the lock; `check_sl_tp` re-read `steady_clock::now()` per position.
+- **Fix:** 5s-cached memory sample (reusing `now_steady`); v1 loop on `ctx.candles_buf`/`ctx.ob_buf` via `get_candles_into`/`get_order_book_into` (miss→synthetic path now clears stale book data first — `get_order_book_into` leaves `out` untouched on a miss); `find_for_symbol` scratch `key_scratch_` (mutable, safe — all 9 callers hold `data_lock_`); `compare()` instead of `substr` for venue projection; hoisted `now()` in `check_sl_tp`.
+- **Files:** `hft-trade-bot/src/core/bot_loop.cpp:283-316,420-428`; `src/communication/signal_receiver_data.h:45-61,183-189,246`; `src/position/position_manager.h:274,283`.
+- **Verified:** clang-22 `-fsyntax-only` on both headers — clean; `bot_loop.cpp` not locally compilable (no vcpkg deps on host) — semantics reviewed + CI compiles. Same-behavior change, no API break.

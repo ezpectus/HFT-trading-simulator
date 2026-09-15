@@ -2783,3 +2783,7 @@ Every recorded finding is closed and documented in `.cascade/done-log.md` with c
 ## R234 — full pre-commit gate run — 1 finding fixed
 
 `pre-commit-check.py --all`: 12 PASS / 3 FAIL. Two env-blocked (cmake+ctest — stale S:-drive cache, no MSVC/vcpkg on host; playwright e2e — needs a running server). One real: **S363** — `db.purge_old_records` interpolated a table name via f-string (`DELETE FROM {table}`); bandit B608 Medium. The tuple was a literal constant (no injection surface), but it was the last f-string SQL in the tree. Fixed with static `_PURGE_QUERIES` map — query text fully literal by construction.
+
+## R235 — HFT hot-path perf sweep — 1 finding fixed
+
+**S364 (Info)** — per-tick waste in the hft trading loop: `process_memory_mb()` syscall every iteration (now 5s-cached), v1 fallback loop deep-copied 100 candles + order book per symbol per tick (now on shared `ctx.candles_buf`/`ctx.ob_buf` via the existing `_into` variants), `find_for_symbol` allocated a fresh `ex|sym` key per lookup under `data_lock_` (now a lock-guarded scratch buffer), `get_all_prices_into` allocated per qualified key (now `compare()`), `check_sl_tp` re-read the clock per position (hoisted). Headers pass clang syntax-check; same behavior, no API change.
