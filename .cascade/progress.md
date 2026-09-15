@@ -2733,3 +2733,19 @@ Batch: 4 High (S337/S329/S332/S340) + 4 Medium с real-money blast radius (S338/
 - **S330 ✅** — marketability-гейт adv_orders:179-181, `slice_size=` :184, `on_fill` :302. **S331 ✅** — partial liq → `submit_order(force_close=True)`, теневой `_handle_partial_liquidation` отсутствует (0 grep-хитов).
 - Узкие проверки: 38+18 sim тестов, 8 vitest, `bash -n deploy.sh` — всё зелёное.
 - **Вердикты: 8 VERIFIED / 0 WRONG / 0 ROTTED.** Остались unverified: R202 C++ (S334/S335 — doctest-верифицированы при фиксе), R203 (S322/S328), R204 (S323–S327), R205 (S333/S336), R199 dependabot.
+
+## R207 — slop-audit — ai-signal-bot/src full sweep — 5 новых находок (4 Medium, 1 Low)
+
+Первый static-only раунд после опустошения доски. Грунт: `ai-signal-bot/src` (66 файлов, 12.9k строк) — крупнейшая непокрытая область. Прочитано всё, не только grep-хиты; каждая находка проверена на prod-caller'ов.
+
+**Одна семья дефектов — "живой код, мёртвый продюсер" (4 из 5):**
+
+- **S342 (Medium)** — closed-trade accounting отсутствует end-to-end: `db.close_trade` + `tracker.record_trade` — 0 prod caller'ов; `RealAccount.set_fill_callback`/`start_user_data_stream` мертвы. Филлы пишутся FILLED/OPEN навсегда → dashboard `trades_closed`/`win_rate`/`total_pnl`, Prometheus `bot_win_rate`/`bot_pnl_total`/`daily` — структурные нули при текущих филлах.
+- **S343 (Medium)** — zombie-стратегии: `SentimentStrategy.on_news_event` + `MarketMakingStrategy.on_fill`/`update_inventory`/`update_toxicity` — 0 caller'ов → обе могут вернуть только NEUTRAL. `sentiment.enabled: true` по дефолту (settings.yaml:126) — мёртвая стратегия в стоковом конфиге; sim шлёт `news_event` который двигает цены, бот поле игнорит.
+- **S344 (Low)** — CB Prometheus-отчётность полумёртва: `record_circuit_breaker_trip` — 0 caller'ов (counter навсегда 0); `set_circuit_breaker_state` — только при наличии WS-клиентов → gauge замирает именно когда breaker трипается без UI.
+- **S345 (Medium)** — live-adapter market-data read-path мёртв end-to-end: `RealMarketDataFeed` поднимает настоящие Binance/OKX/Bybit сокеты в кэши, которые никто не читает (все get_* адаптера — 0 caller'ов, жив только place_order). Латентное доказательство: `@aggTrade` подписан "for last" но не парсится → `last=0.0` навсегда.
+- **S346 (Medium)** — contaminated walk-forward: `run_backtest.py` grid_search выбирает параметры по полному сету свечей, затем "валидирует" на окнах того же сета — OOS-claim ложный; `train_size` — skip-offset, не fitting window (docstring врёт).
+
+**Чисто:** вся стратегическая/risk/portfolio математика, indicators (оба пути), SHM-стек, request-хендлеры, observability, alerting/health/metrics, backtesting-стек, llm_engine, data_collection write-paths, database — реальные реализации, проверены построчно. Детали в ЧИСТО-строке доски.
+
+Board: 5 open (4 Medium, 1 Low). Source не тронут — audit-only раунд.
