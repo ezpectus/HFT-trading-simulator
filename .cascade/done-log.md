@@ -1477,3 +1477,18 @@ No benchmark existed — every "fast"/"zero-alloc" claim was architectural, not 
 | `FastSignal` ctor + field setters | ~0 ns | 100 ns |
 
 The nominal trading path computes a full signal in **sub-microsecond** time. Future perf work now has a reproducible baseline to argue against — run `./hft_bench [iters]` from `build-mingw/`.
+
+
+## R257 — full production build unlocked on dep-less host + real-loop audit — S378
+
+### S378 — `signal_latency` histogram measured the whole symbol iteration (Medium) ✅
+- **Context:** with the benchmark baseline in place (R256), audited the real per-tick loop (`main.cpp` → `run_v2_signal_loop`). Found a metrics-correctness defect: `ScopedLatency signal_timer` was created at the top of each symbol iteration, so `signal_latency_hist` actually measured candles-fetch + book-prep + signal-compute + **nested risk_timer + exec_timer** — and `continue`-skips (`candles < 30`, empty book) still recorded samples (a bare SHM fetch counted as "signal latency"). The operator-visible "signal latency" stat was a superset of every other histogram.
+- **Fix:** `signal_timer` now wraps only `generate_signal()` (pressure model + engine call). risk/exec timers become siblings, not nested-inside-signal. Zero runtime cost change — same one `steady_clock::now()` pair per computed signal.
+- **Files:** `src/core/bot_loop.cpp` (scoped block around generate_signal).
+
+### Full-build unlock — `hft_trade_bot.exe` builds+runs on this host for the first time
+- The tests-only build proved every production TU syntax-checks clean, but the real exe was never compiled here (Boost `REQUIRED` → vcpkg-only). Restructured dep resolution: full-build `find_package`s are now `QUIET` + the vendored-deps block runs in **both** modes (was tests-only); a post-check re-enforces the old REQUIRED semantics (real package or vendored equivalent must exist).
+- **Boost eliminated on the standalone-asio path:** `grep` proved zero `boost::` usage in `src/` — the only consumer was `pch.h`'s `boost/system/error_code.hpp` (vestigial for websocketpp's non-standalone branch). pch include is now `#ifndef ASIO_STANDALONE`-guarded; when `deps/asio` is vendored, Boost is skipped and an empty `Boost::headers` INTERFACE satisfies the link line.
+- Vendored OpenSSL minted as `OpenSSL::SSL`/`Crypto` STATIC IMPORTED (+ws2_32/gdi32/crypt32 on Win32). Main exe gets `ASIO_STANDALONE`/`_WEBSOCKETPP_CPP11_THREAD_`/`ws2_32`/`mswsock` when `deps/asio` exists.
+- **Warnings the full build surfaced (all fixed):** `process_sl_tp` dead `current_balance` param (dropped from decl/def/call — same class as S376's `now_ms`); `#pragma comment(lib)` MSVC-isms in `main.cpp`+`health_server.h` (now `_MSC_VER`-gated); `shm_market_data.h` `owns_` and `shm_ring_buffer.h` `total_size` platform-gated members/params (`[[maybe_unused]]` — POSIX reads them, Windows doesn't); `BotContext ctx{Config{}}` redundant aggregate init → `ctx`. Remaining warnings: only vendored `websocketpp/md5.hpp` (third-party).
+- **Verified:** `hft_trade_bot.exe` builds from clean, **runs** (banner + config validation + SIMULATOR mode + init path — killed after 8s smoke); `build-full/`+`logs/` gitignored; rebuild+**ctest 23/23 green**.

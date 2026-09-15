@@ -3184,3 +3184,10 @@ Board: 0 open.
 ## R256 — hot-path benchmark baseline → hft_bench
 
 - Added tests/bench_hot_path.cpp → hft_bench target (dev tool, not ctest — CI timing is noise). First measured numbers: analyze_incremental med 900ns/p99 1.4µs; SPSCQueue push+pop ~27ns mean; FastSignal setters ~20ns mean. Sub-microsecond signal compute on the nominal path — evidence baseline now exists for future perf claims.
+
+## R257 — full production build unlocked + real-loop audit → S378
+
+- **S378:** signal_latency_hist wrapped the whole symbol iteration (incl. nested risk/exec + skip-samples) — now scoped to generate_signal only. Metrics honesty fix, zero cost.
+- **Full-build unlock:** vendored deps/ now serve the production exe too — find_package QUIET + shared vendored minting + post-check enforcing old REQUIRED semantics. Boost eliminated on standalone-asio path (zero boost:: in src/; pch include guarded). **hft_trade_bot.exe builds+runs on this host for the first time.**
+- Full-build warnings zeroed on production code: dead current_balance param, _MSC_VER pragma guards, [[maybe_unused]] platform-gated fields, redundant aggregate init.
+- ctest 23/23 green. Board: 0 open.

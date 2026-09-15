@@ -9,6 +9,12 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-16 (Slop-fix R257 — production exe builds on dep-less hosts)
+
+### Fixed
+- **`signal_latency` histogram measured the whole symbol iteration (S378):** `ScopedLatency signal_timer` sat at the top of each `symbol_entries` iteration, so it recorded candles-fetch + book-prep + the *nested* risk/exec timers — and `continue`-skips still logged samples. Now wraps `generate_signal()` only; risk/exec are siblings. Same clock-pair cost per computed signal.
+- **`hft_trade_bot.exe` builds and runs on hosts without vcpkg (R257):** the full build's `find_package(REQUIRED)` calls (Boost, OpenSSL, spdlog, fmt, json, yaml-cpp) are now `QUIET` with a shared vendored-`deps/` fallback (previously tests-only) plus a post-check that preserves the old REQUIRED semantics. Boost is eliminated entirely on the vendored standalone-asio path — nothing in `src/` used `boost::` (the lone `pch.h` include is now `ASIO_STANDALONE`-guarded). First-ever build+run of the production binary on this host; production-code warnings reduced to zero (dead `process_sl_tp` balance param, `_MSC_VER` pragma guards, `[[maybe_unused]]` platform-gated members, redundant `BotContext` aggregate init). **ctest: 23/23 green.**
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R255–R256 — verify + perf baseline)
 
 ### Added
