@@ -165,8 +165,8 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 - `sorted()[-k:]`/`sorted()[:k]` — 0
 - `f"INSERT`/`f"SELECT` — 0
 - C++ `catch (std::exception)` — 10, все логируют (spdlog warn/error/critical), чисто
-- Rust `unwrap()`/`expect()`/`panic!`/`todo!`/`unimplemented!` в `hft-executor/src` — 0 (все 15 в `#[cfg(test)]`)
-- Rust `unsafe` — только FFI boundary (CStr::from_ptr, Box::from_raw) — легитимно
+- Rust `unwrap()`/`expect()`/`panic!`/`todo!`/`unimplemented!` в `hft-executor/src` — 0 (все 15 в `#[cfg(test)]`) — *исторически; крейт удалён, S058*
+- Rust `unsafe` — только FFI boundary (CStr::from_ptr, Box::from_raw) — легитимно — *исторически; крейт удалён, S058*
 - `fpga/fpga_orderbook.vhd` — честно помечен "ACADEMIC SKETCH — NOT A PRODUCTION PROTOTYPE", не притворяется
 - `hft-trade-bot/monitor.py` — реальный log tailer, не мок
 - `.env.prod` — gitignored, секреты только через `${VAR:?}` (без дефолтов в compose)
