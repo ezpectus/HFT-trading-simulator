@@ -334,4 +334,4 @@ R175 slop-fix — закрыты 5 Info-находок: **S227** (пустой h
 
 1. ~~S337~~ ~~S329+S332~~ ~~S340~~ (R200) ~~S338/S339~~ (R201) ~~S330/S331~~ ~~S334/S335~~ (R202) ~~S322~~ ~~S328~~ (R203) ~~S323~~ ~~S324~~ ~~S325~~ ~~S326~~ ~~S327~~ (R204) ~~S333~~ ~~S336~~ (R205) — старая доска закрыта.
 2. ~~R208 slop-fix~~ — все 5 находок R207 закрыты (S342 closed-trade ingestion, S343 strategy feeds, S345 lazy feed + aggTrade, S346 fit/OOS split, S344 CB metrics). Board: 0 open → следующий шаг по audit-loop: `slop-audit` на новом грунте (или `slop-verify` — unverified: R199, R202 C++, R203, R204, R205, R208).
-3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам (last verified R206).
+3. Периодически — `/slop-verify`: QA-проверка записей done-log по файлам/строкам (last verified R209). Unverified: R199 dependabot, R202 C++ (S334/S335), R203 S322, R204 (S323–S327).

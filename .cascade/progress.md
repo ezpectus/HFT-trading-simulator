@@ -2761,3 +2761,18 @@ Board: 5 open (4 Medium, 1 Low). Source не тронут — audit-only рау�
 - **S346 ✅** — `split_fit_validation` (run_backtest.py:64-75) — chronological 60/40: grid_search на fit-сегменте, walk_forward на OOS-хвосте. `walk_forward` (optimizer.py:193-230): train_size = strictly-past context (warmup), test_size = evaluated tail; warmup-параметр убран; docstring честный про disjoint-сегменты.
 
 Верификация: targeted pytest по каждой находке + полный unit-suite ai-signal-bot **1300 passed**; ruff clean по всем тронутым файлам. Новые тесты: TestIngestClosedTrades (6), TestRouteNewsEvent+TestSyncMMInventory (11), TestOnTripCallback (3) + publisher wiring (2), test_market_data_manager (7), TestBinanceTickerMerge (4), test_run_backtest (5), test_walk_forward переписан. Doc-sync: CONFIGURATION_GUIDE market_making-claim обновлён.
+
+## R209 — slop-verify — 8 entries, 0 wrong, 0 rotted
+
+Verify-due сработал (last mark был R206). Батч: свежие R208 первыми + R205 пара + S328.
+
+- **S342 ✅** — `_ingest_closed_trades` run.py:399-444 + fee-scope db.py:181-183; контракт `ClosedTrade.to_dict` (models.py:414-427) покрывает все читаемые ключи.
+- **S343 ✅** — `news_event` property ws_client:96-99 + capture :237-238; provided-sentiment branch sentiment.py:105-107; `_route_news_event` run.py:446-474 + `_sync_mm_inventory` :476-511.
+- **S344 ✅** — `on_trip` в `_trip` circuit_breaker.py:136-140; wiring signal_publisher:76,86-89; gauge до clients-gate :391-398.
+- **S345 ✅** — `_ensure_started` на 3 getter'ах market_data_manager:79/87/97; нет eager init exchange_factory:331-334; aggTrade-merge market_data_feed:194-209.
+- **S346 ✅** — `split_fit_validation` run_backtest:64-73 + disjoint wiring :141,:154,:170,:184; honest walk_forward optimizer.py:193-231.
+- **S333 ✅** — `round_price` models.py:9-18; 8 сайтов rewired; `_TYPICAL_VOLUME` единственный живой (order_submission:20), advanced_orders-копии нет (0 grep-хитов).
+- **S336 ✅** — `set_conn`/`conn_snapshot` под `client_mtx_` в order_executor.h:404-411 + signal_receiver.h:274-280; receiver копирует hdl (:103 — reuse для subscribe).
+- **S328 ✅** — `backtest_engine.py`/`pnl_calculator.py` отсутствуют; 0 prod-референсов; `backtest_requests.py:170` импортирует канонический `BacktestResult`.
+
+Узкие проверки: 212 ai-signal-bot + 28 sim тестов зелёные. **8 VERIFIED / 0 WRONG / 0 ROTTED.** Остались unverified: R199 dependabot, R202 C++ (S334/S335 — doctest-верифицированы при фиксе), R203 S322, R204 (S323–S327).
