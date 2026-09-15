@@ -12,7 +12,7 @@ import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -48,7 +48,7 @@ def run_ci_script(script_name: str) -> dict:
 
 def generate_markdown_report(results: list[dict]) -> str:
     """Generate a markdown report from CI results."""
-    timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     total = len(results)
     passed = sum(1 for r in results if r["status"] == "pass")
