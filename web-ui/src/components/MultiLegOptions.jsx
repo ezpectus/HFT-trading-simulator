@@ -43,9 +43,12 @@ function MultiLegOptions({ currentPrice }) {
   const strat = STRATEGIES.find(s => s.id === strategy)
 
   const analysis = useMemo(() => {
+    // Sanitize spot once — NaN/0 leaks into option prices, payoffs and the
+    // SVG scales below.
+    const safeSpot = Number.isFinite(spot) && spot > 0 ? spot : 1
     const legs = strat.legs.map((leg, i) => {
-      const strike = strikes[`leg${i}`] || spot
-      const price = estimateOptionPrice(spot, strike, leg.type, daysToExpiry, volPct)
+      const strike = strikes[`leg${i}`] || safeSpot
+      const price = estimateOptionPrice(safeSpot, strike, leg.type, daysToExpiry, volPct)
       const cost = leg.side === 'buy' ? price : -price
       return {
         ...leg,
@@ -58,11 +61,11 @@ function MultiLegOptions({ currentPrice }) {
 
     const totalCost = legs.reduce((s, l) => s + l.cost, 0)
 
-    // Calculate payoff at expiry for various spot prices
+    // Payoff domain — flat 0.3·spot band around the sanitized spot.
     const payoffPoints = []
-    const range = spot * 0.3
+    const range = safeSpot * 0.3
     for (let p = -20; p <= 20; p++) {
-      const testSpot = spot + (p / 20) * range
+      const testSpot = safeSpot + (p / 20) * range
       let payoff = 0
       for (const leg of legs) {
         const intrinsic = leg.type === 'call'
@@ -100,11 +103,17 @@ function MultiLegOptions({ currentPrice }) {
   const maxPayoff = Math.max(...payoffs.map(p => p.payoff), 1)
   const minSpot = payoffs[0].spot
   const maxSpot = payoffs[payoffs.length - 1].spot
-  const xScale = (s) => ((s - minSpot) / (maxSpot - minSpot)) * W
-  const yScale = (p) => H - ((p - minPayoff) / (maxPayoff - minPayoff)) * H
+  const xSpan = maxSpot - minSpot
+  const ySpan = maxPayoff - minPayoff
+  const xScale = (s, i = 0) => xSpan > 0 && Number.isFinite(s)
+    ? ((s - minSpot) / xSpan) * W
+    : (i / Math.max(payoffs.length - 1, 1)) * W
+  const yScale = (p) => ySpan > 0 && Number.isFinite(p)
+    ? H - ((p - minPayoff) / ySpan) * H
+    : H / 2
   const zeroY = yScale(0)
 
-  const payoffPath = payoffs.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.spot)} ${yScale(p.payoff)}`).join(' ')
+  const payoffPath = payoffs.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.spot, i)} ${yScale(p.payoff)}`).join(' ')
 
   return (
     <div className="bg-bg-700  p-2.5">
