@@ -34,7 +34,19 @@ cmake -S deps/_yaml_src -B deps/_yaml_build -G Ninja -DCMAKE_BUILD_TYPE=Release 
     -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
 cmake --build deps/_yaml_build
 
-# OpenSSL is intentionally NOT vendored — its headers are .in templates that
-# require a full Configure+build. test_doctest_signal_receiver stays gated on
-# deps/openssl/openssl/ssl.h; drop a real OpenSSL include tree there to enable.
+echo "==> OpenSSL (msys2 ucrt64 prebuilt — headers + static libs)"
+OPENSSL_PKG=mingw-w64-ucrt-x86_64-openssl-3.6.4-1-any.pkg.tar.zst
+curl -fsSL -o /tmp/openssl.pkg.tar.zst "https://mirror.msys2.org/mingw/ucrt64/${OPENSSL_PKG}"
+python - <<'PYEOF'
+import zstandard as zstd, tarfile, io, os, shutil
+raw = zstd.ZstdDecompressor().stream_reader(io.BytesIO(open('/tmp/openssl.pkg.tar.zst','rb').read())).read()
+tf = tarfile.open(fileobj=io.BytesIO(raw))
+tf.extractall('deps/_ossl', filter='data')
+os.makedirs('deps/openssl', exist_ok=True)
+shutil.copytree('deps/_ossl/ucrt64/include/openssl', 'deps/openssl/openssl', dirs_exist_ok=True)
+for lib in ('libssl.a', 'libcrypto.a'):
+    shutil.copy2(f'deps/_ossl/ucrt64/lib/{lib}', 'deps/openssl/')
+shutil.rmtree('deps/_ossl')
+PYEOF
+
 echo "Done. Configure with: cmake -B build-mingw -G Ninja -DHFT_TESTS_ONLY=ON -DCMAKE_CXX_COMPILER=clang++"

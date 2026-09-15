@@ -508,6 +508,16 @@ endif()
 if(WIN32)
     target_link_libraries(test_doctest_signal_receiver PRIVATE ws2_32 mswsock)
 endif()
+# Vendored OpenSSL (msys2 ucrt64 layout: deps/openssl/openssl/*.h + static .a).
+target_include_directories(test_doctest_signal_receiver PRIVATE ${CMAKE_SOURCE_DIR}/deps/openssl)
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/openssl/libssl.a)
+    target_link_libraries(test_doctest_signal_receiver PRIVATE
+        ${CMAKE_SOURCE_DIR}/deps/openssl/libssl.a
+        ${CMAKE_SOURCE_DIR}/deps/openssl/libcrypto.a)
+    if(WIN32)
+        target_link_libraries(test_doctest_signal_receiver PRIVATE gdi32 crypt32)
+    endif()
+endif()
 target_link_libraries(test_doctest_signal_receiver PRIVATE nlohmann_json::nlohmann_json spdlog::spdlog)
 if(FMT_LIBRARY)
     target_link_libraries(test_doctest_signal_receiver PRIVATE ${FMT_LIBRARY})
