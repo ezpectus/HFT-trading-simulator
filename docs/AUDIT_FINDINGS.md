@@ -543,30 +543,30 @@ Six `console.log` calls in the performance monitoring utility. These are intenti
 
 # ROUND 4 � WIRE-TO-LIVE (2026-09-12)
 
-Direction (user-approved): \fake features are worse than missing features\ � replace mock UI data with real WebSocket streams wherever the payload exists.
+Direction (user-approved): `fake features are worse than missing features` � replace mock UI data with real WebSocket streams wherever the payload exists.
 
 ## Finding 027 � S035: ~70 math panels dead via nested candle access
 
-**Files:** \web-ui/src/components/*.jsx\ (71 files)
+**Files:** `web-ui/src/components/*.jsx` (71 files)
 **Severity:** Critical
 
-\useExchangeData\ produces a flat candle array \[{exchange, symbol, timestamp, open, high, low, close, volume}]\; the registry passes it through unchanged. ~70 math panels indexed it as \candles[exchange][symbol]\ > always \undefined\ > panels rendered a permanent empty state. Real math, never executed � worse than fake: dead code posing as live.
+`useExchangeData` produces a flat candle array `[{exchange, symbol, timestamp, open, high, low, close, volume}]`; the registry passes it through unchanged. ~70 math panels indexed it as `candles[exchange][symbol]` > always `undefined` > panels rendered a permanent empty state. Real math, never executed � worse than fake: dead code posing as live.
 
-**Fix:** new \web-ui/src/utils/candles.js\ (\selectCandles\/\groupCandles\ handle flat arrays); 61 files auto-migrated, 10 multi-symbol files hand-migrated (BlackLitterman, CopulaModel, EmpiricalDynamicModeling, GraphTheoryNetwork, KellyCriterion, PrincipalComponentAnalysis, RandomMatrixTheory, TensorDecomposition, TransferEntropy, WassersteinBarycenters). Grep confirms zero remaining nested accesses.
+**Fix:** new `web-ui/src/utils/candles.js` (`selectCandles`/`groupCandles` handle flat arrays); 61 files auto-migrated, 10 multi-symbol files hand-migrated (BlackLitterman, CopulaModel, EmpiricalDynamicModeling, GraphTheoryNetwork, KellyCriterion, PrincipalComponentAnalysis, RandomMatrixTheory, TensorDecomposition, TransferEntropy, WassersteinBarycenters). Grep confirms zero remaining nested accesses.
 
 ## Finding 028 � S036: format.ts lost exports during TS migration
 
-**File:** \web-ui/src/utils/format.ts\
+**File:** `web-ui/src/utils/format.ts`
 **Severity:** High
 
-\colorForSide\, \bgColorForSide\, \formatPct\ are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by \utils.test.js\, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
+`colorForSide`, `bgColorForSide`, `formatPct` are imported by 5 components (BotStatus, TradeHistory, SignalFeed, FillsPanel, PositionsPanel) and asserted by `utils.test.js`, but were absent from format.ts � production build failed with MISSING_EXPORT. **Fixed:** all three re-exported with the behavior the tests pin down.
 
 ## Finding 029 � S037: App.test.jsx never ran
 
-**File:** \web-ui/src/test/App.test.jsx\
+**File:** `web-ui/src/test/App.test.jsx`
 **Severity:** Medium
 
-Wrong relative paths (\./App\, \./hooks/*\), stale \useUIStore\ mock field names, \useTradingStore\ mock ignoring selector form. The only smoke test for the App shell was dead. **Fixed:** paths + mocks now match current store signatures; test mounts the real App.
+Wrong relative paths (`./App`, `./hooks/*`), stale `useUIStore` mock field names, `useTradingStore` mock ignoring selector form. The only smoke test for the App shell was dead. **Fixed:** paths + mocks now match current store signatures; test mounts the real App.
 
 ## Finding 030 � S001�S003 partial: 13 panels rewired to live streams
 
@@ -574,28 +574,28 @@ Top mock offenders now consume real data with honest empty states:
 
 | Panel | Live source |
 |-------|-------------|
-| FillAnalytics, TCA, SlippageAnalytics | \fills\ (orders WS) |
-| SignalTracker | \signals\ + \prices\ |
-| ArbScanner | \arbitrage_scan\ |
-| Inventory | \accounts\ + \prices\ |
-| WalkForwardViewer | \backtest_result\ |
-| Microstructure, OrderBook | \orderbooks\ |
-| CrossAssetMatrix | \candles\ (Pearson corr on last 60 closes) |
-| DataQuality | \candles\ (real gap/staleness/OHLC checks) |
-| StrategyCorrelation | \signals\ (directional agreement matrix) |
+| FillAnalytics, TCA, SlippageAnalytics | `fills` (orders WS) |
+| SignalTracker | `signals` + `prices` |
+| ArbScanner | `arbitrage_scan` |
+| Inventory | `accounts` + `prices` |
+| WalkForwardViewer | `backtest_result` |
+| Microstructure, OrderBook | `orderbooks` |
+| CrossAssetMatrix | `candles` (Pearson corr on last 60 closes) |
+| DataQuality | `candles` (real gap/staleness/OHLC checks) |
+| StrategyCorrelation | `signals` (directional agreement matrix) |
 | LatencyPanel | WS RTT samples (client-accumulated history) |
 
-Registry: ~20 panel entries changed from \props: () => ({})\ to real context props. 12 test files rewritten to assert real wire shapes instead of mock content.
+Registry: ~20 panel entries changed from `props: () => ({})` to real context props. 12 test files rewritten to assert real wire shapes instead of mock content.
 
 ## Finding 031 � S038: pre-existing failing tests (not from this round)
 
-\format.test.js\ expects \formatUsd(-500) === '- \.00'\ while \utils.test.js\ expects \'-\.00'\ � contradictory specs. \patterns.test.js\ (2: HAMMER/SHOOTING_STAR undetected), \auditExport\ (2: blob asserts), \performanceMonitor\ (2: customMetrics object vs scalar), \alertWebhook\ (1: label). Left open for a future round.
+`format.test.js` expects `formatUsd(-500) === '- $500.00'` while `utils.test.js` expects `'-$500.00'` � contradictory specs. `patterns.test.js` (2: HAMMER/SHOOTING_STAR undetected), `auditExport` (2: blob asserts), `performanceMonitor` (2: customMetrics object vs scalar), `alertWebhook` (1: label). Left open for a future round.
 
 ## Round 4 verification
 
-- \ite build\: green (was broken before S036 fix)
-- \itest run\: 986 passed / 8 failed (all 8 = Finding 031 pre-existing)
-- \pytest tests/unit/test_real_market_data.py\: 22/22 (incl. new malformed-JSON resilience test)
+- `vite build`: green (was broken before S036 fix)
+- `vitest run`: 986 passed / 8 failed (all 8 = Finding 031 pre-existing)
+- `pytest tests/unit/test_real_market_data.py`: 22/22 (incl. new malformed-JSON resilience test)
 
 
 ## Round 5 — wire-to-live batch 2 + S038 test repairs
@@ -2049,7 +2049,7 @@ Last uncovered surface: monitoring stack configs, all 5 GitHub workflows + depen
 
 **Retracted:** `web-ui/Dockerfile` exists (build-docker matrix valid); ai-bot `:9090/health` smoke check is real (`metrics.py:410` serves it; dev compose runs `run.py --metrics`); `web-ui/.env` is gitignored, not committed; nightly-backtest's inline `python -c` runs the real `Backtester` + real strategies (the S214 theater is the separate `walk_forward_ci.py`); `vcpkg/` is an untracked local tree.
 
-**Verified clean:** all 22 alert rules reference emitted metrics (8 `ai_signal_bot_*` in metrics_server.py, 9 `exchange_*` in ws_prometheus.py); `test_alerts.py` validates real group names; alertmanager honestly documents its no-op default receiver; grafana provider paths match compose mounts; prometheus targets match service names; codeql covers only the cpp leg (py/js in ci.yml — honest comment); release.yml changelog generation real; dependabot dirs all exist; issue/PR templates have no stale refs; e2e specs use real selectors/keybindings (Shift+\ ↔ App.jsx); `dev:mock` → `.env.mock` → `VITE_MOCK_MODE` wired end-to-end; staging 18xxx port offsets consistent.
+**Verified clean:** all 22 alert rules reference emitted metrics (8 `ai_signal_bot_*` in metrics_server.py, 9 `exchange_*` in ws_prometheus.py); `test_alerts.py` validates real group names; alertmanager honestly documents its no-op default receiver; grafana provider paths match compose mounts; prometheus targets match service names; codeql covers only the cpp leg (py/js in ci.yml — honest comment); release.yml changelog generation real; dependabot dirs all exist; issue/PR templates have no stale refs; e2e specs use real selectors/keybindings (Shift+` ↔ App.jsx); `dev:mock` → `.env.mock` → `VITE_MOCK_MODE` wired end-to-end; staging 18xxx port offsets consistent.
 
 Commit: fd2b029
 
