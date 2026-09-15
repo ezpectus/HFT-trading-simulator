@@ -3003,3 +3003,9 @@ Board: 0 open.
 
 - 4 per-tick wastes: mem-syscall per tick → 5s cache; v1 by-value copies → shared bufs; find_for_symbol string alloc per lookup → scratch; substr in lock → compare(); now() per position → hoisted.
 - Verified: clang -fsyntax-only clean on headers; .cpp via review (no local deps). Board: 0 open.
+
+## R235b — S364 ingest-path extension
+
+- 5 map-key allocs per message under data_lock_ (update_prices, update_orderbook_deltas, update_candles, update_orderbooks, inject_snapshot) → key_scratch_ reuse.
+- update_candles O(n) erase-front per candle over cap → amortized trim (>256 → keep 200, both histories). No consumer depends on exact bound.
+- clang-format clean; header syntax-check clean. Board: 0 open.
