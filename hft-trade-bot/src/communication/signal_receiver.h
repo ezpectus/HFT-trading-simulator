@@ -100,8 +100,8 @@ class SignalReceiver : private SignalReceiverData {
             auto ep = client_snapshot();
             ep->init_asio();
             ep->set_open_handler([this](websocketpp::connection_hdl hdl) {
+                set_conn(hdl); // copy — hdl is used again for the subscribe frame below
                 connected_       = true;
-                connection_      = hdl;
                 reconnect_delay_ = 1000;
                 activity_watchdog_.feed();
                 spdlog::info("SignalReceiver connected to {}", ws_url_);
@@ -176,7 +176,8 @@ class SignalReceiver : private SignalReceiverData {
             if (reconnect_thread_.joinable()) reconnect_thread_.join();
         }
         if (connected_) {
-            client_snapshot()->close(connection_, websocketpp::close::status::normal, "shutdown");
+            client_snapshot()->close(conn_snapshot(), websocketpp::close::status::normal,
+                                     "shutdown");
         }
         if (ws_thread_.joinable()) ws_thread_.join();
         if (watchdog_thread_.joinable()) watchdog_thread_.join();
@@ -270,6 +271,14 @@ class SignalReceiver : private SignalReceiverData {
         std::lock_guard<std::mutex> lk(client_mtx_);
         client_ = std::move(c);
     }
+    websocketpp::connection_hdl conn_snapshot() {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        return connection_;
+    }
+    void set_conn(websocketpp::connection_hdl h) {
+        std::lock_guard<std::mutex> lk(client_mtx_);
+        connection_ = std::move(h);
+    }
 
     void schedule_reconnect() {
         if (!should_reconnect_) return;
@@ -315,7 +324,7 @@ class SignalReceiver : private SignalReceiverData {
                 if (monitor_) monitor_->increment(SystemMonitor::Metric::HEARTBEATS_MISSED);
                 activity_watchdog_.feed(); // don't re-trip while teardown runs
                 websocketpp::lib::error_code ec;
-                auto con = client_snapshot()->get_con_from_hdl(connection_, ec);
+                auto con = client_snapshot()->get_con_from_hdl(conn_snapshot(), ec);
                 if (ec) {
                     // Handle already dead — no close event will fire; drive
                     // the reconnect ourselves.
@@ -333,9 +342,13 @@ class SignalReceiver : private SignalReceiverData {
         }
     }
 
-    std::string                 ws_url_;
-    std::shared_ptr<WSClient>   client_; // guarded by client_mtx_
-    std::mutex                  client_mtx_;
+    std::string               ws_url_;
+    std::shared_ptr<WSClient> client_; // guarded by client_mtx_
+    std::mutex                client_mtx_;
+    // Guarded by client_mtx_ like client_ — non-atomic hdl published by the
+    // open-handler while watchdog/disconnect read it after a relaxed
+    // connected_ load had no formal happens-before (S336, sibling of the
+    // order_executor.h fix).
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;
     std::thread                 watchdog_thread_;
