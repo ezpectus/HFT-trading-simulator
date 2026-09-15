@@ -1,6 +1,6 @@
 # Audit Findings — Full Project Grep Scan
 
-**Date:** 2026-08-22 (updated through R198, Sep 2026)
+**Date:** 2026-08-22 (updated through R233, Sep 2026 — audit converged)
 **Scope:** Entire project (`ai-signal-bot/`, `exchange_simulator/`, `hft-trade-bot/`, `monitoring/`, `web-ui/`, `scripts/`, `deploy/`, `helm/`, `terraform/`, root-level files). `hft-executor/` (Rust) deleted — S058.
 **Method:** grep-based scan for: TODO/FIXME/HACK, `except Exception`, `print()`, `import *`, `type: ignore`, `NotImplementedError`, `global`, `: Any`, `# noqa`, `pass`, hardcoded values (localhost, ports, /dev/shm), duplicate files, dead code, credentials/secrets, redundant exception tuples, f-string logging, `nosec`/`codeql` annotations, `os.system`, SQL injection patterns
 
@@ -2758,3 +2758,24 @@ The remaining un-tried lenses, all verified clean:
 - **Secrets-in-logs:** zero `logger.*` calls emitting tokens/keys/passwords.
 - **React stale-closures:** all 3 `exhaustive-deps` disables deliberate (refs-stable `scheduleRetry`, mount effect on stable `connect`, caller-supplied `deps` in `useKeyboardShortcuts`).
 - **Backtest/live parity:** both call `strategy.analyze(symbol, candles)` — same decision path; ensemble vote is live-only by design.
+
+---
+
+## Final status — R233 — audit converged
+
+**Accounting (honest):** the ID space S001–S362 is a numbering range, not a defect count.
+
+| Metric | Count |
+|---|---|
+| Recorded findings | 348 |
+| Real defects fixed | ~330 — **all closed** |
+| N/A verdicts (triaged: legitimate patterns, not defects) | 9 |
+| Duplicates / superseded (folded into primary entries) | ~9 |
+| Dead ID numbers (early renumbering: S042–S049, S052–S057) | 14 |
+| Open | **0** |
+
+Every recorded finding is closed and documented in `.cascade/done-log.md` with changed files + line ranges. Recent batches carry `verified R<N>` marks from adversarial re-checks against live code (S356–S362: 7/7 verified R233).
+
+**Remaining verify-debt:** `hft-trade-bot` ctest suite is env-blocked on this host (ASan-debug binaries, no MSVC debug CRT) — run once on a machine with Visual Studio. Everything runnable is green: exchange_simulator 446 tests, ai-signal-bot 1341, web-ui vitest 1133.
+
+**Post-convergence mode:** watch mode per `.windsurf/workflows/audit-loop.md` — `slop-verify` after every ~5 new done-log entries, `docs-refresh` per milestone, new sweeps only on new code. No audit rounds on a timer.
