@@ -3009,3 +3009,9 @@ Board: 0 open.
 - 5 map-key allocs per message under data_lock_ (update_prices, update_orderbook_deltas, update_candles, update_orderbooks, inject_snapshot) → key_scratch_ reuse.
 - update_candles O(n) erase-front per candle over cap → amortized trim (>256 → keep 200, both histories). No consumer depends on exact bound.
 - clang-format clean; header syntax-check clean. Board: 0 open.
+
+## R235c — S364 egress + dispatch extension
+
+- 7x OrderExecutor send(): std::string(buf,n) heap alloc per order → raw buf,len to websocketpp send() overload. Order submission now zero-alloc end to end.
+- handle_market_data: contains()+operator[] = 2 map walks x5 keys per msg → single find().
+- SHM seqlock writer already clean (POD memcpy + release/acquire). Board: 0 open.
