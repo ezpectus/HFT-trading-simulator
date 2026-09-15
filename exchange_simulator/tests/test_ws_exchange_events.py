@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from exchange_simulator.models import Order, OrderStatus, OrderType, Side
 from exchange_simulator.websocket_server import ExchangeWebSocketServer
 
 
@@ -62,6 +63,7 @@ class TestProcessExchangeEvents:
         order.order_type.value = "MARKET"
         order.fee = 0.5
         order.id = "x1"
+        order.close_reason = ""
         order.to_dict.return_value = {"id": "x1"}
         mock_exchange.check_stop_loss_take_profit.return_value = [order]
 
@@ -73,6 +75,30 @@ class TestProcessExchangeEvents:
         server._broadcast_fills_batch.assert_awaited()
         batch = server._broadcast_fills_batch.await_args.args[0]
         assert batch == [{"id": "x1"}]
+
+    @pytest.mark.asyncio
+    async def test_close_reason_flows_per_order(self, server, mock_exchange):
+        """Each close in a batch carries its own reason — previously every
+        order inherited trade_history[-1]'s reason (S349)."""
+        o1 = Order(
+            id="a", symbol="BTC/USDT", exchange="binance", side=Side.SELL,
+            order_type=OrderType.MARKET, quantity=0.1,
+            status=OrderStatus.FILLED, filled_price=49800.0,
+            filled_quantity=0.1, close_reason="STOP_LOSS",
+        )
+        o2 = Order(
+            id="b", symbol="ETH/USDT", exchange="binance", side=Side.SELL,
+            order_type=OrderType.MARKET, quantity=0.1,
+            status=OrderStatus.FILLED, filled_price=50200.0,
+            filled_quantity=0.1, close_reason="TAKE_PROFIT",
+        )
+        mock_exchange.check_stop_loss_take_profit.return_value = [o1, o2]
+
+        await server._process_exchange_events()
+
+        batch = server._broadcast_fills_batch.await_args.args[0]
+        assert batch[0]["close_reason"] == "STOP_LOSS"
+        assert batch[1]["close_reason"] == "TAKE_PROFIT"
 
     @pytest.mark.asyncio
     async def test_no_fills_means_no_broadcast(self, server):

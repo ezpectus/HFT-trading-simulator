@@ -191,7 +191,7 @@ class MessageHandlerMixin:
             last_ts = data.get("last_timestamp", 0)
             await self._send_sync_state(websocket, last_ts)
         elif msg_type == "set_speed":
-            self._handle_set_speed(websocket, data)
+            await self._handle_set_speed(websocket, data)
         elif msg_type == "replay":
             await self._handle_replay(websocket, data)
         elif msg_type == "close_position":
@@ -205,7 +205,7 @@ class MessageHandlerMixin:
         elif msg_type == "stop_trading":
             await self._handle_trading_state(websocket, False)
         elif msg_type == "update_config":
-            self._handle_update_config(websocket, data)
+            await self._handle_update_config(websocket, data)
         elif msg_type == "options_chain":
             await self._handle_options_chain(websocket, data)
 
@@ -389,15 +389,14 @@ class MessageHandlerMixin:
             f"{len(symbols)} symbols — {len(current_subs)} remaining"
         )
 
-    def _handle_set_speed(self, websocket: WebSocketServerConnection, data: dict) -> None:
+    async def _handle_set_speed(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle simulation speed change."""
-        import asyncio
         speed = data.get("speed", 1)
         if speed == 0:
             self._replay_paused = True
             self._speed_event.clear()
             logger.info("  Simulation PAUSED (speed=0)")
-            asyncio.create_task(websocket.send(json.dumps({"type": "replay_state", "paused": True})))
+            await self._send_json(websocket, {"type": "replay_state", "paused": True})
         else:
             was_paused = self._replay_paused
             self._replay_paused = False
@@ -405,9 +404,9 @@ class MessageHandlerMixin:
             if was_paused:
                 self._speed_event.set()
             logger.info("  Simulation speed set to %sx (interval=%ss)", _sanitize_log(speed), self._tick_interval)
-            asyncio.create_task(websocket.send(json.dumps({"type": "speed_set", "speed": speed})))
+            await self._send_json(websocket, {"type": "speed_set", "speed": speed})
             if was_paused:
-                asyncio.create_task(websocket.send(json.dumps({"type": "replay_state", "paused": False})))
+                await self._send_json(websocket, {"type": "replay_state", "paused": False})
 
     async def _handle_replay(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle replay control commands."""
@@ -538,9 +537,8 @@ class MessageHandlerMixin:
             and math.isfinite(value)
         )
 
-    def _handle_update_config(self, websocket: WebSocketServerConnection, data: dict) -> None:
+    async def _handle_update_config(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle hot-reload config updates."""
-        import asyncio
         updates = data.get("updates", {})
         rejected = []
         if "volatility" in updates:
@@ -586,11 +584,11 @@ class MessageHandlerMixin:
                 event_type=AuditEventType.CONFIG_CHANGE,
                 metadata={"keys": [_sanitize_log(str(k)) for k in updates]},
             )
-        asyncio.create_task(websocket.send(json.dumps({
+        await self._send_json(websocket, {
             "type": "config_updated",
             "updates": updates,
             "rejected": rejected,
-        })))
+        })
 
     async def _handle_options_chain(self, websocket: WebSocketServerConnection, data: dict) -> None:
         """Handle options chain request."""
@@ -634,7 +632,7 @@ class MessageHandlerMixin:
         for client in self.clients:
             if client != exclude:
                 try:
-                    await client.send(message)
+                    await self._send_tracked(client, message)
                 except websockets.ConnectionClosed:
                     disconnected.add(client)
         self.clients -= disconnected

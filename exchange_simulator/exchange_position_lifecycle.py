@@ -65,7 +65,7 @@ class PositionLifecycleMixin:
             side=existing.side.value, quantity=close_qty,
             entry_price=existing.entry_price, exit_price=order.filled_price,
             pnl=round(pnl, 2), fee=order.fee, reason="MANUAL",
-            opened_at=existing.opened_at,
+            opened_at=existing.opened_at, order_id=order.id,
         ))
         self._log_position_closed(existing, order, close_qty, pnl, old_balance)
 

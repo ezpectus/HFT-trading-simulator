@@ -40,9 +40,7 @@ class WebSocketMetrics:
         self.message_sizes: deque[int] = deque(maxlen=10000)
         self.message_count: int = 0
         self.bytes_sent: int = 0
-        self.compression_ratio: float = 0.0
         self.delta_update_ratio: float = 0.0
-        self.client_count: int = 0
         self.broadcast_latencies: deque[float] = deque(maxlen=10000)
         self.max_samples: int = 10000
         self.errors_total: int = 0
@@ -54,14 +52,12 @@ class WebSocketMetrics:
         self._sorted_sizes_cache: list[int] | None = None
         self._sorted_latencies_cache: list[float] | None = None
 
-    def record_message(self, size: int, compressed_size: int = 0) -> None:
+    def record_message(self, size: int) -> None:
         """Record a message size."""
         self.message_sizes.append(size)
         self.message_count += 1
         self.bytes_sent += size
         self._sorted_sizes_cache = None
-        if compressed_size > 0:
-            self.compression_ratio = size / compressed_size if compressed_size > 0 else 0.0
 
     def record_broadcast_latency(self, latency_ms: float) -> None:
         """Record broadcast latency."""

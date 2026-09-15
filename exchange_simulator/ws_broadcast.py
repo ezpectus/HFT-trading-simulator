@@ -56,7 +56,22 @@ class BroadcastMixin:
 
         payload_len = len(message_bytes) if isinstance(message_bytes, (bytes, bytearray)) else len(message_bytes.encode('utf-8'))
         self.metrics.record_message(payload_len)
-        self.metrics.client_count = len(self.clients)
+
+    async def _send_tracked(self, client: WebSocketServerConnection, payload) -> None:
+        """Broadcast-path send with metrics (S347).
+
+        Every production broadcast used to call client.send() directly, so
+        messages_total/bytes_sent only counted connect-time unicasts and
+        broadcast_latency never moved. Latency is recorded in finally so a
+        backpressured-then-failed send still contributes its true cost.
+        """
+        t0 = time.monotonic()
+        try:
+            await client.send(payload)
+        finally:
+            self.metrics.record_broadcast_latency((time.monotonic() - t0) * 1000.0)
+        size = len(payload) if isinstance(payload, (bytes, bytearray)) else len(payload.encode('utf-8'))
+        self.metrics.record_message(size)
 
     def _encode(self, data: dict, encoding: str) -> str | bytes:
         """Encode a payload honoring the negotiated wire encoding.
@@ -265,7 +280,7 @@ class BroadcastMixin:
 
         async def _send(client):
             try:
-                await client.send(variants[self._client_encodings.get(client, "json")])
+                await self._send_tracked(client, variants[self._client_encodings.get(client, "json")])
             except websockets.ConnectionClosed:
                 disconnected.add(client)
 
@@ -279,7 +294,7 @@ class BroadcastMixin:
 
         async def _send_fill(client, _disc=disconnected):
             try:
-                await client.send(variants[self._client_encodings.get(client, "json")])
+                await self._send_tracked(client, variants[self._client_encodings.get(client, "json")])
             except websockets.ConnectionClosed:
                 _disc.add(client)
 
@@ -298,6 +313,7 @@ class BroadcastMixin:
                 key = f"{ex_id}|{symbol}"
                 delta = self._compute_orderbook_delta(key, ob.bids, ob.asks)
                 if delta is None:
+                    self.metrics.record_delta_update(False)
                     orderbooks[key] = {
                         "exchange": ex_id,
                         "symbol": symbol,
@@ -305,6 +321,7 @@ class BroadcastMixin:
                         "asks": [{"price": lvl.price, "quantity": lvl.quantity} for lvl in ob.asks],
                     }
                 elif delta:
+                    self.metrics.record_delta_update(True)
                     orderbook_deltas[key] = {
                         "exchange": ex_id,
                         "symbol": symbol,
@@ -338,10 +355,11 @@ class BroadcastMixin:
 
         async def _send_to_client(client, payload, _disc=disconnected):
             try:
-                await client.send(payload)
+                await self._send_tracked(client, payload)
                 if extra_variants:
-                    await client.send(
-                        extra_variants[self._client_encodings.get(client, "json")]
+                    await self._send_tracked(
+                        client,
+                        extra_variants[self._client_encodings.get(client, "json")],
                     )
             except websockets.ConnectionClosed:
                 _disc.add(client)

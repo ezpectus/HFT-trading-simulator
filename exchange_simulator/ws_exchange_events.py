@@ -30,14 +30,13 @@ class ExchangeEventsMixin:
 
             batched_fills = []
             for order in closed_orders:
-                close_reason = ""
                 if order.status.value == "FILLED":
-                    reason = ""
-                    if exchange.account.trade_history:
-                        reason = exchange.account.trade_history[-1].reason
-                    close_reason = reason
+                    # Reason is stamped on the order at trigger time (S349) —
+                    # reading trade_history[-1] mislabeled every close in a
+                    # batch and any fill that appended no trade.
+                    close_reason = order.close_reason or ""
                     logger.info(
-                        f"  {reason or 'SL/TP'} CLOSED: {order.symbol} @ {order.filled_price:.2f} "
+                        f"  {close_reason or 'SL/TP'} CLOSED: {order.symbol} @ {order.filled_price:.2f} "
                         f"qty={order.filled_quantity:.4f} | {ex_id}"
                     )
                     if self.trade_logger is not None:
@@ -51,7 +50,7 @@ class ExchangeEventsMixin:
                             "quantity": order.filled_quantity,
                             "fee": order.fee,
                             "order_id": order.id,
-                            "status": f"CLOSED_{reason or 'SLTP'}",
+                            "status": f"CLOSED_{close_reason or 'SLTP'}",
                         })
                 else:
                     # Terminal non-fill (GTD expiry, IOC/FOK no-fill cancel) —
@@ -60,10 +59,7 @@ class ExchangeEventsMixin:
                         f"  ORDER {order.status.value}: {order.symbol} "
                         f"| {ex_id} | {order.rejection_reason or ''}"
                     )
-                d = order.to_dict()
-                if close_reason:
-                    d["close_reason"] = close_reason
-                batched_fills.append(d)
+                batched_fills.append(order.to_dict())
 
             if batched_fills:
                 await self._broadcast_fills_batch(batched_fills)

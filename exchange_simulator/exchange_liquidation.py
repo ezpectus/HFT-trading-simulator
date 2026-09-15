@@ -93,8 +93,14 @@ class LiquidationMixin:
 
         if reason == "LIQUIDATION":
             self._handle_insurance_fund_deficit()
-        if order.status == OrderStatus.FILLED and self.account.trade_history:
-            self.account.trade_history[-1].reason = reason
+        if order.status == OrderStatus.FILLED:
+            # Reason travels on the order (S349) — a batch of closes can no
+            # longer all inherit trade_history[-1]'s reason downstream.
+            order.close_reason = reason
+            for trade in reversed(self.account.trade_history):
+                if trade.order_id == order.id:
+                    trade.reason = reason
+                    break
         closed_orders.append(order)
 
     def _handle_insurance_fund_deficit(self) -> None:

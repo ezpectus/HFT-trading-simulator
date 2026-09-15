@@ -142,6 +142,7 @@ class Order:
     time_in_force: str = "GTC"          # GTC | IOC | FOK | GTD — LIMIT only
     expire_ts: float | None = None      # Unix seconds; GTD orders cancel at this time
     post_only: bool = False             # LIMIT only — reject if immediately marketable
+    close_reason: str = ""              # Set on triggered closes (S349): STOP_LOSS | TAKE_PROFIT | LIQUIDATION | PARTIAL_LIQUIDATION
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def __setattr__(self, name, value):
@@ -174,6 +175,7 @@ class Order:
             "time_in_force": self.time_in_force,
             "expire_ts": self.expire_ts,
             "post_only": self.post_only,
+            "close_reason": self.close_reason,
             "timestamp": self.timestamp,
         }
 
@@ -409,6 +411,7 @@ class ClosedTrade:
     fee: float
     reason: str  # "STOP_LOSS" | "TAKE_PROFIT" | "MANUAL"
     opened_at: int
+    order_id: str = ""  # Close order that produced this trade (S349 — reason joins by id, not list position)
     closed_at: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:
@@ -424,6 +427,7 @@ class ClosedTrade:
             "reason": self.reason,
             "opened_at": self.opened_at,
             "closed_at": self.closed_at,
+            "order_id": self.order_id,
         }
 
 

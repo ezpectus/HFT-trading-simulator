@@ -148,6 +148,11 @@ class TestHandleMessage:
         await server._handle_message(ws, {"type": "set_speed", "speed": 0})
         assert server._replay_paused is True
         assert server._speed_event.is_set() is False
+        # The replay_state push is the client's only pause-sync — it must be
+        # delivered, not fire-and-forget (S348).
+        msg = json.loads(ws.send.call_args[0][0])
+        assert msg["type"] == "replay_state"
+        assert msg["paused"] is True
 
     @pytest.mark.asyncio
     async def test_replay_pause(self, server):
@@ -383,7 +388,6 @@ class TestWebSocketMetrics:
         assert server.metrics is not None
         assert server.metrics.message_count == 0
         assert server.metrics.bytes_sent == 0
-        assert server.metrics.client_count == 0
 
     def test_prometheus_exposes_ws_metrics(self, server):
         """WS-layer counters must appear in the /metrics exposition."""
@@ -392,12 +396,15 @@ class TestWebSocketMetrics:
             "exchange_simulator_messages_total",
             "exchange_simulator_bytes_sent_total",
             "exchange_simulator_clients_connected",
-            "exchange_simulator_compression_ratio",
             "exchange_simulator_delta_update_ratio",
             "exchange_simulator_bandwidth_mbps",
             "exchange_simulator_broadcast_latency_p95_ms",
         ):
             assert name in prom, name
+        # Wire compression (permessage-deflate) happens inside the websockets
+        # transport — the app can never observe compressed size, so the old
+        # eternal-zero compression_ratio gauge was removed (S347).
+        assert "exchange_simulator_compression_ratio" not in prom
 
     def test_record_message(self, server):
         """Test that message recording works correctly."""
@@ -406,10 +413,71 @@ class TestWebSocketMetrics:
         assert server.metrics.bytes_sent == 1000
         assert server.metrics.get_avg_message_size() == 1000.0
 
-    def test_record_message_with_compression(self, server):
-        """Test that compression ratio is calculated correctly."""
-        server.metrics.record_message(1000, compressed_size=200)
-        assert server.metrics.compression_ratio == 5.0
+    @pytest.mark.asyncio
+    async def test_broadcast_send_records_metrics(self, server, mock_market):
+        """Production broadcast path must feed the metrics — previously
+        client.send() was called directly and every counter stayed at 0 (S347)."""
+        client = AsyncMock(spec=ServerConnection)
+        server.clients = {client}
+        server._client_subscriptions = {client: set(mock_market.symbols)}
+
+        await server._broadcast_market_data([], {}, {}, None)
+
+        payload = client.send.call_args[0][0]
+        assert server.metrics.message_count == 1
+        assert server.metrics.bytes_sent == len(payload.encode("utf-8"))
+        assert len(server.metrics.broadcast_latencies) == 1
+
+    @pytest.mark.asyncio
+    async def test_fills_batch_records_metrics(self, server):
+        """Fill broadcasts are real wire traffic — they must count too."""
+        client = AsyncMock(spec=ServerConnection)
+        server.clients = {client}
+
+        await server._broadcast_fills_batch([{"id": "o1"}])
+
+        assert server.metrics.message_count == 1
+        assert server.metrics.bytes_sent > 0
+        assert len(server.metrics.broadcast_latencies) == 1
+
+    @pytest.mark.asyncio
+    async def test_audit_broadcast_records_metrics(self, server):
+        client = AsyncMock(spec=ServerConnection)
+        server.clients = {client}
+        server._audit_pending.append({"event_type": "x"})
+
+        await server._broadcast_audit_events()
+
+        assert server.metrics.message_count == 1
+        assert len(server.metrics.broadcast_latencies) == 1
+
+    def test_orderbook_delta_decisions_recorded(self, server, mock_market):
+        """Each full-vs-delta orderbook decision feeds the EWMA ratio (S347)."""
+        server._build_orderbook_data()  # first pass: all full snapshots
+        assert server.metrics.delta_update_ratio == 0.0
+
+        # Change every book — second pass sends deltas.
+        mock_market.generate_order_book.return_value = MagicMock(
+            spec=['bids', 'asks'],
+            bids=[OrderBookLevel(price=64000, quantity=1.5)],
+            asks=[OrderBookLevel(price=66000, quantity=0.7)],
+        )
+        server._build_orderbook_data()
+        assert server.metrics.delta_update_ratio > 0.0
+
+    @pytest.mark.asyncio
+    async def test_send_json_counts_message(self, server):
+        """Unicast sends stay counted on the shared counter (S347)."""
+        ws = AsyncMock(spec=ServerConnection)
+        await server._send_json(ws, {"type": "x"})
+        assert server.metrics.message_count == 1
+
+    def test_clients_connected_reads_live_set(self, server):
+        """clients_connected is the live client count at scrape time —
+        the old send-time copy could lag the real set (S347)."""
+        server.clients.add(MagicMock())
+        prom = server._get_prometheus_metrics()
+        assert "exchange_simulator_clients_connected 1" in prom
 
     def test_record_delta_update(self, server):
         """Test that delta update ratio is calculated correctly."""

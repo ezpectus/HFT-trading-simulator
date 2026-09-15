@@ -221,6 +221,26 @@ class TestStopLossTakeProfit:
         assert len(closed) == 1
         assert ex.account.trade_history[-1].reason == "STOP_LOSS"
 
+    def test_batch_closes_carry_own_reason(self):
+        """Two triggered closes in one tick must keep their own reasons —
+        S349: downstream code used to read trade_history[-1] for every
+        order, so all closes in a batch inherited the last reason."""
+        market = make_market(50000)
+        market.symbols = ["BTC/USDT", "ETH/USDT"]
+        ex = SimulatedExchange("binance", "Binance", 0.04, 1.0, market)
+        ex.submit_order("BTC/USDT", Side.BUY, 0.1,
+                        stop_loss=49900, take_profit=60000)
+        ex.submit_order("ETH/USDT", Side.BUY, 0.1,
+                        stop_loss=10000, take_profit=50100)
+        prices = {"BTC/USDT": 49800, "ETH/USDT": 50200}
+        market.get_price.side_effect = lambda symbol, *a: prices[symbol]
+        closed = ex.check_stop_loss_take_profit()
+        assert len(closed) == 2
+        reasons = {o.symbol: o.close_reason for o in closed}
+        assert reasons == {"BTC/USDT": "STOP_LOSS", "ETH/USDT": "TAKE_PROFIT"}
+        trade_reasons = {t.symbol: t.reason for t in ex.account.trade_history}
+        assert trade_reasons == {"BTC/USDT": "STOP_LOSS", "ETH/USDT": "TAKE_PROFIT"}
+
 
 class TestFundingRate:
     def test_long_pays_positive_funding(self):
