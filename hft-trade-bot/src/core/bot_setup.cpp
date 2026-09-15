@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <unordered_set>
 
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 namespace hft {

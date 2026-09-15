@@ -17,6 +17,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <type_traits>
 
 #if defined(_WIN32)
 #ifndef NOMINMAX
@@ -92,11 +93,22 @@ template <typename T, size_t Capacity> class SPSCQueue {
     SPSCQueue() : head_(0), tail_(0) {}
 
     // Producer: enqueue. Returns false if full.
+    // noexcept is honest even for throwing-assignable T (e.g. Signal's
+    // std::string members): an alloc failure degrades to "queue didn't take
+    // it" — the caller's drop path — instead of std::terminate.
     [[nodiscard]] bool push(const T& item) noexcept {
         const size_t head = head_.load(std::memory_order_relaxed);
         const size_t next = wrap(head + 1);
         if (next == tail_.load(std::memory_order_acquire)) return false;
-        buffer_[head] = item;
+        if constexpr (std::is_nothrow_copy_assignable_v<T>) {
+            buffer_[head] = item;
+        } else {
+            try {
+                buffer_[head] = item;
+            } catch (...) {
+                return false;
+            }
+        }
         head_.store(next, std::memory_order_release);
         return true;
     }

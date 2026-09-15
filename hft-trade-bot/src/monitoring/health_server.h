@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -175,18 +176,16 @@ class HealthServer {
                     body        = R"({"error":"not found"})";
                 }
 
-                std::string response =
-                    "HTTP/1.1 " + status_line +
-                    "\r\n"
-                    "Content-Type: " +
-                    (is_metrics ? "text/plain; version=0.0.4" : "application/json") +
-                    "\r\n"
-                    "Content-Length: " +
-                    std::to_string(body.size()) +
-                    "\r\n"
-                    "Connection: close\r\n"
-                    "\r\n" +
-                    body;
+                std::string response;
+                response.reserve(128 + body.size());
+                response += "HTTP/1.1 ";
+                response += status_line;
+                response += "\r\nContent-Type: ";
+                response += is_metrics ? "text/plain; version=0.0.4" : "application/json";
+                response += "\r\nContent-Length: ";
+                response += std::to_string(body.size());
+                response += "\r\nConnection: close\r\n\r\n";
+                response += body;
 
 #ifdef _WIN32
                 ::send(client, response.c_str(), (int)response.size(), 0);
