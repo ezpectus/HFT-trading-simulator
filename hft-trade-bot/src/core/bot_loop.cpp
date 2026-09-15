@@ -113,10 +113,14 @@ void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade)
                 spdlog::info("AI Signal execution: {} {} conf={:.1f} entry={:.2f} ({})",
                              ai_sig.direction, ai_sig.symbol, ai_sig.confidence, ai_sig.entry_price,
                              ai_sig.reason);
-                if (precheck_order(ctx, ai_sig, qty, ai_sig.entry_price)) {
-                    if (ctx.executor->is_connected() &&
-                        ctx.executor->submit_order(ai_sig, qty,
-                                                   ctx.receiver->get_order_book(ai_sig.symbol))) {
+                if (precheck_order(ctx, ai_sig, qty, ai_sig.entry_price) &&
+                    ctx.executor->is_connected()) {
+                    // Reuse ob_buf — get_order_book() by-value deep-copied the
+                    // book per signal (miss leaves `out` untouched → clear).
+                    ctx.ob_buf.bids.clear();
+                    ctx.ob_buf.asks.clear();
+                    ctx.receiver->get_order_book_into(ai_sig.symbol, ctx.ob_buf);
+                    if (ctx.executor->submit_order(ai_sig, qty, ctx.ob_buf)) {
                         ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
                         // Book on fill, not on send — a send ack is not a
                         // position (S179).
@@ -353,19 +357,28 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
 // daily-loss / max-drawdown limits trip the kill switch (the file trigger was
 // previously the only live path — activate() had zero callers).
 void update_risk_state(BotContext& ctx, double current_balance) {
-    static int        last_day_key = -1;
-    const std::time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::tm           tm_utc{};
+    // Calendar math (gmtime) per tick just to catch a once-a-day rollover —
+    // recheck at most once a minute. A day boundary lands up to 60s late,
+    // which keeps the loss limit active LONGER — the safe direction.
+    static int  last_day_key = -1;
+    static auto next_check   = std::chrono::steady_clock::time_point::min();
+    const auto  now_steady   = std::chrono::steady_clock::now();
+    if (now_steady >= next_check) {
+        next_check = now_steady + std::chrono::seconds(60);
+        const std::time_t tt =
+            std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        std::tm tm_utc{};
 #ifdef _WIN32
-    gmtime_s(&tm_utc, &tt);
+        gmtime_s(&tm_utc, &tt);
 #else
-    gmtime_r(&tt, &tm_utc);
+        gmtime_r(&tt, &tm_utc);
 #endif
-    const int day_key = tm_utc.tm_year * 1000 + tm_utc.tm_yday;
-    if (day_key != last_day_key) {
-        last_day_key                = day_key;
-        ctx.daily_realized_baseline = ctx.pos_mgr.total_realized_pnl();
-        ctx.risk_mgr->reset_daily();
+        const int day_key = tm_utc.tm_year * 1000 + tm_utc.tm_yday;
+        if (day_key != last_day_key) {
+            last_day_key                = day_key;
+            ctx.daily_realized_baseline = ctx.pos_mgr.total_realized_pnl();
+            ctx.risk_mgr->reset_daily();
+        }
     }
 
     const double unrealized     = ctx.pos_mgr.total_unrealized_pnl();

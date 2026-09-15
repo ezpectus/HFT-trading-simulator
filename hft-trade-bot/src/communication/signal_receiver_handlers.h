@@ -100,8 +100,6 @@ void handle_market_data(const json& data) {
     if (auto it = data.find("trading_active"); it != data.end()) {
         trading_active_.store(it->get<bool>(), std::memory_order_relaxed);
     }
-    has_new_data_.store(true, std::memory_order_release);
-    cv_.notify_one();
 
     if (auto it = data.find("prices"); it != data.end()) update_prices(*it, data);
     // Account snapshot (balance/equity/positions) rides every broadcast — the
@@ -111,6 +109,12 @@ void handle_market_data(const json& data) {
     if (data.find("orderbook_deltas") != data.end())
         update_orderbook_deltas(data, data.value("timestamp", 0));
     if (auto it = data.find("candles"); it != data.end()) update_candles(*it);
+
+    // Wake consumers only after all updates are committed — flagging at the
+    // top let wait_for_data() observe the pre-update state (same pattern as
+    // inject_snapshot_impl, which flags after the write).
+    has_new_data_.store(true, std::memory_order_release);
+    cv_.notify_one();
 }
 
 void update_prices(const json& prices_data, const json& /*full_data*/) {
