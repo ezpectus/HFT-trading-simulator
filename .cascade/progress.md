@@ -3134,3 +3134,12 @@ Board: 0 open.
 - `ctest` via clang-MinGW: **13/13 binaries, 221 cases — all green.** Verify-debt downgraded from env-blocked to dep-blocked (fmt/spdlog/yaml/json tests, POSIX-only targets).
 - Board: 0 open.
 - R248-cont: stub swapped for genuine doctest 2.4.11 vendored header. Exposed + fixed: 4 test files had no main under any framework (now DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN via CMake); 4 `a && b` asserts split for real doctest. ctest 13/13 still green.
+
+## R249 — slop-verify batch (cadence: 5 done-records since R243)
+
+- S369: `PortfolioOptLab` chosen is array (`.length`/`.map`/`.includes` live) — verified; `VariationalAutoencoder` decoder `Wout[inputDim][hiddenDim]`, `dWout[j][i]`, `bout[j]` — verified.
+- S370: BurgersEquation operator splitting + per-term CFL + `dt ≤ 0.5` input clamp — verified; RNN `lr ≤ 0.1` clamp + `!isFinite(loss)` early return — verified.
+- S371: `betaPath` useMemo at :292 sits above `if (!data)` at :303 — verified; `react-hooks/rules-of-hooks: error` in eslint.config.js — verified.
+- S372: RSI three-way (losses>0→formula, gains-only→100, flat→50); `vol_proxy=sqrt(vol_ewma_)` per-obs; RANGING ret-var 1e-7; `current_volatility()` keeps ×252 — all verified.
+- R248-cont: real doctest 2.4.11 — verified by build+run (banner, 14/14 assertions); 4 main-less targets now compile-def'd.
+- Board: 0 open.
