@@ -11,9 +11,8 @@ from exchange_simulator.models import (
     OrderStatus,
     OrderType,
     Side,
+    round_price,
 )
-
-_TYPICAL_VOLUME = 500.0
 
 
 class AdvancedOrderMixin:
@@ -239,7 +238,7 @@ class AdvancedOrderMixin:
         if not self._check_margin(order, price):
             return order
         order.status = OrderStatus.FILLED
-        order.filled_price = round(price, 2)
+        order.filled_price = round_price(price)
         order.filled_quantity = order.quantity
         notional = price * order.quantity
         order.fee = round(notional * self.fee_pct / 100, 4)
@@ -254,7 +253,7 @@ class AdvancedOrderMixin:
         if not self._check_margin(order, fill_price):
             return order
         order.status = OrderStatus.FILLED
-        order.filled_price = round(fill_price, 2)
+        order.filled_price = round_price(fill_price)
         order.filled_quantity = order.quantity
         order.slippage = round(slippage_amount, 4)
         notional = fill_price * order.quantity
@@ -302,7 +301,7 @@ class AdvancedOrderMixin:
         order.replenished += 1
         order.on_fill(slice_qty)
         slice_order.status = OrderStatus.FILLED
-        slice_order.filled_price = round(price, 2)
+        slice_order.filled_price = round_price(price)
         slice_order.filled_quantity = slice_qty
 
         self._finalize_iceberg_execution(slice_order, order, price)

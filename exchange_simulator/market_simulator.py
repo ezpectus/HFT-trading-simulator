@@ -11,7 +11,7 @@ import logging
 import math
 import random
 
-from exchange_simulator.models import Candle, OrderBook, OrderBookLevel
+from exchange_simulator.models import Candle, OrderBook, OrderBookLevel, round_price
 
 logger = logging.getLogger("exchange_simulator.market")
 
@@ -207,8 +207,8 @@ class MarketSimulator:
 
             candle = Candle(
                 timestamp=self._current_ts,
-                open=round(open_p, 2), high=round(high_p, 2),
-                low=round(low_p, 2), close=round(close_p, 2),
+                open=round_price(open_p), high=round_price(high_p),
+                low=round_price(low_p), close=round_price(close_p),
                 volume=round(volume, 2), symbol=symbol, exchange=exchange,
             )
             self._candle_history[(exchange, symbol)].append(candle)
@@ -320,8 +320,8 @@ class MarketSimulator:
         ratio = mid_price / old_mid
         cached.timestamp = self._current_ts
         for bid_level, ask_level in zip(cached.bids, cached.asks, strict=False):
-            bid_level.price = round(bid_level.price * ratio, 2)
-            ask_level.price = round(ask_level.price * ratio, 2)
+            bid_level.price = round_price(bid_level.price * ratio)
+            ask_level.price = round_price(ask_level.price * ratio)
             perturb = 0.9 + self.rng.random() * 0.2
             bid_level.quantity = round(bid_level.quantity * perturb, 4)
             ask_level.quantity = round(ask_level.quantity * perturb, 4)
@@ -343,8 +343,8 @@ class MarketSimulator:
             decay = math.exp(-i * 0.15)
             bid_qty = base_qty * decay * (0.5 + self.rng.random())
             ask_qty = base_qty * decay * (0.5 + self.rng.random())
-            bids.append(OrderBookLevel(price=round(bid_price, 2), quantity=round(bid_qty, 4)))
-            asks.append(OrderBookLevel(price=round(ask_price, 2), quantity=round(ask_qty, 4)))
+            bids.append(OrderBookLevel(price=round_price(bid_price), quantity=round(bid_qty, 4)))
+            asks.append(OrderBookLevel(price=round_price(ask_price), quantity=round(ask_qty, 4)))
 
         bids.sort(key=lambda lvl: lvl.price, reverse=True)
         asks.sort(key=lambda lvl: lvl.price)

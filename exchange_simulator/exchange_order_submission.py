@@ -14,6 +14,7 @@ from exchange_simulator.models import (
     Side,
     StopLimitOrder,
     TrailingStopOrder,
+    round_price,
 )
 
 _TYPICAL_VOLUME = 500.0
@@ -359,7 +360,7 @@ class OrderSubmissionMixin:
             return rejected
 
         order.status = OrderStatus.FILLED
-        order.filled_price = round(fill_price, 2)
+        order.filled_price = round_price(fill_price)
         order.filled_quantity = quantity
         order.fee = round(fee, 4)
         order.slippage = round(fill_price - mid_price, 4)
@@ -445,7 +446,7 @@ class OrderSubmissionMixin:
             return
         worse_price = fill_price * (1 + (1 - fill_ratio) * 0.001 * (1 if side == Side.BUY else -1))
         avg_fill = fill_price * fill_ratio + worse_price * (1 - fill_ratio)
-        order.filled_price = round(avg_fill, 2)
+        order.filled_price = round_price(avg_fill)
         order.slippage = round(avg_fill - mid_price, 4)
 
     def _charge_fee(self, order_id: str, fee: float) -> None:

@@ -6,6 +6,17 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 
+def round_price(price: float) -> float:
+    """Round a price to a sane tick for its magnitude.
+
+    Dollar-scale assets get the conventional 2-decimal tick; sub-dollar
+    assets keep up to 8 decimals so sub-cent prices (e.g. a $0.00002
+    memecoin) don't collapse to 0.00 — zero fill prices produced
+    zero-notional positions and broken PnL (S333).
+    """
+    return round(price, 2) if price >= 1.0 else round(price, 8)
+
+
 class Side(Enum):
     BUY = "BUY"
     SELL = "SELL"

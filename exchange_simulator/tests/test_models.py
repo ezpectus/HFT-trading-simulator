@@ -10,6 +10,7 @@ from exchange_simulator.models import (
     OrderType,
     Position,
     Side,
+    round_price,
 )
 
 
@@ -198,3 +199,20 @@ class TestClosedTrade:
         assert d["symbol"] == "ETH/USDT"
         assert d["reason"] == "STOP_LOSS"
         assert d["pnl"] == 200
+
+
+class TestRoundPrice:
+    """S333 — magnitude-aware tick rounding."""
+
+    def test_dollar_scale_unchanged(self):
+        assert round_price(65050.256) == 65050.26
+        assert round_price(1.005) == 1.0  # boundary: >=1 keeps the 2-dec tick
+
+    def test_sub_cent_does_not_collapse(self):
+        assert round_price(0.00002) == 0.00002      # SHIB-scale: was 0.00
+        assert round_price(0.5) == 0.5
+        assert round_price(0.123456789) == 0.12345679  # 8-dec cap
+
+    def test_zero_and_negative(self):
+        assert round_price(0.0) == 0.0
+        assert round_price(-0.5) == -0.5
