@@ -103,9 +103,9 @@ The system has **~307 unit test files** across three languages:
 | Strategies | test_strategies, test_ensemble_voter, test_market_making, test_sentiment, test_cross_exchange_arb, test_marketplace | All 10+ strategies |
 | Risk | test_risk, test_risk_manager, test_cvar, test_kelly, test_position_sizing, test_portfolio_optimizer | VaR, CVaR, Kelly, stress tests |
 | Portfolio | test_markowitz, test_portfolio_modules | Markowitz, BL, risk parity, rebalancing |
-| Backtesting | test_backtest, test_backtester, test_backtest_engine, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_pnl_calculator | Full backtesting pipeline |
+| Backtesting | test_backtester, test_backtest_comparison, test_backtest_optimizer, test_backtest_plotter, test_backtest_report, test_backtest_metrics, test_backtest_requests | Full backtesting pipeline |
 | ML | test_ml_features, test_ml_ensemble_funding | Feature engineering, ML ensemble funding |
-| Communication | test_circuit_breaker, test_comm_circuit_breaker, test_signal_publisher, test_shm_fill_consumer | WebSocket, SHM, circuit breaker |
+| Communication | test_circuit_breaker, test_signal_publisher, test_shm_fill_consumer | WebSocket, SHM, circuit breaker |
 | Monitoring | test_alerting, test_health_checks, test_health_server, test_metrics_server, test_monitoring_metrics, test_monitoring_llm, test_observability | Health, metrics, tracing, alerting |
 | Data | test_exchange_factory, test_real_account, test_real_market_data | Data collection |
 | Other | test_db, test_fft_analysis, test_indicators, test_bot_helpers | Database, indicators |

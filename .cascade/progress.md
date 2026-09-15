@@ -2696,3 +2696,10 @@ Board unchanged: 20 open.
 - **S335 (Medium):** `sync_position` never removed → ghosts on missed fills. New `reconcile_positions` drops positions absent for 3 consecutive broadcasts (age-out prevents fill-vs-snapshot flap); caller logs drops.
 - **Verified:** 432/432 exchange_simulator tests, 28/28 doctest (6 new S334/S335 cases), clang-format clean. cmake+ctest deferred to CI (no vcpkg on this machine).
 - Board: 9 open — Medium: S322 venue-runners, S328 dead backtest stack; Low/Info: S323–S327, S333, S336.
+
+## R203 — slop-fix — last two Mediums closed (board 7 open, Low/Info only)
+
+- **S322 (Medium):** three copy-paste venue WS runners collapsed into `_run_feed` shared loop + per-venue URL/subscribe builders (~180→~95 lines net); import-guard now logs on all three (was binance-only — the drift the audit flagged).
+- **S328 (Medium):** dead parallel backtest stack deleted — `backtest_engine.py` + `pnl_calculator.py` (~580 ln) + 3 sole-purpose test files; `compare_backtests_request` now builds the canonical `results.BacktestResult` (was the twin contract from the dead stack). `__init__` re-exports trimmed.
+- **Verified:** 1253/1253 unit tests, ruff clean, zero remaining refs; new `test_market_data_feed.py` pins the shared loop contract.
+- Board: 7 open — Low: S323/S324/S325; Info: S326/S327/S333/S336.
