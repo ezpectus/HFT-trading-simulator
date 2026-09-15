@@ -3022,3 +3022,10 @@ Board: 0 open.
 - update_risk_state: gmtime+system_clock per tick for once-a-day rollover → recheck ≤1/min (boundary ≤60s late = limit stays longer, safe).
 - handle_market_data: has_new_data_+notify BEFORE updates → after commit (matches inject_snapshot_impl). No stale-read wakeups.
 - Board: 0 open.
+
+## R235e — S364 final tail
+
+- get_all_prices_into: substr temp per qualified key per tick → c_str()+pos key (zero-alloc).
+- Verified clean (not touched): v2 loop already uses ctx buffers + _into getters; convert_fast_signal/execute_v2_order stack-only; update_health = mutex+POD copy per tick — acceptable.
+- By-value get_candles/get_order_book wrappers now have zero live callers — kept as public API.
+- Board: 0 open. Sweep converged — remaining paths are event-driven, not per-tick.
