@@ -85,7 +85,10 @@ struct BotContext {
     Spinlock          arb_lock;
 
     // Wall-clock ms of the last FILLED event — feeds /health last_fill_age_ms.
-    std::atomic<int64_t>                    last_fill_ms{0};
+    std::atomic<int64_t> last_fill_ms{0};
+    // Wall-clock ms of the last engine evaluation (v1/v2/v3 analyze call) —
+    // makes /health signal_engine_active a real liveness bit (S352).
+    std::atomic<int64_t>                    last_engine_eval_ms{0};
     std::unordered_map<std::string, double> prices_cache;
     Spinlock                                prices_cache_lock;
     std::vector<Candle>                     candles_buf;

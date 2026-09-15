@@ -7,6 +7,7 @@
 #include "shm_protocol.h"
 #include "shm_ring_buffer.h"
 #include <chrono>
+#include <spdlog/spdlog.h>
 #include <string>
 
 namespace hft::ipc {

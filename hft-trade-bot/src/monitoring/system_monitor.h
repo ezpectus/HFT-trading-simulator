@@ -302,7 +302,6 @@ struct HealthStatus {
     uint64_t last_signal_age_ms{0};
     uint64_t last_fill_age_ms{0};
     int64_t  error_count_5min{0};
-    double   cpu_usage_pct{0.0};
     double   memory_usage_mb{0.0};
 
     bool is_healthy() const noexcept {

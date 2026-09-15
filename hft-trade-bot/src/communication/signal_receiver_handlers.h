@@ -49,12 +49,13 @@ void handle_message_json(const json& data) {
                         std::chrono::duration_cast<std::chrono::nanoseconds>(
                             std::chrono::system_clock::now().time_since_epoch())
                             .count());
-                    f.symbol_id   = static_cast<uint8_t>(sid);
-                    f.side        = (o.value("side", "") == "SELL") ? 1 : 0; // 0=BUY,1=SELL
-                    f.qty         = static_cast<float>(o.value("filled_quantity", 0.0));
+                    f.symbol_id = static_cast<uint8_t>(sid);
+                    f.side = (o.value("side", "") == "SELL") ? static_cast<uint8_t>(ipc::Side::SELL)
+                                                             : static_cast<uint8_t>(ipc::Side::BUY);
+                    f.qty  = static_cast<float>(o.value("filled_quantity", 0.0));
                     f.price       = static_cast<float>(o.value("filled_price", 0.0));
                     f.fee         = static_cast<float>(o.value("fee", 0.0));
-                    f.exchange_id = 3; // Simulator
+                    f.exchange_id = static_cast<uint8_t>(ipc::ExchangeId::SIMULATOR);
                     // S246: a full SHM ring silently dropped fills — count it.
                     if (!fill_producer_->push_fill(f) && monitor_) {
                         monitor_->increment(SystemMonitor::Metric::SHM_DROPS);

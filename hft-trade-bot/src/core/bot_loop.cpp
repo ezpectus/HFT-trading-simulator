@@ -159,6 +159,7 @@ static void prepare_order_book(BotContext& ctx, uint16_t sym_id, const std::stri
 
 static FastSignal generate_signal(BotContext& ctx, const char* sym_cstr, const Candle* candles,
                                   size_t n, const OrderBook& ob, int64_t now_ns) {
+    ctx.last_engine_eval_ms.store(FastSignal::now_epoch_ns() / 1000000, std::memory_order_relaxed);
     auto pressure = ctx.pressure_model->analyze(ob);
     if (ctx.engine_v3) {
         return ctx.engine_v3->analyze_incremental(sym_cstr, candles, n, ob, pressure, now_ns);
@@ -301,6 +302,8 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
                 ob.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
             }
         }
+        ctx.last_engine_eval_ms.store(FastSignal::now_epoch_ns() / 1000000,
+                                      std::memory_order_relaxed);
         auto fast_sig = ctx.engine_v1->analyze(symbol, candles, ob);
         if (fast_sig.direction == "NEUTRAL" || fast_sig.confidence < ctx.config.min_confidence)
             continue;
@@ -385,6 +388,7 @@ void update_health_status(BotContext& ctx) {
     }
 
     const int64_t last_fill = ctx.last_fill_ms.load(std::memory_order_relaxed);
+    const int64_t last_eval = ctx.last_engine_eval_ms.load(std::memory_order_relaxed);
     const int64_t now_ms    = std::chrono::duration_cast<std::chrono::milliseconds>(
                                std::chrono::system_clock::now().time_since_epoch())
                                .count();
@@ -393,12 +397,18 @@ void update_health_status(BotContext& ctx) {
     hs.shm_healthy = !ctx.config.ipc_enabled || (ctx.shm_signal_consumer != nullptr);
     hs.exchange_connected =
         ctx.receiver->is_connected() && ctx.executor && ctx.executor->is_connected();
-    hs.signal_engine_active = ctx.config.signal_engine_v2_enabled ? (ctx.engine_v2 || ctx.engine_v3)
-                                                                  : (ctx.engine_v1 != nullptr);
-    hs.last_signal_age_ms   = ctx.receiver->last_activity_ms();
-    hs.last_fill_age_ms     = last_fill > 0 ? static_cast<uint64_t>(now_ms - last_fill) : 0;
-    hs.error_count_5min     = err_total - err_baseline;
-    hs.memory_usage_mb      = process_memory_mb();
+    // Real liveness (S352): the engine object exists AND has evaluated within
+    // the last 60s. Zero stamps mean "still warming up" (engines need ≥30
+    // candles before the first analyze call) — once it evaluates, a stalled
+    // loop trips /health instead of hiding behind a permanent-true bit.
+    hs.signal_engine_active =
+        (ctx.config.signal_engine_v2_enabled ? (ctx.engine_v2 || ctx.engine_v3)
+                                             : (ctx.engine_v1 != nullptr)) &&
+        (last_eval == 0 || (now_ms - last_eval) < 60000);
+    hs.last_signal_age_ms = ctx.receiver->last_activity_ms();
+    hs.last_fill_age_ms   = last_fill > 0 ? static_cast<uint64_t>(now_ms - last_fill) : 0;
+    hs.error_count_5min   = err_total - err_baseline;
+    hs.memory_usage_mb    = process_memory_mb();
     ctx.health_server->update_health(hs);
 
     // Feed the /hft_heartbeat region scripts/monitor.py tails (S224).

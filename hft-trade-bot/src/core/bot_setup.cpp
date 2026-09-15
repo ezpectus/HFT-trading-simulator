@@ -269,7 +269,9 @@ static void init_shm_signal_consumer(BotContext& ctx) {
             sig.symbol      = (msg.symbol_id < ctx.config.symbols.size())
                                   ? ctx.config.symbols[msg.symbol_id]
                                   : "UNKNOWN";
-            sig.direction   = (msg.action == 1) ? "LONG" : (msg.action == 2) ? "SHORT" : "NEUTRAL";
+            sig.direction   = msg.action == static_cast<uint8_t>(ipc::Action::LONG)    ? "LONG"
+                              : msg.action == static_cast<uint8_t>(ipc::Action::SHORT) ? "SHORT"
+                                                                                       : "NEUTRAL";
             sig.confidence  = msg.confidence * 100.0f;
             sig.entry_price = msg.price;
             sig.stop_loss   = msg.sl;

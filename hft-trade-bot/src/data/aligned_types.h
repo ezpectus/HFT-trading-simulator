@@ -12,18 +12,6 @@
 namespace hft {
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cache-line aligned order book level — 64 bytes, one per cache line
-// ─────────────────────────────────────────────────────────────────────────────
-struct alignas(64) AlignedOrderBookLevel {
-    double   price{};
-    double   quantity{};
-    uint64_t order_count{};
-    uint8_t  padding_[32]; // Fill to 64 bytes
-};
-
-static_assert(sizeof(AlignedOrderBookLevel) == 64, "AlignedOrderBookLevel must be 64 bytes");
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Cache-line aligned fast signal — no std::string, fixed-size buffers
 // Designed for SPSC queue transit without heap allocation
 // ─────────────────────────────────────────────────────────────────────────────
@@ -224,49 +212,5 @@ struct alignas(64) PressureResult {
 };
 
 static_assert(sizeof(PressureResult) <= 192, "PressureResult should fit in 3 cache lines");
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Routing decision — output of smart order router
-// ─────────────────────────────────────────────────────────────────────────────
-struct alignas(64) RoutingDecision {
-    char    exchange[32]{};
-    double  effective_price{0.0}; // Price after fees
-    double  fee_bps{0.0};
-    int64_t latency_us{0}; // Estimated round-trip latency
-    bool    is_maker{false};
-
-    enum class Strategy : uint8_t {
-        BEST_PRICE     = 0,
-        LOWEST_LATENCY = 1,
-        LOWEST_FEES    = 2,
-        BEST_EFFECTIVE = 3,
-        DEPTH_AWARE    = 4
-    };
-
-    Strategy strategy{Strategy::BEST_PRICE};
-    char     reason[32]{};
-
-    uint8_t padding_[32]{};
-
-    void set_exchange(const char* s) {
-        size_t i = 0;
-        while (s[i] && i < 31) {
-            exchange[i] = s[i];
-            ++i;
-        }
-        exchange[i] = '\0';
-    }
-
-    void set_reason(const char* s) {
-        size_t i = 0;
-        while (s[i] && i < 31) {
-            reason[i] = s[i];
-            ++i;
-        }
-        reason[i] = '\0';
-    }
-};
-
-static_assert(sizeof(RoutingDecision) <= 192, "RoutingDecision should fit in 3 cache lines");
 
 } // namespace hft
