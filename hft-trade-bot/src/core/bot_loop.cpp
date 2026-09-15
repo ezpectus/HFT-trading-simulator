@@ -281,10 +281,17 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
 
 void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
     for (const auto& symbol : ctx.config.symbols) {
-        auto candles = ctx.receiver->get_candles(symbol, 100);
-        if (candles.size() < 30u) continue;
-        auto ob = ctx.receiver->get_order_book(symbol);
-        if (ob.bids.empty() || ob.asks.empty()) {
+        // Reuse the shared buffers — get_candles()/get_order_book() return by
+        // value, a deep copy of 100 candles + the book per symbol per tick.
+        auto candles_count = ctx.receiver->get_candles_into(symbol, 100, ctx.candles_buf);
+        if (candles_count < 30u) continue;
+        const auto& candles = ctx.candles_buf;
+        auto&       ob      = ctx.ob_buf;
+        // get_order_book_into leaves `ob` untouched on a miss — without the
+        // bool, a stale book from the previous symbol would pass the empty
+        // check below.
+        const bool ob_found = ctx.receiver->get_order_book_into(symbol, ob);
+        if (!ob_found || ob.bids.empty() || ob.asks.empty()) {
             double price = ctx.receiver->get_price(symbol);
             if (price == 0) continue;
             static bool synthetic_warned = false;
@@ -297,6 +304,8 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
             }
             ob.symbol   = symbol;
             ob.exchange = ctx.config.default_exchange;
+            ob.bids.clear();
+            ob.asks.clear();
             for (int i = 0; i < 10; ++i) {
                 ob.bids.push_back({price * (1.0 - 0.0001 * (i + 1)), 1.0});
                 ob.asks.push_back({price * (1.0 + 0.0001 * (i + 1)), 1.0});
@@ -408,7 +417,15 @@ void update_health_status(BotContext& ctx) {
     hs.last_signal_age_ms = ctx.receiver->last_activity_ms();
     hs.last_fill_age_ms   = last_fill > 0 ? static_cast<uint64_t>(now_ms - last_fill) : 0;
     hs.error_count_5min   = err_total - err_baseline;
-    hs.memory_usage_mb    = process_memory_mb();
+    // Memory sampling is a syscall (GetProcessMemoryInfo / /proc parse) —
+    // once per 5s is fresh enough for a health endpoint, don't pay it per tick.
+    static auto   mem_window = std::chrono::steady_clock::now();
+    static double mem_cached = 0.0;
+    if (mem_cached == 0.0 || now_steady - mem_window >= std::chrono::seconds(5)) {
+        mem_cached = process_memory_mb();
+        mem_window = now_steady;
+    }
+    hs.memory_usage_mb = mem_cached;
     ctx.health_server->update_health(hs);
 
     // Feed the /hft_heartbeat region scripts/monitor.py tails (S224).

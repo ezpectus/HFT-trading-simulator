@@ -271,6 +271,7 @@ class PositionManager {
     std::vector<CloseTrigger> check_sl_tp(const std::unordered_map<std::string, double>& prices) {
         std::lock_guard<std::mutex> lock(mutex_);
         std::vector<CloseTrigger>   triggers;
+        const auto                  now = std::chrono::steady_clock::now();
         for (const auto& pos : positions_) {
             auto it = prices.find(pos.symbol);
             if (it == prices.end()) continue;
@@ -279,8 +280,7 @@ class PositionManager {
             // Close order already in flight — don't refire. A stale mark
             // (close never filled) expires and re-triggers (S248).
             auto cm = closing_since_.find(pos.symbol);
-            if (cm != closing_since_.end() &&
-                std::chrono::steady_clock::now() - cm->second < CLOSE_RETRY) {
+            if (cm != closing_since_.end() && now - cm->second < CLOSE_RETRY) {
                 continue;
             }
 

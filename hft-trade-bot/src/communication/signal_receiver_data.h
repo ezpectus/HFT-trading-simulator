@@ -43,10 +43,18 @@ class SignalReceiverData {
     // shm-injected copy, then an unqualified legacy key.
     template <typename Map>
     typename Map::const_iterator find_for_symbol(const Map& m, const std::string& sym) const {
-        auto it = m.find(book_key(default_exchange_, sym));
+        // Scratch buffer — every caller holds data_lock_, so reuse is
+        // serialized. Build order matches book_key(): empty exchange → bare
+        // symbol key.
+        key_scratch_ = default_exchange_;
+        if (!key_scratch_.empty()) key_scratch_ += '|';
+        key_scratch_ += sym;
+        auto it = m.find(key_scratch_);
         if (it != m.end()) return it;
         if (default_exchange_ != "shm") {
-            it = m.find(book_key("shm", sym));
+            key_scratch_ = "shm|";
+            key_scratch_ += sym;
+            auto it = m.find(key_scratch_);
             if (it != m.end()) return it;
         }
         return m.find(sym);
@@ -175,8 +183,9 @@ class SignalReceiverData {
                 out[k] = v;
                 continue;
             }
-            const auto ex = k.substr(0, pos);
-            if (ex == default_exchange_ || ex == "shm") out[k.substr(pos + 1)] = v;
+            // compare() instead of substr — no allocation per key inside the lock.
+            if (k.compare(0, pos, default_exchange_) == 0 || k.compare(0, pos, "shm") == 0)
+                out[k.substr(pos + 1)] = v;
         }
         return out.size();
     }
@@ -233,7 +242,8 @@ class SignalReceiverData {
     std::unordered_map<std::string, std::vector<Candle>> candle_history_;
     std::unordered_map<std::string, OrderBook>           order_books_;
 
-    std::string default_exchange_;
+    std::string         default_exchange_;
+    mutable std::string key_scratch_; // find_for_symbol scratch — data_lock_-guarded
 
     std::unordered_map<std::string, uint16_t> symbol_to_id_;
     std::vector<std::string>                  id_to_symbol_;
