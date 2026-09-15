@@ -3097,3 +3097,10 @@ Board: 0 open.
 - Re-opened every claimed line for S365 (6), S366+ext (4), S367 (4), S368 (2) — 18/18 sites hold against live code.
 - Spot-checks: BSTS Kalman now `P[i][j] = PPred − K[i]·s[j]` with `s[j]=ΣZ[k]·PPred[k][j]` (correct); BSTS/GPR optimizers in useEffect; IndicatorFormulaParser error inside memo result; LiquidationMap bars from allLevels; RNN `4*hiddenSize` rows + `lstm.inputSize`; OFA `.quantity`; BL K=0 returns sharpes/posteriorCov; BotStatus key has type+i; panelsMount captures console.error/warn with act-noise filter.
 - 0 wrong / 0 rotted. Remaining verify-debt: hft ctest (MSVC env) only.
+
+## R244 — interaction pass → S369 found+fixed
+
+- panelsMount now fires click on every rendered button + change '1' on every number/text input per panel, settles triggered effects, re-asserts zero real console warnings + zero NaN — interaction-only defects now gated across all 271 panels.
+- Immediately caught 2: PortfolioOptLab `setSelected(Set)` vs array contract (crash on first chip click); VariationalAutoencoder transposed decoder backprop — Wout indexed [hidden][input] though allocated [input][hidden], bout indexed over hiddenDim though inputDim-long — square 8×8 defaults masked it; window=4 → TypeError, hidden=4 → NaN weights → NaN SVG. Corrected to dWout[j][i]=dxHat[j]·h2[i], bout[j]-=lr·dxHat[j].
+- Sweep 271/271 with interactions; focused 9/9; full vitest 172 files / 1440 tests green; eslint clean.
+- Board: 0 open.
