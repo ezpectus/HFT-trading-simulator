@@ -2808,3 +2808,19 @@ Verify-due сработал (last mark был R206). Батч: свежие R208
 - **S348 (Info)** — `_handle_set_speed`/`_handle_update_config` → `async def` + `await self._send_json(...)` ×4: ack'и доставляются (не floating tasks), идут с negotiated encoding (msgpack-клиенты раньше получали TEXT json) и в метрики попадают.
 - **S349 (Info)** — reason едет на ордере: `Order.close_reason` (to_dict его несёт), ставится в `_close_triggered_position`; `ClosedTrade.order_id` — stamp по id-джойну вместо `[-1]`; ws-чтение `order.close_reason`. Батч-закрытия и non-trade fills больше не наследуют чужой reason.
 - Проверка: 171 focused + 442 full sim suite green; ruff clean; 2 новых регрессионных теста на batch-attribution.
+
+## R213 — slop-verify — 9件 VERIFIED / 0 WRONG / 0 ROTTED
+
+未検証残のうち新しい順に9件を検証: R212 (S347–S349), R203 (S322), R204 (S323–S327)。
+
+- **S347** — `_send_tracked` が全5 send サイトに配線 (:283,:297,:358,:360,:635)、delta記録は `_build_orderbook_data` 両分岐、`clients_connected` scrape時読み取り、compression面削除を確認
+- **S348** — 両ハンドラ `async def` + `_send_json` await ×4、create_task ゼロ
+- **S349** — `Order.close_reason`/`ClosedTrade.order_id` 存在、order_idジョイント、wsの`[-1]`読み取り削除
+- **S322** — `_run_feed` (market_data_feed.py:104) が3 venue (:169,:237,:288) で共有
+- **S323** — `closePosition` (backtestEngine.js:214) が CLOSE_ALL:286 と END:333 で共有
+- **S324** — `handleReconnect` が `source.connect()` を実呼出 (WsManager.jsx:100-105)
+- **S325** — `_evaluate` (stress_test.py:30) を4シナリオが共有
+- **S326** — `_ALERT_METRIC_SPECS` (metrics.py:26-42) が両init経路を駆動
+- **S327** — `resultSetters` (useSignalData.js:34-42, 使用:80)
+- ナローチェック: sim 107 + bot 52 + web-ui 24 テスト全緑
+- 未検証残: R199 dependabot (version bump系), R202 C++ (S334/S335 — ローカル toolchain なし)

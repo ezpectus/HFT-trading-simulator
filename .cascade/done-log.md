@@ -1062,7 +1062,7 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R203 — slop-fix — 2 findings closed (S322 venue-runner dedup, S328 dead backtest stack)
 
-### S322 — one shared venue feed loop, three thin wrappers ✅
+### S322 — one shared venue feed loop, three thin wrappers ✅ · verified R213
 - **Bug:** `_run_binance`/`_run_okx`/`_run_bybit` were three copies of the same ~60-line skeleton (import-guard → connect → state-lock register → gap-fill → json loop + drop-oldest → exp-backoff); only URL + subscribe-frame construction differed. The copy-paste had already drifted: binance logged `websockets not installed`, okx/bybit returned silently.
 - **Fix:** shared `_run_feed(name, url, symbols, subscribe_payload=None)` owns the loop; the venue methods only build their URL/sub-args. Binance keeps subscriptions in the combined-stream URL (no frame); okx/bybit send one `{"op":"subscribe","args":[…]}` post-connect — same relative order as before. Import-guard now logs for every venue (was binance-only).
 - **Files:** `ai-signal-bot/src/data_collection/market_data_feed.py:101-165` (shared loop), `:166-178` (binance wrapper), `:224-233` (okx), `:275-284` (bybit); new `tests/unit/test_market_data_feed.py` (6 cases)
@@ -1077,31 +1077,31 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R204 — slop-fix — 5 findings closed (S323 backtestEngine dup, S324 fake Retry, S325/S326 python bloat, S327 dispatch)
 
-### S323 — one closePosition body for CLOSE_ALL + end-of-data ✅
+### S323 — one closePosition body for CLOSE_ALL + end-of-data ✅ · verified R213
 - **Bug:** the 25-line close block (slippage exit, signed pnl, fee, short-borrow, 9-field trades.push) existed twice — `case 'close_all'` and the trailing flush — `entryNotional1`/`entryNotional2` rename scars proving the copy. A fix to one copy (fee math, borrow window) would silently miss the other.
 - **Fix:** `closePosition(candle, reason)` closure inside `runBacktest` (owns `balance`/`position`/`trades` + fee params); `close_all` → `closePosition(candle,'CLOSE_ALL')`, tail flush → `closePosition(candles.at(-1),'END')`. Same math, one body.
 - **Files:** `web-ui/src/utils/backtestEngine.js:212-242` (helper), `:319-321` (close_all), `:356-359` (END flush)
 - **Verified:** vitest backtestEngine 8/8 — identical trades/equity (pure dedup).
 
-### S324 — WsManager Retry actually calls connect() ✅
+### S324 — WsManager Retry actually calls connect() ✅ · verified R213
 - **Bug:** `handleReconnect` only toasted "…reconnect initiated" — never invoked `connect()`; the Retry button was a placebo while the socket stayed dead.
 - **Fix:** `handleReconnect(label, source)` calls `source?.connect()` — both data hooks already expose `connect` (`useExchangeData.js:406`, `useSignalData.js:101`); missing connect falls back to a `warning` toast instead of lying.
 - **Files:** `web-ui/src/components/WsManager.jsx:100-107`, `:131`, `:141`; `src/test/wsManager.test.jsx` (+1 case)
 - **Verified:** vitest wsManager 7/7 — new test clicks Retry, asserts `connect` called once.
 
-### S325 — stress scenarios share one evaluation tail ✅
+### S325 — stress scenarios share one evaluation tail ✅ · verified R213
 - **Bug:** 4 scenario methods each re-spelled the same ~20-line tail (value pre/post → pnl → pnl_pct → margin → StressTestResult); only shock math + margin/liquidity/threshold scalars differed.
 - **Fix:** `_evaluate(name, prices, positions, shocked, margin_factor, liquidity_impact, pass_threshold)` owns the tail; each scenario computes `shocked_prices` and passes its constants (2008: .5/.02/.3 · covid: .4/.03/.25 · ftx: .6/.10/.4 · custom: .5/std-based/.3). File 202→~155 lines.
 - **Files:** `ai-signal-bot/src/risk/stress_test.py:30-50` (helper), `:52-109` (scenario bodies)
 - **Verified:** pytest test_stress_test + metrics suites — 60 passed; ruff clean.
 
-### S326 — alert metrics from one spec table; None-init can't drift ✅
+### S326 — alert metrics from one spec table; None-init can't drift ✅ · verified R213
 - **Bug:** `_init_alert_metrics` hand-rolled 15 `self.x = Counter/Gauge(...)` blocks; the no-prometheus `__init__` branch hand-listed attrs and had already drifted — missing `backtests_run_total`, `bot_cpu_usage_percent`, `bot_memory_usage_bytes`, `bot_sharpe_ratio` (AttributeError if ever touched without the HAS_PROMETHEUS guard).
 - **Fix:** module-level `_ALERT_METRIC_SPECS` = (attr, kind, prom-name, doc) ×15; `_init_alert_metrics` = setattr loop; None-init iterates the same table → all 15 nulled (4 previously missed). Names stay grep-able in the table literal.
 - **Files:** `ai-signal-bot/src/monitoring/metrics.py:24-43` (table), `:87-90` (None-init), `:170-174` (ctor loop)
 - **Verified:** ruff clean; pytest test_metrics + test_metrics_server + test_monitoring_metrics green.
 
-### S327 — `*_result` dispatch via setter-map ✅
+### S327 — `*_result` dispatch via setter-map ✅ · verified R213
 - **Bug:** `handleSignalMessage` spelled 8 identical `case 'x_result': setX(data); break` branches (board refs said useExchangeData.js — the switch moved to useSignalData.js when the hook was split).
 - **Fix:** `resultSetters` ref-map `{type: setter}` — setState functions are stable so a ref is safe; `default:` does `resultSetters.current[data.type]?.(data)`. `backtest_result` keeps its own case (fires the onBacktestResult callback); `auth_ok`/`auth_failed` stay (they transform, not `setX(data)`).
 - **Files:** `web-ui/src/hooks/useSignalData.js:30-44` (map), `:69-82` (switch)
@@ -1156,19 +1156,19 @@ All entries are `web-ui/package-lock.json` advisories — **devDependencies-only
 
 ## R212 — slop-fix — S347/S348/S349 (exchange_simulator ws-стек)
 
-### S347 — WS-layer /metrics fed from real broadcast paths ✅
+### S347 — WS-layer /metrics fed from real broadcast paths ✅ · verified R213
 - **Bug:** `record_broadcast_latency`/`record_delta_update` had zero prod callers (2 eternal-zero gauges); `record_message` ran only in `_send_json` so `messages_total`/`bytes_sent`/`message_size_*`/`bandwidth` counted ~1% of traffic — the tick loop was invisible. `client_count` was a send-time copy that could lag. `compression_ratio` could never move: `compressed_size` never passed AND wire compression (`compression="deflate"`, websocket_server.py:199) is transport-internal — the app cannot observe compressed frame sizes.
 - **Fix:** new `_send_tracked(client, payload)` — times each send (latency recorded in `finally` so a backpressured-then-failed send still counts), records size on success. All broadcast paths rewired: `_broadcast_market_data` (main + arb payload), `_broadcast_fills_batch`, `_broadcast_audit_events`, `_broadcast_to_clients`. `record_delta_update` fed at the per-key decision in `_build_orderbook_data` (None→False, delta→True, no-change→skip). `clients_connected` gauge emits `len(self.clients)` at scrape. **Removed** (unmeasurable surface): `record_message(compressed_size)` param, `compression_ratio` field, `exchange_simulator_compression_ratio` gauge — flagged: /metrics surface loses one eternal-zero gauge; `record_message` signature loses a never-used param.
 - **Files:** `exchange_simulator/ws_broadcast.py:55-76` (helper+_send_json), `:283,297` (audit/fills), `:316,324` (delta), `:358-363` (market+arb); `ws_metrics.py:40-73` (fields+record_message); `ws_prometheus.py:111-116` (clients_connected live, compression block gone); `ws_message_handler.py:635` (_broadcast_to_clients); tests `test_websocket_server.py` TestWebSocketMetrics reworked (+5 prod-path cases), `test_ws_broadcast.py` unaffected
 - **Verified:** pytest ws_server+ws_broadcast+ws_events+handler+exchange 171/171; full sim suite 442 green; ruff clean.
 
-### S348 — control acks delivered via `_send_json` ✅
+### S348 — control acks delivered via `_send_json` ✅ · verified R213
 - **Bug:** 4× `asyncio.create_task(websocket.send(json.dumps(...)))` unreferenced — GC-able mid-flight, exceptions swallowed; raw `json.dumps` also bypassed negotiated encoding (msgpack clients got unparseable TEXT) and metrics. `replay_state` on speed=0 is the client's only pause-sync.
 - **Fix:** `_handle_set_speed`/`_handle_update_config` → `async def` (dispatch sites awaited); all 4 acks go through `await self._send_json(...)` — delivered, encoded per client negotiation, counted.
 - **Files:** `exchange_simulator/ws_message_handler.py:194,208` (dispatch), `:392-410` (set_speed), `:540-543` (config sig), `:587-592` (config_updated); tests: existing `test_set_speed`/`test_update_config_*` now deterministic; `test_set_speed_pause` asserts the replay_state push arrives
 - **Verified:** same suite run as S347 — 171/171, 442 full; ruff clean.
 
-### S349 — close_reason travels on the order ✅
+### S349 — close_reason travels on the order ✅ · verified R213
 - **Bug:** `ws_exchange_events` read `trade_history[-1].reason` for EVERY closed order in a tick — >1 close/tick (SL BTC + TP ETH) all inherited the last entry's reason; worse, a FILLED order that appended no trade (advanced-order fill opening/increasing a position) inherited a stale SL/TP label. Wrong reason → AlertWebhook misclassifies liquidation/sl_tp/fill + wrong `CLOSED_{reason}` in trade CSV. Exchange side had the same `[-1]` stamp fragility.
 - **Fix:** reason rides the order — `Order.close_reason` field (emitted by `to_dict`), set in `_close_triggered_position`; `ClosedTrade.order_id` written at `_close_position`, trade stamp joins by `order_id` instead of list position. WS layer reads `order.close_reason`; `[-1]` lookup deleted. Public-surface flag: `Order.to_dict`/`ClosedTrade.to_dict` gain `close_reason`/`order_id` keys (additive).
 - **Files:** `exchange_simulator/models.py:145,178` (Order), `:414,430` (ClosedTrade); `exchange_position_lifecycle.py:68` (order_id); `exchange_liquidation.py:96-104` (order stamp + id-join); `ws_exchange_events.py:31-62` (per-order reason, to_dict carries it); tests `test_simulated_exchange.py::test_batch_closes_carry_own_reason`, `test_ws_exchange_events.py::test_close_reason_flows_per_order`
