@@ -47,13 +47,6 @@ class LoadTestResults:
             msg_type = data.get("type", "unknown")
             self.msg_types[msg_type] = self.msg_types.get(msg_type, 0) + 1
 
-            # Measure latency if timestamp present
-            ts = data.get("timestamp") or data.get("received_at") or data.get("time")
-            if ts and isinstance(ts, (int, float)):
-                # Exchange uses seconds, convert
-                latency_ms = (now - ts) * 1000
-                if 0 < latency_ms < 10000:  # sanity check
-                    self.latencies.append(latency_ms)
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -65,7 +58,7 @@ class LoadTestResults:
         if current_rate > self.peak_rate:
             self.peak_rate = current_rate
 
-    def report(self) -> str:
+    def report(self, target: int = 10000) -> str:
         duration = self.end_time - self.start_time
         avg_rate = self.messages_received / duration if duration > 0 else 0
 
@@ -93,7 +86,7 @@ class LoadTestResults:
                 f"  Latency max:       {lats[-1]:.2f}ms",
             ])
         else:
-            lines.append("  Latency:           N/A (no timestamps in messages)")
+            lines.append("  Latency:           N/A (no ping samples)")
 
         lines.append(f"  Message types:     {len(self.msg_types)}")
         for mtype, count in sorted(self.msg_types.items(), key=lambda x: -x[1])[:5]:
@@ -107,14 +100,27 @@ class LoadTestResults:
                 f"  Memory VMS:        {mem.vms / 1024 / 1024:.1f}MB",
             ])
 
-        target_met = "PASS" if avg_rate >= 10000 else "FAIL"
+        target_met = "PASS" if avg_rate >= target else "FAIL"
         lines.extend([
             "",
-            f"  Target (10k/sec):  {target_met}",
+            f"  Target ({target:,}/sec):  {target_met}",
             "=" * 60,
             "",
         ])
         return "\n".join(lines)
+
+
+async def _sample_latency(ws, results: LoadTestResults, interval: float = 1.0):
+    """Sample WS round-trip latency via ping/pong (broadcast timestamps are
+    simulated market time, not send wall-time, so they cannot measure it)."""
+    while True:
+        sent = time.time()
+        try:
+            await ws.ping()
+        except Exception:
+            return
+        results.latencies.append((time.time() - sent) * 1000)
+        await asyncio.sleep(interval)
 
 
 async def run_load_test(url: str, duration: int, target: int):
@@ -133,30 +139,34 @@ async def run_load_test(url: str, duration: int, target: int):
             # Set up timeout
             end_time = time.time() + duration
 
-            # Progress reporting
-            last_report = time.time()
-            last_count = 0
+            pinger = asyncio.create_task(_sample_latency(ws, results))
+            try:
+                # Progress reporting
+                last_report = time.time()
+                last_count = 0
 
-            while time.time() < end_time:
-                try:
-                    remaining = max(0.1, end_time - time.time())
-                    msg = await asyncio.wait_for(ws.recv(), timeout=remaining)
-                    results.record_message(msg, time.time())
+                while time.time() < end_time:
+                    try:
+                        remaining = max(0.1, end_time - time.time())
+                        msg = await asyncio.wait_for(ws.recv(), timeout=remaining)
+                        results.record_message(msg, time.time())
 
-                    # Progress every 5 seconds
-                    now = time.time()
-                    if now - last_report >= 5.0:
-                        rate = (results.messages_received - last_count) / (now - last_report)
-                        print(f"  [{now - results.start_time:.0f}s] {results.messages_received:,} msgs, "
-                              f"rate: {rate:,.0f}/s, peak: {results.peak_rate:,}/s")
-                        last_report = now
-                        last_count = results.messages_received
+                        # Progress every 5 seconds
+                        now = time.time()
+                        if now - last_report >= 5.0:
+                            rate = (results.messages_received - last_count) / (now - last_report)
+                            print(f"  [{now - results.start_time:.0f}s] {results.messages_received:,} msgs, "
+                                  f"rate: {rate:,.0f}/s, peak: {results.peak_rate:,}/s")
+                            last_report = now
+                            last_count = results.messages_received
 
-                except TimeoutError:
-                    break
-                except websockets.ConnectionClosed:
-                    print("Connection closed by server")
-                    break
+                    except TimeoutError:
+                        break
+                    except websockets.ConnectionClosed:
+                        print("Connection closed by server")
+                        break
+            finally:
+                pinger.cancel()
 
     except (OSError, RuntimeError, ValueError, TypeError, json.JSONDecodeError, websockets.WebSocketException) as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -174,7 +184,7 @@ def main():
     args = parser.parse_args()
 
     results = asyncio.run(run_load_test(args.url, args.duration, args.target))
-    print(results.report())
+    print(results.report(args.target))
 
     avg_rate = results.messages_received / (results.end_time - results.start_time) if results.end_time > results.start_time else 0
     sys.exit(0 if avg_rate >= args.target else 1)
