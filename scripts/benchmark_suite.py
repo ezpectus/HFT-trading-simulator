@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Benchmark Suite — Latency measurement for all HFT components.
-Measures p50/p95/p99/p999 for each pipeline stage and writes JSON report.
+Benchmark Suite — synthetic proxy micro-benchmarks (NOT the real pipeline).
+Each stage is an inline toy loop approximating a component's shape
+(json parse, book dict update, toy RSI) — see docs/PERFORMANCE.md:25-29.
+Measures p50/p95/p99/p999 per stage and writes a JSON report.
 
 Usage:
     python scripts/benchmark_suite.py [--iterations 10000] [--output logs/benchmark.json]

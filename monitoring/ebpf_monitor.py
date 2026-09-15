@@ -150,7 +150,7 @@ class EBPFMonitor:
         logger.info("[eBPF] Monitoring stopped")
 
     def _report(self) -> None:
-        """Log current stats as JSON and update Prometheus metrics."""
+        """Log current stats as JSON (no metrics export — standalone tool)."""
         report = {
             "timestamp": time.time(),
             "pid": self.pid,
