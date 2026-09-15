@@ -3118,3 +3118,10 @@ Board: 0 open.
 - Root-class fix: eslint-plugin-react-hooks was never wired — rules-of-hooks now an error gate over all src (verified non-vacuous; BayesianPredictor was the only live violation).
 - Sweep 271/271 across all 5 phases; focused 2/2; full vitest 174 files / 1445 tests green; eslint clean.
 - Board: 0 open.
+
+## R247 — boundary-data + lifecycle pass → clean (no finding)
+
+- panelsMount extended to the full external lifecycle: after empty-ctx it now re-renders with ctxMin (exactly one candle per series, one fill, one signal — the boundary where `length < 30` guards degrade but unguarded `arr[i-1]`/`arr[n-1]` math can NaN), then unmounts and re-mounts fresh (cleanup paths: intervals, chart-lib teardown, subscriptions; localStorage cleared so remount simulates a new user).
+- onboarding initially failed the remount non-empty check — investigated: by-design (dismissal persists via localStorage; the interaction pass had clicked Close). Clearing storage before remount verifies the harder path (must render for a new user) — passed, which also proves its cleanup is sound.
+- Result: **271/271 clean across all 7 phases — 0 findings.** Mount→interact→tick→select→empty→minimal→remount is now the permanent panel gate.
+- Board: 0 open.

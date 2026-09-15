@@ -148,6 +148,33 @@ const ctxAlt = {
     .map(c => ({ time: c.timestamp, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume })),
 }
 
+// Minimal-data context: the boundary between empty and populated — exactly
+// one candle per series, one fill, one signal. Components guarded only by
+// `length < 30` bail out here, but unguarded `arr[i-1]` / `arr[n-1]/arr[0]`
+// reads on single-element arrays produce NaN/crash — a different surface
+// than the fully-empty context.
+const firstBySeries = new Map()
+for (const c of snapshot.candles) {
+  const k = `${c.exchange}|${c.symbol}`
+  if (!firstBySeries.has(k)) firstBySeries.set(k, c)
+}
+const minCandles = [...firstBySeries.values()]
+const ctxMin = {
+  ...ctx,
+  chartCandles: minCandles
+    .filter(c => c.exchange === EX && c.symbol === SYM)
+    .map(c => ({ time: c.timestamp, open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume })),
+  exchange: {
+    ...ctx.exchange,
+    candles: minCandles,
+    fills: fills.slice(0, 1),
+  },
+  signals: {
+    ...ctx.signals,
+    signals: signals.slice(0, 1),
+  },
+}
+
 // Degenerate context: the pre-snapshot state — every feed empty. Panels must
 // degrade to a placeholder/NoDataFeed, never crash or emit NaN.
 const ctxEmpty = {
@@ -181,7 +208,7 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         const Component = panel.component
         const props = panel.props(ctx)
 
-        const { container, rerender } = render(
+        const { container, rerender, unmount } = render(
           <Suspense fallback={null}>
             <Component {...props} />
           </Suspense>
@@ -249,6 +276,32 @@ describe('panel mount sweep — every registry panel renders clean', () => {
         )
         await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
         expect(container.innerHTML).not.toContain('NaN')
+
+        // Boundary pass: single-element series — guards like `length < 30`
+        // degrade to placeholders, but unguarded arr[i-1] math produces
+        // NaN on this surface.
+        rerender(
+          <Suspense fallback={null}>
+            <Component {...panel.props(ctxMin)} />
+          </Suspense>
+        )
+        await waitFor(() => expect(container.isConnected).toBe(true), { timeout: 5000 })
+        expect(container.innerHTML).not.toContain('NaN')
+
+        // Lifecycle pass: unmount + fresh remount — exercises cleanup paths
+        // (intervals, chart-lib teardown, subscriptions). localStorage is
+        // cleared so remount simulates a new user — panels persisting
+        // "seen/dismissed" flags (e.g. onboarding) must still render.
+        unmount()
+        try { localStorage.clear() } catch { /* jsdom-less envs */ }
+        const second = render(
+          <Suspense fallback={null}>
+            <Component {...panel.props(ctx)} />
+          </Suspense>
+        )
+        await waitFor(() => expect(second.container.innerHTML.length).toBeGreaterThan(0), { timeout: 10000 })
+        expect(second.container.innerHTML).not.toContain('NaN')
+        second.unmount()
 
         // React dev warnings (duplicate keys, setState-in-render, unknown
         // props, invalid attributes) surface via console.error/console.warn.
