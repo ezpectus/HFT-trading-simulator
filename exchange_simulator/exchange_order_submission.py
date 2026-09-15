@@ -180,7 +180,7 @@ class OrderSubmissionMixin:
                 id=order_id, symbol=symbol, exchange=self.exchange_id,
                 side=side, order_type=order_type, quantity=quantity, price=price,
                 visible_quantity=iceberg_visible_qty, hidden_quantity=quantity - iceberg_visible_qty,
-                replenished=0,
+                slice_size=iceberg_visible_qty, replenished=0,
             )
         else:
             return Order(

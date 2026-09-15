@@ -4,7 +4,6 @@ Extracted from exchange.py for file-size compliance.
 Handles stop-loss, take-profit, partial and full liquidation checks.
 """
 from exchange_simulator.models import (
-    ClosedTrade,
     Order,
     OrderStatus,
     OrderType,
@@ -86,11 +85,6 @@ class LiquidationMixin:
                                   closed_orders: list) -> None:
         """Close a position that triggered SL/TP/liquidation."""
         close_side = Side.SELL if pos.is_long else Side.BUY
-        current_price = self.get_price(pos.symbol)
-
-        if reason == "PARTIAL_LIQUIDATION":
-            self._handle_partial_liquidation(pos, close_side, close_qty, current_price, closed_orders)
-            return
 
         order = self.submit_order(
             symbol=pos.symbol, side=close_side, quantity=close_qty,
@@ -109,42 +103,3 @@ class LiquidationMixin:
             deficit = abs(self.account.balance)
             self.insurance_fund -= deficit
             self.account.balance = 0.0
-
-    def _handle_partial_liquidation(self, pos, close_side, close_qty,
-                                    current_price, closed_orders) -> None:
-        """Handle partial liquidation directly without calling submit_order."""
-        if pos.is_long:
-            pnl = (current_price - pos.entry_price) * close_qty
-        else:
-            pnl = (pos.entry_price - current_price) * close_qty
-
-        released_margin = pos.margin * (close_qty / pos.quantity) if pos.quantity else 0.0
-        pos.margin -= released_margin
-        self.account.balance += released_margin + pnl
-        self.account.total_pnl += pnl
-        self.account.total_trades += 1
-        if pnl > 0:
-            self.account.winning_trades += 1
-
-        self.account.trade_history.append(ClosedTrade(
-            symbol=pos.symbol, exchange=self.exchange_id,
-            side=pos.side.value, quantity=close_qty,
-            entry_price=pos.entry_price, exit_price=current_price,
-            pnl=round(pnl, 2), fee=0.0, reason="PARTIAL_LIQUIDATION",
-            opened_at=pos.opened_at,
-        ))
-
-        pos.quantity -= close_qty
-        if pos.quantity <= 1e-12:
-            self.account.positions.remove(pos)
-            self._positions_by_symbol.pop(pos.symbol, None)
-        self._order_counter += 1
-        order = Order(
-            id=f"ord-{self._order_counter:08d}",
-            symbol=pos.symbol, exchange=self.exchange_id,
-            side=close_side, order_type=OrderType.MARKET, quantity=close_qty,
-        )
-        order.status = OrderStatus.FILLED
-        order.filled_price = current_price
-        order.filled_quantity = close_qty
-        closed_orders.append(order)

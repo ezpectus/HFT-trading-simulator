@@ -88,6 +88,63 @@ class TestCancelOrder:
         assert events[-1].reason == "CANCELLED_BY_CLIENT"
 
 
+class TestCheckIcebergOrders:
+    """S330 — priced icebergs rest like limits; slice bookkeeping is live."""
+
+    def test_priced_iceberg_does_not_fill_when_not_marketable(self):
+        ex = make_exchange(50000)
+        order = ex.submit_order("BTC/USDT", Side.SELL, 0.2,
+                                order_type=OrderType.ICEBERG, price=51000,
+                                iceberg_visible_qty=0.05)
+        filled = ex.check_advanced_orders()
+        assert filled == []
+        assert order.status == OrderStatus.PENDING
+        assert order.hidden_quantity == pytest.approx(0.15)
+
+    def test_priced_iceberg_fills_at_limit_once_marketable(self):
+        ex = make_exchange(50000)
+        order = ex.submit_order("BTC/USDT", Side.SELL, 0.2,
+                                order_type=OrderType.ICEBERG, price=49000,
+                                iceberg_visible_qty=0.05)
+        filled = ex.check_advanced_orders()
+        assert len(filled) == 1
+        assert filled[0].filled_price == 49000
+        assert order.hidden_quantity == pytest.approx(0.10)
+
+    def test_buy_iceberg_waits_above_limit(self):
+        ex = make_exchange(50000)
+        order = ex.submit_order("BTC/USDT", Side.BUY, 0.2,
+                                order_type=OrderType.ICEBERG, price=49000,
+                                iceberg_visible_qty=0.05)
+        assert ex.check_advanced_orders() == []
+        ex.market.get_price.return_value = 48500
+        filled = ex.check_advanced_orders()
+        assert len(filled) == 1
+        assert filled[0].filled_price == 49000
+
+    def test_unpriced_iceberg_fills_at_market(self):
+        ex = make_exchange(50000)
+        order = ex.submit_order("BTC/USDT", Side.SELL, 0.2,
+                                order_type=OrderType.ICEBERG,
+                                iceberg_visible_qty=0.05)
+        filled = ex.check_advanced_orders()
+        assert len(filled) == 1
+        assert filled[0].filled_price == 50000
+
+    def test_slice_bookkeeping_tracks_execution(self):
+        ex = make_exchange(50000)
+        order = ex.submit_order("BTC/USDT", Side.SELL, 0.2,
+                                order_type=OrderType.ICEBERG,
+                                iceberg_visible_qty=0.05)
+        # slice_size wired at creation → slices_remaining is real
+        assert order.slice_size == 0.05
+        assert order.slices_remaining == 3  # 0.15 hidden / 0.05
+        ex.check_advanced_orders()
+        assert order.slices_remaining == 2
+        assert order.current_slice_filled == 0.0
+        assert order.to_dict()["slices_remaining"] == 2
+
+
 class TestCancelAllOrders:
     def test_cancels_every_pending_order(self):
         ex = make_exchange(50000)

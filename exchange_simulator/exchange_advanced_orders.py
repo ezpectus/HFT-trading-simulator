@@ -175,6 +175,12 @@ class AdvancedOrderMixin:
             if order.hidden_quantity > 0:
                 fill_price = current_price
                 if order.price is not None:
+                    # A priced iceberg rests like a limit order — a slice may
+                    # only fill while the market trades at/through the limit.
+                    marketable = (order.side == Side.BUY and current_price <= order.price) or \
+                                 (order.side == Side.SELL and current_price >= order.price)
+                    if not marketable:
+                        continue
                     fill_price = order.price
 
                 filled_order = self._execute_iceberg_slice(order, fill_price)
@@ -294,6 +300,7 @@ class AdvancedOrderMixin:
 
         order.hidden_quantity -= slice_qty
         order.replenished += 1
+        order.on_fill(slice_qty)
         slice_order.status = OrderStatus.FILLED
         slice_order.filled_price = round(price, 2)
         slice_order.filled_quantity = slice_qty
