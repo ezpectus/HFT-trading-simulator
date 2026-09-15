@@ -2949,3 +2949,9 @@ Board: 0 open.
 - **S361** — useWebSocket unmount-cleanup не ставил manualCloseRef → async onclose дёргал scheduleRetry → ghost-reconnect на мёртвом компоненте (attempts reset on open → S231-cap недостижим). 1 строка + регресс-тест (fails pre-fix: ghost socket создан).
 - Остальной hook-sweep чистый (0 async-useEffect, таймеры все с cleanup).
 - Board: 0 open.
+
+## R230 — NaN/inf serialization sweep — S362 найден+закрыт — BOARD EMPTY
+
+- **S362** — portfolio_requests validators принимали non-finite floats (1e999→inf, валидный JSON): 8 непроверенных float-parse сайтов → NaN в optimizer outputs → json.dumps emits bare NaN → unparseable frame дропается клиентом. isfinite-чеки на всех 8, error-string idiom, +6 тест-параметров.
+- Остальной sweep чистый (analysis_requests валидирует, стратегии isnan-guard, sim — engine values).
+- Board: 0 open.

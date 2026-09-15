@@ -2732,3 +2732,11 @@ Hook-hygiene pass over `web-ui/src`: `useEffect(async …)` (0 hits), `setInterv
 - **S361 — `useWebSocket` unmount → ghost reconnect loop (Medium).** The unmount cleanup cleared timers and closed the socket but didn't set `manualCloseRef` — the async `onclose` then called `scheduleRetry()`, spawning a reconnect timer nobody clears → fresh WebSocket on a dead component → infinite ghost loop (attempts reset on open → S231 cap unreachable). `disconnect()` was correct; only unmount missed the flag.
 
 **Fixed in R229 (same pass):** `manualCloseRef.current = true` in cleanup; regression test proves pre-fix ghost socket creation and post-fix suppression. Rest of sweep clean.
+
+## R230 — slop-audit — NaN/inf serialization sweep — 1 finding
+
+Lens: non-finite floats reaching `json.dumps` on WS boundaries — Python emits literal `NaN`/`Infinity` (invalid JSON → client `JSON.parse` throws → frame dropped). 79 dumps sites, 0 `allow_nan` guards; traced where non-finite values can originate.
+
+- **S362 — `portfolio_requests` validators accept non-finite floats (Info).** `1e999` is valid JSON → `inf`. 8 unguarded float-parse sites let inf/nan reach optimizers/`implied_vol` → NaN outputs → bare `NaN` in the response frame → the whole frame unparseable client-side. (`iv`/`beta` were already safe via bounded ranges; `analysis_requests` validates finiteness correctly — this file was the deviant.)
+
+**Fixed in R230 (same pass):** `np.isfinite` at all 8 parse sites, error-string idiom preserved; 6 new `1e999` rejection params in test_error_paths. Rest of sweep clean: strategies sanitize `isnan` at read, `analysis_requests` input+output, sim values are engine-generated positive floats.

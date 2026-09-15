@@ -1278,3 +1278,11 @@ Sweep result otherwise clean: all 20 Python `os.environ`/`getenv` reads + 1 C++ 
 - **Fix:** `manualCloseRef.current = true` in the unmount cleanup before `ws.close()` — one line, same semantics as `disconnect()`.
 - **Files:** `web-ui/src/hooks/useWebSocket.ts:254-261`; `web-ui/src/test/useWebSocket.test.jsx` (new `unmount does not spawn a ghost reconnect (S361)`).
 - **Verified:** test FAILS pre-fix (mockInstances=2 — ghost socket created) and passes post-fix (14 tests green). Proven regression, not a smoke check.
+
+## R230 — NaN/inf serialization sweep — S362
+
+### S362 — `portfolio_requests` validators accept non-finite floats → unparseable frames (Info) ✅
+- **Bug:** `1e999` is valid JSON — `json.loads` yields `inf`. Every float-parse in `portfolio_requests.py` accepted it: `_returns_from_candles` closes (`inf/inf` → NaN returns → NaN cov matrix), `current_weights`/`market_weights`/`portfolio_value`/`risk_free_rate` (rf=inf → sharpe `-inf`), view weights/expected_return/confidence, surface `strike`/`maturity_days` (`<=0` misses inf/nan), `forward`, `eval_strikes`. NaN/inf then flowed to `json.dumps`, which emits bare `NaN`/`Infinity` — invalid JSON → the client's `JSON.parse` throws → the entire response frame is dropped (useWebSocket's catch logs + discards). One malformed request → its response silently never arrives.
+- **Fix:** `np.isfinite` checks at all 8 parse sites, returning the file's existing error-string idiom ("must be finite") — input-side rejection matching `analysis_requests:55` ("returns must be finite"). `iv`/`beta` were already safe via bounded ranges.
+- **Files:** `ai-signal-bot/src/communication/portfolio_requests.py:46,192-194,201-203,214-216,225-227,90-96,250-252,326,338-340`; `tests/unit/test_portfolio_requests.py` (6 new error-path params).
+- **Verified:** 25 tests green incl. 6 new `1e999` rejection cases; ruff clean.
