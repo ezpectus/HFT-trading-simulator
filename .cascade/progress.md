@@ -3111,3 +3111,10 @@ Board: 0 open.
 - Caught 2 numerical-stability defects invisible to mount-only: BurgersEquation — doc'd LF but implemented FTCS advection + same-update explicit Laplacian (Nyquist-unstable, |G(π)|=1+4d → blowup → sub=6.6e36 hang → NaN); fixed via operator splitting (conservative LF + separate diffusion substep, per-CFL substepping, dt≤0.5). RNN — lr unclamped → divergence → NaN; clamped ≤0.1 + non-finite-loss early return.
 - Sweep 271/271 with interactions+tick; full vitest 173f/1443t green; eslint clean.
 - Board: 0 open.
+
+## R246 — selection-switch + empty-context pass → S371 found+fixed
+
+- panelsMount re-renders each panel with ctxAlt (different exchange|symbol — per-selection paths) then ctxEmpty (fully-empty pre-snapshot ctx). Caught S371: BayesianPricePredictor had betaPath useMemo below the !data early return → data→empty transition dropped a hook → "Rendered fewer hooks" subtree crash.
+- Root-class fix: eslint-plugin-react-hooks was never wired — rules-of-hooks now an error gate over all src (verified non-vacuous; BayesianPredictor was the only live violation).
+- Sweep 271/271 across all 5 phases; focused 2/2; full vitest 174 files / 1445 tests green; eslint clean.
+- Board: 0 open.
