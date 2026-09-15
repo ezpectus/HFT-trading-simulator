@@ -3150,3 +3150,11 @@ Board: 0 open.
 - First run caught a rotten test: toxicity_penalty expected a visible score reduction at penalty=0.8, but the residual (0.27) still saturates above the 0.2 threshold → impossible assert. Fixed to penalty=1.0 so the reduction actually crosses the threshold.
 - ctest: **17/17 binaries green** (was 13). Parity: 26/26 test files registered.
 - Board: 0 open.
+
+## R251 — dep-gated ctest targets unblocked via vendored deps → S374
+
+- Vendored gitignored `deps/` (fetch-test-deps.sh): nlohmann json.hpp, spdlog header-only, fmt headers, asio standalone, yaml-cpp prebuilt static. CMake tests-only creates canonical targets when packages absent → gates lit automatically.
+- First execution caught: kill_switch_monitor test written vs a different API (rewritten — incl. honest sticky-activation semantics); config tests used phantom yaml keys `ws_url`/`default` (real: `websocket_url`/`default_exchange`); spectral fixture oscillated too slowly for the high band (freq param added). test_signal_engine + v2 quartet + kill_switch now all run.
+- ctest: **22/22 green**. Only signal_receiver still gated (needs real OpenSSL headers) + POSIX-only pair.
+- Correction: S373's "never registered" was wrong — quartet was fmt-gated via foreach vars (grep-invisible); fixed the record.
+- Board: 0 open.

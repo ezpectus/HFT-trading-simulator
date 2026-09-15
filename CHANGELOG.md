@@ -9,6 +9,11 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-15 (Slop-fix R251 — dep-gated tests unblocked)
+
+### Fixed
+- **Dep-gated ctest targets now run on dep-less hosts via vendored `deps/` (S374):** `fetch-test-deps.sh` vendors nlohmann/json, header-only spdlog+fmt, standalone asio, and a prebuilt static yaml-cpp; CMake's `HFT_TESTS_ONLY` mode mints the canonical package targets when real packages are absent. First execution caught fixtures that never ran: `test_integration_kill_switch_monitor` was written against a different API and contradicted sticky-activation semantics (rewritten); config fixtures used unread `ws_url:`/`default:` keys (real: `websocket_url`/`default_exchange`); the spectral-trend fixture oscillated too slowly to be "cycle-dominated" under the impl's band split (freq param added). **ctest: 22/22 binaries green** — only `test_doctest_signal_receiver` stays gated (needs real OpenSSL headers) plus the POSIX-only pair.
+
 ## [Unreleased] — 2026-09-15 (Slop-fix R250 — ctest registration completeness)
 
 ### Fixed
