@@ -42,11 +42,34 @@ histogram.*
 | Indicator calculation | < 50us | Inline, incremental updates |
 | Lock-free queue push | < 10us | SPSC ring buffer, no locks |
 
+**Measured (hft_bench, `tests/bench_hot_path.cpp`, llvm-mingw Release):**
+
+| Path | med | p99 | mean |
+|------|-----|-----|------|
+| `analyze_incremental` (full signal compute, prepopulated) | 1100ns | 1600ns | 1048ns |
+| `SPSCQueue<Signal,16>` push+pop | 0ns | 100ns | 26ns |
+| `FastSignal` ctor + setters | 0ns | 100ns | 20ns |
+| `ScopedLatency` record (unsampled) | 100ns | 100ns | 69ns |
+| `ScopedLatency` sampled 1:16 | 0ns | 100ns | 23ns |
+
+Run it: `build-mingw/hft_bench.exe` (dev tool, not a ctest). Notes:
+
+- `ScopedLatency` at the per-symbol/per-tick `signal_timer` costs ~11% of a
+  1µs signal when unsampled — hence systematic sampling `ScopedLatency(hist,16)`:
+  off-samples skip both clock reads, percentiles stay unbiased (2000→125
+  samples). Risk/exec/loop timers are rare and keep full fidelity.
+- `wait_for_data` is a condition-variable wake (event-driven), not polling.
+- End-to-end wire→signal→order latency is NOT covered by the microbench —
+  it's I/O-bound; observe it live via `:9091/metrics` latency histograms.
+
 **Key design decisions:**
 - `std::condition_variable` with 1ms timeout — wakes instantly on data, no busy-spin
 - Thread pinning enabled in `latency_optimization` config
 - Spinlocks instead of mutexes for hot paths
 - Stack allocation for order book entries (no heap allocation per update)
+- `-ffast-math` compiled with `-fno-finite-math-only` — vectorization kept,
+  but NaN sentinels in EMA/RSI warm-up stay honest (GCC folds `isnan`→false
+  without it)
 
 
 ### Python AI Signal Bot

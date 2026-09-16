@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 > `hft-trade-bot` CMake `project()` (2.0.0), helm `appVersion` (2.0.0) —
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
+> **Full scheme + bump rules: `docs/VERSIONING.md`.**
 
 ## [Unreleased] — 2026-09-17 (Slop-fix R263 — monitoring scope-consistency)
 

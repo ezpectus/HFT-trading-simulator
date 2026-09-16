@@ -14,7 +14,7 @@ You need these tools before running any install scripts. Install them in order.
 | 2 | Node.js | 22+ | Web UI (includes npm) | https://nodejs.org — LTS version |
 | 3 | CMake | 3.16+ | C++ build system | https://cmake.org/download — Windows x64 Installer, check "Add to PATH" |
 | 4 | C++ compiler | C++20 | HFT Trade Bot engine | See per-OS instructions below |
-| 5 | vcpkg | latest | C++ libraries (Windows only) | See Windows setup below |
+| 5 | vcpkg | latest | C++ libraries (Windows only) | Optional — see "vcpkg-free build" below |
 
 **Verify all tools are installed:**
 ```bat
@@ -127,7 +127,36 @@ The C++ engine compiles on both MSVC (Windows) and GCC/Clang (Linux/macOS). Key 
 - **Struct Packing**: `#pragma pack(push, 1)` ensures IPC message structs match Python `struct` layout on MSVC (which has different default padding than GCC).
 - **Macro Pollution**: All `windows.h` includes are preceded by `#define NOMINMAX` to prevent `min`/`max` macro conflicts with `std::min`/`std::max`.
 - **UTF-8 Paths**: `add_compile_options(/utf-8)` in CMakeLists.txt ensures MSVC handles non-ASCII characters in file paths.
-- **vcpkg Libraries**: Required on Windows: `boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp`
+- **vcpkg Libraries**: `boost-system boost-random openssl spdlog fmt nlohmann-json yaml-cpp` — required only on the vcpkg path below
+
+### Alternative — vcpkg-free Windows build (llvm-mingw + vendored deps)
+
+The repo builds without vcpkg and without Visual Studio. Vendored headers
+live under `hft-trade-bot/deps/` (gitignored — fetched once):
+
+```bat
+cd hft-trade-bot
+bash scripts\fetch-test-deps.sh   :: populates deps/ (asio, fmt, nlohmann, openssl, spdlog, yaml-cpp)
+
+cmake -B build-mingw -G Ninja -DCMAKE_BUILD_TYPE=Release ^
+  -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+cmake --build build-mingw --parallel
+ctest --test-dir build-mingw --output-on-failure   :: 23/23 on Windows
+```
+
+llvm-mingw toolchain (clang++/g++): `winget install MartinStorsjo.LLVM-MinGW.UCRT`.
+The stale `build/` directory (VS-generator cache) is legacy — `build-mingw`
+is the canonical Windows build dir.
+
+**POSIX tests (SHM, signal_flow, integration_shm)** run only on Linux —
+Windows gates them out via `if(NOT WIN32)` in CMakeLists. To run the full
+suite (26/26) on a Windows host use WSL:
+
+```bat
+wsl --install -d Ubuntu
+wsl -d Ubuntu -- apt update ^&^& apt install -y build-essential cmake ninja-build libyaml-cpp-dev libssl-dev
+wsl -d Ubuntu -- bash -c "cd '/mnt/<drive>/<repo>/hft-trade-bot' && cmake -B build-linux -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build-linux && ctest --test-dir build-linux"
+```
 
 ---
 

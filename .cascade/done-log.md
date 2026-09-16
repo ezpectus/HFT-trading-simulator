@@ -1614,3 +1614,11 @@ Docker daemon live (29.6.1). `docker compose up --wait` ran the full chain for t
 - `o.value("client_order_id", "")` threw `json::type_error` when the key was present but `null` — sim auto-arb orders emit `client_order_id: None`. Live symptom: `errors_total` ~930 in 3 min and foreign fills dropped *before* `apply_fill` (position book missed real account activity). Null-safe extraction (`contains` + `is_string`); regression test feeds `client_order_id: null` and asserts the fill reaches `on_fill` with empty id. Audited every `.value()` read against `Order.to_dict()` — the other nullable fields (`price`, `rejection_reason`, `oco_group_id`, `expire_ts`) are not read by the receiver.
 - **Files:** `hft-trade-bot/src/communication/signal_receiver_handlers.h`, `tests/test_doctest_signal_receiver.cpp`.
 - **Live verify:** post-fix `errors_total` 0.
+
+### R264 — docs/hygiene round (no findings)
+- Code comments swept of `S###` audit refs (~150 files, two passes — first sweep's `()` cleanup ate arrow-fn params, reverted and redone; residual `( —`/`"name "` artifacts fixed in a follow-up).
+- `.cascade/office-board.md` — added BACKLOG B1–B10 (future work: e2e latency bench, test-file audit, stale `build/` dir, Docker Desktop instability, version drift, :3000 port collision, slop-verify cadence, ebpf orphan, ccxt path, kill-switch 503 semantics); summary updated to S001–S397 / 372 findings.
+- `docs/VERSIONING.md` — new: product = git tags (SemVer), component versions independent, release checklist.
+- `docs/PERFORMANCE.md` — measured `hft_bench` table (signal 1100ns med / 1600ns p99, SPSC ~26ns, ScopedLatency 69→23ns sampled) + `-fno-finite-math-only` note.
+- `CONTRIBUTING.md` — vcpkg marked optional; canonical Windows path = llvm-mingw + vendored `deps/` + `build-mingw`; WSL Ubuntu recipe for the POSIX test trio.
+- `README_PROJECT_OVERVIEW.md` — counts synced to reality (49 symbols, 271 panels/295 components, 159 test files).
