@@ -149,7 +149,7 @@ services:
       ai-signal-bot:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${WEB_UI_PORT:-3000}:3000"
     restart: unless-stopped
     deploy:
       resources:
