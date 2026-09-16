@@ -89,6 +89,23 @@ int main(int argc, char** argv) {
         g_sink += static_cast<int64_t>(s.confidence);
     });
 
+    // ── ScopedLatency instrumentation cost (runs per-symbol per-tick in
+    //    run_v2_signal_loop — worth knowing what the observability tax is) ──
+    LatencyHistogram hist;
+    bench("ScopedLatency ctor+dtor+record", iters, [&] {
+        { ScopedLatency t(hist); }
+        g_sink += 0;
+    });
+    std::printf("    (histogram samples recorded: %llu)\n",
+                (unsigned long long)hist.get_stats().count);
+    LatencyHistogram hist_s;
+    bench("ScopedLatency sampled 1:16", iters, [&] {
+        { ScopedLatency t(hist_s, 16); }
+        g_sink += 0;
+    });
+    std::printf("    (histogram samples recorded: %llu)\n",
+                (unsigned long long)hist_s.get_stats().count);
+
     std::printf("sink=%lld (anti-DCE)\n", (long long)g_sink);
     return 0;
 }

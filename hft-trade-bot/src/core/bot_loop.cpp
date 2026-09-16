@@ -225,17 +225,8 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
                              const PressureResult& pressure) {
     double mid        = ob.mid_price();
     double spread_bps = mid > 0 ? ob.spread() / mid * 10000.0 : 999.0;
-    auto   os = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns, pressure);
-    spdlog::info("HFT v2 Signal: {} {} conf={} entry={:.2f} kind={} spread={:.1f}bps ({})",
-                 fast_sig.dir_str(), sig.symbol, static_cast<int>(fast_sig.confidence),
-                 fast_sig.entry_price,
-                 os.kind == FastOrder::OrderKind::MARKET      ? "MKT"
-                 : os.kind == FastOrder::OrderKind::LIMIT_IOC ? "IOC"
-                 : os.kind == FastOrder::OrderKind::LIMIT_FOK ? "FOK"
-                 : os.kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD"
-                                                              : "POST",
-                 spread_bps, os.reason);
-    bool sent = false;
+    auto   os   = select_order_kind(ctx, fast_sig, ob, qty, mid, spread_bps, now_ns, pressure);
+    bool   sent = false;
     if (ctx.executor->is_connected()) {
         const double order_price = (os.limit_price > 0) ? os.limit_price : mid;
         if (!precheck_order(ctx, sig, qty, order_price)) {
@@ -250,6 +241,18 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
         else
             spdlog::warn("Order not sent — no local order recorded for {}", sig.symbol);
     }
+    // Log AFTER submit_order: Logger is synchronous (console+rotating file),
+    // a write here before submission was a few-hundred-µs stall sitting
+    // directly between order selection and the wire.
+    spdlog::info("HFT v2 Signal: {} {} conf={} entry={:.2f} kind={} spread={:.1f}bps ({})",
+                 fast_sig.dir_str(), sig.symbol, static_cast<int>(fast_sig.confidence),
+                 fast_sig.entry_price,
+                 os.kind == FastOrder::OrderKind::MARKET      ? "MKT"
+                 : os.kind == FastOrder::OrderKind::LIMIT_IOC ? "IOC"
+                 : os.kind == FastOrder::OrderKind::LIMIT_FOK ? "FOK"
+                 : os.kind == FastOrder::OrderKind::LIMIT_GTD ? "GTD"
+                                                              : "POST",
+                 spread_bps, os.reason);
     ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
     // Book on fill, not on send — resting LIMITs (GTD/POST/IOC leftovers)
     // must not appear as positions before the exchange confirms them (S179).
@@ -277,7 +280,10 @@ void run_v2_signal_loop(BotContext& ctx, double current_balance, bool can_trade)
         // (candles<30) recorded bogus samples into the histogram.
         FastSignal fast_sig;
         {
-            ScopedLatency signal_timer(ctx.signal_latency_hist);
+            // Sampled 1:16 — full-fidelity record measured ~100ns vs ~900ns
+            // signal compute (~11% observability tax). Systematic sampling
+            // keeps percentiles unbiased; off-samples skip both clock reads.
+            ScopedLatency signal_timer(ctx.signal_latency_hist, 16);
             fast_sig = generate_signal(ctx, sym_cstr, ctx.candles_buf.data(),
                                        ctx.candles_buf.size(), ctx.ob_buf, now_ns, pressure);
         }

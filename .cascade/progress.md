@@ -3206,3 +3206,12 @@ Board: 0 open.
 - Board «ОСТАТОК — пошагово»: POSIX-pair steps (auto-register on Linux, needs WSL distro/CI), web-ui file-level option (pipeline-covered), perf candidates bench-gated, S309 docker-runtime confirm, --help cosmetic.
 - S382: removed `try_pop_signal` (0 callers) and simdjson plumbing (declared-but-never-used). ctest 23/23 + exe rebuild green.
 - Board: 0 open, verify-debt 0.
+
+## R260-R261 — all remaining items closed: WSL POSIX suite, measured perf, CLI, panel sweep
+
+- **WSL Ubuntu 26.04 installed**; hft builds under gcc-15; **Linux ctest 26/26** incl. test_shm + integration_signal_flow + integration_shm — POSIX pair is green for the first time ever.
+- First Linux build caught: S383 (missing spdlog link on POSIX-gated target), S384 (raw MinGW .a linked on Linux → OpenSSL:: targets now), **S385 (-ffast-math → -ffinite-math-only folded std::isnan → broke EMA/RSI NaN sentinels — real prod-relevant bug, fixed via -fno-finite-math-only)**.
+- ScopedLatency sampled 1:16 on signal_timer: measured 100ns→23ns mean (~11%→~2.5% observability tax). S386: spdlog::info moved after submit_order (sync I/O off the wire path).
+- web-ui 291-component sweep by stated criteria: 0 findings — RAF/interval/listener/subscription cleanup all paired, Math.random only in named simulators.
+- CLI: --help/-h exit 0, --config/-c flag, unknown-option rejection.
+- Board: 0 open, 0 verify-debt. Only untestable remainder: docker daemon is dead → S309 healthy-chain awaits CI.

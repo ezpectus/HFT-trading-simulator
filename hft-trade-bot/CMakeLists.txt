@@ -85,7 +85,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(STATUS "-march=native not supported — using default architecture")
     endif()
 
-    add_compile_options(-ffast-math -fno-math-errno)
+    # -ffast-math implies -ffinite-math-only: GCC then constant-folds
+    # std::isnan() to false, silently breaking the NaN sentinels used by
+    # compute_ema/compute_rsi (found by first Linux test run — clang happens
+    # to still evaluate it). Keep fast-math opts but restore NaN semantics.
+    add_compile_options(-ffast-math -fno-math-errno -fno-finite-math-only)
     add_compile_options(-finline-functions -finline-limit=1000)
 endif()
 
@@ -552,7 +556,7 @@ endif() # yaml+fmt+spdlog (hft_config)
 # when unused) — stays dark unless deps/{asio,openssl} are vendored.
 if(TARGET nlohmann_json::nlohmann_json AND TARGET spdlog::spdlog
    AND EXISTS ${CMAKE_SOURCE_DIR}/deps/asio/asio.hpp
-   AND EXISTS ${CMAKE_SOURCE_DIR}/deps/openssl/openssl/ssl.h)
+   AND TARGET OpenSSL::SSL)
 add_doctest_test(test_doctest_signal_receiver tests/test_doctest_signal_receiver.cpp)
 target_compile_definitions(test_doctest_signal_receiver PRIVATE DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN)
 # signal_receiver.h pulls websocketpp/config/asio_client.hpp — standalone asio
@@ -564,15 +568,16 @@ endif()
 if(WIN32)
     target_link_libraries(test_doctest_signal_receiver PRIVATE ws2_32 mswsock)
 endif()
-# Vendored OpenSSL (msys2 ucrt64 layout: deps/openssl/openssl/*.h + static .a).
-target_include_directories(test_doctest_signal_receiver PRIVATE ${CMAKE_SOURCE_DIR}/deps/openssl)
-if(EXISTS ${CMAKE_SOURCE_DIR}/deps/openssl/libssl.a)
-    target_link_libraries(test_doctest_signal_receiver PRIVATE
-        ${CMAKE_SOURCE_DIR}/deps/openssl/libssl.a
-        ${CMAKE_SOURCE_DIR}/deps/openssl/libcrypto.a)
-    if(WIN32)
-        target_link_libraries(test_doctest_signal_receiver PRIVATE gdi32 crypt32)
-    endif()
+# Vendored OpenSSL headers are needed on Windows where the deps/ layout
+# isn't in the default include path. Always link via the OpenSSL:: targets —
+# the vendored-minted block above already wraps deps/openssl/*.a into them
+# when no system package exists; raw-linking the MinGW .a breaks on Linux.
+if(EXISTS ${CMAKE_SOURCE_DIR}/deps/openssl/openssl/ssl.h)
+    target_include_directories(test_doctest_signal_receiver PRIVATE ${CMAKE_SOURCE_DIR}/deps/openssl)
+endif()
+target_link_libraries(test_doctest_signal_receiver PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+if(WIN32)
+    target_link_libraries(test_doctest_signal_receiver PRIVATE gdi32 crypt32)
 endif()
 target_link_libraries(test_doctest_signal_receiver PRIVATE nlohmann_json::nlohmann_json spdlog::spdlog)
 if(FMT_LIBRARY)
@@ -613,5 +618,19 @@ if(NOT WIN32)
     add_doctest_test(test_integration_shm tests/test_integration_shm.cpp)
     if(UNIX AND NOT APPLE)
         target_link_libraries(test_integration_shm PRIVATE rt)
+    endif()
+    # shm_fill_producer.h includes spdlog — needs the include path (vendored
+    # or system). Never compiled on Windows (WIN32-gated), first Linux build.
+    if(TARGET spdlog::spdlog)
+        target_link_libraries(test_integration_shm PRIVATE spdlog::spdlog)
+    endif()
+    if(TARGET fmt::fmt)
+        target_link_libraries(test_integration_shm PRIVATE fmt::fmt)
+    endif()
+    if(FMT_LIBRARY)
+        target_link_libraries(test_integration_shm PRIVATE ${FMT_LIBRARY})
+    endif()
+    if(SPDLOG_LIBRARY)
+        target_link_libraries(test_integration_shm PRIVATE ${SPDLOG_LIBRARY})
     endif()
 endif()

@@ -3,6 +3,7 @@
 
 #include <csignal>
 #include <filesystem>
+#include <string_view>
 #include <unordered_set>
 
 #include <fmt/ranges.h>
@@ -57,7 +58,21 @@ static void setup_thread_pinning(const Config& c) {
 
 bool init_config_and_logger(BotContext& ctx, int argc, char* argv[]) {
     std::string config_path = "config/config.yaml";
-    if (argc > 1) config_path = argv[1];
+    for (int i = 1; i < argc; ++i) {
+        const std::string_view arg = argv[i];
+        if (arg == "-c" || arg == "--config") {
+            if (++i >= argc) {
+                fmt::print(stderr, "Option {} requires a value\n", arg);
+                return false;
+            }
+            config_path = argv[i];
+        } else if (!arg.empty() && arg[0] == '-') {
+            fmt::print(stderr, "Unknown option: {} (try --help)\n", arg);
+            return false;
+        } else {
+            config_path = arg;
+        }
+    }
     ctx.config = Config::load(config_path);
     Logger::init(ctx.config.log_level, ctx.config.log_file, ctx.config.is_production,
                  &ctx.sys_monitor);

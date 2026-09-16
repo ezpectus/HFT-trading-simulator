@@ -18,6 +18,8 @@
 
 #include <chrono>
 #include <csignal>
+#include <cstdio>
+#include <string_view>
 
 #include <spdlog/spdlog.h>
 
@@ -27,6 +29,17 @@ int main(int argc, char* argv[]) {
     // Register signal handlers for graceful shutdown
     std::signal(SIGINT, [](int) { hft::set_running(false); });
     std::signal(SIGTERM, [](int) { hft::set_running(false); });
+
+    for (int i = 1; i < argc; ++i) {
+        const std::string_view arg = argv[i];
+        if (arg == "-h" || arg == "--help") {
+            std::puts("Usage: hft_trade_bot [CONFIG_PATH | --config CONFIG_PATH]\n"
+                      "  CONFIG_PATH         Path to YAML config (default: config/config.yaml)\n"
+                      "  -c, --config PATH   Same as above\n"
+                      "  -h, --help          Show this help and exit");
+            return 0;
+        }
+    }
 
     BotContext ctx;
     if (!init_config_and_logger(ctx, argc, argv)) return 1;

@@ -1522,3 +1522,37 @@ The nominal trading path computes a full signal in **sub-microsecond** time. Fut
 - `ShmSignalConsumer::try_pop_signal` — 0 callers; «polling mode» was fiction (consumer is always threaded). Removed.
 - simdjson plumbing — `find_package(simdjson)` ×2, `if(simdjson_FOUND)` link+define block, `HFT_HAS_SIMDJSON` guard in pch.h — existed but no src file ever called a simdjson API (nlohmann is the only JSON parser used). «Fast JSON in hot path» was decorative. Removed; CMake header comment updated.
 - **Files:** `src/ipc/shm_signal_consumer.h`, `CMakeLists.txt`, `src/pch.h`. **Verified:** test-config reconfigure + ctest 23/23 green; full exe rebuild clean (websocketpp third-party warning only).
+
+## R260 — WSL Ubuntu installed; POSIX suite runs: 26/26 green, 2 build defects + 1 real bug found
+
+**Setup:** `wsl --install -d Ubuntu` (Ubuntu 26.04), apt: build-essential/cmake/ninja-build/libyaml-cpp-dev/libssl-dev. Vendored header-deps are portable; binary deps resolve to system packages on Linux (find_package wins over vendored minting, as designed).
+
+### S383 — test_integration_shm missing spdlog/fmt link (build defect) ✅
+- `shm_fill_producer.h` includes spdlog; `add_doctest_test` links only Threads. Never compiled before — WIN32-gated. Added TARGET-gated spdlog::spdlog/fmt::fmt + FMT/SPDLOG_LIBRARY fallbacks (kill_switch pattern).
+- **Files:** `CMakeLists.txt`.
+
+### S384 — test_doctest_signal_receiver raw-linked MinGW .a on Linux (build defect) ✅
+- Gate checked `EXISTS deps/openssl/ssl.h` and linked `deps/openssl/libssl.a` directly → MinGW archives → `__stack_chk_guard` link failure on Linux. Fixed: gate on `TARGET OpenSSL::SSL`, link via `OpenSSL::SSL`/`OpenSSL::Crypto` (system on Linux, vendored-minted on Windows). Windows-only `gdi32 crypt32` kept under `if(WIN32)`.
+- **Files:** `CMakeLists.txt`.
+
+### S385 — -ffast-math silently broke NaN sentinels on GCC (Medium) ✅
+- `-ffast-math` implies `-ffinite-math-only`: GCC constant-folds `std::isnan()` to `false`. `compute_ema`/`compute_rsi` fill results with `std::nan("")` as "insufficient data" sentinel — 3 tests failed on first Linux run (clang didn't fold it, so Windows stayed green by luck). Any NaN-sentinel check anywhere under fast-math was UB-adjacent. Fix: `-fno-finite-math-only` appended — keeps vectorization/reciprocal opts, restores correct NaN/Inf semantics.
+- **Files:** `CMakeLists.txt`. **Verified:** Linux ctest 26/26 (was 25/26 + 1 fail), Windows ctest 23/23 unchanged.
+
+## R261 — panel sweep + measured perf fixes + CLI argparse
+
+### web-ui file-level sweep — 0 findings ✅
+- 291 components: RAF↔cancel, setInterval↔clear, addEventListener↔remove (popup-scoped dies with doc), subscribeWsFrames cleanup-returns — all paired. Math.random only in named `simulate*` (honest simulation panels) + id-gen. No hardcoded data-series in render. 5 cleanup-less effects are mount-once reads. Pipeline-level coverage confirmed sufficient.
+
+### S386 — synchronous log I/O sat between order-select and wire (Low-Med perf) ✅
+- `execute_v2_order` called `spdlog::info` BEFORE `submit_order`; Logger is synchronous (stdout_color+rotating file) → few-hundred-µs stall on the signal→wire path. Moved after submission; same message, same info.
+
+### ScopedLatency sampling — measured win ✅
+- hft_bench: ScopedLatency record = 100ns med/69ns mean vs 900ns signal = ~11% tax per symbol/tick. Added `sample_every` param — systematic 1:N sampling skips BOTH clock reads on off-samples; applied `signal_timer(...,16)` → **23ns mean, med ~0**; percentiles unbiased (verified: 5000 iters → 313 records). risk/exec/loop timers untouched (rare paths).
+- `wait_for_data` audited: condition-variable, event-driven — already optimal.
+
+### CLI argparse ✅
+- `-h`/`--help` → usage, exit 0 (main.cpp). `--config`/`-c PATH` + positional path + unknown-option rejection in `init_config_and_logger` (bot_setup.cpp). Verified: --help→0, --bogus→1, bare --config→error msg.
+
+### Not done (impossible on host)
+- Docker daemon dead → S309 docker-smoke healthy-chain stays static-only until CI/live daemon.
