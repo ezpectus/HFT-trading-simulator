@@ -1556,3 +1556,38 @@ The nominal trading path computes a full signal in **sub-microsecond** time. Fut
 
 ### Not done (impossible on host)
 - Docker daemon dead → S309 docker-smoke healthy-chain stays static-only until CI/live daemon.
+
+## R262 — S309 RUNTIME VERIFIED: live docker smoke → 5 real defects found + fixed
+
+Docker daemon live (29.6.1). `docker compose up --wait` ran the full chain for the first time ever on this host. Result: **all 7 containers reached healthy** (exchange-sim, ai-signal-bot, hft-trade-bot, web-ui, prometheus, grafana, alertmanager); the sim→ai→hft path traded live (fills, ARB, kill switch all observed working). The healthy-wait surfaced real defects one by one — each fixed and re-verified:
+
+### S387 — exchange_simulator: `websockets.asyncio` attribute access without submodule import (High — crash on boot)
+- `websocket_server.py:197` called `websockets.asyncio.server.serve` after bare `import websockets`. websockets<14 doesn't expose `asyncio` in the lazy attribute map → AttributeError on every boot. Explicit `import websockets.asyncio.server` added.
+- **Files:** `exchange_simulator/websocket_server.py`.
+
+### S388 — hft-trade-bot: GLIBCXX ABI mismatch builder↔runtime (High — crash on boot)
+- Builder `gcc:14-bookworm` links libstdc++ 3.4.32 / CXXABI_1.3.15; runtime `bookworm-slim` ships 3.4.30 — "same Debian release" comment was wrong about ABI (distro base ≠ compiler image's libstdc++). Fixed with `-static-libstdc++ -static-libgcc` link flags via `-DCMAKE_EXE_LINKER_FLAGS` in the Dockerfile build — binary now self-contained, no runtime libstdc++ dependency.
+- **Files:** `hft-trade-bot/Dockerfile`.
+
+### S389 — volume-mounted dirs missing in images → root-owned volumes (High — sim+ai-bot crash on boot)
+- Every service mounts `*-logs:/app/logs` (and `*-data:/app/data`) onto paths that don't exist in the image → Docker creates them root-owned → non-root `appuser` can't write (`PermissionError` on audit.log / trading.db). Fix: `mkdir -p` + `chown appuser` for `/app/data`, `/app/logs`, `/app/logs/audit` in all 6 Dockerfiles (sim dev+prod, ai-bot dev+prod, hft dev+prod).
+- **Files:** `exchange_simulator/Dockerfile{,.prod}`, `ai-signal-bot/Dockerfile{,.prod}`, `hft-trade-bot/Dockerfile{,.prod}`.
+
+### S390 — web-ui nginx: pid path on root-owned /run tmpfs (Med — crash on boot)
+- Alpine nginx default `pid /run/nginx.pid`; /run is fresh root-owned tmpfs at container start → `[emerg] open() failed (13)` under `USER nginx`. sed'd pid path to /tmp in both web-ui Dockerfiles; also added /var/log/nginx to chown.
+- **Files:** `web-ui/Dockerfile`, `web-ui/Dockerfile.prod`.
+
+### S391 — healthchecks used HEAD on GET-only endpoints + localhost IPv6 (Med)
+- hft :9091 health sidecar implements GET only; `wget --spider` sends HEAD → exit 8 → healthy bot marked unhealthy. Switched to `wget -O /dev/null` (GET) in compose {,prod,staging,hub}.
+- web-ui :3000/health used `localhost` → resolves ::1 in Alpine while nginx listens 0.0.0.0 → connection refused. Switched to 127.0.0.1 in all compose files.
+- **Files:** `docker-compose{,.prod,.staging,.hub}.yml`.
+
+### Runtime observations (correct behavior, not defects)
+- Kill switch fired `MAX_DRAWDOWN` during the run (equity 9827→5694 under sim volatility, 14 positions market-closed) — risk system works end-to-end in containers. Post-halt /health=503 is honest reporting: a halted bot IS unhealthy.
+- `fill_rate>100%` — fills counted across ARB/close paths exceed orders_sent metric scope; observation only.
+- sporttracker-* containers (user's other project) vanished during the session (images intact — `docker compose up -d` in their dir restores); my stack ops were scoped to this project.
+
+### S392 — web-ui Dockerfile: redundant ENV copies + secret-lint noise (Low) ✅
+- `ENV VITE_*=${VITE_*}` duplicated ARG values for no gain — ARG already reaches RUN env (verified: ws:// URLs still inlined in bundle after removal). ENV copies only polluted builder-stage image config. Removed in both Dockerfiles.
+- `SecretsUsedInArgOrEnv` warnings on `ARG VITE_*_TOKEN`: false-positive class — the tokens are inlined into the shipped browser bundle by design (public to anyone loading the page), and the ARG lives in the discarded builder stage (final nginx image carries only dist+conf). Suppressed via `# check=skip=SecretsUsedInArgOrEnv` + explanatory comment. NOTE for deploys: prod maps VITE_EXCHANGE_TOKEN=EXCHANGE_CONTROL_TOKEN — browser-public control token is by-design here, but worth remembering it's visible to anyone who loads the UI.
+- **Verified:** `docker build --check` → "no warnings found" on both Dockerfiles; web-ui rebuilt + healthy.

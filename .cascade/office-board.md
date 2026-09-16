@@ -55,8 +55,10 @@
 - **S386:** `spdlog::info` в `execute_v2_order` стоял ДО `submit_order` — синхронный file+console write сидел на критическом пути сигнал→wire. Перенесён после submission.
 - `wait_for_data` — проверен: condition-variable wake, не polling → оптимально, не тронут.
 
-### 4. Docker runtime — ⚠ НЕВОЗМОЖНО на этом хосте
-- Docker daemon мёртв (`docker info` → pipe not found). S309 остаётся статически закрытым; healthy-цепочку подтвердит первый CI-прогон или живой daemon.
+### 4. Docker runtime — ✅ ЗАКРЫТО live (R262)
+- Daemon жив → `docker compose up --wait` прогнан настоящий раз: **7/7 контейнеров healthy**, sim→ai→hft торговал live (fills, ARB, kill-switch MAX_DRAWDOWN halt — risk-система работает end-to-end).
+- Рантайм-проверка вскрыла и добила 5 дефектов: S387 (websockets.asyncio implicit import → sim crash), S388 (GLIBCXX mismatch → static libstdc++), S389 (/app/{data,logs} absent → root-owned volumes, все 6 Dockerfile), S390 (nginx pid на root-owned /run → /tmp), S391 (healthcheck HEAD-на-GET-only + localhost→::1, 4 compose-файла).
+- По дизайну: после kill-halt /health отдаёт 503 — честный статус, не дефект.
 
 ### 5. `--help` — ✅ ЗАКРЫТО (R261)
 - `main.cpp`: `-h`/`--help` → usage + exit 0. `bot_setup.cpp`: `--config`/`-c` флаг + позиционный путь + отказ на неизвестных `-x` опциях + `--config` без значения → ошибка. Verified: help=0, bogus=1.

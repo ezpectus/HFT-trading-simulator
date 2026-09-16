@@ -117,7 +117,7 @@ services:
           cpus: '1.0'
           memory: 256M
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9091/health"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -150,7 +150,7 @@ services:
           cpus: '0.25'
           memory: 128M
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/health"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -223,7 +223,7 @@ services:
       - "13001:3000"
     restart: on-failure:3
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

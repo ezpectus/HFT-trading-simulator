@@ -39,6 +39,8 @@ COPY --from=builder /app/config /app/config
 
 RUN chown -R appuser:appuser /app
 
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appuser /app/data /app/logs
+
 USER appuser
 
 EXPOSE 9091

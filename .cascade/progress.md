@@ -3215,3 +3215,10 @@ Board: 0 open.
 - web-ui 291-component sweep by stated criteria: 0 findings — RAF/interval/listener/subscription cleanup all paired, Math.random only in named simulators.
 - CLI: --help/-h exit 0, --config/-c flag, unknown-option rejection.
 - Board: 0 open, 0 verify-debt. Only untestable remainder: docker daemon is dead → S309 healthy-chain awaits CI.
+
+## R262 — S309 RUNTIME VERIFIED live: full stack healthy, 5 docker defects fixed
+
+- `docker compose up --wait` on a live daemon: **7/7 containers healthy** — sim→ai→hft traded live (fills, ARB, kill-switch MAX_DRAWDOWN halt observed).
+- Found+fixed: S387 websockets.asyncio implicit import (sim crash), S388 GLIBCXX 3.4.32 vs bookworm-slim 3.4.30 → static-libstdc++ (hft crash), S389 /app/{data,logs} dirs absent → root-owned volumes (all 6 Dockerfiles), S390 nginx pid on root-owned /run tmpfs → /tmp (web-ui), S391 healthcheck HEAD-on-GET-only :9091 + localhost→::1 mismatch (4 compose files).
+- Honest remainder: post-kill /health=503 is by-design (halted = unhealthy); fill_rate>100% metric-scope observation.
+- Board: 0 open, 0 verify-debt.

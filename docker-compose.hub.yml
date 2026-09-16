@@ -93,7 +93,7 @@ services:
       - HFT_AI_SIGNAL_WS_URL=ws://ai-signal-bot:8766
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/health"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9091/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -113,7 +113,7 @@ services:
       - "3000:3000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3

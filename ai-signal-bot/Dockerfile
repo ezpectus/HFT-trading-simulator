@@ -29,6 +29,8 @@ COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
 RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appuser /app/data /app/logs
+
 USER appuser
 
 # Ensure user packages are on PATH

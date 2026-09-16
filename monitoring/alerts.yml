@@ -95,7 +95,7 @@ groups:
           service: ai-signal-bot
         annotations:
           summary: "High drawdown"
-          description: "Drawdown is {{ $value * 100 }}% (threshold 8%)"
+          description: "Drawdown is {{ $value | humanizePercentage }} (threshold 8%)"
 
       # Critical drawdown (>15%)
       - alert: CriticalDrawdown
@@ -106,7 +106,7 @@ groups:
           service: ai-signal-bot
         annotations:
           summary: "Critical drawdown"
-          description: "Drawdown is {{ $value * 100 }}% (threshold 15%)"
+          description: "Drawdown is {{ $value | humanizePercentage }} (threshold 15%)"
 
       # Low win rate
       - alert: LowWinRate
@@ -117,7 +117,7 @@ groups:
           service: ai-signal-bot
         annotations:
           summary: "Low win rate"
-          description: "Win rate is {{ $value * 100 }}%"
+          description: "Win rate is {{ $value | humanizePercentage }}"
 
       # Negative PnL
       - alert: NegativePnL
@@ -164,7 +164,7 @@ groups:
           service: exchange-simulator
         annotations:
           summary: "High order rejection rate"
-          description: "Rejection rate is {{ $value * 100 }}% for {{ $labels.exchange }}"
+          description: "Rejection rate is {{ $value | humanizePercentage }} for {{ $labels.exchange }}"
 
       # Low order fill rate
       - alert: LowFillRate
@@ -175,7 +175,7 @@ groups:
           service: exchange-simulator
         annotations:
           summary: "Low order fill rate"
-          description: "Fill rate is {{ $value * 100 }}% for {{ $labels.exchange }} (threshold 80%)"
+          description: "Fill rate is {{ $value | humanizePercentage }} for {{ $labels.exchange }} (threshold 80%)"
 
       # Equity drop — unrealized losses >5%
       - alert: EquityDrop

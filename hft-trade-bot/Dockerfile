@@ -27,7 +27,10 @@ RUN sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/e
     && sed -i 's/basic<concurrency,names>/basic/g' /usr/include/websocketpp/logger/basic.hpp \
     && sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp || true
 
-RUN mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j$(nproc)
+# Static libstdc++/libgcc: gcc:14-bookworm ships libstdc++ 3.4.32 but
+# bookworm-slim runtime only has 3.4.30 (GLIBCXX mismatch — S388).
+RUN mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" && make -j$(nproc)
 
 # ── Runtime stage: slim image with only runtime libs ──
 # Same Debian release as builder (bookworm) to keep ABI stable.
@@ -52,6 +55,8 @@ COPY --from=builder /app/config /app/config
 
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appuser /app/data /app/logs
+
 USER appuser
 
 EXPOSE 9091

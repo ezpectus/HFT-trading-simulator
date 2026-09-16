@@ -17,6 +17,8 @@ COPY --from=builder /root/.local /home/appuser/.local
 COPY . ./exchange_simulator/
 
 RUN chown -R appuser:appuser /app
+RUN mkdir -p /app/data /app/logs/audit && chown -R appuser:appuser /app/data /app/logs
+
 USER appuser
 
 # Ensure user packages are on PATH
