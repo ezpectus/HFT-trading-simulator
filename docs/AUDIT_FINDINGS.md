@@ -2867,3 +2867,19 @@ Second static-analysis pass via wrapper translation units for headers: **S377 (M
 ## R258 — never-audited-files sweep — 3 findings fixed (S379–S381)
 
 Coverage map built (git ls-files × audit corpus → per-dir levels on the board). The true unseen production set was audited: **S379 (Medium)** — backtest Sharpe/Sortino annualized per-trade returns by bars-per-year, inflating by sqrt(bars/trades); moved to the standard per-bar equity-return basis (dead `candle_interval_minutes` param dropped from `calculate_trade_metrics`). **S380 (Medium)** — `ShmSignalConsumer::run` invoked the callback unguarded on the consumer thread; the signal-conversion callback allocates (`std::string`) → `bad_alloc` → `std::terminate`; now caught, signal dropped, counted in `callback_errors`. **S381 (Low)** — `security.sh` ran pip-audit only on ai-signal-bot; exchange_simulator's requirements were never scanned — now loops both. Clean: both unaudited strategies (no ndarray-truthiness hazard — indicators return lists), `obi_utils.h` (fused noexcept single-pass), helm helpers (live), scan-images.sh, 7 web-ui hooks, ui-helpers (honest NoDataFeed), LLM templates (live-wired). **pytest 34/34, ctest 23/23 green.**
+
+## R263 — monitoring scope-consistency audit — 4 findings fixed (S393–S396)
+
+User flagged `fill_rate > 100%`; the audit traced every rate's numerator/denominator populations across all three services.
+
+**S393 (High):** `fills_batch` frames were silently dropped by `SignalReceiver` — the handler knew `type=="fill"` (single) but the sim broadcasts exchange-initiated terminal events (SL/TP closes, GTD expiry, IOC/FOK no-fill cancels, **ARB legs**) as `{"type":"fills_batch","orders":[...]}`. Those fills never reached `on_fill` → ghost positions until the next account reconcile + `ORDERS_FILLED` undercount. Added `handle_fill_order` shared by both frame types. Regression test feeds a 2-order batch through `feed_frame_json`.
+
+**S394 (Medium):** `ORDERS_SENT` was incremented on only 3 of 6 wire paths — v2 exec, AI-signal exec, ARB legs (+2). Missing: v1 fallback submit, SL/TP `close_position`, kill-switch `close_all` — while `ORDERS_FILLED` counts every fill including those closes. 14-position kill-switch close → +14 fills, +0 sent → `fill_rate` systematically overstated, routinely >1. All submission paths now increment.
+
+**S395 (Medium):** `ORDERS_REJECTED` mixed two scopes — pre-trade risk-gate rejects (never wired) + exchange-side rejects — against a `ORDERS_SENT` denominator of sent-only. Internal rejects now count under new `RISK_REJECTED` metric (counter + snapshot + JSON + Prometheus); `rejection_rate` is exchange-rejects / sent — same population. Regression test: 40 risk rejects leave `rejection_rate` at 0.
+
+**S396 (Low):** `orders_cancelled` (cancel-all) incremented `ORDERS_CANCELED` once regardless of the frame's `count` field. `OrderCancelledCallback` now carries `(symbol, count)`; batch feeds the real count.
+
+**Verified clean (no fix needed):** ai-bot `win_rate` — `run.py` converts the DB/tracker percent to 0-1 at the `set_bot_win_rate` call site, matching the "(0-1)" help text on both exporters. Sim `win_rate` is 0-100 end-to-end into `formatPct` (which only appends %). Sim order counters are per-order status transitions (filled ≤ submitted). Backtest metrics percent-consistent after S379.
+
+**Verify:** ctest 23/23 Windows + 26/26 Linux, both prod exes rebuilt, 2 new receiver tests + 1 monitor test green.

@@ -37,6 +37,10 @@ class SystemMonitor {
         // it only auto-pongs — so no honest increment site exists. MISSED is
         // real: the feed watchdog trips when the expected broadcast goes silent.
         HEARTBEATS_MISSED = 9,
+        // Pre-trade risk-gate rejections (S395) — internal, never reached the
+        // wire. ORDERS_REJECTED is exchange-side only; mixing the two made
+        // rejection_rate compare different populations against ORDERS_SENT.
+        RISK_REJECTED = 10,
         COUNT
     };
 
@@ -71,6 +75,7 @@ class SystemMonitor {
         int64_t  reconnects;
         int64_t  shm_drops;
         int64_t  heartbeats_missed;
+        int64_t  risk_rejected;
         double   fill_rate;
         double   rejection_rate;
         uint64_t uptime_seconds;
@@ -88,6 +93,7 @@ class SystemMonitor {
         s.reconnects        = get(Metric::RECONNECTS);
         s.shm_drops         = get(Metric::SHM_DROPS);
         s.heartbeats_missed = get(Metric::HEARTBEATS_MISSED);
+        s.risk_rejected     = get(Metric::RISK_REJECTED);
         s.fill_rate         = fill_rate();
         s.rejection_rate    = rejection_rate();
         s.uptime_seconds    = uptime_seconds();
@@ -115,14 +121,15 @@ class SystemMonitor {
             "{\"orders_sent\":%llu,\"orders_filled\":%llu,\"orders_rejected\":%llu,"
              "\"orders_canceled\":%llu,\"signals_received\":%llu,\"signals_processed\":%llu,"
              "\"errors\":%llu,\"reconnects\":%llu,\"shm_drops\":%llu,"
-             "\"heartbeats_missed\":%llu,\"fill_rate\":%.4f,\"rejection_rate\":%.4f,"
-             "\"uptime_seconds\":%llu}",
+             "\"heartbeats_missed\":%llu,\"risk_rejected\":%llu,"
+             "\"fill_rate\":%.4f,\"rejection_rate\":%.4f,\"uptime_seconds\":%llu}",
             (unsigned long long)s.orders_sent, (unsigned long long)s.orders_filled,
             (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
             (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
             (unsigned long long)s.errors, (unsigned long long)s.reconnects,
-            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed, s.fill_rate,
-            s.rejection_rate, (unsigned long long)s.uptime_seconds);
+            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed,
+            (unsigned long long)s.risk_rejected, s.fill_rate, s.rejection_rate,
+            (unsigned long long)s.uptime_seconds);
         if (n <= 0) return "{}";
         n = std::min(n, static_cast<int>(sizeof(buf) - 1));
         return std::string(buf, static_cast<size_t>(n));
@@ -165,6 +172,9 @@ class SystemMonitor {
              "# HELP hft_heartbeats_missed_total Expected feed frames missed\n"
              "# TYPE hft_heartbeats_missed_total counter\n"
              "hft_heartbeats_missed_total %llu\n"
+             "# HELP hft_risk_rejected_total Orders rejected by pre-trade risk gate\n"
+             "# TYPE hft_risk_rejected_total counter\n"
+             "hft_risk_rejected_total %llu\n"
              "# HELP hft_fill_rate Ratio of filled to sent orders\n"
              "# TYPE hft_fill_rate gauge\n"
              "hft_fill_rate %.4f\n"
@@ -178,8 +188,9 @@ class SystemMonitor {
             (unsigned long long)s.orders_rejected, (unsigned long long)s.orders_canceled,
             (unsigned long long)s.signals_received, (unsigned long long)s.signals_processed,
             (unsigned long long)s.errors, (unsigned long long)s.reconnects,
-            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed, s.fill_rate,
-            s.rejection_rate, (unsigned long long)s.uptime_seconds);
+            (unsigned long long)s.shm_drops, (unsigned long long)s.heartbeats_missed,
+            (unsigned long long)s.risk_rejected, s.fill_rate, s.rejection_rate,
+            (unsigned long long)s.uptime_seconds);
         if (n <= 0) return {};
         n = std::min(n, static_cast<int>(sizeof(buf) - 1));
         return std::string(buf, static_cast<size_t>(n)) + format_runtime_prometheus();

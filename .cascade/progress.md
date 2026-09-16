@@ -3222,3 +3222,13 @@ Board: 0 open.
 - Found+fixed: S387 websockets.asyncio implicit import (sim crash), S388 GLIBCXX 3.4.32 vs bookworm-slim 3.4.30 → static-libstdc++ (hft crash), S389 /app/{data,logs} dirs absent → root-owned volumes (all 6 Dockerfiles), S390 nginx pid on root-owned /run tmpfs → /tmp (web-ui), S391 healthcheck HEAD-on-GET-only :9091 + localhost→::1 mismatch (4 compose files).
 - Honest remainder: post-kill /health=503 is by-design (halted = unhealthy); fill_rate>100% metric-scope observation.
 - Board: 0 open, 0 verify-debt.
+
+## R263 — monitoring scope-consistency: S393–S396
+- Audit of "fill_rate>100% и похожие случаи" → 4 scope-mismatch defects fixed.
+- S393: `fills_batch` frames silently dropped (no handler) — exchange-side SL/TP closes, expiries, ARB-leg fills never reached pos_mgr/metrics → ghost positions. Shared `handle_fill_order` for `fill` + `fills_batch`.
+- S394: `ORDERS_SENT` missed 3 wire paths (v1 fallback, SL/TP close, kill-switch close_all) while FILLED counted all → fill_rate>100%. All paths counted now.
+- S395: `ORDERS_REJECTED` mixed internal pre-trade rejects with exchange rejects → new `RISK_REJECTED` metric; rejection_rate now same-population.
+- S396: `orders_cancelled` batch counted +1 regardless of frame `count` → callback now carries (symbol, count).
+- Verified clean: ai-bot win_rate (%→/100→0-1 gauge, help matches), sim win_rate/counters, backtest %.
+- Verify: ctest 23/23 Win + 26/26 Linux, both exes rebuilt, 3 new tests.
+- Board: 0 open, 0 verify-debt.

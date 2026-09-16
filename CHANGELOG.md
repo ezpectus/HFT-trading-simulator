@@ -9,6 +9,15 @@ All notable changes to this project are documented in this file.
 > and do not map to the tags above. Both Python packages declare
 > `__version__ = "4.1.0"`, matching the latest tag.
 
+## [Unreleased] — 2026-09-17 (Slop-fix R263 — monitoring scope-consistency)
+
+### Fixed
+- **`fills_batch` frames silently dropped (S393):** `SignalReceiver` handled only singular `type=="fill"` frames, but the exchange broadcasts exchange-initiated terminal events (SL/TP closes, GTD expiry, IOC/FOK no-fill cancels, arbitrage legs) as `fills_batch` — those fills never reconciled the position book or counted in `ORDERS_FILLED` until the next account broadcast. New shared `handle_fill_order` processes both frame types.
+- **`fill_rate` exceeded 100% (S394):** `ORDERS_SENT` was incremented on only 3 of 6 wire paths — v1 fallback submits, SL/TP `close_position`, and kill-switch `close_all` never counted, while `ORDERS_FILLED` counted every fill including those closes. All submission paths now increment.
+- **`rejection_rate` mixed scopes (S395):** internal pre-trade risk-gate rejections shared `ORDERS_REJECTED` with exchange-side rejects against a sent-only denominator. Internal rejects moved to a new `RISK_REJECTED` metric (JSON + `hft_risk_rejected_total` Prometheus counter); `rejection_rate` now compares same-population events.
+- **Cancel-all undercounted (S396):** `orders_cancelled` incremented `ORDERS_CANCELED` once regardless of the frame's `count` field; the cancel callback now carries `(symbol, count)`.
+- Audited clean: ai-bot `win_rate` (call site converts %→0-1, matching the gauge help), simulator `win_rate`/order counters, backtest metric units. **ctest 23/23 Windows + 26/26 Linux.**
+
 ## [Unreleased] — 2026-09-16 (Slop-fix R258 — never-audited-files sweep)
 
 ### Fixed

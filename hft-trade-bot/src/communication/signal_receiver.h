@@ -48,8 +48,9 @@ class SignalReceiver : private SignalReceiverData {
                            const std::string& status, double qty, double price, double fee)>;
     // Fired with the raw "accounts" map ({exchange_id: account}) on every broadcast.
     using AccountCallback = std::function<void(const json& accounts)>;
-    // Fired on order_cancelled (symbol) and orders_cancelled (empty = all symbols).
-    using OrderCancelledCallback = std::function<void(const std::string& symbol)>;
+    // Fired on order_cancelled (symbol, count=1) and orders_cancelled
+    // (empty symbol = all symbols, count = orders cancelled).
+    using OrderCancelledCallback = std::function<void(const std::string& symbol, int64_t count)>;
 
     explicit SignalReceiver(const std::string& ws_url)
         : ws_url_(ws_url), client_(std::make_unique<WSClient>()) {}

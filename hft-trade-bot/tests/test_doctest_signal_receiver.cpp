@@ -87,3 +87,54 @@ TEST_SUITE("SignalReceiver multi-exchange data (S252)") {
         CHECK(buf[0].close == doctest::Approx(100.0));
     }
 }
+
+TEST_SUITE("SignalReceiver order events (S393/S396)") {
+
+    TEST_CASE("fills_batch: every order in the batch reaches on_fill") {
+        // Exchange-initiated terminal events (SL/TP closes, GTD expiry, ARB
+        // legs) arrive as fills_batch — before S393 they were dropped whole.
+        hft::SignalReceiver r("ws://localhost:0");
+        int                 fills = 0;
+        std::string         last_status;
+        r.on_fill([&](const std::string&, const std::string&, const std::string& st, double, double,
+                      double) {
+            ++fills;
+            last_status = st;
+        });
+        r.feed_frame_json({{"type", "fills_batch"},
+                           {"orders",
+                            {{{"symbol", "BTC/USDT"},
+                              {"side", "SELL"},
+                              {"status", "FILLED"},
+                              {"filled_quantity", 0.5},
+                              {"filled_price", 100.0},
+                              {"fee", 0.01}},
+                             {{"symbol", "ETH/USDT"},
+                              {"side", "BUY"},
+                              {"status", "CANCELLED"},
+                              {"filled_quantity", 0.0},
+                              {"filled_price", 0.0},
+                              {"fee", 0.0}}}}});
+        CHECK(fills == 2);
+        CHECK(last_status == "CANCELLED");
+    }
+
+    TEST_CASE("orders_cancelled: batch frame carries its order count") {
+        // S396: cancel-all reported +1 regardless of how many orders died.
+        hft::SignalReceiver r("ws://localhost:0");
+        int64_t             total    = 0;
+        std::string         last_sym = "x";
+        r.on_order_cancelled([&](const std::string& sym, int64_t count) {
+            total += count;
+            last_sym = sym;
+        });
+        r.feed_frame_json(
+            {{"type", "orders_cancelled"}, {"count", 7}, {"order_ids", {"a", "b", "c"}}});
+        CHECK(total == 7);
+        CHECK(last_sym.empty());
+        // Single cancel still reports exactly one.
+        r.feed_frame_json({{"type", "order_cancelled"}, {"order", {{"symbol", "BTC/USDT"}}}});
+        CHECK(total == 8);
+        CHECK(last_sym == "BTC/USDT");
+    }
+}

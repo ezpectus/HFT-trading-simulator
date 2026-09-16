@@ -1591,3 +1591,19 @@ Docker daemon live (29.6.1). `docker compose up --wait` ran the full chain for t
 - `ENV VITE_*=${VITE_*}` duplicated ARG values for no gain — ARG already reaches RUN env (verified: ws:// URLs still inlined in bundle after removal). ENV copies only polluted builder-stage image config. Removed in both Dockerfiles.
 - `SecretsUsedInArgOrEnv` warnings on `ARG VITE_*_TOKEN`: false-positive class — the tokens are inlined into the shipped browser bundle by design (public to anyone loading the page), and the ARG lives in the discarded builder stage (final nginx image carries only dist+conf). Suppressed via `# check=skip=SecretsUsedInArgOrEnv` + explanatory comment. NOTE for deploys: prod maps VITE_EXCHANGE_TOKEN=EXCHANGE_CONTROL_TOKEN — browser-public control token is by-design here, but worth remembering it's visible to anyone who loads the UI.
 - **Verified:** `docker build --check` → "no warnings found" on both Dockerfiles; web-ui rebuilt + healthy.
+
+### S393 — fills_batch frames silently dropped (High — missed fills + ghost positions)
+- `SignalReceiver` handled `type=="fill"` only; sim broadcasts exchange-initiated terminal events (SL/TP closes, GTD expiry, IOC/FOK cancels, ARB legs) as `fills_batch` → dropped entirely. Position book went stale until account reconcile; ORDERS_FILLED undercounted. Fix: `handle_fill_order` shared by both frame types; regression test feeds a batch through `feed_frame_json`.
+- **Files:** `hft-trade-bot/src/communication/signal_receiver_handlers.h`, `tests/test_doctest_signal_receiver.cpp`.
+
+### S394 — ORDERS_SENT/ORDERS_FILLED scope mismatch → fill_rate>100% (Med)
+- SENT incremented only on v2/AI/ARB paths; FILLED counted every fill incl. SL/TP + kill-switch closes (which never incremented SENT). Kill-switch's 14 market-closes → +14 fills / +0 sent. Added ORDERS_SENT increments on v1 fallback submit, SL/TP `close_position`, kill-switch `close_all`.
+- **Files:** `hft-trade-bot/src/core/bot_loop.cpp`, `bot_setup.cpp`.
+
+### S395 — ORDERS_REJECTED mixed internal + exchange scopes (Med)
+- Pre-trade risk-gate rejects (never wired) and exchange rejects shared one counter, divided by sent-only denominator → rate could exceed 1 and conflated two failure classes. Internal rejects moved to new `RISK_REJECTED` metric (counter + snapshot + JSON + `hft_risk_rejected_total` in Prometheus).
+- **Files:** `hft-trade-bot/src/monitoring/system_monitor.h`, `bot_loop.cpp`, `tests/test_doctest_system_monitor.cpp`.
+
+### S396 — orders_cancelled batch undercounted (Low)
+- Cancel-all incremented ORDERS_CANCELED once regardless of the frame's `count`. `OrderCancelledCallback` now carries `(symbol, count)`; batch feeds the real value.
+- **Files:** `hft-trade-bot/src/communication/signal_receiver{,_handlers}.h`, `bot_setup.cpp`.

@@ -53,6 +53,7 @@ void process_sl_tp(BotContext& ctx) {
         spdlog::info("SL/TP triggered: {} @ {:.2f} ({})", trigger.symbol, trigger.price,
                      trigger.reason);
         if (ctx.executor->close_position(trigger.symbol)) {
+            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
             // Keep the position on the book — the close fill arrives at the
             // real price with its fee and is booked by apply_fill (the
             // exchange is the source of truth, S248). Mark closing so this
@@ -94,7 +95,7 @@ static bool precheck_order(BotContext& ctx, const Signal& sig, double qty, doubl
                                            std::max<int>(1, static_cast<int>(sig.leverage)), equity,
                                            bal, ctx.pos_mgr.position_qty(sig.symbol));
     if (!check.passed) {
-        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
+        ctx.sys_monitor.increment(SystemMonitor::Metric::RISK_REJECTED);
         spdlog::debug("Pre-trade risk rejected {}: {}", sig.symbol, check.reason);
     }
     return check.passed;
@@ -358,6 +359,7 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
                      sig.symbol, sig.confidence, sig.entry_price, sig.reason);
         if (precheck_order(ctx, sig, qty, sig.entry_price)) {
             if (ctx.executor->is_connected() && ctx.executor->submit_order(sig, qty, ob)) {
+                ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
                 ctx.pos_mgr.add_pending_order(sig, qty, ctx.config.default_exchange);
             } else {
                 spdlog::warn("Order not sent — no local order recorded for {}", sig.symbol);

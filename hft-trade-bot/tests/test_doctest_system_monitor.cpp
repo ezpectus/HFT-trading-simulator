@@ -76,6 +76,23 @@ TEST_CASE("SystemMonitor: rejection_rate correct") {
     CHECK(sm.rejection_rate() == doctest::Approx(0.2));
 }
 
+TEST_CASE("SystemMonitor: risk rejects do not pollute rejection_rate (S395)") {
+    // Pre-trade gate rejections never reached the wire — counting them as
+    // ORDERS_REJECTED let the rate exceed 1.0 (internal rejects / sent).
+    SystemMonitor sm;
+    sm.increment(SystemMonitor::Metric::ORDERS_SENT, 10);
+    sm.increment(SystemMonitor::Metric::RISK_REJECTED, 40);
+    CHECK(sm.get(SystemMonitor::Metric::RISK_REJECTED) == 40);
+    CHECK(sm.rejection_rate() == doctest::Approx(0.0));
+    auto s = sm.snapshot();
+    CHECK(s.risk_rejected == 40);
+    std::string json = sm.format_json();
+    CHECK(json.find("\"risk_rejected\":40") != std::string::npos);
+    std::string prom = sm.format_prometheus();
+    CHECK(prom.find("hft_risk_rejected_total 40") != std::string::npos);
+    CHECK(prom.find("# TYPE hft_risk_rejected_total counter") != std::string::npos);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // SystemMonitor — snapshot
 // ═══════════════════════════════════════════════════════════════════════════

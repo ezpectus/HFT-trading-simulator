@@ -222,6 +222,7 @@ void init_kill_switch(BotContext& ctx) {
         auto positions = ctx.pos_mgr.get_positions();
         for (const auto& pos : positions) {
             if (ctx.executor->close_position(pos.symbol)) {
+                ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
                 // Fill books PnL at the real price — just mark closing (S248).
                 ctx.pos_mgr.mark_closing(pos.symbol);
             } else {
@@ -402,8 +403,10 @@ void init_callbacks(BotContext& ctx) {
     });
     // Exchange-side cancels release the pending-order slot so the symbol can
     // be traded again.
-    ctx.receiver->on_order_cancelled([&](const std::string& sym) {
-        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED);
+    ctx.receiver->on_order_cancelled([&](const std::string& sym, int64_t count) {
+        // A single cancel reports count=1; cancel-all reports the frame's
+        // order count (S396) — fall back to 1 if the field is missing.
+        ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED, count > 0 ? count : 1);
         if (sym.empty())
             ctx.pos_mgr.clear_pending_orders();
         else

@@ -6,6 +6,43 @@
 // Included from within SignalReceiver's private section.
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Shared per-order fill processing — reached from both single "fill" frames
+// and "fills_batch" order arrays (S393).
+void handle_fill_order(const json& o) {
+    const std::string fside   = o.value("side", "");
+    const std::string fsymbol = o.value("symbol", "");
+    const std::string fstatus = o.value("status", "FILLED");
+    const double      fqty    = o.value("filled_quantity", 0.0);
+    const double      fprice  = o.value("filled_price", 0.0);
+    const double      ffee    = o.value("fee", 0.0);
+    spdlog::info("Order {}: {} {} {:.4f} @ {:.2f}", fstatus, fside, fsymbol, fqty, fprice);
+    // Reconcile the local position book — fills are the exchange's
+    // source of truth (S179).
+    if (fill_cb_) fill_cb_(fsymbol, fside, fstatus, fqty, fprice, ffee);
+    // Share the fill with the Python side over SHM (ipc.fills ring).
+    if (fill_producer_) {
+        const auto sid = symbol_id_impl(o.value("symbol", ""));
+        if (sid != 0xFFFF) {
+            ipc::FillMsg f{};
+            f.timestamp =
+                static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                          std::chrono::system_clock::now().time_since_epoch())
+                                          .count());
+            f.symbol_id   = static_cast<uint8_t>(sid);
+            f.side        = (o.value("side", "") == "SELL") ? static_cast<uint8_t>(ipc::Side::SELL)
+                                                            : static_cast<uint8_t>(ipc::Side::BUY);
+            f.qty         = static_cast<float>(o.value("filled_quantity", 0.0));
+            f.price       = static_cast<float>(o.value("filled_price", 0.0));
+            f.fee         = static_cast<float>(o.value("fee", 0.0));
+            f.exchange_id = static_cast<uint8_t>(ipc::ExchangeId::SIMULATOR);
+            // S246: a full SHM ring silently dropped fills — count it.
+            if (!fill_producer_->push_fill(f) && monitor_) {
+                monitor_->increment(SystemMonitor::Metric::SHM_DROPS);
+            }
+        }
+    }
+}
+
 void handle_message(const std::string& payload) {
     auto data = json::parse(payload, nullptr, false);
     if (data.is_discarded() || !data.is_object()) {
@@ -29,39 +66,16 @@ void handle_message_json(const json& data) {
         if (data.value("paused", false)) spdlog::info("Simulation PAUSED");
     } else if (type == "fill") {
         if (data.contains("order")) {
-            auto&             o       = data["order"];
-            const std::string fside   = o.value("side", "");
-            const std::string fsymbol = o.value("symbol", "");
-            const std::string fstatus = o.value("status", "FILLED");
-            const double      fqty    = o.value("filled_quantity", 0.0);
-            const double      fprice  = o.value("filled_price", 0.0);
-            const double      ffee    = o.value("fee", 0.0);
-            spdlog::info("Order {}: {} {} {:.4f} @ {:.2f}", fstatus, fside, fsymbol, fqty, fprice);
-            // Reconcile the local position book — fills are the exchange's
-            // source of truth (S179).
-            if (fill_cb_) fill_cb_(fsymbol, fside, fstatus, fqty, fprice, ffee);
-            // Share the fill with the Python side over SHM (ipc.fills ring).
-            if (fill_producer_) {
-                const auto sid = symbol_id_impl(o.value("symbol", ""));
-                if (sid != 0xFFFF) {
-                    ipc::FillMsg f{};
-                    f.timestamp = static_cast<uint64_t>(
-                        std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count());
-                    f.symbol_id = static_cast<uint8_t>(sid);
-                    f.side = (o.value("side", "") == "SELL") ? static_cast<uint8_t>(ipc::Side::SELL)
-                                                             : static_cast<uint8_t>(ipc::Side::BUY);
-                    f.qty  = static_cast<float>(o.value("filled_quantity", 0.0));
-                    f.price       = static_cast<float>(o.value("filled_price", 0.0));
-                    f.fee         = static_cast<float>(o.value("fee", 0.0));
-                    f.exchange_id = static_cast<uint8_t>(ipc::ExchangeId::SIMULATOR);
-                    // S246: a full SHM ring silently dropped fills — count it.
-                    if (!fill_producer_->push_fill(f) && monitor_) {
-                        monitor_->increment(SystemMonitor::Metric::SHM_DROPS);
-                    }
-                }
-            }
+            handle_fill_order(data["order"]);
+        }
+    } else if (type == "fills_batch") {
+        // Exchange-initiated terminal events (SL/TP closes, GTD expiry,
+        // IOC/FOK no-fill cancels, ARB legs) arrive batched — without this
+        // branch they were silently dropped, leaving ghost positions until
+        // the next account reconcile (S393).
+        if (data.contains("orders") && data["orders"].is_array()) {
+            for (const auto& o : data["orders"])
+                handle_fill_order(o);
         }
     } else if (type == "error") {
         spdlog::warn("Exchange error: {}", data.value("message", "unknown error"));
@@ -87,11 +101,12 @@ void handle_message_json(const json& data) {
         handle_arbitrage_msg(data);
     } else if (type == "order_cancelled") {
         if (order_cancelled_cb_ && data.contains("order")) {
-            order_cancelled_cb_(data["order"].value("symbol", ""));
+            order_cancelled_cb_(data["order"].value("symbol", ""), 1);
         }
     } else if (type == "orders_cancelled") {
-        // Cancel-all carries order_ids only — clear every pending order.
-        if (order_cancelled_cb_) order_cancelled_cb_("");
+        // Cancel-all — the frame carries the real count (S396).
+        if (order_cancelled_cb_)
+            order_cancelled_cb_("", data.value("count", static_cast<int64_t>(0)));
     }
 }
 
