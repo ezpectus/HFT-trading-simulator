@@ -76,7 +76,7 @@ TEST_CASE("SystemMonitor: rejection_rate correct") {
     CHECK(sm.rejection_rate() == doctest::Approx(0.2));
 }
 
-TEST_CASE("SystemMonitor: risk rejects do not pollute rejection_rate ") {
+TEST_CASE("SystemMonitor: risk rejects do not pollute rejection_rate") {
     // Pre-trade gate rejections never reached the wire — counting them as
     // ORDERS_REJECTED let the rate exceed 1.0 (internal rejects / sent).
     SystemMonitor sm;

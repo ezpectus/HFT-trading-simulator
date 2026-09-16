@@ -1,4 +1,4 @@
-"""Tests for RealMarketDataFeed venue runners ( — shared _run_feed loop).
+"""Tests for RealMarketDataFeed venue runners (shared _run_feed loop).
 
 The three venue runners are thin wrappers over one loop; these tests pin
 what each wrapper feeds it (URL + subscribe payload) and the loop's shared

@@ -14,7 +14,7 @@ describe('OptionsStrategySimulator', () => {
     const { container } = render(<OptionsStrategySimulator currentPrice={65000} />)
     const polyline = container.querySelector('polyline')
     expect(polyline).not.toBeNull()
-    for (const pt of polyline.getAttribute('points').split(' ')) {
+    for (const pt of polyline.getAttribute('points').split('')) {
       const [x, y] = pt.split(',').map(Number)
       expect(Number.isFinite(x)).toBe(true)
       expect(Number.isFinite(y)).toBe(true)
@@ -30,7 +30,7 @@ describe('OptionsStrategySimulator', () => {
     const svg = container.querySelector('svg')
     expect(svg.innerHTML).not.toContain('NaN')
     const polyline = container.querySelector('polyline')
-    for (const pt of polyline.getAttribute('points').split(' ')) {
+    for (const pt of polyline.getAttribute('points').split('')) {
       const [x, y] = pt.split(',').map(Number)
       expect(Number.isFinite(x)).toBe(true)
       expect(Number.isFinite(y)).toBe(true)

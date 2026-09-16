@@ -21,7 +21,7 @@ describe('IndicatorFormulaParser', () => {
     expect(screen.getByText(/token|Unexpected|Unknown|Invalid|token/i)).toBeInTheDocument()
   })
 
-  it('all-NaN result shows "No valid values" instead of crashing (regression)', () => {
+  it('all-NaN result shows"No valid values" instead of crashing (regression)', () => {
     render(<IndicatorFormulaParser candles={CANDLES} symbol="BTC/USDT" exchange="binance" />)
     // 0/0 → NaN series → validValues empty → error path; previously this
     // rendered the result grid with undefined fields → TypeError

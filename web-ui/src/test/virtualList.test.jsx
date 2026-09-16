@@ -16,7 +16,7 @@ describe('VirtualList', () => {
     expect(container.firstChild).not.toBeNull()
   })
 
-  it('shows "No items" for empty list', () => {
+  it('shows"No items" for empty list', () => {
     render(<VirtualList items={[]} renderItem={renderItem} />)
     expect(screen.getByText('No items')).toBeInTheDocument()
   })

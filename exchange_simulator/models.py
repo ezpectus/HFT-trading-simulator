@@ -411,7 +411,7 @@ class ClosedTrade:
     fee: float
     reason: str  # "STOP_LOSS" | "TAKE_PROFIT" | "MANUAL"
     opened_at: int
-    order_id: str = "" # Close order that produced this trade ( — reason joins by id, not list position)
+    order_id: str = "" # Close order that produced this trade (reason joins by id, not list position)
     closed_at: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:

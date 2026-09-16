@@ -41,12 +41,12 @@ describe('DrawdownAnalysis', () => {
     expect(screen.getByText('Peak Equity')).toBeDefined()
   })
 
-  it('renders "At peak" when current drawdown is near zero', () => {
+  it('renders"At peak" when current drawdown is near zero', () => {
     render(<DrawdownAnalysis accounts={accountsWith([makeTrade(100, 1), makeTrade(200, 2)])} />)
     expect(screen.getByText('At peak')).toBeDefined()
   })
 
-  it('renders "below" text when in drawdown', () => {
+  it('renders"below" text when in drawdown', () => {
     render(<DrawdownAnalysis accounts={accountsWith([makeTrade(500, 1), makeTrade(-300, 2)])} />)
     expect(screen.getByText(/below/)).toBeDefined()
   })

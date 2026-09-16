@@ -255,7 +255,7 @@ TEST_CASE("check_sl_tp multiple positions multiple triggers") {
 // ═══════════════════════════════════════════════════════════════════════════
 // — partial-close fee must be realized once, not netted twice
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("Partial close realizes fee once, not twice ") {
+TEST_CASE("Partial close realizes fee once, not twice") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
 
@@ -280,7 +280,7 @@ TEST_CASE("Partial close realizes fee once, not twice ") {
 // ═══════════════════════════════════════════════════════════════════════════
 // — ghosts: local positions absent from the account broadcast age out
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses ") {
+TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> empty;
@@ -297,7 +297,7 @@ TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses ") {
     CHECK(pm.position_count() == 0);
 }
 
-TEST_CASE("reconcile_positions keeps symbols present in the broadcast ") {
+TEST_CASE("reconcile_positions keeps symbols present in the broadcast") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> seen = {"BTC/USDT"};
@@ -307,7 +307,7 @@ TEST_CASE("reconcile_positions keeps symbols present in the broadcast ") {
     CHECK(pm.has_position("BTC/USDT"));
 }
 
-TEST_CASE("reconcile_positions resets the miss counter on reappearance ") {
+TEST_CASE("reconcile_positions resets the miss counter on reappearance") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> empty;
@@ -323,7 +323,7 @@ TEST_CASE("reconcile_positions resets the miss counter on reappearance ") {
     REQUIRE(removed.size() == 1);
 }
 
-TEST_CASE("reconcile_positions only touches the broadcast's exchange ") {
+TEST_CASE("reconcile_positions only touches the broadcast's exchange") {
     PositionManager pm;
     open_via_fill(pm, make_short_signal("ETH/USDT"), 2.0, "okx");
     const std::unordered_set<std::string> empty;
@@ -344,7 +344,7 @@ TEST_CASE("sync_position adopts broadcast-only positions and refreshes tracked")
     CHECK(positions[0].entry_price == doctest::Approx(50100.0));
 }
 
-TEST_CASE("total_realized_pnl accumulates on close ") {
+TEST_CASE("total_realized_pnl accumulates on close") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
     CHECK(pm.total_realized_pnl() == doctest::Approx(0.0));

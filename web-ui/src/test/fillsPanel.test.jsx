@@ -51,12 +51,12 @@ describe('FillsPanel', () => {
     expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  it('shows singular "fill" for one fill', () => {
+  it('shows singular"fill" for one fill', () => {
     render(<FillsPanel fills={[makeFill()]} />)
     expect(screen.getByText(/1 fill/)).toBeInTheDocument()
   })
 
-  it('shows plural "fills" for multiple fills', () => {
+  it('shows plural"fills" for multiple fills', () => {
     render(<FillsPanel fills={[makeFill(), makeFill()]} />)
     expect(screen.getByText(/2 fills/)).toBeInTheDocument()
   })

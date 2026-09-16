@@ -24,8 +24,8 @@ describe('WsInspector', () => {
 
   it('lists real published frames with type, source and size', () => {
     render(<WsInspector />)
-    emit('exchange', { type: 'candles', symbol: 'BTC/USDT' }, 512)
-    emit('signal', { type: 'signal', symbol: 'ETH/USDT' }, 96)
+    emit('exchange', { type:'candles', symbol:'BTC/USDT' }, 512)
+    emit('signal', { type:'signal', symbol:'ETH/USDT' }, 96)
     expect(screen.getByText('candles')).toBeInTheDocument()
     expect(screen.getAllByText('signal').length).toBeGreaterThan(0)
     expect(screen.getByText('BTC/USDT')).toBeInTheDocument()
@@ -35,8 +35,8 @@ describe('WsInspector', () => {
 
   it('search filters frames by type/symbol/source', () => {
     render(<WsInspector />)
-    emit('exchange', { type: 'candles', symbol: 'BTC/USDT' })
-    emit('signal', { type: 'signal', symbol: 'ETH/USDT' })
+    emit('exchange', { type:'candles', symbol:'BTC/USDT' })
+    emit('signal', { type:'signal', symbol:'ETH/USDT' })
     fireEvent.change(screen.getByPlaceholderText('Filter messages...'), { target: { value: 'candles' } })
     expect(screen.getByText('candles')).toBeInTheDocument()
     expect(screen.queryByText('ETH/USDT')).not.toBeInTheDocument()

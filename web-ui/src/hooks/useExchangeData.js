@@ -9,7 +9,7 @@ export const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8
 const EXCHANGE_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
 
 // The Auth panel stores a user-entered control token here; it overrides the
-// build-time env token ( — real auth replaces the username/password facade).
+// build-time env token (real auth replaces the username/password facade).
 const AUTH_TOKEN_KEY = 'trading-sim-auth-token'
 export const readAuthToken = () => {
   try { return localStorage.getItem(AUTH_TOKEN_KEY) || '' } catch { return '' }
@@ -291,7 +291,7 @@ export function useExchangeData() {
     sendExchangeRef.current = sendExchange
   })
 
-  // Socket errors land on lastError → useNotifications toast ( — the
+  // Socket errors land on lastError → useNotifications toast (the
   // error state was returned by useWebSocket but never destructured).
   useEffect(() => {
     if (exchangeWsError) setLastError(exchangeWsError)

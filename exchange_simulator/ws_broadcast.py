@@ -87,7 +87,7 @@ class BroadcastMixin:
 
     def _encoded_variants(self, data: dict) -> dict:
         """Encode a shared broadcast payload once per negotiated encoding
-        present in self.clients ( — broadcasts previously ignored the
+        present in self.clients (broadcasts previously ignored the
         negotiated encoding entirely)."""
         variants = {}
         for c in self.clients:

@@ -75,19 +75,19 @@ TEST_CASE("OrderBook: empty book spread is 0") {
 // ═══════════════════════════════════════════════════════════════════════════
 // Side conversion
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("side_to_string: BUY returns 'BUY'") {
+TEST_CASE("side_to_string: BUY returns'BUY'") {
     CHECK(side_to_string(Side::BUY) == "BUY");
 }
 
-TEST_CASE("side_to_string: SELL returns 'SELL'") {
+TEST_CASE("side_to_string: SELL returns'SELL'") {
     CHECK(side_to_string(Side::SELL) == "SELL");
 }
 
-TEST_CASE("string_to_side: 'BUY' returns Side::BUY") {
+TEST_CASE("string_to_side:'BUY' returns Side::BUY") {
     CHECK(string_to_side("BUY") == Side::BUY);
 }
 
-TEST_CASE("string_to_side: 'SELL' returns Side::SELL") {
+TEST_CASE("string_to_side:'SELL' returns Side::SELL") {
     CHECK(string_to_side("SELL") == Side::SELL);
 }
 

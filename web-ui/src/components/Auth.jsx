@@ -8,7 +8,7 @@ const ENV_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
 const PROBE_TIMEOUT_MS = 5000
 
 /**
- * Control-plane authentication ( — replaces the accept-anything
+ * Control-plane authentication (replaces the accept-anything
  * username/password facade). The exchange server gates control commands
  * behind EXCHANGE_CONTROL_TOKEN: this panel probes the real socket with
  * {type:'auth', token}, and only marks Authenticated on a real `auth_ok`.

@@ -13,7 +13,7 @@ import sys
 from collections import deque
 
 # websockets.asyncio must be imported explicitly — bare `import websockets`
-# doesn't expose it on websockets<14 ( — crashed the sim image).
+# doesn't expose it on websockets<14 (crashed the sim image on websockets<14).
 import websockets
 import websockets.asyncio.server
 
