@@ -27,7 +27,7 @@ describe('GaussianProcessRegression', () => {
     }
   })
 
-  it('auto-optimize converges without a render loop (S366 regression)', () => {
+  it('auto-optimize converges without a render loop (regression)', () => {
     // pre-fix this wrote state inside useMemo with the setters in the dep
     // array — the grid search ran twice per change and termination relied
     // on float equality. Now it runs once in useEffect.

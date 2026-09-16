@@ -137,7 +137,7 @@ services:
       - .env.prod
     environment:
       - LOG_FORMAT=json
-      # S210: service DNS, not loopback — settings.yaml defaults to localhost.
+      # service DNS, not loopback — settings.yaml defaults to localhost.
       - WS_URL=ws://exchange-simulator:8765
       - AI_BOT_BIND_HOST=0.0.0.0
     volumes:
@@ -179,7 +179,7 @@ services:
     env_file:
       - .env.prod
     environment:
-      # S210: config.prod.yaml resolves ${HFT_EXCHANGE_WS_URL}; default is the
+      # config.prod.yaml resolves ${HFT_EXCHANGE_WS_URL}; default is the
       # compose service name — overridable via .env.prod for other networks.
       - HFT_EXCHANGE_WS_URL=${HFT_EXCHANGE_WS_URL:-ws://exchange-simulator:8765}
     volumes:

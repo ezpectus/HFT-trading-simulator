@@ -81,7 +81,7 @@ class TestSignalBotConfig:
 
 
 class TestStrategyTunables:
-    """Regression: strategies.* tunables must surface as config properties (S117)."""
+    """Regression: strategies.* tunables must surface as config properties."""
 
     def _cfg(self, extra):
         data = {**VALID_CONFIG}
@@ -125,7 +125,7 @@ class TestStrategyTunables:
 
 
 class TestNetworkAndMetricsConfig:
-    """Regression: network.*/metrics.* keys must have live readers (S117)."""
+    """Regression: network.*/metrics.* keys must have live readers."""
 
     def _cfg(self, extra):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:

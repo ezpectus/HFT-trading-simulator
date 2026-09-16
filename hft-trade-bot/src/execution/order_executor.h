@@ -188,7 +188,7 @@ class OrderExecutor {
     }
 
     // Submit with an explicit adaptive kind — the selector's TIF/expiry/post-only
-    // intent is serialized onto the wire (S154). The sim honours IOC/FOK
+    // intent is serialized onto the wire. The sim honours IOC/FOK
     // (cancel if not marketable), GTD (rest until expire_ms) and post_only
     // (reject if marketable).
     bool submit_order(const Signal& signal, double quantity, const OrderBook& ob,
@@ -255,9 +255,14 @@ class OrderExecutor {
         }
 
         char buf[256];
-        int  n = std::snprintf(buf, sizeof(buf),
-                               "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\"}",
-                               exchange_id_.c_str(), symbol.c_str());
+        int  n = std::snprintf(
+            buf, sizeof(buf),
+            "{\"type\":\"close_position\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+             "\"client_order_id\":\"hft_close_%s_%lld\"}",
+            exchange_id_.c_str(), symbol.c_str(), symbol.c_str(),
+            static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                       std::chrono::system_clock::now().time_since_epoch())
+                                        .count()));
 
         if (n <= 0) [[unlikely]] {
             spdlog::error("Close position JSON serialization failed");
@@ -306,7 +311,7 @@ class OrderExecutor {
 
     bool is_connected() const { return connected_; }
 
-    // S246: expose channel age + metric sink so /health and hft_* counters
+    // expose channel age + metric sink so /health and hft_* counters
     // reflect the executor socket instead of defaults.
     uint64_t last_activity_ms() const { return activity_watchdog_.idle_ms(); }
     void     set_monitor(SystemMonitor* m) { monitor_ = m; }
@@ -321,19 +326,27 @@ class OrderExecutor {
             return false;
         }
 
+        const auto now_ms =
+            static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                       std::chrono::system_clock::now().time_since_epoch())
+                                       .count());
         // Buy on the cheaper exchange — snprintf to stack buffer
         char buy_buf[384];
-        int  bn = std::snprintf(buy_buf, sizeof(buy_buf),
-                                "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                 "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-                                buy_exchange.c_str(), symbol.c_str(), quantity);
+        int  bn =
+            std::snprintf(buy_buf, sizeof(buy_buf),
+                          "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                          "\"side\":\"BUY\",\"quantity\":%.8f,\"order_type\":\"MARKET\","
+                          "\"client_order_id\":\"hft_arb_buy_%s_%lld\"}",
+                          buy_exchange.c_str(), symbol.c_str(), quantity, symbol.c_str(), now_ms);
 
         // Sell on the more expensive exchange
         char sell_buf[384];
-        int  sn = std::snprintf(sell_buf, sizeof(sell_buf),
-                                "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                 "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-                                sell_exchange.c_str(), symbol.c_str(), quantity);
+        int  sn =
+            std::snprintf(sell_buf, sizeof(sell_buf),
+                          "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
+                          "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\","
+                          "\"client_order_id\":\"hft_arb_sell_%s_%lld\"}",
+                          sell_exchange.c_str(), symbol.c_str(), quantity, symbol.c_str(), now_ms);
 
         if (bn <= 0) [[unlikely]] {
             spdlog::error("Arb buy JSON serialization failed");
@@ -356,8 +369,10 @@ class OrderExecutor {
             char                         unwind_buf[384];
             int                          un = std::snprintf(unwind_buf, sizeof(unwind_buf),
                                                             "{\"type\":\"order\",\"exchange\":\"%s\",\"symbol\":\"%s\","
-                                                                                     "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\"}",
-                                                            buy_exchange.c_str(), symbol.c_str(), quantity);
+                                                                                     "\"side\":\"SELL\",\"quantity\":%.8f,\"order_type\":\"MARKET\","
+                                                                                     "\"client_order_id\":\"hft_arb_unwind_%s_%lld\"}",
+                                                            buy_exchange.c_str(), symbol.c_str(), quantity, symbol.c_str(),
+                                                            now_ms);
             websocketpp::lib::error_code uec;
             if (un > 0 && un < static_cast<int>(sizeof(unwind_buf))) {
                 client_snapshot()->send(conn_snapshot(), unwind_buf, static_cast<size_t>(un),
@@ -474,7 +489,7 @@ class OrderExecutor {
     // Guarded by client_mtx_ like client_: the hdl is a non-atomic multi-word
     // handle, and readers gated on a relaxed connected_ load had no formal
     // happens-before with the open-handler's write — torn/stale hdl reads
-    // were UB on weak-memory targets (S336). Snapshot it under the mutex;
+    // were UB on weak-memory targets. Snapshot it under the mutex;
     // connected_ stays a lock-free advisory gate.
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;

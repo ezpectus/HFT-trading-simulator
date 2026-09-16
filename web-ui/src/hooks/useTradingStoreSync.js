@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useTradingStore } from '../stores/useTradingStore'
 
 /** Push live exchange + signal hook data into the Zustand trading store
- *  so PanelContainer/registry can read it. Extracted from App.jsx (S015). */
+ * so PanelContainer/registry can read it. Extracted from App.jsx. */
 export function useTradingStoreSync(exchange, signals) {
   const setExchangeData = useTradingStore((s) => s.setExchangeData)
   const setSignalData = useTradingStore((s) => s.setSignalData)
@@ -50,7 +50,7 @@ export function useTradingStoreSync(exchange, signals) {
       regime: signals.regime,
       backtestResult: signals.backtestResult,
       circuitBreaker: signals.circuitBreaker,
-      // S230: server-compute results — panels read these via ctx.signals.*;
+      // server-compute results — panels read these via ctx.signals.*;
       // dropping them left 7 panels drawing fake 30s timeouts on live answers.
       portfolioResult: signals.portfolioResult,
       volSurfaceResult: signals.volSurfaceResult,

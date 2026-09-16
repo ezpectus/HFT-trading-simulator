@@ -242,11 +242,11 @@ def test_record_ws_reconnect(exporter: MetricsExporter) -> None:
     exporter.record_ws_reconnect()
 
 
-# ─── S131 — service-level gauges ───
+# ─── — service-level gauges ───
 
 
 def test_new_gauges_registered(exporter: MetricsExporter) -> None:
-    """S131 cpu/memory/sharpe gauges should exist in the registry output."""
+    """ cpu/memory/sharpe gauges should exist in the registry output."""
     if not HAS_PROMETHEUS:
         pytest.skip("prometheus_client not installed")
     from prometheus_client import generate_latest
@@ -282,7 +282,7 @@ def test_set_bot_sharpe(exporter: MetricsExporter) -> None:
     exporter.set_bot_sharpe(0.0)
 
 
-# ─── S131 — db.get_equity_history ───
+# ─── — db.get_equity_history ───
 
 
 def test_get_equity_history(tmp_path) -> None:

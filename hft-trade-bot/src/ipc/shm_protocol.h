@@ -81,7 +81,7 @@ static_assert(sizeof(KillSwitchMsg) == 16, "KillSwitchMsg must be 16 bytes");
 
 // Symbol IDs on the wire are assigned dynamically at runtime via
 // SignalReceiver::symbol_to_id_ (config.yaml trading.symbols order) — a
-// static enum here would drift out of sync, so none is kept (S351).
+// static enum here would drift out of sync, so none is kept.
 
 // Exchange ID mapping — must match FillMsg::exchange_id (0=Binance, 1=OKX,
 // 2=Bybit, 3=Simulator). The producer tags fills with SIMULATOR.

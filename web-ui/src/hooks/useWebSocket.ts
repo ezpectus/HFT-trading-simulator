@@ -63,7 +63,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   const lastPingRef = useRef<number>(0)
   // Counts failed attempts (each onclose/catch that schedules a retry), NOT
   // successful opens — the old code counted opens, so a never-connecting
-  // server retried forever and the maxReconnects cap could never fire (S231).
+  // server retried forever and the maxReconnects cap could never fire.
   const reconnectAttempts = useRef<number>(0)
   const backoffRef = useRef<number>(1000)
   const maxReconnectsRef = useRef<number>(maxReconnects)
@@ -87,7 +87,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
 
   const scheduleRetry = useCallback(() => {
     // One failed attempt counted per onclose — the cap is reachable for a
-    // server that never accepts (S231).
+    // server that never accepts.
     reconnectAttempts.current += 1
     if (!autoConnect || reconnectAttempts.current >= maxReconnectsRef.current) {
       setError(`Max reconnections (${maxReconnectsRef.current}) reached — call connect() to retry`)
@@ -130,7 +130,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
     try {
       // Second arg is subprotocols, NOT extensions — permessage-deflate is
       // offered by the browser automatically; passing it here was a no-op
-      // knob that could poison subprotocol negotiation (S231).
+      // knob that could poison subprotocol negotiation.
       const ws = new WebSocket(url)
       wsRef.current = ws
 
@@ -252,7 +252,7 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}): Us
   useEffect(() => {
     if (autoConnect) connect()
     return () => {
-      manualCloseRef.current = true  // unmount close must not scheduleRetry (S361)
+      manualCloseRef.current = true // unmount close must not scheduleRetry
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current)
       if (pingTimer.current) clearInterval(pingTimer.current)
       if (countdownTimer.current) clearInterval(countdownTimer.current)

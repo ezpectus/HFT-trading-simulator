@@ -35,7 +35,7 @@ class TestExchangeClientInit:
 
 
 class TestTimeoutConfig:
-    """Regression S117: network.* timeouts must reach the websockets client."""
+    """Regression network.* timeouts must reach the websockets client."""
 
     @pytest.mark.asyncio
     async def test_connect_passes_open_timeout(self):
@@ -199,7 +199,7 @@ class TestDisconnect:
 
 
 class TestSeqGapDetection:
-    """S151 — seq was write-only; a dropped broadcast must trigger sync_state."""
+    """ — seq was write-only; a dropped broadcast must trigger sync_state."""
 
     @pytest.mark.asyncio
     async def test_seq_gap_requests_sync_state(self, client):
@@ -242,7 +242,7 @@ class TestSeqGapDetection:
     @pytest.mark.asyncio
     async def test_resync_send_failure_logged(self, client):
         """A failing resync send must surface via the done callback, not vanish
-        into the GC 'exception never retrieved' handler (S359)."""
+        into the GC 'exception never retrieved' handler."""
         client._ws = AsyncMock(spec=websockets.WebSocketClientProtocol)
         client._ws.send.side_effect = websockets.ConnectionClosed(None, None)
         client._connected = True

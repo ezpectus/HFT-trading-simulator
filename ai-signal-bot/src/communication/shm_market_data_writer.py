@@ -44,7 +44,7 @@ class ShmMarketDataWriter:
             self._total_size = 8 + self.max_symbols * SLOT_SIZE
             if IS_WINDOWS:
                 # CreateFileMappingW object name is verbatim — keep the "/"
-                # (S318: stripping it created a different empty region).
+                # (stripping it created a different empty region).
                 tag = self.name
                 self._mm = mmap.mmap(-1, self._total_size, tagname=tag,
                                      access=mmap.ACCESS_WRITE)

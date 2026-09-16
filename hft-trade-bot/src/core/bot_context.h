@@ -75,7 +75,7 @@ struct BotContext {
     std::mutex            ai_signal_queue_mtx;
 
     // Initialized from config.initial_balance; kept in sync with the
-    // exchange's account broadcast (accounts[exchange].balance) — S180.
+    // exchange's account broadcast (accounts[exchange].balance)
     std::atomic<double> balance{10000.0};
     // Snapshot of total_realized_pnl() at the last UTC-day rollover — daily
     // realized PnL = total_realized_pnl() - daily_realized_baseline.
@@ -87,7 +87,7 @@ struct BotContext {
     // Wall-clock ms of the last FILLED event — feeds /health last_fill_age_ms.
     std::atomic<int64_t> last_fill_ms{0};
     // Wall-clock ms of the last engine evaluation (v1/v2/v3 analyze call) —
-    // makes /health signal_engine_active a real liveness bit (S352).
+    // makes /health signal_engine_active a real liveness bit.
     std::atomic<int64_t>                    last_engine_eval_ms{0};
     std::unordered_map<std::string, double> prices_cache;
     Spinlock                                prices_cache_lock;

@@ -202,7 +202,7 @@ class TestClosedTrade:
 
 
 class TestRoundPrice:
-    """S333 — magnitude-aware tick rounding."""
+    """ — magnitude-aware tick rounding."""
 
     def test_dollar_scale_unchanged(self):
         assert round_price(65050.256) == 65050.26

@@ -47,7 +47,7 @@ describe('WsManager', () => {
     expect(screen.getByText('Retry')).toBeInTheDocument()
   })
 
-  it('Retry calls the source connect() — not just a toast (S324)', async () => {
+  it('Retry calls the source connect() — not just a toast', async () => {
     const connect = vi.fn()
     const disconnectedExchange = { ...mockExchange, connected: false, connect }
     render(<WsManager exchange={disconnectedExchange} signals={mockSignals} toasts={[]} addToast={vi.fn()} />)

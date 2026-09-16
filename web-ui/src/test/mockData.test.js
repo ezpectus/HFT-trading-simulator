@@ -96,7 +96,7 @@ describe('mockData', () => {
       })
     })
 
-    it('positions is a list — the live wire contract (S266)', () => {
+    it('positions is a list — the live wire contract', () => {
       const accounts = generateAccounts()
       MOCK_EXCHANGES.forEach(ex => {
         expect(Array.isArray(accounts[ex].positions)).toBe(true)
@@ -105,7 +105,7 @@ describe('mockData', () => {
   })
 
   describe('maybeUpdatePosition', () => {
-    it('positions stay list-shaped after updates (S266)', async () => {
+    it('positions stay list-shaped after updates', async () => {
       const { maybeUpdatePosition } = await import('../utils/mockData')
       let accounts = generateAccounts()
       // force the 10% open branch deterministically

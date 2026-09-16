@@ -129,7 +129,7 @@ class ShmRingBuffer[T]:
         if IS_WINDOWS:
             # Windows: page-file-backed shared memory via mmap tagname.
             # The tag is the CreateFileMappingW object name used VERBATIM by
-            # the C++ side — the leading "/" is part of the name (S318:
+            # the C++ side — the leading "/" is part of the name (
             # stripping it attached to a different, empty region and every
             # SHM channel was silently dead on Windows).
             tag = name

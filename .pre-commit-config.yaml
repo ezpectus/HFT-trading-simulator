@@ -2,7 +2,7 @@
 #
 # The canonical checks live in scripts/pre-commit-hook-git.sh — installed into
 # .git/hooks by scripts/install-hooks.bat (Windows; git spawns hooks via sh
-# even on Windows, so the .bat/non-git twins were dead variants — S262).
+# even on Windows, so the .bat/non-git twins were dead variants).
 # This config exists for contributors who use the `pre-commit` framework;
 # it runs the SAME script so both install paths run identical checks.
 repos:

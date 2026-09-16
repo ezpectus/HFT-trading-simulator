@@ -1,4 +1,4 @@
-"""Tests for ws_metrics.py — LatencyHistogram cumulative-bucket emission (S131)."""
+"""Tests for ws_metrics.py — LatencyHistogram cumulative-bucket emission."""
 import pytest
 
 from exchange_simulator.ws_metrics import LatencyHistogram

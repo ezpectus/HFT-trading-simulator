@@ -84,7 +84,7 @@ describe('backtestEngine', () => {
   })
 
   it('fills on the bar AFTER the signal bar (no same-bar lookahead)', () => {
-    // S332: all closes = 100 except bar 10 closes at 200. A price_above-150
+    // all closes = 100 except bar 10 closes at 200. A price_above-150
     // rule fires on signal-bar 10; the fill must land on bar 11's close.
     const candles = makeCandles(40)
     for (const c of candles) { c.open = 100; c.close = 100; c.high = 100; c.low = 100 }

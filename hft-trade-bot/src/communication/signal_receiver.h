@@ -43,9 +43,9 @@ class SignalReceiver : private SignalReceiverData {
                            const std::string& sell_exchange, double buy_price, double sell_price,
                            double spread_bps, double max_quantity)>;
     // Fired for every order update: status is PENDING/FILLED/REJECTED/CANCELLED.
-    using FillCallback =
-        std::function<void(const std::string& symbol, const std::string& side,
-                           const std::string& status, double qty, double price, double fee)>;
+    using FillCallback = std::function<void(const std::string& symbol, const std::string& side,
+                                            const std::string& status, double qty, double price,
+                                            double fee, const std::string& client_order_id)>;
     // Fired with the raw "accounts" map ({exchange_id: account}) on every broadcast.
     using AccountCallback = std::function<void(const json& accounts)>;
     // Fired on order_cancelled (symbol, count=1) and orders_cancelled
@@ -61,7 +61,7 @@ class SignalReceiver : private SignalReceiverData {
 
     // The venue this bot trades on — market data is stored per
     // "exchange|symbol" and symbol-only accessors resolve to this exchange
-    // (S252). Wire from Config::default_exchange at setup.
+    //. Wire from Config::default_exchange at setup.
     void set_default_exchange(const std::string& ex) { set_default_exchange_impl(ex); }
 
     // Test/replay seam — feeds a decoded frame through the same dispatch the
@@ -146,7 +146,7 @@ class SignalReceiver : private SignalReceiverData {
                         handle_message(msg->get_payload());
                     }
                 } catch (const std::exception& e) {
-                    // S244: one malformed frame must not kill the process —
+                    // one malformed frame must not kill the process
                     // websocketpp invokes this handler unguarded, so an escape
                     // here is std::terminate on ws_thread_.
                     spdlog::warn("SignalReceiver dropped unparseable frame: {}", e.what());
@@ -159,7 +159,7 @@ class SignalReceiver : private SignalReceiverData {
                 return false;
             }
             ep->connect(con);
-            // Last-resort guard (S244): any exception escaping client->run()
+            // Last-resort guard any exception escaping client->run()
             // would terminate the process — catch, log, let close/reconnect
             // handlers drive recovery.
             ws_thread_ = std::thread([this]() {
@@ -210,7 +210,7 @@ class SignalReceiver : private SignalReceiverData {
 
     bool is_connected() const { return connected_; }
 
-    // S246: feed-age + monitor hooks so /health and hft_* counters reflect
+    // feed-age + monitor hooks so /health and hft_* counters reflect
     // real socket state instead of defaults.
     uint64_t last_activity_ms() const { return activity_watchdog_.idle_ms(); }
     void     set_monitor(SystemMonitor* m) { monitor_ = m; }
@@ -361,7 +361,7 @@ class SignalReceiver : private SignalReceiverData {
     std::mutex                client_mtx_;
     // Guarded by client_mtx_ like client_ — non-atomic hdl published by the
     // open-handler while watchdog/disconnect read it after a relaxed
-    // connected_ load had no formal happens-before (S336, sibling of the
+    // connected_ load had no formal happens-before (sibling of the
     // order_executor.h fix).
     websocketpp::connection_hdl connection_;
     std::thread                 ws_thread_;

@@ -1,5 +1,5 @@
 // V2 Signal Engine Tests
-// Split out of test_signal_engine_v2.cpp (S020 god-test).
+// Split out of test_signal_engine_v2.cpp (god-test).
 #include "../src/data/aligned_types.h"
 #include "../src/data/types.h"
 #include "../src/execution/adaptive_order_selector_v2.h"

@@ -137,7 +137,7 @@ def main():
         optimizer = StrategyOptimizer(bt)
 
         # Fit/validation split — grid search sees only the fit segment,
-        # walk-forward evaluates on candles it never touched (S346).
+        # walk-forward evaluates on candles it never touched.
         fit_candles, oos_candles = split_fit_validation(candles)
         print(f"  Fit segment: {len(fit_candles)} candles, "
               f"OOS segment: {len(oos_candles)} candles")

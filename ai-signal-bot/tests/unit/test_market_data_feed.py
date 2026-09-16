@@ -1,4 +1,4 @@
-"""Tests for RealMarketDataFeed venue runners (S322 — shared _run_feed loop).
+"""Tests for RealMarketDataFeed venue runners ( — shared _run_feed loop).
 
 The three venue runners are thin wrappers over one loop; these tests pin
 what each wrapper feeds it (URL + subscribe payload) and the loop's shared
@@ -124,7 +124,7 @@ class TestSharedFeedLoop:
         assert "okx" in mock_log.error.call_args[0][-1]
 
 class TestBinanceTickerMerge:
-    """S345: bookTicker and aggTrade merge into full bid/ask/last tickers.
+    """bookTicker and aggTrade merge into full bid/ask/last tickers.
 
     Previously aggTrade was subscribed but never parsed, so `last` stayed
     0.0 forever — and a naive aggTrade ticker would clobber bid/ask.

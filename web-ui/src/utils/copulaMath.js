@@ -1,4 +1,4 @@
-// ─── Copula math — extracted from CopulaModel.jsx (S015) ─────────────────────
+// ─── Copula math — extracted from CopulaModel.jsx ─────────────────────
 // Pure numerical functions: empirical/parametric copulas, rank correlations,
 // special functions (erf, normInv, incomplete beta, logGamma, tCDF).
 //

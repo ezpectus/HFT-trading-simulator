@@ -196,7 +196,7 @@ export function generateAccounts() {
   for (const ex of MOCK_EXCHANGES) {
     accounts[ex] = {
       // Same shape as exchange_simulator Account.to_dict() — the mock must
-      // exercise the wire contract, not an invented one (S266).
+      // exercise the wire contract, not an invented one.
       exchange: ex,
       balance: 10000,
       equity: 10000,

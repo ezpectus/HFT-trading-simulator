@@ -99,7 +99,7 @@ describe('useDetachablePanels', () => {
   })
 
   it('PANEL_CONFIG covers only the wired panels (chart, orderbook)', () => {
-    // S235: account/signals/arbitrage/performance had renderers but no
+    // account/signals/arbitrage/performance had renderers but no
     // <DetachablePanel> wrapper — unreachable, removed.
     const { result } = renderHook(() => useDetachablePanels())
     expect(result.current.PANEL_CONFIG.chart.title).toContain('Chart')
@@ -192,7 +192,7 @@ describe('useDetachablePanels', () => {
     expect(text).toContain('50100')
   })
 
-  it('non-wired panel ids open no popup (renderers removed in S235)', () => {
+  it('non-wired panel ids open no popup (renderers removed in)', () => {
     const { result } = renderHook(() => useDetachablePanels())
     for (const id of ['account', 'signals', 'arbitrage', 'performance']) {
       act(() => result.current.detachPanel(id, {}))

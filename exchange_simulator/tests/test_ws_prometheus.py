@@ -1,4 +1,4 @@
-"""Tests for S131 — simulator service-level Prometheus metrics.
+"""Tests for — simulator service-level Prometheus metrics.
 
 Covers: new emitted names, histogram exposition, error/latency instrumentation.
 """
@@ -103,7 +103,7 @@ class TestSimMetricNames:
                      quantity=0.1, status=status)
 
     def test_order_status_counters_count_real_enum_values(self, server):
-        """S281 regression: FILLED/REJECTED enum values are uppercase — the
+        """ regression: FILLED/REJECTED enum values are uppercase — the
         counters must match, not lowercase literals that can never hit."""
         ex = server.exchanges["binance"]
         ex._order_history = _CountingOrderHistory(maxlen=10000)
@@ -116,7 +116,7 @@ class TestSimMetricNames:
         assert 'exchange_orders_rejected_total{exchange="binance"} 1' in prom
 
     def test_order_counters_are_monotonic_counters(self, server):
-        """S221 regression: _total series must survive window eviction and
+        """ regression: _total series must survive window eviction and
         in-place status transitions — not windowed len()/sum() values."""
         ex = server.exchanges["binance"]
         hist = _CountingOrderHistory(maxlen=3)

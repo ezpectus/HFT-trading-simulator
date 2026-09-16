@@ -37,7 +37,7 @@ describe('usePanelContext', () => {
     }
   })
 
-  it('exposes all server-compute result fields panels read (S230)', () => {
+  it('exposes all server-compute result fields panels read', () => {
     const { result } = renderHook(() => usePanelContext())
     const sig = result.current.signals
     for (const key of [

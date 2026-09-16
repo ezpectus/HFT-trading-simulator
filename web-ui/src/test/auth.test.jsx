@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import Auth from '../components/Auth'
 
-// Real token-probe auth (S232): the component opens a WebSocket, sends
+// Real token-probe auth the component opens a WebSocket, sends
 // {type:'auth',token}, and marks Authenticated only on a real auth_ok.
 vi.mock('../hooks/useLocalStorage', () => ({
   useLocalStorage: (key, defaultValue) => {
@@ -31,7 +31,7 @@ class FakeWs {
 }
 FakeWs.instances = []
 
-describe('Auth (S232 real token flow)', () => {
+describe('Auth (real token flow)', () => {
   beforeEach(() => {
     localStorage.clear()
     FakeWs.instances = []

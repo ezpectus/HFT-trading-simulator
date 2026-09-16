@@ -182,7 +182,7 @@ class TestSimulatorAdapter:
 
     @pytest.mark.asyncio
     async def test_foreign_fill_does_not_resolve_pending_order(self, fake_ws):
-        """S229 regression: the sim broadcasts every fill to all *other*
+        """ regression: the sim broadcasts every fill to all *other*
         clients — a stranger's fill must not resolve our pending order."""
         adapter = SimulatorAdapter()
         await adapter.initialize()
@@ -355,7 +355,7 @@ class TestRealExchangeAdapter:
 
     @pytest.mark.asyncio
     async def test_rest_timeout_plumbs_to_account_manager(self):
-        """Regression S117: network.rest_timeout must reach ccxt via the adapter chain."""
+        """Regression network.rest_timeout must reach ccxt via the adapter chain."""
         adapter = RealExchangeAdapter(exchange="binance", rest_timeout=7.5)
         assert adapter._rest_timeout == 7.5
 

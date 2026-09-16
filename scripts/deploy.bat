@@ -295,7 +295,7 @@ if exist "%BACKUP_DIR%\database\data_%TIMESTAMP%" (
 )
 
 REM AI bot data (signals/trades SQLite) — backed up every deploy,
-REM previously never restored (S297).
+REM previously never restored.
 if exist "%BACKUP_DIR%\database\ai_data_%TIMESTAMP%" (
     call :log_info "Restoring AI bot data..."
     rmdir /S /Q ai-signal-bot\data 2>nul

@@ -1,11 +1,11 @@
-"""Tests for StrategyOptimizer.walk_forward — rolling OOS eval (S346).
+"""Tests for StrategyOptimizer.walk_forward — rolling OOS eval.
 
 Each run() call gets `train_size` strictly-past context candles (warmup —
 no trades/metrics) plus `test_size` evaluated candles. Params are fixed;
 fitting happens upstream on a disjoint segment.
 
 (Replaces the dead `walk_forward.py`/`WalkForwardAnalyzer` suite — that module
-was a 201-line duplicate with zero production callers; S259.)
+was a 201-line duplicate with zero production callers; )
 """
 import pytest
 
@@ -77,7 +77,7 @@ class TestWalkForwardLive:
             assert wu == 30  # metrics start at the test segment
 
     def test_context_is_strictly_past_of_test_segment(self):
-        """S346 regression: the evaluated segment is the window's tail —
+        """ regression: the evaluated segment is the window's tail
         context candles precede it and only feed indicator warmup."""
         bt = RecordingBacktester()
         opt = StrategyOptimizer(bt)

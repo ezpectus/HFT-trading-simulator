@@ -223,7 +223,7 @@ class TestStopLossTakeProfit:
 
     def test_batch_closes_carry_own_reason(self):
         """Two triggered closes in one tick must keep their own reasons —
-        S349: downstream code used to read trade_history[-1] for every
+        downstream code used to read trade_history[-1] for every
         order, so all closes in a batch inherited the last reason."""
         market = make_market(50000)
         market.symbols = ["BTC/USDT", "ETH/USDT"]

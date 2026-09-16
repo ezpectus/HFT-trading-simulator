@@ -9,7 +9,7 @@ export const WS_EXCHANGE = import.meta.env.VITE_WS_EXCHANGE || 'ws://localhost:8
 const EXCHANGE_TOKEN = import.meta.env.VITE_EXCHANGE_TOKEN || ''
 
 // The Auth panel stores a user-entered control token here; it overrides the
-// build-time env token (S232 — real auth replaces the username/password facade).
+// build-time env token ( — real auth replaces the username/password facade).
 const AUTH_TOKEN_KEY = 'trading-sim-auth-token'
 export const readAuthToken = () => {
   try { return localStorage.getItem(AUTH_TOKEN_KEY) || '' } catch { return '' }
@@ -41,7 +41,7 @@ export function useExchangeData() {
   // client_order_id -> {resolve, timer} for submitOrder ack correlation
   const pendingAcks = useRef(new Map())
   // seq gap detection — a dropped broadcast leaves orderbook_deltas applying
-  // onto a stale book; on gap we request sync_state (S151)
+  // onto a stale book; on gap we request sync_state
   const lastSeqRef = useRef(0)
   const lastResyncReqRef = useRef(0)
   const sendExchangeRef = useRef(null)
@@ -291,7 +291,7 @@ export function useExchangeData() {
     sendExchangeRef.current = sendExchange
   })
 
-  // Socket errors land on lastError → useNotifications toast (S231 — the
+  // Socket errors land on lastError → useNotifications toast ( — the
   // error state was returned by useWebSocket but never destructured).
   useEffect(() => {
     if (exchangeWsError) setLastError(exchangeWsError)
@@ -303,7 +303,7 @@ export function useExchangeData() {
     // and the sim echoes it back in the fill ack, which resolves the promise.
     const cid = order.client_order_id || `ui_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
     const sent = sendExchange({ type: 'order', ...order, client_order_id: cid })
-    // Resolves with the acked order, or null if no ack within 5s. S236: the
+    // Resolves with the acked order, or null if no ack within 5s. the
     // 5s window only applies when the message actually went on the wire — a
     // queued message will send on reconnect with the SAME cid, so the ack may
     // still arrive and server-side dedup still applies. Timing it out at 5s

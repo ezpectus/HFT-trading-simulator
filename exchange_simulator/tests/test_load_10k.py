@@ -21,7 +21,7 @@ def test_record_message_counts_and_types():
     r.record_message(json.dumps({"type": "fill"}), 0)
     assert r.messages_received == 3
     assert r.msg_types == {"market_data": 2, "fill": 1}
-    # Sim-clock timestamps must NOT be counted as latency (S356 regression).
+    # Sim-clock timestamps must NOT be counted as latency (regression).
     assert len(r.latencies) == 0
 
 
@@ -49,7 +49,7 @@ async def _broadcast_stub(ws):
 
 
 async def test_latency_samples_real_rtt():
-    """End-to-end: ping/pong sampling produces real RTT numbers (S356 fix)."""
+    """End-to-end: ping/pong sampling produces real RTT numbers (fix)."""
     async with websockets.serve(_broadcast_stub, "localhost", 0) as server:
         port = server.sockets[0].getsockname()[1]
         r = await run_load_test(f"ws://localhost:{port}", duration=2, target=1)

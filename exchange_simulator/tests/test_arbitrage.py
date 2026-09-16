@@ -199,7 +199,7 @@ class TestArbitrageDetector:
 class TestArbitrageModelIntegration:
     """The market model must actually be capable of producing arbs — fixed
     per-exchange offsets keep books identical modulo a constant, making
-    scan() structurally empty forever (S213)."""
+    scan() structurally empty forever."""
 
     def test_detector_fires_over_candle_run(self, setup_exchanges):
         """With realistic params, venue deviations must occasionally cross

@@ -27,7 +27,7 @@ describe('VariationalAutoencoder', () => {
     expect(container.innerHTML).not.toContain('NaN')
   })
 
-  // S369: decoder backprop indexed Wout as [hidden][input] though it is
+  // decoder backprop indexed Wout as [hidden][input] though it is
   // [input][hidden] — square defaults (8,8) masked it. Asymmetric dims
   // (windowSize=4 or hiddenDim=4) produced TypeError / NaN geometry.
   it('handles asymmetric dims (window≠hidden) without crash or NaN', () => {

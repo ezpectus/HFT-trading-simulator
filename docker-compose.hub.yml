@@ -56,7 +56,7 @@ services:
       - ai-logs:/app/logs
     command: python run.py --metrics
     environment:
-      # S210: service DNS, not the container's own loopback.
+      # service DNS, not the container's own loopback.
       - WS_URL=ws://exchange-simulator:8765
       - AI_BOT_BIND_HOST=0.0.0.0
     restart: unless-stopped
@@ -87,7 +87,7 @@ services:
     # resolves ${HFT_EXCHANGE_WS_URL} the same way.
     command: /app/hft_trade_bot config/config.prod.yaml
     environment:
-      # S210: config.yaml resolves ${HFT_*_WS_URL:-localhost} — inject the
+      # config.yaml resolves ${HFT_*_WS_URL:-localhost} — inject the
       # compose service names or the bot dials its own loopback.
       - HFT_EXCHANGE_WS_URL=ws://exchange-simulator:8765
       - HFT_AI_SIGNAL_WS_URL=ws://ai-signal-bot:8766

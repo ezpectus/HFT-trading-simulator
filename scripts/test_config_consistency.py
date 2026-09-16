@@ -232,7 +232,7 @@ def test_optional_features_configured():
 
     exchange_config = load_yaml(project_root / "exchange_simulator" / "config.yaml")
 
-    # Audit logging configuration (wired by S114)
+    # Audit logging configuration (wired by)
     if "audit" not in exchange_config:
         print("ERROR: audit section missing from exchange config")
         return False

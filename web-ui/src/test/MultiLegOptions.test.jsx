@@ -12,7 +12,7 @@ describe('MultiLegOptions', () => {
     expect(path.getAttribute('d')).not.toContain('NaN')
   })
 
-  it('flat-collapses instead of NaN when spot input is 0 (S366-class)', () => {
+  it('flat-collapses instead of NaN when spot input is 0 (-class)', () => {
     const { container } = render(<MultiLegOptions currentPrice={65000} />)
     const spotInput = screen.getByText('Spot').parentElement.querySelector('input')
     fireEvent.change(spotInput, { target: { value: '0' } })

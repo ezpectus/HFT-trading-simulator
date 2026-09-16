@@ -1,6 +1,6 @@
 """Rule-based fallback analysis + LLM response parsing.
 
-Extracted from engine.py (S014): pure functions — no engine state —
+Extracted from engine.py pure functions — no engine state
 used when the LLM provider is unavailable or returns malformed output.
 """
 import json

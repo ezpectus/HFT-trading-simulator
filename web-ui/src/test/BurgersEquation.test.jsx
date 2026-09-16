@@ -21,7 +21,7 @@ describe('BurgersEquation', () => {
     expect(container.innerHTML).not.toContain('NaN')
   })
 
-  // S370: advection was FTCS (unconditionally unstable) with no dt bound —
+  // advection was FTCS (unconditionally unstable) with no dt bound
   // dt=1 at data-dependent dx blew the solution into NaN paths. Now the
   // documented Lax-Friedrichs scheme runs CFL substeps for any dt.
   it('large Δt stays stable — CFL substeps keep solution finite', () => {

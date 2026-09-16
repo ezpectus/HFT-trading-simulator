@@ -1,4 +1,4 @@
-"""Tests for shm_kill_switch_consumer.py — C++→Python kill-switch channel (S132)."""
+"""Tests for shm_kill_switch_consumer.py — C++→Python kill-switch channel."""
 import asyncio
 from unittest.mock import MagicMock, patch
 

@@ -70,7 +70,7 @@ class TestCalculateTradeMetrics:
         assert r.profit_factor == float("inf")
 
     def test_trade_metrics_do_not_set_sharpe(self):
-        # S379: Sharpe/Sortino moved to the per-bar equity basis — sparse
+        # Sharpe/Sortino moved to the per-bar equity basis — sparse
         # per-trade returns annualized by bars/year inflated the ratio.
         r = self._result([100, -100, 150, -50, 80])
         calculate_trade_metrics(r)

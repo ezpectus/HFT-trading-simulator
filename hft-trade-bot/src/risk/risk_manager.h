@@ -213,7 +213,7 @@ class RiskManager {
         daily_pnl_.store(0.0, std::memory_order_relaxed);
         peak_equity_.store(0.0, std::memory_order_relaxed);
         // total_exposure_ is CURRENT holdings, not a daily counter — positions
-        // carried over midnight must stay counted (S249).
+        // carried over midnight must stay counted.
     }
 
     // V2: Reduce exposure when position is closed

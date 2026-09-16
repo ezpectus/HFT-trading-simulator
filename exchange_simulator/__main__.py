@@ -155,13 +155,13 @@ async def run_websocket_server(
         metrics_enabled=bool(metrics_cfg.get("enabled", True)),
         metrics_port=metrics_cfg.get("port"),
         # Falls back to the websocket host (EXCHANGE_WS_HOST) when unset —
-        # a literal 'localhost' here strand-scopes the scrape port (S239).
+        # a literal 'localhost' here strand-scopes the scrape port.
         metrics_host=os.environ.get("EXCHANGE_METRICS_HOST") or metrics_cfg.get("host"),
     )
 
     # Graceful shutdown: SIGTERM (docker stop, k8s) + SIGINT (Ctrl+C).
     # Windows' ProactorEventLoop doesn't implement add_signal_handler —
-    # NotImplementedError there, KeyboardInterrupt still covers Ctrl+C (S220).
+    # NotImplementedError there, KeyboardInterrupt still covers Ctrl+C.
     loop = asyncio.get_running_loop()
     try:
         for sig in (signal.SIGTERM, signal.SIGINT):

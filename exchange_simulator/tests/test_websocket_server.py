@@ -149,7 +149,7 @@ class TestHandleMessage:
         assert server._replay_paused is True
         assert server._speed_event.is_set() is False
         # The replay_state push is the client's only pause-sync — it must be
-        # delivered, not fire-and-forget (S348).
+        # delivered, not fire-and-forget.
         msg = json.loads(ws.send.call_args[0][0])
         assert msg["type"] == "replay_state"
         assert msg["paused"] is True
@@ -403,7 +403,7 @@ class TestWebSocketMetrics:
             assert name in prom, name
         # Wire compression (permessage-deflate) happens inside the websockets
         # transport — the app can never observe compressed size, so the old
-        # eternal-zero compression_ratio gauge was removed (S347).
+        # eternal-zero compression_ratio gauge was removed.
         assert "exchange_simulator_compression_ratio" not in prom
 
     def test_record_message(self, server):
@@ -416,7 +416,7 @@ class TestWebSocketMetrics:
     @pytest.mark.asyncio
     async def test_broadcast_send_records_metrics(self, server, mock_market):
         """Production broadcast path must feed the metrics — previously
-        client.send() was called directly and every counter stayed at 0 (S347)."""
+        client.send() was called directly and every counter stayed at 0."""
         client = AsyncMock(spec=ServerConnection)
         server.clients = {client}
         server._client_subscriptions = {client: set(mock_market.symbols)}
@@ -452,7 +452,7 @@ class TestWebSocketMetrics:
         assert len(server.metrics.broadcast_latencies) == 1
 
     def test_orderbook_delta_decisions_recorded(self, server, mock_market):
-        """Each full-vs-delta orderbook decision feeds the EWMA ratio (S347)."""
+        """Each full-vs-delta orderbook decision feeds the EWMA ratio."""
         server._build_orderbook_data()  # first pass: all full snapshots
         assert server.metrics.delta_update_ratio == 0.0
 
@@ -467,14 +467,14 @@ class TestWebSocketMetrics:
 
     @pytest.mark.asyncio
     async def test_send_json_counts_message(self, server):
-        """Unicast sends stay counted on the shared counter (S347)."""
+        """Unicast sends stay counted on the shared counter."""
         ws = AsyncMock(spec=ServerConnection)
         await server._send_json(ws, {"type": "x"})
         assert server.metrics.message_count == 1
 
     def test_clients_connected_reads_live_set(self, server):
         """clients_connected is the live client count at scrape time —
-        the old send-time copy could lag the real set (S347)."""
+        the old send-time copy could lag the real set."""
         server.clients.add(MagicMock())
         prom = server._get_prometheus_metrics()
         assert "exchange_simulator_clients_connected 1" in prom

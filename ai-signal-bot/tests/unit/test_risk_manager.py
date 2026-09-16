@@ -241,7 +241,7 @@ def _make_state(entry=100, side="LONG", sl=95, tp=110, qty=1.0, atr=0.0):
 
 
 class TestBreakevenTrailingInteraction:
-    """Ported from legacy tests/test_risk_manager.py (S268) — the only file
+    """Ported from legacy tests/test_risk_manager.py — the only file
     that exercised breakeven+trailing together and the wrong-direction guard."""
 
     def test_breakeven_never_moves_sl_wrong_direction(self):
@@ -271,7 +271,7 @@ class TestBreakevenTrailingInteraction:
 
 
 class TestPeakTroughTracking:
-    """Ported from legacy tests/test_risk_manager.py (S268) — SHORT-side and
+    """Ported from legacy tests/test_risk_manager.py — SHORT-side and
     trough tracking that the rewrite only covered for LONG peaks."""
 
     def test_long_trough_tracks_lowest(self):
@@ -302,7 +302,7 @@ class TestPeakTroughTracking:
 
 
 class TestCalcAtrFromCandle:
-    """Ported from legacy tests/test_risk_manager.py (S268) — TR edge cases."""
+    """Ported from legacy tests/test_risk_manager.py — TR edge cases."""
 
     def test_atr_with_gap(self):
         candle = {"high": 110, "low": 105, "close": 108, "prev_close": 95}

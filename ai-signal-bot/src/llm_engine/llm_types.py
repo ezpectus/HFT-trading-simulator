@@ -1,6 +1,6 @@
 """LLM engine types — config, context, analysis result, secret wrapper.
 
-Separated from engine.py (S014): public data contract, no engine logic.
+Separated from engine.py public data contract, no engine logic.
 """
 from __future__ import annotations
 

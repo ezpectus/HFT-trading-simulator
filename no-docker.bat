@@ -86,7 +86,7 @@ echo.
 REM Window 1: Exchange Simulator
 echo [1/4] Starting Exchange Simulator on :8765...
 REM python -m needs the package importable — run from the repo ROOT, not
-REM inside exchange_simulator/ (S220: from inside itself the module is not found)
+REM inside exchange_simulator/ (from inside itself the module is not found)
 start "Exchange Simulator" cmd /k "cd /d %PROJECT_ROOT% && python -m exchange_simulator --no-visualizer"
 
 REM Wait for simulator to start

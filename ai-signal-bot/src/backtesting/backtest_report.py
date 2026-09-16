@@ -1,6 +1,6 @@
 """Backtest report rendering — pure presentation over BacktestResult.
 
-Separated from backtester.py (S014): printing is a presentation concern
+Separated from backtester.py printing is a presentation concern
 independent of the simulation engine.
 """
 from src.backtesting.results import BacktestResult

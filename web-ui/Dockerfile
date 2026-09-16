@@ -25,7 +25,7 @@ FROM nginx:1.27-alpine
 # Run nginx as the built-in `nginx` user (UID 101) for consistency with
 # other services' prod Dockerfiles (appuser). Port 3000 is non-privileged.
 # /run is a fresh root-owned tmpfs at container start — image chown can't
-# help the pid path; move it to /tmp (S390).
+# help the pid path; move it to /tmp.
 RUN sed -i 's|/run/nginx\.pid|/tmp/nginx.pid|' /etc/nginx/nginx.conf \
     && chown -R nginx:nginx /var/cache/nginx /var/log/nginx /usr/share/nginx/html /etc/nginx/conf.d
 

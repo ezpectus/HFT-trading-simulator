@@ -20,7 +20,7 @@ describe('BayesianPricePredictor', () => {
       .toBeTruthy()
   }, 30000)
 
-  // S371: betaPath's useMemo sat below the !data early return, so switching
+  // betaPath's useMemo sat below the !data early return, so switching
   // to a candle-less selection dropped a hook → "Rendered fewer hooks than
   // expected" crash. Hooks must be stable across the data→empty→data cycle.
   it('survives the populated → empty → populated cycle', async () => {

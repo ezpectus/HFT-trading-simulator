@@ -181,7 +181,7 @@ class ExchangeClient:
                     except (json.JSONDecodeError, ValueError) as e:
                         logger.warning("Invalid message: %s", e)
                     except Exception as e:
-                        # S291: a bug in message handling must drop the frame,
+                        # a bug in message handling must drop the frame,
                         # not kill the listener — the bot trades on dead data
                         # forever while /health stays green otherwise.
                         logger.warning("Dropped message on handler error: %s", e)

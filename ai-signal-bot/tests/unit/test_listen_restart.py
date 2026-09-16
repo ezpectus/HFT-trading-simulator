@@ -1,4 +1,4 @@
-"""Regression tests for S291: a crashed market-data listener must restart —
+"""Regression tests for a crashed market-data listener must restart
 before the fix, any non-IO exception killed _listen_loop permanently while
 health stayed green and the bot traded on frozen candles forever."""
 import asyncio

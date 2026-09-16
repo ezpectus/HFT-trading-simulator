@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
             process_arbitrage(ctx, can_trade);
             process_ai_signals(ctx, current_balance, can_trade);
 
-            // S245: v3 replaces v2 inside generate_signal — the loop must run
+            // v3 replaces v2 inside generate_signal — the loop must run
             // when *either* engine is enabled; v3-only configs used to fall
             // into the V1 fallback while advertising V3 in the banner.
             if ((ctx.config.signal_engine_v2_enabled || ctx.config.signal_engine_v3_enabled) &&

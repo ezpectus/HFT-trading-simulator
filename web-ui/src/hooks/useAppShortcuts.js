@@ -2,7 +2,7 @@ import { useUIStore } from '../stores/useUIStore'
 import { useKeyboardShortcuts } from './useKeyboardShortcuts'
 
 /** Global keyboard shortcuts — exchange/symbol switching, sim speed,
- *  tab navigation, sidebar toggle. Extracted from App.jsx (S015). */
+ * tab navigation, sidebar toggle. Extracted from App.jsx. */
 export function useAppShortcuts() {
   const { setSelectedExchange, setSelectedSymbol, setActiveTab,
           EXCHANGES, SYMBOLS } = useUIStore()

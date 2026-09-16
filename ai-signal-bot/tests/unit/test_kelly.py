@@ -122,7 +122,7 @@ class TestCalculate:
         # risk_per_unit = |100 - 102| = 2
 
     def test_min_risk_not_applied_for_small_edge(self):
-        """Ported from legacy tests/test_kelly.py (S268) — the only negative
+        """Ported from legacy tests/test_kelly.py — the only negative
         regression: min_risk_pct must not force size on a near-zero edge."""
         # kelly = (0.51 - 0.49)/1 = 0.02; adjusted = 0.02 * 0.5 = 0.01
         # With confidence 0.3: adjusted = 0.003 < 0.01 → min_risk_pct skipped

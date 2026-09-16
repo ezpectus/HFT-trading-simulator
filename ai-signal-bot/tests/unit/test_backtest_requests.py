@@ -153,7 +153,7 @@ class TestRunBacktestRequest:
         assert result["data_source"] == "synthetic"
         assert result["candles"] == 30
 
-    # ── Ported from legacy tests/test_signal_publisher.py (S268) — these
+    # ── Ported from legacy tests/test_signal_publisher.py — these
     # exercise param pass-through the rewrite didn't cover. ──
 
     async def test_all_strategies_returns_all_results(self):

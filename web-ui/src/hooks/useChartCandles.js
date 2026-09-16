@@ -4,7 +4,7 @@ import { useTradingStore } from '../stores/useTradingStore'
 
 /** Selected-exchange/symbol candles aggregated by timeframe + derived
  *  price/change, synced into the trading store for the panel registry.
- *  Extracted from App.jsx (S015). */
+ * Extracted from App.jsx. */
 export function useChartCandles(exchange, selectedExchange, selectedSymbol, timeframe) {
   const setDerivedData = useTradingStore((s) => s.setDerivedData)
 

@@ -82,7 +82,7 @@ describe('Registry Structure', () => {
     }
   })
 
-  it('S130 contract: starved panels receive their backend props', () => {
+  it('contract: starved panels receive their backend props', () => {
     const ctx = {
       selectedSymbol: 'BTC/USDT',
       chartCandles: [{ time: 1, close: 100 }],

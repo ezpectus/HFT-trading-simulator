@@ -1,6 +1,6 @@
-"""Tests for RealMarketDataManager lazy feed start (S345).
+"""Tests for RealMarketDataManager lazy feed start.
 
-The manager opens real exchange WebSocket feeds — before S345 the
+The manager opens real exchange WebSocket feeds — before the
 adapter started them eagerly at connect time while every read accessor
 had zero production callers. Now the feed starts on the first read:
 order-only adapters pay no sockets.

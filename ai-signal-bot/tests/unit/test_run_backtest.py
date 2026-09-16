@@ -1,4 +1,4 @@
-"""Tests for run_backtest.py helpers (S346 — fit/validation split)."""
+"""Tests for run_backtest.py helpers ( — fit/validation split)."""
 import pytest
 
 from run_backtest import split_fit_validation

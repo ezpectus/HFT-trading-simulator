@@ -1,5 +1,5 @@
 """Tests for MessageHandlerMixin order submission — especially advanced-order
-param forwarding, which was silently dropped for a long time (S083): the WS
+param forwarding, which was silently dropped for a long time the WS
 API accepted stop_price/oco_group_id etc. but never passed them to the
 exchange, so external clients could not submit advanced orders at all."""
 import json
@@ -79,7 +79,7 @@ class TestOrderSubmission:
 
     @pytest.mark.asyncio
     async def test_forwards_all_advanced_params(self, server, capturing_exchange):
-        """Regression for S083: stop/limit/trail/iceberg/oco params must reach
+        """Regression for stop/limit/trail/iceberg/oco params must reach
         exchange.submit_order — previously every one of them was dropped."""
         server._trading_active = True
         ws = AsyncMock(spec=ServerConnection)

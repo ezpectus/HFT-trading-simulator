@@ -56,7 +56,7 @@ void process_sl_tp(BotContext& ctx) {
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
             // Keep the position on the book — the close fill arrives at the
             // real price with its fee and is booked by apply_fill (the
-            // exchange is the source of truth, S248). Mark closing so this
+            // exchange is the source of truth). Mark closing so this
             // trigger doesn't refire while the order is in flight; a stale
             // mark expires and re-fires.
             ctx.pos_mgr.mark_closing(trigger.symbol);
@@ -85,7 +85,7 @@ void process_arbitrage(BotContext& ctx, bool can_trade) {
     }
 }
 
-// V2 pre-trade gate (S178): blacklist, leverage, per-symbol qty, total
+// V2 pre-trade gate blacklist, leverage, per-symbol qty, total
 // exposure, daily-loss, peak-drawdown, rate throttle, margin. Runs before
 // every order submission — this is the production safety layer.
 static bool precheck_order(BotContext& ctx, const Signal& sig, double qty, double price) {
@@ -124,7 +124,7 @@ void process_ai_signals(BotContext& ctx, double current_balance, bool can_trade)
                     if (ctx.executor->submit_order(ai_sig, qty, ctx.ob_buf)) {
                         ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
                         // Book on fill, not on send — a send ack is not a
-                        // position (S179).
+                        // position.
                         ctx.pos_mgr.add_pending_order(ai_sig, qty, ctx.config.default_exchange);
                     } else {
                         spdlog::warn("Order not sent — no local order recorded for {}",
@@ -182,7 +182,7 @@ static Signal convert_fast_signal(BotContext& ctx, const FastSignal& fast_sig) {
     sig.entry_price = fast_sig.entry_price;
     sig.stop_loss   = fast_sig.stop_loss;
     sig.take_profit = fast_sig.take_profit;
-    // S243: carry engine-computed leverage + timestamp — timestamp feeds the
+    // carry engine-computed leverage + timestamp — timestamp feeds the
     // wire client_order_id ("hft_<sym>_<ts>"); dropping it collapsed every
     // engine order onto cid "..._0" and the sim dedup replayed the first fill.
     sig.leverage  = fast_sig.leverage;
@@ -235,7 +235,7 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
             return;
         }
         // The selected kind now reaches the wire: IOC/FOK/GTD/post_only are
-        // serialized instead of silently degrading to plain LIMIT (S154).
+        // serialized instead of silently degrading to plain LIMIT.
         sent = ctx.executor->submit_order(sig, qty, ob, os.kind, os.limit_price, os.expire_ns);
         if (sent)
             ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
@@ -256,7 +256,7 @@ static void execute_v2_order(BotContext& ctx, const Signal& sig, const FastSigna
                  spread_bps, os.reason);
     ctx.sys_monitor.increment(SystemMonitor::Metric::SIGNALS_PROCESSED);
     // Book on fill, not on send — resting LIMITs (GTD/POST/IOC leftovers)
-    // must not appear as positions before the exchange confirms them (S179).
+    // must not appear as positions before the exchange confirms them.
     if (sent) ctx.pos_mgr.add_pending_order(sig, qty, ctx.config.default_exchange);
 }
 
@@ -348,7 +348,7 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
         sig.stop_loss   = fast_sig.stop_loss;
         sig.take_profit = fast_sig.take_profit;
         sig.reason      = fast_sig.reason;
-        // S243: V1's FastSignal carries no timestamp — stamp order time so the
+        // V1's FastSignal carries no timestamp — stamp order time so the
         // wire client_order_id is unique per order (sim dedups on sym+ts).
         sig.timestamp = FastSignal::now_ns();
         auto rr = ctx.risk_mgr->check_signal(sig, current_balance, ctx.pos_mgr.position_count());
@@ -368,7 +368,7 @@ void run_v1_fallback_loop(BotContext& ctx, double current_balance) {
     }
 }
 
-// Feeds the V2 risk trackers every loop tick (S178): UTC-day rollover resets
+// Feeds the V2 risk trackers every loop tick UTC-day rollover resets
 // daily counters, mark-to-market updates daily PnL + peak equity, and the
 // daily-loss / max-drawdown limits trip the kill switch (the file trigger was
 // previously the only live path — activate() had zero callers).
@@ -415,7 +415,7 @@ void update_risk_state(BotContext& ctx, double current_balance) {
 }
 
 // Refresh the /health snapshot from live state every loop iteration — the
-// endpoint is only as honest as this feed (S246). All fields are cheap
+// endpoint is only as honest as this feed. All fields are cheap
 // atomic reads; the error window is a file-local rolling baseline.
 void update_health_status(BotContext& ctx) {
     if (!ctx.health_server) return;
@@ -446,7 +446,7 @@ void update_health_status(BotContext& ctx) {
     hs.shm_healthy = !ctx.config.ipc_enabled || (ctx.shm_signal_consumer != nullptr);
     hs.exchange_connected =
         ctx.receiver->is_connected() && ctx.executor && ctx.executor->is_connected();
-    // Real liveness (S352): the engine object exists AND has evaluated within
+    // Real liveness the engine object exists AND has evaluated within
     // the last 60s. Zero stamps mean "still warming up" (engines need ≥30
     // candles before the first analyze call) — once it evaluates, a stalled
     // loop trips /health instead of hiding behind a permanent-true bit.
@@ -468,7 +468,7 @@ void update_health_status(BotContext& ctx) {
     hs.memory_usage_mb = mem_cached;
     ctx.health_server->update_health(hs);
 
-    // Feed the /hft_heartbeat region scripts/monitor.py tails (S224).
+    // Feed the /hft_heartbeat region scripts/monitor.py tails.
     if (ctx.shm_heartbeat) {
         ctx.shm_heartbeat->beat(ctx.sys_monitor.get(SystemMonitor::Metric::ORDERS_SENT),
                                 ctx.sys_monitor.get(SystemMonitor::Metric::ORDERS_FILLED),

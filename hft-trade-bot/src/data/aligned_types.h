@@ -196,7 +196,7 @@ struct alignas(64) PressureResult {
 
     // true only when analyze() was fed a TradeTick tape — trade_imbalance and
     // toxic_score are measured values then; otherwise they stay 0 and must not
-    // be treated as a zero reading (S247)
+    // be treated as a zero reading
     bool has_trade_flow{false};
 
     enum class SpreadRegime : uint8_t {

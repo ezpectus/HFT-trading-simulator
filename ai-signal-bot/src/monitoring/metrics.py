@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 # Unlabelled alert/process metrics — (attr, kind, prometheus name, description).
 # Drives both _init_alert_metrics and the no-prometheus None-init so the two
-# attribute sets can't drift apart (S326).
+# attribute sets can't drift apart.
 _ALERT_METRIC_SPECS = [
     ("signals_sent_total", "counter", "ai_signal_bot_signals_sent_total", "Total signals broadcast"),
     ("signals_blocked_total", "counter", "ai_signal_bot_signals_blocked_total", "Signals blocked by circuit breaker"),

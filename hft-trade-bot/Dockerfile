@@ -28,7 +28,7 @@ RUN sed -i 's/endpoint<connection,config>/endpoint/g' /usr/include/websocketpp/e
     && sed -i 's/stub<concurrency,names>/stub/g' /usr/include/websocketpp/logger/stub.hpp || true
 
 # Static libstdc++/libgcc: gcc:14-bookworm ships libstdc++ 3.4.32 but
-# bookworm-slim runtime only has 3.4.30 (GLIBCXX mismatch — S388).
+# bookworm-slim runtime only has 3.4.30 (GLIBCXX mismatch).
 RUN mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" && make -j$(nproc)
 

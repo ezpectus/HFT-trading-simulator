@@ -474,7 +474,7 @@ describe('useExchangeData', () => {
   })
 
   it('submitOrder queued offline does not time out until sent after reconnect', async () => {
-    // S236: an order queued while disconnected must not arm its 5s ack window
+    // an order queued while disconnected must not arm its 5s ack window
     // — it goes on the wire only when the reconnect flush runs, with the same
     // client_order_id, so server dedup still applies.
     vi.useFakeTimers()
@@ -491,7 +491,7 @@ describe('useExchangeData', () => {
       ackPromise.then((v) => { resolved = v })
     })
     // 6s pass while still disconnected — the order sat in the queue, never on
-    // the wire; timing it out here was the S236 bug.
+    // the wire; timing it out here was the bug.
     await act(async () => {
       vi.advanceTimersByTime(6000)
       await Promise.resolve()

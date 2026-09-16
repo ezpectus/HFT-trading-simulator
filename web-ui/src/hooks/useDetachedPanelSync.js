@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 
 /** Keeps detached (floating) panels fed with live data + provides the
- *  detach handler that snapshots current data. Extracted from App.jsx (S015). */
+ * detach handler that snapshots current data. Extracted from App.jsx. */
 export function useDetachedPanelSync({
   exchange, chartCandles, currentPrice,
   selectedExchange, selectedSymbol, isDetached, updateDetached, detachPanel,

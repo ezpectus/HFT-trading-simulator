@@ -294,7 +294,7 @@ class TestRealAccountManagerWithMockExchange:
 
 
 class TestRestTimeoutWiring:
-    """Regression S117: network.rest_timeout (seconds) must reach ccxt `timeout` (ms)."""
+    """Regression network.rest_timeout (seconds) must reach ccxt `timeout` (ms)."""
 
     @pytest.mark.asyncio
     async def test_rest_timeout_passed_to_ccxt_config(self):

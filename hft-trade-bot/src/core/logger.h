@@ -22,7 +22,7 @@
 namespace hft {
 
 // Counts error/critical log events into SystemMonitor — hft_errors_total
-// means "errors logged", matching its HELP text (S246).
+// means "errors logged", matching its HELP text.
 class ErrorCountSink : public spdlog::sinks::sink {
   public:
     explicit ErrorCountSink(SystemMonitor* monitor) : monitor_(monitor) {}

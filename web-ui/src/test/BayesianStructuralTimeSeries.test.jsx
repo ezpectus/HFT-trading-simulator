@@ -31,7 +31,7 @@ describe('BayesianStructuralTimeSeries', () => {
     }
   })
 
-  it('auto-optimize writes params via effect — render stays pure (S366 regression)', () => {
+  it('auto-optimize writes params via effect — render stays pure (regression)', () => {
     render(<BayesianStructuralTimeSeries candles={CANDLES} symbol="BTC/USDT" exchange="binance" />)
     // after the effect ran, σ cells hold finite numbers, not NaN/undefined
     expect(screen.getByText('σ_level').nextElementSibling.textContent).toMatch(/^\d+\.\d{3}$/)

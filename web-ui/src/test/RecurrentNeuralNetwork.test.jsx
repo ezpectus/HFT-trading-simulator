@@ -37,7 +37,7 @@ describe('RecurrentNeuralNetwork', () => {
     expect(screen.getByText(/Need at least 40 candles/)).toBeInTheDocument()
   })
 
-  // S370: lr input had no upper clamp — lr=1 diverged training into NaN DOM.
+  // lr input had no upper clamp — lr=1 diverged training into NaN DOM.
   it('clamps extreme learning rate — no NaN in output', () => {
     const { container } = render(
       <RecurrentNeuralNetwork candles={candles} symbol="BTCUSDT" exchange="binance" />

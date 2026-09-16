@@ -74,7 +74,7 @@ class TestCircuitBreakerTripping:
 
 
 class TestOnTripCallback:
-    """S344: on_trip hook feeds the trips metric — zero callers meant the
+    """on_trip hook feeds the trips metric — zero callers meant the
     Prometheus counter was pinned at 0."""
 
     @pytest.mark.asyncio

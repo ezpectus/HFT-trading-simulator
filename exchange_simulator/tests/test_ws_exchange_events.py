@@ -79,7 +79,7 @@ class TestProcessExchangeEvents:
     @pytest.mark.asyncio
     async def test_close_reason_flows_per_order(self, server, mock_exchange):
         """Each close in a batch carries its own reason — previously every
-        order inherited trade_history[-1]'s reason (S349)."""
+        order inherited trade_history[-1]'s reason."""
         o1 = Order(
             id="a", symbol="BTC/USDT", exchange="binance", side=Side.SELL,
             order_type=OrderType.MARKET, quantity=0.1,

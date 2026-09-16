@@ -220,7 +220,7 @@ class HealthServer {
     std::thread       thread_;
     std::atomic<bool> running_{false};
     SystemMonitor*    monitor_{nullptr};
-    std::mutex        health_mtx_; // guards health_ — written by the main loop (S246)
+    std::mutex        health_mtx_; // guards health_ — written by the main loop
     HealthStatus      health_;
 };
 

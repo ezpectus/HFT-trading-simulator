@@ -1,6 +1,6 @@
 """Tests for LiquidationMixin — SL/TP/liquidation closes.
 
-S331 — partial liquidation is routed through submit_order like every
+ — partial liquidation is routed through submit_order like every
 other trigger, so it pays fees, takes slippage, and writes audit events.
 """
 from unittest.mock import MagicMock

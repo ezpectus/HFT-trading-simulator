@@ -220,7 +220,7 @@ TEST_CASE("Daily reset zeros PnL but keeps exposure") {
     rm.update_pnl_v2(-500.0, 0.0, 0.0);
     CHECK(rm.daily_pnl() == doctest::Approx(-500.0));
     // Exposure is current holdings — positions carried past the UTC boundary
-    // must remain counted, or max_total_exposure silently weakens (S249).
+    // must remain counted, or max_total_exposure silently weakens.
     rm.on_fill("BTC/USDT", "BUY", 0.5, 40000.0, 0.0);
     rm.reset_daily();
     CHECK(rm.daily_pnl() == doctest::Approx(0.0));

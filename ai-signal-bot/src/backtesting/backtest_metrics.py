@@ -1,6 +1,6 @@
 """Backtest performance metrics — pure math over BacktestResult.
 
-Separated from backtester.py (S014): these functions mutate only the
+Separated from backtester.py these functions mutate only the
 result object they're given — no simulation state. Keeping them pure
 makes them unit-testable without running a backtest.
 """

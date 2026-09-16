@@ -1,4 +1,4 @@
-// ─── EDM math — extracted from EmpiricalDynamicModeling.jsx (S015) ───────────
+// ─── EDM math — extracted from EmpiricalDynamicModeling.jsx ───────────
 // Empirical Dynamic Modeling: mutual information, false nearest neighbors,
 // delay embedding, simplex projection, convergent cross mapping.
 // Pure functions — no React.

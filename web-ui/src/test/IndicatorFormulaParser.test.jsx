@@ -15,13 +15,13 @@ describe('IndicatorFormulaParser', () => {
     expect(screen.getByText('Change')).toBeInTheDocument()
   })
 
-  it('surfaces parse errors in the error box (S366 regression)', () => {
+  it('surfaces parse errors in the error box (regression)', () => {
     render(<IndicatorFormulaParser candles={CANDLES} symbol="BTC/USDT" exchange="binance" />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'FOO(' } })
     expect(screen.getByText(/token|Unexpected|Unknown|Invalid|token/i)).toBeInTheDocument()
   })
 
-  it('all-NaN result shows "No valid values" instead of crashing (S366 regression)', () => {
+  it('all-NaN result shows "No valid values" instead of crashing (regression)', () => {
     render(<IndicatorFormulaParser candles={CANDLES} symbol="BTC/USDT" exchange="binance" />)
     // 0/0 → NaN series → validValues empty → error path; previously this
     // rendered the result grid with undefined fields → TypeError

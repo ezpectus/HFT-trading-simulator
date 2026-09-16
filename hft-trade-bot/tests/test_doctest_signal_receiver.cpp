@@ -1,10 +1,10 @@
-// Doctest: SignalReceiver data store — multi-exchange isolation (S252)
+// Doctest: SignalReceiver data store — multi-exchange isolation
 // The wire protocol qualifies every datum with its exchange; symbol-only
 // storage merged binance/bybit/okx into one corrupt series.
 #include "../src/communication/signal_receiver.h"
 #include <doctest.h>
 
-TEST_SUITE("SignalReceiver multi-exchange data (S252)") {
+TEST_SUITE("SignalReceiver multi-exchange data") {
 
     TEST_CASE("prices: same symbol on three exchanges stays isolated") {
         hft::SignalReceiver r("ws://localhost:0");
@@ -88,19 +88,15 @@ TEST_SUITE("SignalReceiver multi-exchange data (S252)") {
     }
 }
 
-TEST_SUITE("SignalReceiver order events (S393/S396)") {
+TEST_SUITE("SignalReceiver order events") {
 
     TEST_CASE("fills_batch: every order in the batch reaches on_fill") {
         // Exchange-initiated terminal events (SL/TP closes, GTD expiry, ARB
-        // legs) arrive as fills_batch — before S393 they were dropped whole.
-        hft::SignalReceiver r("ws://localhost:0");
-        int                 fills = 0;
-        std::string         last_status;
+        // legs) arrive as fills_batch — before they were dropped whole.
+        hft::SignalReceiver                              r("ws://localhost:0");
+        std::vector<std::pair<std::string, std::string>> seen;
         r.on_fill([&](const std::string&, const std::string&, const std::string& st, double, double,
-                      double) {
-            ++fills;
-            last_status = st;
-        });
+                      double, const std::string& cid) { seen.emplace_back(st, cid); });
         r.feed_frame_json({{"type", "fills_batch"},
                            {"orders",
                             {{{"symbol", "BTC/USDT"},
@@ -108,19 +104,37 @@ TEST_SUITE("SignalReceiver order events (S393/S396)") {
                               {"status", "FILLED"},
                               {"filled_quantity", 0.5},
                               {"filled_price", 100.0},
-                              {"fee", 0.01}},
+                              {"fee", 0.01},
+                              {"client_order_id", "hft_BTC_1"}},
                              {{"symbol", "ETH/USDT"},
                               {"side", "BUY"},
                               {"status", "CANCELLED"},
                               {"filled_quantity", 0.0},
                               {"filled_price", 0.0},
-                              {"fee", 0.0}}}}});
-        CHECK(fills == 2);
-        CHECK(last_status == "CANCELLED");
+                              {"fee", 0.0},
+                              {"client_order_id", "hft_ETH_2"}},
+                             {{"symbol", "SOL/USDT"},
+                              {"side", "BUY"},
+                              {"status", "FILLED"},
+                              {"filled_quantity", 1.0},
+                              {"filled_price", 50.0},
+                              {"fee", 0.0},
+                              {"client_order_id", nullptr}}}}});
+        REQUIRE(seen.size() == 3);
+        CHECK(seen[0].first == "FILLED");
+        // client_order_id rides through so callers can tell own orders from
+        // foreign traffic on the shared account.
+        CHECK(seen[0].second == "hft_BTC_1");
+        CHECK(seen[1].first == "CANCELLED");
+        CHECK(seen[1].second == "hft_ETH_2");
+        // JSON null client_order_id (foreign traffic) must not throw — the
+        // fill reaches the callback with an empty id.
+        CHECK(seen[2].first == "FILLED");
+        CHECK(seen[2].second.empty());
     }
 
     TEST_CASE("orders_cancelled: batch frame carries its order count") {
-        // S396: cancel-all reported +1 regardless of how many orders died.
+        // cancel-all reported +1 regardless of how many orders died.
         hft::SignalReceiver r("ws://localhost:0");
         int64_t             total    = 0;
         std::string         last_sym = "x";

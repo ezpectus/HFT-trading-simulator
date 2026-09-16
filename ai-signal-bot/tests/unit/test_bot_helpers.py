@@ -78,7 +78,7 @@ def test_build_strategies_multiple_enabled(mock_config) -> None:
 
 
 def test_indicator_periods_reach_strategies(mock_config) -> None:
-    """Regression S120: indicators.* YAML values must reach strategy constructors."""
+    """Regression indicators.* YAML values must reach strategy constructors."""
     mock_config.meanrev_enabled = True
     mock_config.fft_enabled = True
     mock_config.rsi_period = 21
@@ -92,7 +92,7 @@ def test_indicator_periods_reach_strategies(mock_config) -> None:
 
 
 def test_sentiment_tunables_reach_config(mock_config) -> None:
-    """Regression S117: sentiment YAML values must reach SentimentConfig."""
+    """Regression sentiment YAML values must reach SentimentConfig."""
     mock_config.sentiment_enabled = True
     mock_config.sentiment_fade_threshold = 0.42
     mock_config.sentiment_follow_threshold = 0.11
@@ -105,7 +105,7 @@ def test_sentiment_tunables_reach_config(mock_config) -> None:
 
 
 def test_market_making_tunables_reach_config(mock_config) -> None:
-    """Regression S117: market_making YAML values must reach MarketMakingConfig."""
+    """Regression market_making YAML values must reach MarketMakingConfig."""
     mock_config.market_making_enabled = True
     mock_config.mm_gamma = 0.25
     mock_config.mm_sigma = 0.05
@@ -120,7 +120,7 @@ def test_market_making_tunables_reach_config(mock_config) -> None:
 
 
 def test_ml_ensemble_tunables_reach_config(mock_config) -> None:
-    """Regression S117: ml_ensemble YAML values must reach MLConfig."""
+    """Regression ml_ensemble YAML values must reach MLConfig."""
     mock_config.ml_ensemble_enabled = True
     mock_config.ml_lookback = 77
     mock_config.ml_prediction_horizon = 9

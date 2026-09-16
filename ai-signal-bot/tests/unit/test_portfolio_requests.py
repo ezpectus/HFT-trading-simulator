@@ -1,5 +1,5 @@
 """Contract tests for optimize_portfolio / vol_surface WS request handlers
-(S117) — exercises the previously-dead portfolio/ + pricing/ modules through
+ — exercises the previously-dead portfolio/ + pricing/ modules through
 the same dispatch path signal_publisher uses."""
 import math
 
@@ -110,7 +110,7 @@ class TestOptimizePortfolio:
         ({"method": "max_sharpe", "assets": _assets(2),
           "current_weights": [1.0]}, "current_weights length"),
         # 1e999 is valid JSON → parses to inf → must not reach the optimizer
-        # (NaN/inf outputs serialize as bare NaN → unparseable frame, S362)
+        # (NaN/inf outputs serialize as bare NaN → unparseable frame)
         ({"method": "max_sharpe", "assets": _assets(2),
           "current_weights": [1e999, 0.0]}, "must be finite"),
         ({"method": "max_sharpe", "assets": _assets(2),

@@ -1,6 +1,6 @@
 """Backtest result types — the domain objects produced by Backtester.
 
-Separated from backtester.py (S014): these dataclasses are the public
+Separated from backtester.py these dataclasses are the public
 contract consumed by comparison/optimizer/plotter/WS payloads — they
 don't belong inside the simulation loop file.
 """

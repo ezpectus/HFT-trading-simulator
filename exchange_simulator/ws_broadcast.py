@@ -58,7 +58,7 @@ class BroadcastMixin:
         self.metrics.record_message(payload_len)
 
     async def _send_tracked(self, client: WebSocketServerConnection, payload) -> None:
-        """Broadcast-path send with metrics (S347).
+        """Broadcast-path send with metrics.
 
         Every production broadcast used to call client.send() directly, so
         messages_total/bytes_sent only counted connect-time unicasts and
@@ -78,7 +78,7 @@ class BroadcastMixin:
 
         JSON goes out as a TEXT frame, msgpack as binary — clients discriminate
         on the frame type, so JSON-as-bytes (raw orjson.dumps) would be read as
-        msgpack by any client that has the lib installed (S212)."""
+        msgpack by any client that has the lib installed."""
         if encoding == "msgpack" and _HAS_MSGPACK:
             return msgpack.packb(data, use_bin_type=True)
         if _HAS_ORJSON:
@@ -87,7 +87,7 @@ class BroadcastMixin:
 
     def _encoded_variants(self, data: dict) -> dict:
         """Encode a shared broadcast payload once per negotiated encoding
-        present in self.clients (S212 — broadcasts previously ignored the
+        present in self.clients ( — broadcasts previously ignored the
         negotiated encoding entirely)."""
         variants = {}
         for c in self.clients:

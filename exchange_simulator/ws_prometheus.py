@@ -81,7 +81,7 @@ class PrometheusMixin:
         return "\n".join(lines) + "\n"
 
     def _append_sim_metrics(self, lines: list[str]) -> None:
-        """Append simulator service-level metrics (S131)."""
+        """Append simulator service-level metrics."""
         m = self.metrics
         lines.append("# HELP exchange_simulator_errors_total Message handling errors")
         lines.append("# TYPE exchange_simulator_errors_total counter")

@@ -1,6 +1,6 @@
 /**
  * Tests for Toast component and useToastStore (the live toast path — the
- * local-state useToasts duplicate was removed in S261).
+ * local-state useToasts duplicate was removed in).
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'

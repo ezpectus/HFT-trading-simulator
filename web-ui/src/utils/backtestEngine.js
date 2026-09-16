@@ -210,7 +210,7 @@ export function runBacktest(candles, rules, options = {}) {
   const returns = []
 
   // Shared close path for CLOSE_ALL rules and the end-of-data flush —
-  // one body, so fee/borrow/pnl math can't drift between copies (S323).
+  // one body, so fee/borrow/pnl math can't drift between copies.
   const closePosition = (candle, reason) => {
     const exitPrice = position.side === 'LONG'
       ? candle.close * (1 - slippagePct / 100)

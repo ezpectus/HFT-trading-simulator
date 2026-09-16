@@ -168,7 +168,7 @@ metrics:
   enabled: true               # Health/metrics HTTP server (compose healthchecks use /health)
   port: 8775                  # Metrics HTTP server port (websocket port + 10)
   # Bind address — omit/unset to inherit websocket.host (EXCHANGE_METRICS_HOST
-  # env overrides). A literal localhost in a container dead-ends scrapes (S239).
+  # env overrides). A literal localhost in a container dead-ends scrapes.
 
 # Arbitrage detection — scans for cross-exchange price differences
 arbitrage:

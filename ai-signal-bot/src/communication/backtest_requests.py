@@ -1,6 +1,6 @@
 """Backtest request handling for the signal WebSocket server.
 
-Extracted from signal_publisher.py (S014): run_backtest / compare_backtests
+Extracted from signal_publisher.py run_backtest / compare_backtests
 request handling is a separate concern from client management + broadcast.
 Functions take explicit params — no publisher state except the metrics
 callback the caller supplies.

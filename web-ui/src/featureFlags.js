@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-// Single source of truth for feature flags (S232 — the old FeatureFlags
+// Single source of truth for feature flags ( — the old FeatureFlags
 // panel wrote a `trading-feature-flags` blob that nothing read). Each flag
 // maps to the REAL localStorage key its consumer already reads, and toggles
 // dispatch `feature-flag-changed` so mounted consumers update live.

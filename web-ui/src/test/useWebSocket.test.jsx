@@ -128,7 +128,7 @@ describe('useWebSocket', () => {
     expect(sent).toBe(true)
   })
 
-  it('does not send a bogus permessage-deflate subprotocol (S231)', async () => {
+  it('does not send a bogus permessage-deflate subprotocol', async () => {
     renderHook(() => useWebSocket('ws://localhost:8765'))
     await act(() => new Promise(r => setTimeout(r, 10)))
     // Second WebSocket ctor arg is SUBPROTOCOLS — the old code passed
@@ -136,7 +136,7 @@ describe('useWebSocket', () => {
     expect(mockInstances[0].protocols).toBeUndefined()
   })
 
-  it('caps retries when the server never connects (S231)', async () => {
+  it('caps retries when the server never connects', async () => {
     vi.useFakeTimers()
     try {
       // Every attempt closes immediately — the server is down.
@@ -162,7 +162,7 @@ describe('useWebSocket', () => {
     }
   })
 
-  it('manual disconnect does not auto-reconnect (S231)', async () => {
+  it('manual disconnect does not auto-reconnect', async () => {
     vi.useFakeTimers()
     try {
       const { result } = renderHook(() => useWebSocket('ws://localhost:8765'))
@@ -177,7 +177,7 @@ describe('useWebSocket', () => {
     }
   })
 
-  it('unmount does not spawn a ghost reconnect (S361)', async () => {
+  it('unmount does not spawn a ghost reconnect', async () => {
     vi.useFakeTimers()
     try {
       const { result, unmount } = renderHook(() => useWebSocket('ws://localhost:8765'))

@@ -4,7 +4,7 @@ import { FEATURE_FLAGS, isFlagEnabled, setFlag } from '../featureFlags'
 
 const CATEGORIES = ['core', 'ui', 'risk']
 
-// S232: every toggle writes the real key its consumer reads — no orphan blob.
+// every toggle writes the real key its consumer reads — no orphan blob.
 // Server-side strategy toggles (ml-ensemble, market-making, funding-arb,
 // circuit-breaker) were removed: they are backend config, not UI features.
 const FeatureFlags = memo(function FeatureFlags({ addToast }) {

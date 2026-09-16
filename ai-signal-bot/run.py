@@ -29,7 +29,7 @@ _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 # run_logger is intentionally untracked (gitignored) — absent in clean clones,
-# CI, and Docker build contexts. Guard like the simulator does (S207).
+# CI, and Docker build contexts. Guard like the simulator does.
 try:
     from run_logger import setup_run_logging
 except ImportError:
@@ -278,7 +278,7 @@ class AISignalBot:
             self.logger.info("Stopping...")
         finally:
             self._running = False
-            # The listen task may have been restarted after a crash (S291)
+            # The listen task may have been restarted after a crash
             if self._listen_task is not None:
                 self._listen_task.cancel()
                 self._background_tasks.discard(self._listen_task)
@@ -306,7 +306,7 @@ class AISignalBot:
             metrics = _metrics_of(self)
             if metrics is not None:
                 metrics.record_error()
-            # S291: a dead listener leaves the bot trading on frozen data with
+            # a dead listener leaves the bot trading on frozen data with
             # green health — restart it instead of staying dark forever.
             if task is self._listen_task and self._running:
                 self.logger.warning("Restarting listen task after crash")
@@ -618,7 +618,7 @@ class AISignalBot:
                         metrics.update_ws_status(
                             "exchange", getattr(self.exchange, "connected", False))
             except Exception as e:
-                # S291: non-IO exceptions (handler bugs) must not kill the
+                # non-IO exceptions (handler bugs) must not kill the
                 # listener permanently — log, reset the socket, keep going.
                 self.logger.error("Listen loop unexpected error: %s", e, exc_info=e)
                 metrics = _metrics_of(self)
@@ -678,7 +678,7 @@ class AISignalBot:
         account = self.exchange.accounts.get(self.config.default_exchange, {})
         positions = account.get("positions", [])
         await self.validator.update_position_count(len(positions))
-        # Feed the drawdown gate (S339): no realized-PnL path exists in prod,
+        # Feed the drawdown gate no realized-PnL path exists in prod,
         # so the validator accumulates equity deltas — cumulative daily equity
         # change (realized + unrealized). First call only sets the baseline.
         equity = account.get("equity", account.get("balance", 0.0))
@@ -716,7 +716,7 @@ class AISignalBot:
             if metrics is not None:
                 metrics.update_shm_buffer("signals", self._shm_producer.pending())
 
-        # Halt gates cover BOTH order paths (S338): sim trading-halt and the
+        # Halt gates cover BOTH order paths sim trading-halt and the
         # C++ kill-switch latch stop live orders too, not just paper ones.
         halted_by = ("kill-switch" if self._hft_kill_active
                      else None if self.exchange.is_trading_active else "trading stopped")
@@ -991,7 +991,7 @@ def main():
         logger.info("Backtest complete. Log file: %s", log_path)
         return
 
-    # S228: live mode needs ccxt (not in requirements — optional dep). Without
+    # live mode needs ccxt (not in requirements — optional dep). Without
     # it every signal fails with a per-signal RuntimeError while the bot looks
     # alive; refuse to start instead.
     if not config.paper_trading:

@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Shared per-order fill processing — reached from both single "fill" frames
-// and "fills_batch" order arrays (S393).
+// and "fills_batch" order arrays.
 void handle_fill_order(const json& o) {
     const std::string fside   = o.value("side", "");
     const std::string fsymbol = o.value("symbol", "");
@@ -15,10 +15,15 @@ void handle_fill_order(const json& o) {
     const double      fqty    = o.value("filled_quantity", 0.0);
     const double      fprice  = o.value("filled_price", 0.0);
     const double      ffee    = o.value("fee", 0.0);
-    spdlog::info("Order {}: {} {} {:.4f} @ {:.2f}", fstatus, fside, fsymbol, fqty, fprice);
+    // Foreign orders carry client_order_id: null — value() would throw.
+    const std::string fcid = (o.contains("client_order_id") && o["client_order_id"].is_string())
+                                 ? o["client_order_id"].get<std::string>()
+                                 : "";
+    spdlog::info("Order {}: {} {} {:.4f} @ {:.2f} id={}", fstatus, fside, fsymbol, fqty, fprice,
+                 fcid.empty() ? "-" : fcid);
     // Reconcile the local position book — fills are the exchange's
-    // source of truth (S179).
-    if (fill_cb_) fill_cb_(fsymbol, fside, fstatus, fqty, fprice, ffee);
+    // source of truth.
+    if (fill_cb_) fill_cb_(fsymbol, fside, fstatus, fqty, fprice, ffee, fcid);
     // Share the fill with the Python side over SHM (ipc.fills ring).
     if (fill_producer_) {
         const auto sid = symbol_id_impl(o.value("symbol", ""));
@@ -35,7 +40,7 @@ void handle_fill_order(const json& o) {
             f.price       = static_cast<float>(o.value("filled_price", 0.0));
             f.fee         = static_cast<float>(o.value("fee", 0.0));
             f.exchange_id = static_cast<uint8_t>(ipc::ExchangeId::SIMULATOR);
-            // S246: a full SHM ring silently dropped fills — count it.
+            // a full SHM ring silently dropped fills — count it.
             if (!fill_producer_->push_fill(f) && monitor_) {
                 monitor_->increment(SystemMonitor::Metric::SHM_DROPS);
             }
@@ -72,7 +77,7 @@ void handle_message_json(const json& data) {
         // Exchange-initiated terminal events (SL/TP closes, GTD expiry,
         // IOC/FOK no-fill cancels, ARB legs) arrive batched — without this
         // branch they were silently dropped, leaving ghost positions until
-        // the next account reconcile (S393).
+        // the next account reconcile.
         if (data.contains("orders") && data["orders"].is_array()) {
             for (const auto& o : data["orders"])
                 handle_fill_order(o);
@@ -104,7 +109,7 @@ void handle_message_json(const json& data) {
             order_cancelled_cb_(data["order"].value("symbol", ""), 1);
         }
     } else if (type == "orders_cancelled") {
-        // Cancel-all — the frame carries the real count (S396).
+        // Cancel-all — the frame carries the real count.
         if (order_cancelled_cb_)
             order_cancelled_cb_("", data.value("count", static_cast<int64_t>(0)));
     }
@@ -118,7 +123,7 @@ void handle_market_data(const json& data) {
 
     if (auto it = data.find("prices"); it != data.end()) update_prices(*it, data);
     // Account snapshot (balance/equity/positions) rides every broadcast — the
-    // exchange is the source of truth for account state (S180).
+    // exchange is the source of truth for account state.
     if (auto it = data.find("accounts"); it != data.end() && account_cb_) account_cb_(*it);
     if (data.find("orderbooks") != data.end()) update_orderbooks(data, data.value("timestamp", 0));
     if (data.find("orderbook_deltas") != data.end())
@@ -137,7 +142,7 @@ void update_prices(const json& prices_data, const json& /*full_data*/) {
     for (auto& [exchange, symbols] : prices_data.items()) {
         for (auto& [symbol, price] : symbols.items()) {
             // Key by venue+symbol — bare-symbol keys collapsed all three
-            // exchanges into one last-writer-wins slot (S252). Scratch key —
+            // exchanges into one last-writer-wins slot. Scratch key
             // no alloc per price update inside the lock.
             key_scratch_ = exchange;
             key_scratch_ += '|';
@@ -191,7 +196,7 @@ void update_orderbook_deltas(const json& data, int64_t timestamp) {
         std::string symbol   = delta_data.value("symbol", "");
         std::string exchange = delta_data.value("exchange", "");
         // Deltas must hit their own venue's book — a symbol-only lookup let a
-        // bybit delta mutate the binance book (S252). Scratch key — no alloc
+        // bybit delta mutate the binance book. Scratch key — no alloc
         // per delta inside the lock.
         key_scratch_ = exchange;
         key_scratch_ += '|';
@@ -248,7 +253,7 @@ void update_candles(const json& candles_data) {
             candle.symbol    = c.value("symbol", "");
             candle.exchange  = c.value("exchange", "");
             // Per-venue history — interleaved multi-exchange candles corrupt
-            // every EMA/RSI/OBI consumer (S252). Scratch key — no alloc per
+            // every EMA/RSI/OBI consumer. Scratch key — no alloc per
             // candle inside the lock.
             key_scratch_ = candle.exchange;
             key_scratch_ += '|';

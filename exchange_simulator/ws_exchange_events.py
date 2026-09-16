@@ -31,7 +31,7 @@ class ExchangeEventsMixin:
             batched_fills = []
             for order in closed_orders:
                 if order.status.value == "FILLED":
-                    # Reason is stamped on the order at trigger time (S349) —
+                    # Reason is stamped on the order at trigger time
                     # reading trade_history[-1] mislabeled every close in a
                     # batch and any fill that appended no trade.
                     close_reason = order.close_reason or ""

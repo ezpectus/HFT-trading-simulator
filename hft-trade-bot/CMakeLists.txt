@@ -551,7 +551,7 @@ target_link_libraries(test_doctest_hft_config PRIVATE yaml-cpp::yaml-cpp fmt::fm
 
 endif() # yaml+fmt+spdlog (hft_config)
 
-# SignalReceiver data-store doctest tests (multi-exchange keying, S252)
+# SignalReceiver data-store doctest tests (multi-exchange keying)
 # Also needs standalone asio + OpenSSL headers (TLS client path parses them even
 # when unused) — stays dark unless deps/{asio,openssl} are vendored.
 if(TARGET nlohmann_json::nlohmann_json AND TARGET spdlog::spdlog

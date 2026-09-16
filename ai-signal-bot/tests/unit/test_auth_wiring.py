@@ -1,4 +1,4 @@
-"""Tests for S116 auth wiring: SignalPublisher handshake, post-handshake
+"""Tests for auth wiring: SignalPublisher handshake, post-handshake
 auth ping, HealthServer Bearer middleware, and config token resolution."""
 import asyncio
 import json

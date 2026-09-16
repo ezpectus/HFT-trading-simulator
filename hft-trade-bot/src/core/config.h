@@ -152,7 +152,7 @@ struct Config {
     int    max_leverage{20};
 
     // risk.blacklisted_symbols / risk.per_symbol_max_qty (prod format) —
-    // enforced by RiskManager::Params; previously parseable nowhere (S240).
+    // enforced by RiskManager::Params; previously parseable nowhere.
     std::unordered_set<std::string>         blacklisted_symbols;
     std::unordered_map<std::string, double> per_symbol_max_qty;
 

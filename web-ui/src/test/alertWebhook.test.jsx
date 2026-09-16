@@ -69,7 +69,7 @@ describe('AlertWebhook', () => {
     expect(slTpBtn.className).toContain('accent-blue')
   })
 
-  it('dispatches fill events to enabled webhooks (S232)', () => {
+  it('dispatches fill events to enabled webhooks', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     try {
@@ -92,7 +92,7 @@ describe('AlertWebhook', () => {
     }
   })
 
-  it('classifies close_reason into sl_tp/liquidation events (S232)', () => {
+  it('classifies close_reason into sl_tp/liquidation events', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true })
     vi.stubGlobal('fetch', fetchMock)
     try {

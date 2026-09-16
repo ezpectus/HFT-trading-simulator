@@ -35,7 +35,7 @@ describe('useDetachedPanelSync', () => {
 
   it('only chart/orderbook can detach — other ids get no updates', () => {
     // account/signals/arbitrage/performance renderers were unreachable dead
-    // code (S235) — PANEL_CONFIG in useDetachablePanels holds only the two
+    // code — PANEL_CONFIG in useDetachablePanels holds only the two
     // wired ids, so the sync ignores the rest.
     const { props, updateDetached } = setup(['account', 'signals', 'arbitrage'])
     renderHook(() => useDetachedPanelSync(props))

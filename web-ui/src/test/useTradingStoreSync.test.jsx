@@ -51,7 +51,7 @@ describe('useTradingStoreSync', () => {
     expect(s.signals).toEqual([{ id: 's1' }])
   })
 
-  it('mirrors server-compute results into the store (S230)', () => {
+  it('mirrors server-compute results into the store', () => {
     renderHook(() => useTradingStoreSync(exchange, signals))
     const s = useTradingStore.getState()
     expect(s.portfolioResult).toEqual({ weights: { BTC: 0.6 } })

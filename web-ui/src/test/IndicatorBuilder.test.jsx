@@ -17,7 +17,7 @@ describe('IndicatorBuilder', () => {
     expect(screen.getByText('Bollinger')).toBeInTheDocument()
   })
 
-  it('reports computed indicators via effect, not during render (S365 regression)', async () => {
+  it('reports computed indicators via effect, not during render (regression)', async () => {
     const onChange = vi.fn()
     render(<IndicatorBuilder candles={CANDLES} onIndicatorsChange={onChange} />)
     // effect fires after mount with the empty computation

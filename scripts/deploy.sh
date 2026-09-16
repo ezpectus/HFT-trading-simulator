@@ -342,7 +342,7 @@ rollback() {
     fi
 
     # Restore AI bot data (signals/trades SQLite) — backed up every deploy,
-    # previously never restored (S297). Atomic swap: a merged old/new WAL pair
+    # previously never restored. Atomic swap: a merged old/new WAL pair
     # can corrupt the db.
     if [ -d "$BACKUP_DIR/database/ai_data_$TIMESTAMP" ]; then
         log_info "Restoring AI bot data..."

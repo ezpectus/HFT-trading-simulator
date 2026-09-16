@@ -10,7 +10,7 @@ import {
 /**
  * Mount-every-panel sweep. The e2e suite only exercises the default
  * dashboard — the ~270 lazy registry panels were never mounted in tests,
- * which is exactly where S365/S366-class defects hid (NaN SVG, render-phase
+ * which is exactly where -class defects hid (NaN SVG, render-phase
  * setState, orphaned chains). Each panel gets its own test so a crash is
  * attributed by panel id.
  */

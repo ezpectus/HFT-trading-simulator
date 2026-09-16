@@ -76,7 +76,7 @@ TEST_CASE("SystemMonitor: rejection_rate correct") {
     CHECK(sm.rejection_rate() == doctest::Approx(0.2));
 }
 
-TEST_CASE("SystemMonitor: risk rejects do not pollute rejection_rate (S395)") {
+TEST_CASE("SystemMonitor: risk rejects do not pollute rejection_rate ") {
     // Pre-trade gate rejections never reached the wire — counting them as
     // ORDERS_REJECTED let the rate exceed 1.0 (internal rejects / sent).
     SystemMonitor sm;
@@ -243,7 +243,7 @@ TEST_CASE("HealthStatus: format_json contains all fields") {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SystemMonitor — runtime gauges (S131)
+// SystemMonitor — runtime gauges
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("SystemMonitor: runtime gauges default to zero") {
     SystemMonitor sm;
@@ -306,7 +306,7 @@ TEST_CASE("SystemMonitor: latency histogram emits cumulative buckets") {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// LatencyHistogram — snapshot_buckets (S131)
+// LatencyHistogram — snapshot_buckets
 // ═══════════════════════════════════════════════════════════════════════════
 TEST_CASE("LatencyHistogram: snapshot_buckets is cumulative and carries totals") {
     LatencyHistogram h;

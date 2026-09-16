@@ -1598,7 +1598,9 @@ Docker daemon live (29.6.1). `docker compose up --wait` ran the full chain for t
 
 ### S394 — ORDERS_SENT/ORDERS_FILLED scope mismatch → fill_rate>100% (Med)
 - SENT incremented only on v2/AI/ARB paths; FILLED counted every fill incl. SL/TP + kill-switch closes (which never incremented SENT). Kill-switch's 14 market-closes → +14 fills / +0 sent. Added ORDERS_SENT increments on v1 fallback submit, SL/TP `close_position`, kill-switch `close_all`.
-- **Files:** `hft-trade-bot/src/core/bot_loop.cpp`, `bot_setup.cpp`.
+- **Deeper cause via live Docker:** even fully-counted send paths left fill_rate at 4.73 — the sim's auto-arb engine fills orders on the *same account* and broadcasts those fills over the shared connection; HFT counted them as its own. All HFT order paths now submit `client_order_id` (`hft_*` prefixes incl. close/arb/unwind); sim echoes cid in `to_dict()` (close-position propagates the request's cid). `FillCallback` carries cid; metrics count only `hft_`-prefixed ids — but `apply_fill` still sees every fill (shared account = real position changes).
+- **Files:** `hft-trade-bot/src/core/bot_loop.cpp`, `bot_setup.cpp`, `src/execution/order_executor.h`, `src/communication/signal_receiver{,_handlers}.h`, `exchange_simulator/ws_message_handler.py`.
+- **Live verify:** `fill_rate` 0.87–0.96, `errors_total` 0, foreign fills logged as `id=-`.
 
 ### S395 — ORDERS_REJECTED mixed internal + exchange scopes (Med)
 - Pre-trade risk-gate rejects (never wired) and exchange rejects shared one counter, divided by sent-only denominator → rate could exceed 1 and conflated two failure classes. Internal rejects moved to new `RISK_REJECTED` metric (counter + snapshot + JSON + `hft_risk_rejected_total` in Prometheus).
@@ -1607,3 +1609,8 @@ Docker daemon live (29.6.1). `docker compose up --wait` ran the full chain for t
 ### S396 — orders_cancelled batch undercounted (Low)
 - Cancel-all incremented ORDERS_CANCELED once regardless of the frame's `count`. `OrderCancelledCallback` now carries `(symbol, count)`; batch feeds the real value.
 - **Files:** `hft-trade-bot/src/communication/signal_receiver{,_handlers}.h`, `bot_setup.cpp`.
+
+### S397 — null client_order_id → type_error + dropped foreign fills (Med)
+- `o.value("client_order_id", "")` threw `json::type_error` when the key was present but `null` — sim auto-arb orders emit `client_order_id: None`. Live symptom: `errors_total` ~930 in 3 min and foreign fills dropped *before* `apply_fill` (position book missed real account activity). Null-safe extraction (`contains` + `is_string`); regression test feeds `client_order_id: null` and asserts the fill reaches `on_fill` with empty id. Audited every `.value()` read against `Order.to_dict()` — the other nullable fields (`price`, `rejection_reason`, `oco_group_id`, `expire_ts`) are not read by the receiver.
+- **Files:** `hft-trade-bot/src/communication/signal_receiver_handlers.h`, `tests/test_doctest_signal_receiver.cpp`.
+- **Live verify:** post-fix `errors_total` 0.

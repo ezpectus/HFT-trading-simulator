@@ -454,6 +454,9 @@ class MessageHandlerMixin:
                         quantity=pos.quantity,
                         force_close=True,
                     )
+                    # Echo the requester's client_order_id so the originator can
+                    # match this close fill to its own order stream.
+                    close_order.client_order_id = data.get("client_order_id")
                     fill_msg = json.dumps({"type": "fill", "order": close_order.to_dict()})
                     await self._broadcast_to_clients(fill_msg)
                     break

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { SAVED_KEY } from '../components/backtest/constants'
 
 /** Saved-backtest persistence + side-by-side comparison state.
- *  Extracted from BacktestRunner.jsx (S015). */
+ * Extracted from BacktestRunner.jsx. */
 /** Notify same-tab panels (e.g. BacktestComparison) that SAVED_KEY changed —
  *  the 'storage' event only fires across tabs. */
 const notifySavedChanged = () => window.dispatchEvent(new Event('saved-backtests-changed'))

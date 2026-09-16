@@ -15,7 +15,7 @@ namespace hft {
 
 class PositionManager {
   public:
-    // ── Order-level tracking (S179) ─────────────────────────────────────────
+    // ── Order-level tracking ─────────────────────────────────────────
     // Positions are booked only when the exchange reports FILLED — a send
     // ack is not a position. Resting LIMITs sit in pending_orders_ until
     // their fill (or rejection/cancel) arrives.
@@ -107,7 +107,7 @@ class PositionManager {
                 // The close fill's fee is realized here in the slice pnl, so
                 // it must NOT also land in fees_paid — update_pnl nets
                 // fees_paid off the remainder and would subtract it twice
-                // (S334).
+                //.
                 double pnl =
                     (it->is_long() ? (price - it->entry_price) : (it->entry_price - price)) *
                         filled_qty -
@@ -161,7 +161,7 @@ class PositionManager {
     // Reconcile against the exchange account broadcast: adopt positions the
     // exchange reports but we don't track (e.g. opened while disconnected)
     // and refresh qty/entry on tracked ones. Removals are batched in
-    // reconcile_positions() — call it once per broadcast (S335).
+    // reconcile_positions() — call it once per broadcast.
     void sync_position(const std::string& symbol, bool is_long, double qty, double entry_price,
                        double stop_loss, double take_profit, const std::string& exchange) {
         if (qty <= 0.0 || symbol.empty()) return;
@@ -190,7 +190,7 @@ class PositionManager {
     // account broadcast with the set of symbols it listed: a position absent
     // for SYNC_MISS_LIMIT consecutive broadcasts is a ghost — its close fill
     // was missed (disconnect gap, lost fills_batch) and it would block the
-    // symbol forever / fire close orders into nothing (S335). The miss
+    // symbol forever / fire close orders into nothing. The miss
     // counter keeps a just-filled position from flapping when the broadcast
     // snapshot predates its own fill. Returns the removed symbols so the
     // caller can log.
@@ -278,7 +278,7 @@ class PositionManager {
             double price = it->second;
 
             // Close order already in flight — don't refire. A stale mark
-            // (close never filled) expires and re-triggers (S248).
+            // (close never filled) expires and re-triggers.
             auto cm = closing_since_.find(pos.symbol);
             if (cm != closing_since_.end() && now - cm->second < CLOSE_RETRY) {
                 continue;
@@ -303,7 +303,7 @@ class PositionManager {
 
     // Mark a close order as sent for this symbol — the position stays on the
     // book until the real fill arrives and books PnL/fee at the actual price
-    // (S248). check_sl_tp suppresses re-triggers until the mark goes stale.
+    //. check_sl_tp suppresses re-triggers until the mark goes stale.
     void mark_closing(const std::string& symbol) {
         std::lock_guard<std::mutex> lock(mutex_);
         closing_since_[symbol] = std::chrono::steady_clock::now();
@@ -342,7 +342,7 @@ class PositionManager {
     std::unordered_map<std::string, PendingOrder> pending_orders_;
     // symbol → when its close order was sent (steady clock, for staleness)
     std::unordered_map<std::string, std::chrono::steady_clock::time_point> closing_since_;
-    // symbol → consecutive account broadcasts that did not list it (S335)
+    // symbol → consecutive account broadcasts that did not list it
     std::unordered_map<std::string, int>  sync_misses_;
     static constexpr std::chrono::seconds CLOSE_RETRY{10};
     static constexpr int                  SYNC_MISS_LIMIT{3};

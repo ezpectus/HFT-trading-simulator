@@ -67,7 +67,7 @@ def _closed_trade(symbol="BTC/USDT", pnl=250.0, fee=1.5, closed_at=1700):
 
 
 class TestIngestClosedTrades:
-    """S342: closed-trade ingestion from the sim's authoritative trade_history."""
+    """closed-trade ingestion from the sim's authoritative trade_history."""
 
     def test_first_sight_only_arms_cursor(self):
         """Existing history must not replay — stats are session-scoped."""
@@ -154,7 +154,7 @@ _NEWS = {"symbol": "BTC/USDT", "intensity": 6, "direction": "up",
 
 
 class TestRouteNewsEvent:
-    """S343: sim news_event → SentimentStrategy.on_news_event."""
+    """sim news_event → SentimentStrategy.on_news_event."""
 
     def test_event_converted_and_routed(self):
         from src.strategies.sentiment import SentimentStrategy
@@ -200,7 +200,7 @@ class TestRouteNewsEvent:
 
 
 class TestSyncMMInventory:
-    """S343: position deltas → MarketMakingStrategy.on_fill."""
+    """position deltas → MarketMakingStrategy.on_fill."""
 
     def _mm(self):
         from src.strategies.market_making import MarketMakingStrategy

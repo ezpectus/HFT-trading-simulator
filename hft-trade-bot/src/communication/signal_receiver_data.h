@@ -28,7 +28,7 @@ class SignalReceiverData {
 
     // The wire protocol qualifies every market datum with its exchange
     // ("binance|BTC/USDT" orderbook keys, nested prices, candle.exchange).
-    // Symbol-only keys merged all three venues into one corrupt series (S252).
+    // Symbol-only keys merged all three venues into one corrupt series.
     static std::string book_key(const std::string& ex, const std::string& sym) {
         return ex.empty() ? sym : ex + "|" + sym;
     }
@@ -190,7 +190,7 @@ class SignalReceiverData {
 
     // Consumers (pos_mgr SL/TP, PnL) key by bare symbol — project only the
     // primary venue's prices back onto bare symbols so one exchange's tick
-    // can't move a position opened on another (S252).
+    // can't move a position opened on another.
     size_t get_all_prices_into_impl(std::unordered_map<std::string, double>& out) const {
         std::lock_guard<Spinlock> lock(data_lock_);
         out.clear();

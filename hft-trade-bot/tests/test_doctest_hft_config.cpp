@@ -126,9 +126,9 @@ risk:
         std::filesystem::remove(path);
     }
 
-    // S240: prod-format risk.blacklisted_symbols / per_symbol_max_qty were
+    // prod-format risk.blacklisted_symbols / per_symbol_max_qty were
     // documented in config.prod.yaml but parsed nowhere.
-    TEST_CASE("Config: prod risk blacklist + per-symbol qty parse (S240)") {
+    TEST_CASE("Config: prod risk blacklist + per-symbol qty parse ") {
         std::string path = "test_config_s240_risk.yaml";
         {
             std::ofstream f(path);
@@ -153,10 +153,10 @@ risk:
         std::filesystem::remove(path);
     }
 
-    // S240: pressure_model.toxicity_threshold was miswired into
+    // pressure_model.toxicity_threshold was miswired into
     // v2_pressure_threshold — it gates the adaptive selector's toxic->IOC
     // branch instead.
-    TEST_CASE("Config: toxicity_threshold maps to adaptive selector (S240)") {
+    TEST_CASE("Config: toxicity_threshold maps to adaptive selector ") {
         std::string path = "test_config_s240_toxic.yaml";
         {
             std::ofstream f(path);
@@ -177,9 +177,9 @@ pressure_model:
         std::filesystem::remove(path);
     }
 
-    // S251: validation must be able to FAIL — the old warn-only validator let
+    // validation must be able to FAIL — the old warn-only validator let
     // every misconfig through, including the percent-vs-fraction drawdown mine.
-    TEST_CASE("Config: validation throws on impossible values (S251)") {
+    TEST_CASE("Config: validation throws on impossible values ") {
         std::string path = "test_config_s251_invalid.yaml";
         {
             std::ofstream f(path);
@@ -196,7 +196,7 @@ risk:
         std::filesystem::remove(path);
     }
 
-    TEST_CASE("Config: percent-scale value in the fraction key fails (S251)") {
+    TEST_CASE("Config: percent-scale value in the fraction key fails ") {
         // max_drawdown_pct is a fraction — 8.0 (percent-thinking) can never trip.
         std::string path = "test_config_s251_unit.yaml";
         {
@@ -214,7 +214,7 @@ risk:
         std::filesystem::remove(path);
     }
 
-    TEST_CASE("Config: missing ws_url fails validation (S251)") {
+    TEST_CASE("Config: missing ws_url fails validation ") {
         std::string path = "test_config_s251_nows.yaml";
         {
             std::ofstream f(path);

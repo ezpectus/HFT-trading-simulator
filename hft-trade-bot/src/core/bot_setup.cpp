@@ -223,7 +223,7 @@ void init_kill_switch(BotContext& ctx) {
         for (const auto& pos : positions) {
             if (ctx.executor->close_position(pos.symbol)) {
                 ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_SENT);
-                // Fill books PnL at the real price — just mark closing (S248).
+                // Fill books PnL at the real price — just mark closing.
                 ctx.pos_mgr.mark_closing(pos.symbol);
             } else {
                 spdlog::error("KILL SWITCH: close request not sent for {} — position still open "
@@ -247,7 +247,7 @@ void init_monitoring(BotContext& ctx) {
     ctx.health_server = std::make_unique<HealthServer>(
         ctx.config.metrics_port, ctx.config.metrics_host, ctx.config.metrics_enabled);
     ctx.health_server->start(&ctx.sys_monitor);
-    // S246: reconnect/staleness counters live inside the sockets — hand them
+    // reconnect/staleness counters live inside the sockets — hand them
     // the monitor so hft_reconnects_total/hft_heartbeats_missed_total move.
     if (ctx.receiver) ctx.receiver->set_monitor(&ctx.sys_monitor);
     if (ctx.ai_signal_receiver) ctx.ai_signal_receiver->set_monitor(&ctx.sys_monitor);
@@ -345,12 +345,16 @@ void init_callbacks(BotContext& ctx) {
         ctx.has_arb_opportunity = true;
     });
     // Fills are the exchange's source of truth — reconcile the position book
-    // and feed the risk trackers from them (S178/S179).
+    // and feed the risk trackers from them. Metrics only count fills from
+    // orders this bot submitted ("hft_" prefix) — the simulator also executes
+    // its own auto-arb orders on the same account and broadcasts those fills.
     ctx.receiver->on_fill([&](const std::string& sym, const std::string& side,
-                              const std::string& status, double qty, double price, double fee) {
-        auto res = ctx.pos_mgr.apply_fill(sym, side, qty, price, fee, status);
+                              const std::string& status, double qty, double price, double fee,
+                              const std::string& cid) {
+        const bool own_order = cid.rfind("hft_", 0) == 0;
+        auto       res       = ctx.pos_mgr.apply_fill(sym, side, qty, price, fee, status);
         if (status == "FILLED") {
-            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_FILLED);
+            if (own_order) ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_FILLED);
             ctx.last_fill_ms.store(std::chrono::duration_cast<std::chrono::milliseconds>(
                                        std::chrono::system_clock::now().time_since_epoch())
                                        .count(),
@@ -370,13 +374,13 @@ void init_callbacks(BotContext& ctx) {
                              res.realized_pnl);
             }
         } else if (status == "CANCELLED") {
-            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED);
+            if (own_order) ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED);
         } else if (status == "REJECTED") {
-            ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
+            if (own_order) ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_REJECTED);
         }
     });
     // Account broadcast is the authoritative balance — the hardcoded seed is
-    // only a pre-connect placeholder (S180). Also reconciles exchange-side
+    // only a pre-connect placeholder. Also reconciles exchange-side
     // positions into the local book.
     ctx.receiver->on_account([&](const json& accounts) {
         auto it = accounts.find(ctx.config.default_exchange);
@@ -405,7 +409,7 @@ void init_callbacks(BotContext& ctx) {
     // be traded again.
     ctx.receiver->on_order_cancelled([&](const std::string& sym, int64_t count) {
         // A single cancel reports count=1; cancel-all reports the frame's
-        // order count (S396) — fall back to 1 if the field is missing.
+        // order count — fall back to 1 if the field is missing.
         ctx.sys_monitor.increment(SystemMonitor::Metric::ORDERS_CANCELED, count > 0 ? count : 1);
         if (sym.empty())
             ctx.pos_mgr.clear_pending_orders();

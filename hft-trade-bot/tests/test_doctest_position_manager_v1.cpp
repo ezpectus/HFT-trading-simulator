@@ -49,7 +49,7 @@ static Signal make_neutral_signal(std::string symbol = "BTC/USDT") {
     return s;
 }
 
-// Books a position the way prod does (S179): register the pending order,
+// Books a position the way prod does register the pending order,
 // then apply its FILLED ack. open_position() was removed — it bypassed the
 // fill path and its same-symbol overwrite branch silently dropped PnL.
 static void open_via_fill(PositionManager& pm, const Signal& sig, double qty,
@@ -253,9 +253,9 @@ TEST_CASE("check_sl_tp multiple positions multiple triggers") {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// S334 — partial-close fee must be realized once, not netted twice
+// — partial-close fee must be realized once, not netted twice
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("Partial close realizes fee once, not twice (S334)") {
+TEST_CASE("Partial close realizes fee once, not twice ") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
 
@@ -278,9 +278,9 @@ TEST_CASE("Partial close realizes fee once, not twice (S334)") {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// S335 — ghosts: local positions absent from the account broadcast age out
+// — ghosts: local positions absent from the account broadcast age out
 // ═══════════════════════════════════════════════════════════════════════════
-TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses (S335)") {
+TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses ") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> empty;
@@ -297,7 +297,7 @@ TEST_CASE("reconcile_positions drops ghost after SYNC_MISS_LIMIT misses (S335)")
     CHECK(pm.position_count() == 0);
 }
 
-TEST_CASE("reconcile_positions keeps symbols present in the broadcast (S335)") {
+TEST_CASE("reconcile_positions keeps symbols present in the broadcast ") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> seen = {"BTC/USDT"};
@@ -307,7 +307,7 @@ TEST_CASE("reconcile_positions keeps symbols present in the broadcast (S335)") {
     CHECK(pm.has_position("BTC/USDT"));
 }
 
-TEST_CASE("reconcile_positions resets the miss counter on reappearance (S335)") {
+TEST_CASE("reconcile_positions resets the miss counter on reappearance ") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal(), 1.0, "binance");
     const std::unordered_set<std::string> empty;
@@ -323,7 +323,7 @@ TEST_CASE("reconcile_positions resets the miss counter on reappearance (S335)") 
     REQUIRE(removed.size() == 1);
 }
 
-TEST_CASE("reconcile_positions only touches the broadcast's exchange (S335)") {
+TEST_CASE("reconcile_positions only touches the broadcast's exchange ") {
     PositionManager pm;
     open_via_fill(pm, make_short_signal("ETH/USDT"), 2.0, "okx");
     const std::unordered_set<std::string> empty;
@@ -344,7 +344,7 @@ TEST_CASE("sync_position adopts broadcast-only positions and refreshes tracked")
     CHECK(positions[0].entry_price == doctest::Approx(50100.0));
 }
 
-TEST_CASE("total_realized_pnl accumulates on close (S131)") {
+TEST_CASE("total_realized_pnl accumulates on close ") {
     PositionManager pm;
     open_via_fill(pm, make_long_signal("BTC/USDT"), 1.0, "binance");
     CHECK(pm.total_realized_pnl() == doctest::Approx(0.0));

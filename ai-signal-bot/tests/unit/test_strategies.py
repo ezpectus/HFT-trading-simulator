@@ -55,7 +55,7 @@ class TestSignal:
         assert d["symbol"] == "BTC"
         assert d["direction"] == "LONG"
 
-    # Ported from legacy tests/test_strategies.py (S268) — NEUTRAL rr_ratio
+    # Ported from legacy tests/test_strategies.py — NEUTRAL rr_ratio
     # was only covered there.
     def test_rr_ratio_neutral(self):
         s = Signal("BTC", SignalDirection.NEUTRAL, 0, "test", 0, 0, 0)
@@ -75,7 +75,7 @@ class TestTrendFollowing:
         assert signal.strategy == "trend_following"
         assert signal.symbol == "BTCUSDT"
 
-    # Directional coverage ported from legacy tests/test_strategies.py (S268).
+    # Directional coverage ported from legacy tests/test_strategies.py.
     def test_uptrend_generates_long(self):
         closes = [100 + i * 0.5 for i in range(50)]
         candles = [{"timestamp": 1704067200 + i * 300,
@@ -103,7 +103,7 @@ class TestMeanReversion:
         signal = strat.analyze("BTCUSDT", make_candles(5))
         assert signal.direction == SignalDirection.NEUTRAL
 
-    # Ported from legacy tests/test_strategies.py (S268).
+    # Ported from legacy tests/test_strategies.py.
     def test_oversold_generates_long(self):
         closes = [100 - i for i in range(25)]
         candles = [{"timestamp": 1704067200 + i * 300,

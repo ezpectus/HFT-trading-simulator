@@ -195,7 +195,7 @@ describe('IS_MOCK', () => {
 })
 
 // Contract: mock hooks must return every key the real hooks return —
-// a missing key crashes mock-mode consumers on `undefined` (S237).
+// a missing key crashes mock-mode consumers on `undefined`.
 describe('mock/real shape parity', () => {
   const REAL_EXCHANGE_KEYS = [
     'candles', 'prices', 'accounts', 'arbitrage', 'fills', 'auditLogs',

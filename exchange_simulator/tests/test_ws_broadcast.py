@@ -125,7 +125,7 @@ class TestAuditDrainBroadcast:
 
 
 class TestNegotiatedEncodingBroadcast:
-    """S212: broadcast must send TEXT frames to JSON clients and binary
+    """broadcast must send TEXT frames to JSON clients and binary
     frames to msgpack clients — never orjson bytes to a JSON client (clients
     discriminate on frame type and would parse bytes as msgpack)."""
 

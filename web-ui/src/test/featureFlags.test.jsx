@@ -8,7 +8,7 @@ describe('FeatureFlags', () => {
     localStorage.clear()
   })
 
-  it('renders only real, wireable flags (S232)', () => {
+  it('renders only real, wireable flags', () => {
     render(<FeatureFlags addToast={vi.fn()} />)
     expect(screen.getByText('Feature Flags')).toBeInTheDocument()
     expect(screen.getByText('Mock Mode')).toBeInTheDocument()

@@ -82,7 +82,7 @@ export default memo(function AlertWebhook({ fills, toasts }) {
     }
   }
 
-  // ---- S232: real dispatcher — fills/toasts were accepted and ignored ----
+  // ---- real dispatcher — fills/toasts were accepted and ignored ----
   const webhooksRef = useRef([])
   webhooksRef.current = webhooks
 

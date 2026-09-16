@@ -134,7 +134,7 @@ class TestBroadcastSignal:
 
     @pytest.mark.asyncio
     async def test_breaker_trip_reaches_metrics(self, publisher):
-        """S344: CLOSED→OPEN transition increments the trips counter."""
+        """CLOSED→OPEN transition increments the trips counter."""
         for _ in range(5):  # default failure_threshold
             await publisher.circuit_breaker.record_failure()
         assert publisher.circuit_breaker.state == BreakerState.OPEN
@@ -143,7 +143,7 @@ class TestBroadcastSignal:
 
     @pytest.mark.asyncio
     async def test_state_gauge_updates_with_zero_clients(self, publisher):
-        """S344: the gauge must track the breaker even when no client is
+        """the gauge must track the breaker even when no client is
         connected — previously it stayed stale past the clients gate."""
         publisher._running = True
         for _ in range(5):  # trip for real so _opened_at is fresh

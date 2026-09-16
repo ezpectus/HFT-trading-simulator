@@ -29,7 +29,7 @@ export function useSignalData(options = {}) {
 
   // Pure store-and-forget result messages — setState functions are stable,
   // so a ref'd map replaces the nine identical `case 'x_result': setX(data)`
-  // branches (S327). 'backtest_result' stays in the switch: it also fires
+  // branches. 'backtest_result' stays in the switch: it also fires
   // the onBacktestResult callback.
   const resultSetters = useRef({
     comparison_result: setBacktestResult,

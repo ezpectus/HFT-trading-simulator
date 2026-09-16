@@ -258,7 +258,7 @@ class SimulatorAdapter:
         return msg["order"]
 
     async def cancel_order(self, order_id: str, symbol: str) -> bool:
-        # Protocol gained cancel_order in the S148 fix — the reply carries
+        # Protocol gained cancel_order in the fix — the reply carries
         # the cancelled order dict, matched by order_id.
         if self._ws is None or not self._connected:
             return False

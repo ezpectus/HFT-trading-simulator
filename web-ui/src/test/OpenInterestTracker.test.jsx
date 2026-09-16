@@ -20,7 +20,7 @@ describe('OpenInterestTracker', () => {
     expect(screen.getByText('Not enough data')).toBeInTheDocument()
   })
 
-  it('renders OI estimate + divergence without crashing (S365 regression)', () => {
+  it('renders OI estimate + divergence without crashing (regression)', () => {
     const { container } = render(
       <OpenInterestTracker candles={CANDLES} fills={[]} symbol="BTC/USDT" exchange="binance" />
     )

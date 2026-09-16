@@ -31,7 +31,7 @@ class TestBacktesterInit:
     def test_defaults(self):
         bt = Backtester()
         assert bt.initial_balance == 10000.0
-        # Defaults track the simulator's binance venue (S172 alignment)
+        # Defaults track the simulator's binance venue (alignment)
         assert bt.fee_pct == 0.04
         assert bt.slippage_bps == 2.0
         assert bt.leverage == 1
@@ -90,7 +90,7 @@ class TestBacktesterRun:
         assert result.signals_generated <= 10
 
     def test_no_lookahead_window_excludes_fill_bar(self):
-        """S329: analyze() must see only bars closed BEFORE the fill bar.
+        """analyze() must see only bars closed BEFORE the fill bar.
 
         Loop index i fills at candles[i].close — the strategy window must
         end at candles[i-1], never include candles[i] itself.

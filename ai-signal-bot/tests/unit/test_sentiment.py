@@ -64,7 +64,7 @@ class TestSentimentStrategy:
         assert strategy.event_count == 0
 
     def test_on_news_event_preserves_prescored_sentiment(self, strategy):
-        """S343: untyped events keep their provided sentiment — the map has
+        """untyped events keep their provided sentiment — the map has
         no opinion for UNKNOWN, so a pre-scored feed (sim direction+
         intensity) must not be flattened to zero."""
         from src.strategies.sentiment import EventType, NewsEvent

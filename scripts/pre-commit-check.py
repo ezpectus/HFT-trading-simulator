@@ -215,7 +215,7 @@ def check_tsc(files: list[str] | None = None) -> CheckResult:
     """Type-check web-ui .ts sources (tsconfig strict + noEmit).
 
     eslint only covers **/*.{js,jsx} — the .ts files were outside every static
-    check (S269). tsc is project-scoped; in staged mode it still checks all of
+    check. tsc is project-scoped; in staged mode it still checks all of
     src/ because single-file type-checking isn't sound.
     """
     cwd = PROJECT_ROOT / COMPONENT_JS

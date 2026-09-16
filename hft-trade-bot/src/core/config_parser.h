@@ -138,7 +138,7 @@ inline void parse_v2_dev(Config& cfg, const YAML::Node& root) {
     }
 }
 
-// signal_engine_v3 — shared by dev and prod parse paths (S245: the block was
+// signal_engine_v3 — shared by dev and prod parse paths (the block was
 // flag-only; the 7 Params tunables were unreachable hardcoded defaults).
 inline void parse_v3_section(Config& cfg, const YAML::Node& v3) {
     if (v3["enabled"]) cfg.signal_engine_v3_enabled = v3["enabled"].as<bool>();
@@ -309,7 +309,7 @@ inline void parse_prod_risk(Config& cfg, const YAML::Node& root) {
                 cfg.per_symbol_max_qty[kv.first.as<std::string>()] = kv.second.as<double>();
         }
         // kill_switch is configured under `ipc.kill_switch` only — a second
-        // block here would shadow the env-aware trigger_file (S196).
+        // block here would shadow the env-aware trigger_file.
     }
 }
 
@@ -317,7 +317,7 @@ inline void parse_prod_extras(Config& cfg, const YAML::Node& root) {
     if (auto pm = root["pressure_model"]) {
         if (pm["enabled"]) cfg.pressure_model_enabled = pm["enabled"].as<bool>();
         // toxicity_threshold is the SCORE gate — it belongs to the adaptive
-        // selector's toxic→IOC branch, not V2's pressure normalizer (S240).
+        // selector's toxic→IOC branch, not V2's pressure normalizer.
         if (pm["toxicity_threshold"])
             cfg.adaptive_toxic_threshold = pm["toxicity_threshold"].as<double>();
         if (pm["toxic_size_threshold"])

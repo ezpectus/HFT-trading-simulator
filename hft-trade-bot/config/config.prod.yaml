@@ -7,7 +7,7 @@
 #   - Health/metrics endpoint (port below)
 #
 # NOTE: the bot dials only exchange.simulator_ws_url — there are no
-# real-exchange adapters (removed in S059), and no database/redis code.
+# real-exchange adapters (removed in), and no database/redis code.
 #
 # API keys are read from environment variables (${VAR} syntax).
 # Never hardcode API keys in this file.
@@ -60,7 +60,7 @@ ipc:
 # ── AI Signal Bot ──
 # Prod receives ai-bot signals over SHM (ipc.signals above) — the WS receiver
 # would dial ai_signal_ws_url (default localhost:8766 = this container's own
-# loopback) for nothing on every start (S240).
+# loopback) for nothing on every start.
 ai_signal_bot:
   enabled: false
 

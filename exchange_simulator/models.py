@@ -12,7 +12,7 @@ def round_price(price: float) -> float:
     Dollar-scale assets get the conventional 2-decimal tick; sub-dollar
     assets keep up to 8 decimals so sub-cent prices (e.g. a $0.00002
     memecoin) don't collapse to 0.00 — zero fill prices produced
-    zero-notional positions and broken PnL (S333).
+    zero-notional positions and broken PnL.
     """
     return round(price, 2) if price >= 1.0 else round(price, 8)
 
@@ -142,7 +142,7 @@ class Order:
     time_in_force: str = "GTC"          # GTC | IOC | FOK | GTD — LIMIT only
     expire_ts: float | None = None      # Unix seconds; GTD orders cancel at this time
     post_only: bool = False             # LIMIT only — reject if immediately marketable
-    close_reason: str = ""              # Set on triggered closes (S349): STOP_LOSS | TAKE_PROFIT | LIQUIDATION | PARTIAL_LIQUIDATION
+    close_reason: str = "" # Set on triggered closes STOP_LOSS | TAKE_PROFIT | LIQUIDATION | PARTIAL_LIQUIDATION
     timestamp: int = field(default_factory=lambda: int(time.time()))
 
     def __setattr__(self, name, value):
@@ -411,7 +411,7 @@ class ClosedTrade:
     fee: float
     reason: str  # "STOP_LOSS" | "TAKE_PROFIT" | "MANUAL"
     opened_at: int
-    order_id: str = ""  # Close order that produced this trade (S349 — reason joins by id, not list position)
+    order_id: str = "" # Close order that produced this trade ( — reason joins by id, not list position)
     closed_at: int = field(default_factory=lambda: int(time.time()))
 
     def to_dict(self) -> dict:

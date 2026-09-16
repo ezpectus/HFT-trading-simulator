@@ -1,4 +1,4 @@
-"""Tests for time-in-force / post-only / GTD-expiry order semantics (S154)."""
+"""Tests for time-in-force / post-only / GTD-expiry order semantics."""
 from unittest.mock import MagicMock
 
 import pytest

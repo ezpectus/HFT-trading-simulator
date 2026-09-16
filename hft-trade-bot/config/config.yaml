@@ -72,7 +72,7 @@ trading:
 
 exchange:
   # Dev default — compose/k8s inject service DNS via env; ${VAR:-default}
-  # keeps native `localhost` when unset (S210).
+  # keeps native `localhost` when unset.
   websocket_url: "${HFT_EXCHANGE_WS_URL:-ws://localhost:8765}"
   default_exchange: "binance"   # binance | bybit | okx
 

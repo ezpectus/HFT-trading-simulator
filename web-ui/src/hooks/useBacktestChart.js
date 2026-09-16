@@ -4,7 +4,7 @@ import { COLORS } from '../components/backtest/constants'
 
 /** Equity-curve chart lifecycle: create once, resize via ResizeObserver,
  *  sync line series when `result` changes. Extracted from
- *  BacktestRunner.jsx (S015). Returns the container ref to attach. */
+ * BacktestRunner.jsx. Returns the container ref to attach. */
 export function useBacktestChart(result) {
   const chartContainerRef = useRef(null)
   const chartRef = useRef(null)

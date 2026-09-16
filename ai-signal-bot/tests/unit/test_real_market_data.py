@@ -342,7 +342,7 @@ class _FakeWs:
 
 
 class TestMalformedMessages:
-    """S013: one malformed WS message must not kill the feed loop."""
+    """one malformed WS message must not kill the feed loop."""
 
     @pytest.mark.asyncio
     async def test_binance_drops_malformed_and_continues(self):

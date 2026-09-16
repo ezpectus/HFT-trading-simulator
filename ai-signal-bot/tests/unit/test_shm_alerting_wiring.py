@@ -1,4 +1,4 @@
-"""Contract tests for S125 wiring: SHM channel + AlertSystem in run.py,
+"""Contract tests for wiring: SHM channel + AlertSystem in run.py,
 ws_client funding storage, and the analysis WS endpoints end-to-end."""
 import asyncio
 import json
@@ -146,7 +146,7 @@ class TestShmChannel:
 
     @pytest.mark.asyncio
     async def test_finalize_blocked_by_breaker_skips_shm_and_order(self):
-        """S337: breaker-blocked signal must not reach SHM push or order execution."""
+        """breaker-blocked signal must not reach SHM push or order execution."""
         producer = MagicMock()
         bot = SimpleNamespace(
             logger=logging.getLogger("t"),
@@ -174,7 +174,7 @@ class TestShmChannel:
 
     @pytest.mark.asyncio
     async def test_finalize_skips_shm_push_when_kill_active(self):
-        """S132: kill-switch latch gates signal pushes to the dead hft bot."""
+        """kill-switch latch gates signal pushes to the dead hft bot."""
         producer = MagicMock()
         bot = SimpleNamespace(
             logger=logging.getLogger("t"),

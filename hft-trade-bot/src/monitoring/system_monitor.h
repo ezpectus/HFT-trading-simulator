@@ -33,11 +33,11 @@ class SystemMonitor {
         ERRORS            = 6,
         RECONNECTS        = 7,
         SHM_DROPS         = 8,
-        // HEARTBEATS_SENT removed (S246): the bot never initiates heartbeats —
+        // HEARTBEATS_SENT removed the bot never initiates heartbeats
         // it only auto-pongs — so no honest increment site exists. MISSED is
         // real: the feed watchdog trips when the expected broadcast goes silent.
         HEARTBEATS_MISSED = 9,
-        // Pre-trade risk-gate rejections (S395) — internal, never reached the
+        // Pre-trade risk-gate rejections — internal, never reached the
         // wire. ORDERS_REJECTED is exchange-side only; mixing the two made
         // rejection_rate compare different populations against ORDERS_SENT.
         RISK_REJECTED = 10,

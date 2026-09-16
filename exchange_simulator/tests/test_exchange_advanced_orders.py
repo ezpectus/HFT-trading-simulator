@@ -89,7 +89,7 @@ class TestCancelOrder:
 
 
 class TestCheckIcebergOrders:
-    """S330 — priced icebergs rest like limits; slice bookkeeping is live."""
+    """ — priced icebergs rest like limits; slice bookkeeping is live."""
 
     def test_priced_iceberg_does_not_fill_when_not_marketable(self):
         ex = make_exchange(50000)

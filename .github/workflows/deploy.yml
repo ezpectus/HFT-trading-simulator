@@ -93,7 +93,7 @@ jobs:
           # web-ui needs VITE_WS_* + VITE_*_TOKEN build args (inlined into the
           # bundle at build time). Other services ignore these args. Without
           # the tokens the deployed UI gets auth_failed on every control
-          # command (S155 requires EXCHANGE_CONTROL_TOKEN in prod).
+          # command (EXCHANGE_CONTROL_TOKEN is required in prod).
           build-args: |
             VITE_WS_EXCHANGE=${{ vars.VITE_WS_EXCHANGE }}
             VITE_WS_SIGNALS=${{ vars.VITE_WS_SIGNALS }}
@@ -174,7 +174,7 @@ jobs:
     if: always()
     env:
       # secrets.* isn't allowed in step `if:` — hoist to env so the gates
-      # actually see the values (S264: vars.* gates never opened).
+      # actually see the values (vars.* gates never opened).
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     steps:
