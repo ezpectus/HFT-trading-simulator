@@ -1,7 +1,7 @@
 # ── Build stage: compile with full toolchain ──
 # Builder and runtime use the SAME Debian release (bookworm) to avoid ABI
 # mismatches between libfmt/spdlog/yaml-cpp/boost versions across stages.
-FROM gcc:14-bookworm AS builder
+FROM gcc:15-bookworm AS builder
 
 WORKDIR /app
 
