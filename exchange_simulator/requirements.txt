@@ -1,9 +1,9 @@
 # Exchange Simulator — Requirements
-websockets==13.1
-pyyaml==6.0.2
+websockets==17.1
+pyyaml==6.0.3
 aiohttp==3.14.3
-msgpack==1.2.1
-orjson==3.11.6
+msgpack==1.2.2
+orjson==3.12.0
 
 # Test dependencies (pip install -r requirements.txt -r requirements-dev.txt)
 # pytest==8.3.4
