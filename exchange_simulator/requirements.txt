@@ -2,7 +2,7 @@
 websockets==13.1
 pyyaml==6.0.2
 aiohttp==3.14.3
-msgpack==1.2.1
+msgpack==1.2.3
 orjson==3.11.6
 
 # Test dependencies (pip install -r requirements.txt -r requirements-dev.txt)
